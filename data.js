@@ -75,6 +75,7 @@
     B.adminFeedback = (all) => rpcOrThrow("admin_feedback", { p_all: !!all });
     B.adminFeedbackSet = (id, done, del) => rpcOrThrow("admin_feedback_set", { p_id: id, p_done: !!done, p_delete: !!del });
     B.adminReply = (id, body) => rpcOrThrow("admin_reply", { p_id: id, p_body: body });
+    B.unsend = (id) => rpcOrThrow("unsend_message", { p_id: id });
     B.myFeedback = () => rpcOrThrow("my_feedback");
     B.touch = async () => { try { await sb.rpc("touch_me"); } catch (e) {} };
     // 刪除整個小窩（兩個人的聊天、遊戲紀錄、記事全部刪掉，救不回來）
@@ -246,6 +247,7 @@
     B.adminFeedback = async (all) => call("adminFeedback", { all });
     B.adminFeedbackSet = async (id, done, del) => call("adminFeedbackSet", { id, done, del });
     B.adminReply = async (id, body) => call("adminReply", { id, body });
+    B.unsend = async (id) => call("unsend", { id });
     B.myFeedback = async () => call("myFeedback");
     B.touch = async () => {};
     B.deleteNest = async () => call("delnest", { cid: B.coupleId });

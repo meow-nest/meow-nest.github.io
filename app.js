@@ -1311,7 +1311,14 @@ const App = (function(){
       <button class="btn ${pinned?"sub":""}" id="mmPin" style="width:100%"><span class="h3i">${icon("pin")}</span> ${pinned?"取消置頂":"置頂這則訊息"}</button>
       ${isVoice ? (saved ? `<button class="btn sub" id="vmUn" style="width:100%;margin-top:8px">取消儲存語音（24 小時後消失）</button>` : `<button class="btn" id="vmSave" style="width:100%;margin-top:8px"><span class="h3i">${icon("star")}</span> 儲存這段語音</button>`) : ""}
       ${canCopy ? `<button class="btn sub" id="mmCopy" style="width:100%;margin-top:8px">複製文字</button>` : ""}
+      ${m.sender===me.uid && /^(text|sticker|poke|letter|image|voice)$/.test(m.kind) ? `<button class="btn sub mmUnsend" id="mmDel" style="width:100%;margin-top:8px">🗑 收回這則訊息</button>` : ""}
       <button class="btn sub" id="vmX" style="width:100%;margin-top:8px">關閉</button>`);
+    const md = o.querySelector("#mmDel"); if(md) md.addEventListener("click", async ()=>{
+      if(md.dataset.arm !== "1"){ md.dataset.arm = "1"; md.textContent = `再按一次，${partner() ? pw()+"那邊也會一起消失" : "確定收回"}`; return; }
+      md.disabled = true; md.textContent = "收回中…";
+      try{ await B.unsend(m.id); o.remove(); if(pinned) togglePin(m, false); dropMsg(m.id); ctx.broadcast({ g:"msgdel", id: m.id }); SFX.tap(); toast("訊息收回了"); }
+      catch(e){ console.error(e); md.disabled = false; md.dataset.arm = ""; md.textContent = "🗑 收回這則訊息"; toast(/unsend|function/i.test(String(e.message||e)) ? "網站還沒設定好收回功能" : "收回失敗，請檢查網路再試一次", 4000); }
+    });
     o.querySelector("#mmPin").addEventListener("click", ()=>{ o.remove(); togglePin(m, !pinned); });
     const rb = o.querySelector("#mmReply"); if(rb) rb.addEventListener("click", ()=>{ o.remove(); startReply(m); });
     const cp = o.querySelector("#mmCopy"); if(cp) cp.addEventListener("click", async ()=>{ o.remove(); try{ await navigator.clipboard.writeText(m.body); toast("複製好了"); }catch(e){ toast("複製失敗"); } });
@@ -1322,6 +1329,8 @@ const App = (function(){
     const sv = o.querySelector("#vmSave"); if(sv) sv.addEventListener("click", ()=>set(true));
     const un = o.querySelector("#vmUn"); if(un) un.addEventListener("click", ()=>set(false));
   }
+  function dropMsg(id){ const n = messages.length; messages = messages.filter(x=>x.id!==id); if(messages.length!==n && chatVisible()) drawList(false); }
+  ctx.onBroadcast(p=>{ if(p && p.g === "msgdel" && p.from !== me.uid) dropMsg(+p.id); });
   // ---------- pinned messages ----------
   const pinList = () => (stateCache.pins && stateCache.pins.state && stateCache.pins.state.list) || [];
   function msgPreview(m){
