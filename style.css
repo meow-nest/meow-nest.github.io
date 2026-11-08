@@ -2123,7 +2123,7 @@ body.dockKb #nav,body.dockKb #fab,body.dockKb .stkFab,body.dockKb .stkTray{displ
 .skStreak{position:absolute;left:0;right:0;top:calc(env(safe-area-inset-top) + 84px);text-align:center;font-size:14px;color:#ffe08a;text-shadow:2px 2px 0 var(--line)}
 .skPop{position:absolute;left:0;right:0;top:30%;text-align:center;font-size:28px;color:#fff;text-shadow:3px 3px 0 var(--line),-2px -2px 0 var(--line),2px -2px 0 var(--line),-2px 2px 0 var(--line);opacity:0;pointer-events:none;z-index:2}
 .skPop.on{animation:skPop 1s cubic-bezier(.2,1.5,.4,1)}
-.skPop.pf{color:#ffe08a}.skPop.hit{color:#ffb3c4}.skPop.lv{color:#b8e2ff;font-size:22px}
+.skPop.skPf{color:#ffe08a}.skPop.skHit{color:#ffb3c4}.skPop.skLv{color:#b8e2ff;font-size:22px}
 @keyframes skPop{0%{opacity:0;transform:scale(.4)}20%{opacity:1;transform:scale(1.15)}35%{transform:scale(1)}75%{opacity:1}100%{opacity:0;transform:translateY(-24px)}}
 .skTap{position:absolute;left:50%;bottom:16%;transform:translateX(-50%);z-index:2;background:#fff;border:3px solid var(--line);box-shadow:3px 3px 0 var(--shadow);padding:6px 14px;font-size:16px;white-space:nowrap;animation:bob .8s steps(2) infinite}
 .skTap.hide{display:none}

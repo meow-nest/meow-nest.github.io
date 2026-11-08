@@ -89,16 +89,16 @@ function play(opts){
       stack.push({ x: mover.x, c: mover.c, flip: mover.flip }); mover = null;
       P.air = false; P.vy = 0; P.y = topH(); P.rot = 0; P.spin = 0;
       if(perfect){ streak++; perfects++; score += 2; snd("combo", Math.min(5, streak)); ring = { t: 0, y: P.y };
-        pop(streak >= 3 ? `完美 ×${streak}！` : "完美！", "pf"); puff(P.x, P.y, ["#ffe08a","#ffffff","#f7a7c0"], 14, 70, true); }
+        pop(streak >= 3 ? `完美 ×${streak}！` : "完美！", "skPf"); puff(P.x, P.y, ["#ffe08a","#ffffff","#f7a7c0"], 14, 70, true); }
       else { streak = 0; score += 1; snd("place"); puff(P.x + (off > 0 ? -6 : 6), P.y, ["#ffffff","#f3e6d6"], 6, 30, true); }
-      if(stack.length % 25 === 1 && stack.length > 1) setTimeout(() => pop(`${stack.length - 1} 層了！好高 ✨`, "lv"), 500);
+      if(stack.length % 25 === 1 && stack.length > 1) setTimeout(() => pop(`${stack.length - 1} 層了！好高 ✨`, "skLv"), 500);
       wait = .1 + Math.random() * .3; hud();
     }
     function hit(){
       if(over) return; over = true; snd("miss"); streak = 0;
       P.fall = true; P.air = true; P.vx = mover.dir * 70; P.vy = 150; P.spin = mover.dir; P.face = "cry";
       puff(P.x, P.y + PH/2, ["#ffe08a","#ffffff"], 10, 60);
-      pop("被撞到了～", "hit");
+      pop("被撞到了～", "skHit");
       setTimeout(finish, 1300);
     }
     function hud(){ $("#skSc").textContent = score; $("#skFl").textContent = `${stack.length - 1} 層`; const s = $("#skSt"); s.textContent = streak >= 2 ? `完美連續 ×${streak}` : ""; }
