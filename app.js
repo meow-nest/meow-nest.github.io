@@ -168,7 +168,7 @@ const App = (function(){
     if(isAdmin && !force) return viewAdmin(v);
     const p = partner();
     let html = `<div class="title">喵喵<b>小窩</b>${isBestie()||isSolo()?`<span class="modeTag">${modeArt(roomMode)}${MI().name}</span>`:""}<div class="meterSlim" id="meter"></div></div><div id="truceHome">${truceBar()}</div><div class="hTiles" id="hTiles">${homeTiles()}</div>`;
-    if(!p && !isSolo()) html += `<div class="box banner"><span class="bi">${icon("heart")}</span><div style="flex:1">${pw()}還沒加入！<br>把邀請碼 <b style="font-weight:400;color:var(--pinkT);letter-spacing:2px">${esc(B.code||"")}</b> 傳給 ta</div><button class="btn" id="bInv">傳邀請</button></div>`;
+    if(!p && !isSolo()) html += `<div class="box banner"><span class="bi">${icon("heart")}</span><div style="flex:1">${pw()}還沒加入！<br>把邀請碼 <b style="font-weight:400;color:var(--pinkT);letter-spacing:2px">${esc(B.code||"")}</b> 傳給 ta<br><span class="k" style="font-size:12px">開了 14 天都沒人加入、也沒打開的話，小窩會自動刪除喔</span></div><button class="btn" id="bInv">傳邀請</button></div>`;
     const alb = stateCache.album && stateCache.album.state, apct = alb ? (alb.bytes||0)/albumLimit : 0;
     if(apct >= .7 && !NO_MEDIA) html = html.replace('<div id="truceHome">', `<div class="box banner ${apct>=.85?"warn":""}" id="albBan"><span class="bi">${icon("camera")}</span><div style="flex:1">相簿已經用了 ${Math.round(apct*100)}%${apct>=.85?"，該刪一些照片了 🥺":"，可以開始整理照片囉"}</div><button class="btn" id="bAlbum">去整理</button></div><div id="truceHome">`);
     if(false) html += `<div class="box banner ${apct>=.85?"warn":""}"><span class="bi">${icon("camera")}</span><div style="flex:1">相簿已經用了 ${Math.round(apct*100)}%${apct>=.85?"，該刪一些照片了 🥺":"，可以開始整理照片囉"}</div><button class="btn" id="bAlbum">去整理</button></div>`;
@@ -760,7 +760,7 @@ const App = (function(){
         return `<div class="admN ${n.owner?"own":""}" data-id="${esc(n.id)}">
           <div class="admNH"><span class="admMT">${n.owner ? "👑 站長" : esc(md.name)}</span><b>${esc(n.code||"")}</b><i>開了 ${Math.max(0, idleDays(n.created_at))} 天・${n.msgs||0} 則訊息</i></div>
           ${ms.map(m=>{ const d = idleDays(m.seen); return `<div class="admU" data-uid="${esc(m.uid)}"><span class="admUC">${sprite(m.cat||"orange","normal")}</span><div class="admUN"><b>${esc(m.name||"（沒有暱稱）")}</b><i class="${d>=60?"old":d>=14?"mid":""}">上線：${seenTxt(m.seen)}</i></div>${isBoss() && !n.owner && ms.length>1 ? `<button class="admUX" data-a="rm">移出</button>` : ""}</div>`; }).join("")}
-          ${!n.owner && n.mode!=="solo" && ms.length<2 ? `<div class="k admNote">等另一個人加入中</div>` : ""}
+          ${!n.owner && n.mode!=="solo" && ms.length<2 ? `<div class="k admNote">等另一個人加入中・等了 ${Math.max(0, idleDays(n.created_at))} 天（滿 14 天又沒動靜會自動刪除）</div>` : ""}
           ${!n.owner ? `<div class="admFbA"><span class="k admIdle">${idle>=60 ? `⚠ ${idle} 天沒人用，滿 90 天自動刪除` : ""}</span>${isBoss() ? `<button data-a="delnest">🗑 刪除小窩</button>` : ""}</div>` : ""}</div>`; }).join("")
         : `<div class="k" style="text-align:center;padding:10px">${q ? "找不到符合的使用者" : "還沒有人開小窩"}</div>`)
       + (list.length > admShow ? `<button class="btn sub" id="admMore" style="width:100%;margin-top:6px">顯示更多（還有 ${list.length-admShow} 個）</button>` : "");
