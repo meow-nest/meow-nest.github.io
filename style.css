@@ -2421,3 +2421,5 @@ input,textarea,[contenteditable]{user-select:text;-webkit-user-select:text}
 .gsPad button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--shadow)}.gsPad button.ok{background:var(--pink);color:var(--onPink);font-size:18px}
 .gsBtns{display:flex;gap:8px;justify-content:center}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+body:not(.admin) #nav [data-go=games]{display:none!important}
+.admGamesTip{font-size:13px;line-height:1.6}

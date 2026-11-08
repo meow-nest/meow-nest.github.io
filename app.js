@@ -164,8 +164,8 @@ const App = (function(){
     el.innerHTML = `<span class="lv">${L.name}</span><span class="segs">${[...Array(8)].map((_,i)=>`<i class="${i<Math.round(frac*8)?'f':''}"></i>`).join("")}</span><span class="fish">${icon("fish")}${h}</span>`;
     el.title = L.next?`再收集 ${L.next-h} 條小魚乾 → ${L.nextName}`:"已經是最高等級啦";
   }
-  function viewHome(v){
-    if(isAdmin) return viewAdmin(v);
+  function viewHome(v, force){
+    if(isAdmin && !force) return viewAdmin(v);
     const p = partner();
     let html = `<div class="title">喵喵<b>小窩</b>${isBestie()||isSolo()?`<span class="modeTag">${modeArt(roomMode)}${MI().name}</span>`:""}<div class="meterSlim" id="meter"></div></div><div id="truceHome">${truceBar()}</div><div class="hTiles" id="hTiles">${homeTiles()}</div>`;
     if(!p && !isSolo()) html += `<div class="box banner"><span class="bi">${icon("heart")}</span><div style="flex:1">${pw()}還沒加入！<br>把邀請碼 <b style="font-weight:400;color:var(--pinkT);letter-spacing:2px">${esc(B.code||"")}</b> 傳給 ta</div><button class="btn" id="bInv">傳邀請</button></div>`;
@@ -820,8 +820,8 @@ const App = (function(){
           : `<div class="k" style="text-align:center;padding:10px">${admTab==="new" ? "目前沒有未處理的回報 🐾" : "還沒有人傳回報"}</div>`}</div></div>`;
     admUsersData = us;
     if(us){ drawUsers();
-      const q = $("admQ"); q.addEventListener("input", ()=>{ admQ = q.value; admShow = 20; drawUsers(); });
-      q.addEventListener("focus", ()=>clearInterval(admTimer));
+      const q = body.querySelector("#admQ"); if(q) q.addEventListener("input", ()=>{ admQ = q.value; admShow = 20; drawUsers(); });
+      if(q) q.addEventListener("focus", ()=>clearInterval(admTimer));
       body.querySelectorAll(".admSort [data-s]").forEach(b=>b.addEventListener("click", ()=>{ admSort = b.dataset.s; admShow = 20; SFX.tap(); body.querySelectorAll(".admSort [data-s]").forEach(x=>x.classList.toggle("on", x===b)); drawUsers(); })); }
     body.querySelectorAll(".admTabs [data-t]").forEach(b=>b.addEventListener("click", ()=>{ admTab = b.dataset.t; SFX.tap(); drawAdmin(); }));
     body.querySelectorAll(".admFbI").forEach(it=>{ const id = +it.dataset.id, f = fb.find(x=>x.id===id);
@@ -2308,7 +2308,7 @@ const App = (function(){
     route = r.startsWith("game-") ? "game" : r;
     document.body.classList.toggle("compact", route!=="home");
     document.body.classList.toggle("ingame", route==="game");
-    document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("on", b.dataset.go===route || (route==="game"&&b.dataset.go==="home")));
+    document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("on", b.dataset.go===route || (route==="game"&&b.dataset.go===(isAdmin?"games":"home"))));
     const v=$("view");
     if(route==="chat" && isSolo()){ route = "home"; viewHome(v); }
     else if(route==="chat") viewChat(v);
@@ -2318,10 +2318,12 @@ const App = (function(){
       const g = games.find(x=>x.id===r.slice(5));
       if(!g){ go("home"); return; }
       v.innerHTML = `<div class="gtop"><button class="btn sub" id="bBack">◀ 回小窩</button><span class="gname">${esc(g.id==="pet" && isSolo() ? "我的貓" : g.name)}</span></div><div id="gArea"></div>`;
-      $("bBack").addEventListener("click", ()=>go("home"));
+      $("bBack").addEventListener("click", ()=>go(isAdmin ? "games" : "home"));
       curGame = g; lastGame = r; g.mount($("gArea"), ctx);
       const fab=document.createElement("button"); fab.id="fab"; fab.className="fab"; fab.innerHTML=`${icon("chat")}<b id="fabBadge" class="hidden">0</b>`; fab.addEventListener("click", openSheet); document.body.appendChild(fab); if(!curGame || curGame.id !== "notes") stkFab();
-    } else { if(r==="home") lastGame = null; viewHome(v); }
+    } else if(route==="games" && isAdmin){ lastGame = null; viewHome(v, true);
+      v.insertAdjacentHTML("afterbegin", `<div class="box banner admGamesTip"><span class="bi">👑</span><div style="flex:1">站長測試區：你的小窩是單人模式，這裡只看得到單人也能玩的遊戲。<br>雙人遊戲要用另一支手機開一個雙人小窩、兩個人一起測。</div></div>`); }
+    else { if(r==="home") lastGame = null; viewHome(v); }
     renderHeader(); renderBadge();
     window.scrollTo(0,0);
   }
@@ -2429,7 +2431,7 @@ const App = (function(){
       tapFx(e.clientX,e.clientY); haptic(); SFX.tap(); }, {passive:true});
     if(Lock.on()) showLock();
     $("midHeart").innerHTML = icon("heart");
-    $("niHome").innerHTML = icon("home"); $("niChat").innerHTML = icon("chat"); $("niSet").innerHTML = icon("gear"); if($("niAlb")) $("niAlb").innerHTML = icon("camera");
+    $("niHome").innerHTML = icon("home"); if($("niGames")) $("niGames").innerHTML = icon("paw"); $("niChat").innerHTML = icon("chat"); $("niSet").innerHTML = icon("gear"); if($("niAlb")) $("niAlb").innerHTML = icon("camera");
     $("decos").innerHTML = [["orange","loaf","left:-8px;top:140px"],["gray","curl","right:-6px;top:340px"],["calico","normal","left:-10px;bottom:150px"],["black","happy","right:-8px;bottom:90px"]].map(([c,k,p])=>`<div class="deco" style="${p}">${sprite(c,k,{soft:true})}</div>`).join("");
     document.querySelectorAll("#nav button").forEach(b=>b.addEventListener("click",()=>{ const t=b.dataset.go; if(t==="home" && route!=="game" && lastGame) go(lastGame); else go(t); }));
     window.addEventListener("hashchange", ()=>{ if(B && B.coupleId) render(); });
