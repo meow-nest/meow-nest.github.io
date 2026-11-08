@@ -75,6 +75,9 @@
     B.adminFeedback = (all) => rpcOrThrow("admin_feedback", { p_all: !!all });
     B.adminFeedbackSet = (id, done, del) => rpcOrThrow("admin_feedback_set", { p_id: id, p_done: !!done, p_delete: !!del });
     B.adminReply = (id, body) => rpcOrThrow("admin_reply", { p_id: id, p_body: body });
+    B.adminUsers = () => rpcOrThrow("admin_users");
+    B.adminDeleteNest = (id) => rpcOrThrow("admin_delete_couple", { p_id: id });
+    B.adminRemoveMember = (uid) => rpcOrThrow("admin_remove_member", { p_uid: uid });
     B.unsend = (id) => rpcOrThrow("unsend_message", { p_id: id });
     B.myFeedback = () => rpcOrThrow("my_feedback");
     B.feedbackFollowup = (id, body) => rpcOrThrow("feedback_followup", { p_id: id, p_body: body });
@@ -250,6 +253,9 @@
     B.adminFeedback = async (all) => call("adminFeedback", { all });
     B.adminFeedbackSet = async (id, done, del) => call("adminFeedbackSet", { id, done, del });
     B.adminReply = async (id, body) => call("adminReply", { id, body });
+    B.adminUsers = async () => call("adminUsers");
+    B.adminDeleteNest = async (id) => call("adminDelNest", { id });
+    B.adminRemoveMember = async (uid) => call("adminRmMember", { uid });
     B.unsend = async (id) => call("unsend", { id });
     B.myFeedback = async () => call("myFeedback");
     B.feedbackFollowup = async (id, body) => call("fbFollow", { id, body });

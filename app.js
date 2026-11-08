@@ -739,6 +739,47 @@ const App = (function(){
   // ---- 站長後台 ----
   let isAdmin = false, admTab = "new", admTimer = 0;
   const agoTxt = t => { const d = (Date.now() - new Date(t).getTime())/1000; return d < 60 ? "剛剛" : d < 3600 ? `${Math.floor(d/60)} 分鐘前` : d < 86400 ? `${Math.floor(d/3600)} 小時前` : d < 86400*30 ? `${Math.floor(d/86400)} 天前` : new Date(t).toLocaleDateString("zh-TW"); };
+  let admUsersData = null, admQ = "", admSort = "recent", admShow = 20;
+  const seenTxt = t => { const d = (Date.now() - new Date(t).getTime())/1000; return d < 3600 ? "1 小時內" : d < 86400 ? `${Math.floor(d/3600)} 小時前` : `${Math.floor(d/86400)} 天前`; };
+  const idleDays = t => Math.floor((Date.now() - new Date(t).getTime())/86400000);
+  function drawUsers(){
+    const el = $("admUL"); if(!el || !admUsersData) return;
+    const q = admQ.trim().toLowerCase();
+    let list = admUsersData.filter(n=>!q || String(n.code||"").toLowerCase().includes(q) || (n.members||[]).some(m=>String(m.name||"").toLowerCase().includes(q)));
+    const ts = n => new Date(n.last_at||n.created_at).getTime();
+    if(admSort==="idle") list = list.slice().sort((a,b)=>ts(a)-ts(b));
+    else if(admSort==="new") list = list.slice().sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+    else list = list.slice().sort((a,b)=>ts(b)-ts(a));
+    const shown = list.slice(0, admShow);
+    el.innerHTML = `<div class="k admNote" style="margin:4px 0 6px">${q ? `找到 ${list.length} 個小窩` : `共 ${list.length} 個小窩・${list.reduce((s,n)=>s+(n.members||[]).length,0)} 個人`}</div>`
+      + (shown.length ? shown.map(n=>{ const ms = n.members||[], md = MODES[n.mode] || MODES.couple, idle = idleDays(n.last_at||n.created_at);
+        return `<div class="admN ${n.owner?"own":""}" data-id="${esc(n.id)}">
+          <div class="admNH"><span class="admMT">${n.owner ? "👑 站長" : esc(md.name)}</span><b>${esc(n.code||"")}</b><i>開了 ${Math.max(0, idleDays(n.created_at))} 天・${n.msgs||0} 則訊息</i></div>
+          ${ms.map(m=>{ const d = idleDays(m.seen); return `<div class="admU" data-uid="${esc(m.uid)}"><span class="admUC">${sprite(m.cat||"orange","normal")}</span><div class="admUN"><b>${esc(m.name||"（沒有暱稱）")}</b><i class="${d>=60?"old":d>=14?"mid":""}">上線：${seenTxt(m.seen)}</i></div>${!n.owner && ms.length>1 ? `<button class="admUX" data-a="rm">移出</button>` : ""}</div>`; }).join("")}
+          ${!n.owner && n.mode!=="solo" && ms.length<2 ? `<div class="k admNote">等另一個人加入中</div>` : ""}
+          ${!n.owner ? `<div class="admFbA"><span class="k admIdle">${idle>=60 ? `⚠ ${idle} 天沒人用，滿 90 天自動刪除` : ""}</span><button data-a="delnest">🗑 刪除小窩</button></div>` : ""}</div>`; }).join("")
+        : `<div class="k" style="text-align:center;padding:10px">${q ? "找不到符合的使用者" : "還沒有人開小窩"}</div>`)
+      + (list.length > admShow ? `<button class="btn sub" id="admMore" style="width:100%;margin-top:6px">顯示更多（還有 ${list.length-admShow} 個）</button>` : "");
+    const more = $("admMore"); if(more) more.addEventListener("click", ()=>{ admShow += 20; drawUsers(); });
+    el.querySelectorAll(".admN").forEach(card=>{ const n = admUsersData.find(x=>x.id===card.dataset.id); if(!n) return;
+      const names = (n.members||[]).map(m=>`「${esc(m.name||"沒有暱稱")}」`).join("和") || "這個";
+      const dn = card.querySelector('[data-a="delnest"]');
+      if(dn) dn.addEventListener("click", ()=>admConfirm(`🗑 刪除小窩`, `確定要刪除${names}的小窩（${esc(n.code||"")}）嗎？<br><br>聊天、遊戲紀錄、記事都會一起刪掉，<b>沒辦法復原</b>。<br>對方下次打開 App 會回到一開始的畫面。`, "刪除小窩",
+        async ()=>{ await B.adminDeleteNest(n.id); admUsersData = admUsersData.filter(x=>x!==n); toast("小窩刪除了"); }));
+      card.querySelectorAll('[data-a="rm"]').forEach(b=>{ const u = b.closest(".admU").dataset.uid, m = (n.members||[]).find(x=>x.uid===u);
+        b.addEventListener("click", ()=>admConfirm(`把人移出小窩`, `確定要把「${esc(m.name||"沒有暱稱")}」移出小窩（${esc(n.code||"")}）嗎？<br><br>ta 下次打開 App 會回到一開始的畫面，小窩和另一個人的資料會留著。<br><span class="k">如果 ta 還記得邀請碼，還是可以重新加入；要完全擋掉，請刪除整個小窩。</span>`, "移出",
+          async ()=>{ await B.adminRemoveMember(u); n.members = n.members.filter(x=>x.uid!==u); toast(`已經把 ${m.name||"ta"} 移出小窩`); })); });
+    });
+  }
+  function admConfirm(title, html, okTxt, fn){
+    SFX.tap(); clearInterval(admTimer);
+    const o = modal(`<h3>${title}</h3><p style="text-align:left;line-height:1.7">${html}</p><button class="btn danger" id="acOk" style="width:100%">${okTxt}</button><button class="btn sub" id="acNo" style="width:100%;margin-top:8px">取消</button>`);
+    o.querySelector("#acNo").addEventListener("click", ()=>o.remove());
+    o.querySelector("#acOk").addEventListener("click", async e=>{ const b = e.currentTarget; b.disabled = true; b.textContent = "處理中…";
+      try{ await fn(); o.remove(); drawUsers(); SFX.select(); }
+      catch(err){ console.error(err); b.disabled = false; b.textContent = okTxt; const m = String(err.message||err);
+        toast(m.includes("owner_nest") ? "站長自己的小窩不能刪" : /admin_|function/i.test(m) ? "資料庫還沒加上這個功能（更新 15）" : m.includes("not_found") ? "找不到這個人，可能已經離開了" : "沒有成功，再試一次", 4000); } });
+  }
   async function viewAdmin(v){
     v.innerHTML = `<div class="adm"><div class="box admHead"><div><h2>👑 站長後台</h2><span class="k" id="admAt">讀取中…</span></div><button class="btn sub" id="admRf">🔄 更新</button></div><div id="admBody"><div class="box k" style="text-align:center">讀取中…</div></div></div>`;
     $("admRf").addEventListener("click", ()=>{ SFX.tap(); drawAdmin(); });
@@ -747,8 +788,8 @@ const App = (function(){
   }
   async function drawAdmin(quiet){
     const body = $("admBody"); if(!body) return;
-    let st, fb;
-    try{ [st, fb] = await Promise.all([B.adminStats(), B.adminFeedback(admTab==="all")]); }
+    let st, fb, us = null;
+    try{ [st, fb, us] = await Promise.all([B.adminStats(), B.adminFeedback(admTab==="all"), B.adminUsers ? B.adminUsers().catch(e=>{ console.error(e); return null; }) : null]); }
     catch(e){ console.error(e); if(!quiet) body.innerHTML = `<div class="box k" style="text-align:center">讀不到資料 🥺<br>${/admin_|function/i.test(String(e.message||e)) ? "資料庫還沒加上站長後台的設定（更新 11）" : "請檢查網路再按更新"}</div>`; return; }
     if(!$("admBody")) return;
     const at = $("admAt"); if(at) at.textContent = "更新於 " + new Date().toLocaleTimeString("zh-TW", { hour:"2-digit", minute:"2-digit" });
@@ -765,6 +806,10 @@ const App = (function(){
         <div class="auTop"><span>小窩 <b>${st.total}</b> / ${max||"不限"}</span><span>${Math.round(cPct*100)}%</span></div>${bar(cPct)}
         <div class="auTop" style="margin-top:8px"><span>資料庫 <b>${dbMB.toFixed(1)} MB</b> / 500 MB</span><span>${Math.round(dbPct*100)}%</span></div>${bar(dbPct)}
         <div class="k admNote">${st.idle60 ? `有 ${st.idle60} 個小窩超過 60 天沒人用，滿 90 天會自動刪除` : "沒有快被自動刪除的小窩"}</div></div>
+      <div class="box admBox" id="admUsers"><h3>👥 使用者</h3>
+        ${us ? `<input id="admQ" class="admQ" placeholder="搜尋暱稱或邀請碼" value="${esc(admQ)}" autocomplete="off">
+        <div class="admTabs admSort"><button data-s="recent" class="${admSort==="recent"?"on":""}">最近上線</button><button data-s="idle" class="${admSort==="idle"?"on":""}">很久沒上線</button><button data-s="new" class="${admSort==="new"?"on":""}">最新加入</button></div>
+        <div id="admUL"></div>` : `<div class="k" style="text-align:center;padding:8px">資料庫還沒加上使用者名單（更新 15）</div>`}</div>
       <div class="box admBox"><h3>📮 回報信箱 ${st.unread ? `<span class="admBadge">${st.unread}</span>` : ""}</h3>
         <div class="admTabs"><button data-t="new" class="${admTab==="new"?"on":""}">未處理</button><button data-t="all" class="${admTab==="all"?"on":""}">全部</button></div>
         <div class="admFb">${(fb||[]).length ? fb.map(f=>`<div class="admFbI ${f.done?"done":""}" data-id="${f.id}">
@@ -773,6 +818,11 @@ const App = (function(){
             <div class="admReBox hidden"><textarea maxlength="500" rows="3" placeholder="${f.alive===false ? "這個小窩已經刪除了，對方收不到回覆" : "回覆給對方，對方的手機會收到通知"}"></textarea><div class="admFbA"><button data-a="cancel">取消</button><button data-a="send" class="pri">送出回覆</button></div></div>
             <div class="admFbA admActs"><button data-a="reply">💬 回覆</button><button data-a="done">${f.done ? "↩ 改回未處理" : "✓ 已處理"}</button><button data-a="del">🗑 刪除</button></div></div>`).join("")
           : `<div class="k" style="text-align:center;padding:10px">${admTab==="new" ? "目前沒有未處理的回報 🐾" : "還沒有人傳回報"}</div>`}</div></div>`;
+    admUsersData = us;
+    if(us){ drawUsers();
+      const q = $("admQ"); q.addEventListener("input", ()=>{ admQ = q.value; admShow = 20; drawUsers(); });
+      q.addEventListener("focus", ()=>clearInterval(admTimer));
+      body.querySelectorAll(".admSort [data-s]").forEach(b=>b.addEventListener("click", ()=>{ admSort = b.dataset.s; admShow = 20; SFX.tap(); body.querySelectorAll(".admSort [data-s]").forEach(x=>x.classList.toggle("on", x===b)); drawUsers(); })); }
     body.querySelectorAll(".admTabs [data-t]").forEach(b=>b.addEventListener("click", ()=>{ admTab = b.dataset.t; SFX.tap(); drawAdmin(); }));
     body.querySelectorAll(".admFbI").forEach(it=>{ const id = +it.dataset.id, f = fb.find(x=>x.id===id);
       const rb = it.querySelector(".admReBox"), acts = it.querySelector(".admActs");
@@ -791,6 +841,16 @@ const App = (function(){
   function wipeLocal(){   // keep only look-and-feel preferences on this phone
     const keep = /^mw_(theme|font|kb|kbsize|sysKb|tsFeel|sfx|anim|caret|wall)$/;
     try{ Object.keys(localStorage).filter(k=>k.startsWith("mw_") && !keep.test(k)).forEach(k=>localStorage.removeItem(k)); }catch(e){}
+  }
+  let stillChk = 0;
+  function checkStillIn(){   // 站長把人移出或刪掉小窩後，打開 App 時發現
+    if(isAdmin || !B || !B.membership || Date.now() - stillChk < 60000) return; stillChk = Date.now();
+    const cid = B.coupleId;
+    B.membership().then(m=>{ if(m && m.couple_id===cid) return;
+      const o = modal(`<h3>你已經不在這個小窩了 🐾</h3><p>這個小窩已經被刪除，或你已經被移出小窩。</p><button class="btn" id="ngOk" style="width:100%">好</button>`);
+      const go2 = ()=>{ wipeLocal(); location.replace(location.pathname); };
+      o.querySelector("#ngOk").addEventListener("click", go2); setTimeout(go2, 8000);
+    }).catch(()=>{});
   }
   function nestGone(){
     const o = modal(`<h3>這個小窩已經被刪除了 🐾</h3><p>${esc(partner() ? partner().name : "ta")} 刪除了你們的小窩，聊天和遊戲紀錄都已經清掉了。</p><button class="btn" id="ngOk" style="width:100%">好</button>`);
@@ -2329,7 +2389,7 @@ const App = (function(){
     window.addEventListener("hashchange", ()=>{ if(B && B.coupleId) render(); });
     document.addEventListener("visibilitychange", ()=>{
       if(!B || !B.coupleId) return;
-      if(document.visibilityState==="visible"){ B.track({ name: me.name, cat: me.cat }); B.reconnect(); clearNotifs(); if(chatVisible()) markSeen(); checkFb(); }
+      if(document.visibilityState==="visible"){ B.track({ name: me.name, cat: me.cat }); B.reconnect(); clearNotifs(); if(chatVisible()) markSeen(); checkFb(); checkStillIn(); }
       else B.track({ name: me.name, cat: me.cat, away: Date.now() });
     });
     window.addEventListener("pagehide", ()=>{ try{ B.track({ name: me.name, cat: me.cat, away: Date.now() }); }catch(e){} });
