@@ -2297,7 +2297,7 @@ body.solo #nav [data-go=chat],body.solo #top .duo .mid,body.solo #top .duo .who:
 .admBadge{background:#e5486a;color:#fff;font-size:12px;padding:0 7px;border:2px solid var(--line)}
 .admTabs{display:flex;gap:6px;margin-bottom:8px}.admTabs button{font:inherit;font-size:13px;border:2px solid var(--line);background:var(--card);color:var(--ink);padding:2px 12px}.admTabs button.on{background:var(--pinkL);color:var(--pinkT)}
 .admFb{display:flex;flex-direction:column;gap:8px}
-.admFbI{border:2px solid var(--line);background:var(--card);padding:8px}.admFbI.done{opacity:.55}
+.admFbI{border:2px solid var(--line);background:var(--card);padding:8px}.admFbI.done{opacity:.8}.admFbI.done .admFbB{color:var(--muted)}
 .admFbH{display:flex;gap:8px;align-items:baseline;font-size:13px}.admFbH b{font-weight:400;color:var(--pinkT)}.admFbH span{color:var(--muted);letter-spacing:1px}.admFbH i{margin-left:auto;font-style:normal;font-size:12px;color:var(--muted)}
 .admFbB{margin:6px 0;font-size:15px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
 .admFbA{display:flex;gap:6px;justify-content:flex-end}.admFbA button{font:inherit;font-size:12px;border:2px solid var(--line);background:var(--paper);color:var(--ink);padding:2px 10px}
@@ -2310,3 +2310,12 @@ body.admin #top .duo .mid,body.admin #top .duo .who:last-child,body.admin #fab,b
 .joinTip b{font-weight:400;color:var(--pinkT)}
 .careModal .mvSteps{display:inline-block;text-align:left;margin:0 auto 4px}
 .careModal .cmBox:has(.mvCard){text-align:center}
+.admRe{border-left:4px solid var(--pink);background:var(--pinkL);padding:6px 8px;margin:0 0 6px;font-size:14px;line-height:1.6}
+.admRe b{font-weight:400;color:var(--pinkT);font-size:12px}.admRe i{font-style:normal;font-size:11px;color:var(--muted);margin-left:6px}
+.admReBox textarea{width:100%;box-sizing:border-box;font:inherit;font-size:15px;line-height:1.6;padding:6px;border:2px solid var(--line);background:var(--paper);color:var(--ink);margin-bottom:6px}
+.admFbA button.pri{background:var(--pink);color:var(--onPink)}
+.fbMH{margin:14px 0 6px;font-weight:400;font-size:15px;text-align:left}
+.fbMI{border:2px solid var(--line);background:var(--card);padding:6px 8px;margin-bottom:6px;text-align:left;font-size:14px;line-height:1.6}
+.fbMQ i,.fbMA i{display:block;font-style:normal;font-size:11px;color:var(--muted)}
+.fbMA{border-left:4px solid var(--pink);background:var(--pinkL);padding:4px 8px;margin-top:6px}.fbMA b{font-weight:400;font-size:12px;color:var(--pinkT)}.fbMA i{display:inline;margin-left:6px}
+.fbMW{font-size:12px;color:var(--muted);margin-top:4px}

@@ -276,7 +276,7 @@ const App = (function(){
     const mine = m.sender===me.uid;
     if(m.kind==="game") return `<div class="msg sys"><div class="bub">${/^[🏳🤝💗]/u.test(m.body)||m.body.includes("心情")?"":"🎮 "}${esc(m.body)}</div></div>`;
     if(m.kind==="ping") return "";
-    if(m.kind==="memo") return `<div class="msg sys memoMsg"><button class="bub" data-gonotes="1">${esc(m.body)}</button></div>`;
+    if(m.kind==="memo") return String(m.body||"").startsWith("📮 站長回覆") ? `<div class="msg sys memoMsg"><button class="bub" data-gofb="1">${esc(m.body)}</button></div>` : `<div class="msg sys memoMsg"><button class="bub" data-gonotes="1">${esc(m.body)}</button></div>`;
     if(m.kind==="call") return `<div class="msg sys callMsg"><span class="bub">${esc(m.body)}</span><button class="cbk" data-callback="${m.body.includes("視訊")?1:0}">${m.sender===me.uid ? "再打一次" : "回撥"}</button></div>`;
     if(m.kind==="album") return `<div class="msg sys albumMsg"><button class="bub" data-goalbum>${esc(m.body)}<br><small>點我去整理相簿 ▶</small></button></div>`;
     if(m.kind==="photo_gone") return `<div class="msg ${mine?"me":""}">${mine?"":`<span class="av">${sprite(m.cat||catOf(m.sender),"normal")}</span>`}<div class="bub gone">📷 照片已刪除</div><span class="tm">${hhmm(m.created_at)}</span></div>`;
@@ -354,6 +354,7 @@ const App = (function(){
       if(e.target.closest("[data-goalbum]")){ go("album"); return; }
       const cb = e.target.closest("[data-callback]"); if(cb){ startCall(cb.dataset.callback==="1"); return; }
       if(e.target.closest("[data-gonotes]")){ SFX.tap(); go("game-notes"); return; }
+      if(e.target.closest("[data-gofb]")){ askFeedback(); return; }
       const jq=e.target.closest("[data-jump]"); if(jq){ jumpTo(+jq.dataset.jump); return; }
       const vb=e.target.closest("[data-voice]"); if(vb){ if(vb._lp){ vb._lp=false; return; } playVoice(+vb.dataset.voice); return; }
       const lt=e.target.closest("[data-letter]"); if(lt){ const m=messages.find(x=>x.id===+lt.dataset.letter); if(m) openLetter(m); return; }
@@ -677,7 +678,11 @@ const App = (function(){
     const o = modal(`<h3>📮 回報問題給站長</h3><p class="k" style="margin:0 0 8px">遇到的問題、想要的功能、想請站長幫忙的事，都可以寫在這裡。站長會看到你的暱稱和小窩邀請碼，方便幫你處理。</p>
       <textarea id="fbTxt" maxlength="500" rows="5" placeholder="例如：玩喵喵方塊的時候畫面卡住了…" class="fbTxt"></textarea>
       <div class="fbCnt"><span id="fbN">0</span> / 500</div>
-      <button class="btn" id="fbGo" style="width:100%">送出</button><button class="btn sub" id="fbNo" style="width:100%;margin-top:8px">取消</button>`);
+      <button class="btn" id="fbGo" style="width:100%">送出</button><button class="btn sub" id="fbNo" style="width:100%;margin-top:8px">取消</button>
+      <div id="fbMine"></div>`);
+    B.myFeedback && B.myFeedback().then(list=>{ const el = o.querySelector("#fbMine"); if(!el || !list || !list.length) return;
+      el.innerHTML = `<h4 class="fbMH">我傳過的回報</h4>` + list.map(f=>`<div class="fbMI"><div class="fbMQ"><i>${agoTxt(f.created_at)}</i>${esc(f.body)}</div>
+        ${f.reply ? `<div class="fbMA"><b>👑 站長回覆</b><i>${agoTxt(f.replied_at)}</i><div>${esc(f.reply)}</div></div>` : `<div class="fbMW">站長還沒回覆，看到會盡快處理 🐾</div>`}</div>`).join(""); }).catch(()=>{});
     const ta = o.querySelector("#fbTxt"); ta.addEventListener("input", ()=>{ o.querySelector("#fbN").textContent = ta.value.length; });
     o.querySelector("#fbNo").addEventListener("click", ()=>o.remove());
     o.querySelector("#fbGo").addEventListener("click", async ()=>{
@@ -723,10 +728,19 @@ const App = (function(){
         <div class="admFb">${(fb||[]).length ? fb.map(f=>`<div class="admFbI ${f.done?"done":""}" data-id="${f.id}">
             <div class="admFbH"><b>${esc(f.name||"（沒有暱稱）")}</b><span>${esc(f.code||"")}</span><i>${agoTxt(f.created_at)}</i></div>
             <div class="admFbB">${esc(f.body)}</div>
-            <div class="admFbA"><button data-a="done">${f.done ? "↩ 改回未處理" : "✓ 已處理"}</button><button data-a="del">🗑 刪除</button></div></div>`).join("")
+            ${f.reply ? `<div class="admRe"><b>👑 你的回覆</b><i>${agoTxt(f.replied_at)}</i><div>${esc(f.reply)}</div></div>` : ""}
+            <div class="admReBox hidden"><textarea maxlength="500" rows="3" placeholder="${f.alive===false ? "這個小窩已經刪除了，對方收不到回覆" : "回覆給對方，對方的手機會收到通知"}">${esc(f.reply||"")}</textarea><div class="admFbA"><button data-a="cancel">取消</button><button data-a="send" class="pri">送出回覆</button></div></div>
+            <div class="admFbA admActs"><button data-a="reply">${f.reply ? "✏️ 改回覆" : "💬 回覆"}</button><button data-a="done">${f.done ? "↩ 改回未處理" : "✓ 已處理"}</button><button data-a="del">🗑 刪除</button></div></div>`).join("")
           : `<div class="k" style="text-align:center;padding:10px">${admTab==="new" ? "目前沒有未處理的回報 🐾" : "還沒有人傳回報"}</div>`}</div></div>`;
     body.querySelectorAll(".admTabs [data-t]").forEach(b=>b.addEventListener("click", ()=>{ admTab = b.dataset.t; SFX.tap(); drawAdmin(); }));
     body.querySelectorAll(".admFbI").forEach(it=>{ const id = +it.dataset.id, f = fb.find(x=>x.id===id);
+      const rb = it.querySelector(".admReBox"), acts = it.querySelector(".admActs");
+      it.querySelector('[data-a="reply"]').addEventListener("click", ()=>{ SFX.tap(); rb.classList.remove("hidden"); acts.classList.add("hidden"); rb.querySelector("textarea").focus(); clearInterval(admTimer); });
+      rb.querySelector('[data-a="cancel"]').addEventListener("click", ()=>{ rb.classList.add("hidden"); acts.classList.remove("hidden"); });
+      rb.querySelector('[data-a="send"]').addEventListener("click", async e=>{ const t = rb.querySelector("textarea").value.trim(); if(!t){ toast("先寫一點回覆喔"); return; }
+        const b = e.currentTarget; b.disabled = true; b.textContent = "送出中…";
+        try{ await B.adminReply(id, t); SFX.select(); toast("回覆送出了 🐾"); drawAdmin(); }
+        catch(err){ console.error(err); b.disabled = false; b.textContent = "送出回覆"; toast(/admin_reply|function/i.test(String(err.message||err)) ? "資料庫還沒加上回覆功能（更新 12）" : "沒有成功，再試一次", 4000); } });
       it.querySelector('[data-a="done"]').addEventListener("click", async ()=>{ try{ await B.adminFeedbackSet(id, !f.done, false); SFX.select(); drawAdmin(); }catch(e){ toast("沒有成功，再試一次"); } });
       it.querySelector('[data-a="del"]').addEventListener("click", async e=>{ const b = e.currentTarget; if(b.dataset.arm !== "1"){ b.dataset.arm = "1"; b.textContent = "再按一次刪除"; setTimeout(()=>{ if(b.isConnected){ b.dataset.arm = ""; b.textContent = "🗑 刪除"; } }, 2500); return; }
         try{ await B.adminFeedbackSet(id, false, true); SFX.tap(); drawAdmin(); }catch(err){ toast("沒有成功，再試一次"); } });
