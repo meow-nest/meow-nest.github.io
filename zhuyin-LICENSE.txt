@@ -1,0 +1,4 @@
+zhuyin.txt 由「酷音 libchewing」的詞庫資料轉換而來（https://github.com/chewing/libchewing-data）。
+Copyright (c) 2025 libchewing Core Team
+授權：LGPL-2.1-or-later（GNU Lesser General Public License v2.1 或更新版本）
+本專案只把詞庫重新編排成較小的格式，未修改詞彙內容。
