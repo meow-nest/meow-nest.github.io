@@ -2176,7 +2176,7 @@ const App = (function(){
     else if(route==="game"){
       const g = games.find(x=>x.id===r.slice(5));
       if(!g){ go("home"); return; }
-      v.innerHTML = `<div class="gtop"><button class="btn sub" id="bBack">◀ 回小窩</button><span class="gname">${esc(g.name)}</span></div><div id="gArea"></div>`;
+      v.innerHTML = `<div class="gtop"><button class="btn sub" id="bBack">◀ 回小窩</button><span class="gname">${esc(g.id==="pet" && isSolo() ? "我的貓" : g.name)}</span></div><div id="gArea"></div>`;
       $("bBack").addEventListener("click", ()=>go("home"));
       curGame = g; lastGame = r; g.mount($("gArea"), ctx);
       const fab=document.createElement("button"); fab.id="fab"; fab.className="fab"; fab.innerHTML=`${icon("chat")}<b id="fabBadge" class="hidden">0</b>`; fab.addEventListener("click", openSheet); document.body.appendChild(fab); if(!curGame || curGame.id !== "notes") stkFab();

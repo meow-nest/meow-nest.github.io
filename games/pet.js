@@ -27,7 +27,7 @@ const P = {
     if(f < 40) return { face:"cry", text:"肚子餓了～", hungry:1 };
     if(h>=0 && h<6) return { face:"sleep", text:"呼嚕呼嚕睡覺中", hungry:0 };
     if(f >= 70) return { face:"happy", text:"吃飽飽，好開心！", hungry:0 };
-    return { face:"normal", text:"在等你們陪牠玩", hungry:0 };
+    return { face:"normal", text:"在等你陪牠玩", hungry:0 };
   },
   dayKey,
 };
@@ -45,6 +45,7 @@ App.registerGame({
   icon: () => Pix.sprite("orange","loaf"),
   mount(el, ctx){
     const { sprite, esc, SFX, icon } = ctx;
+    const solo = !!(ctx.mode && ctx.mode()==="solo");
     let s = null, src = { moqi:null, fishing:null, daily:null, draw:null, album:null, mood:null }, lastLog = null, timer = null, idle = null, busy = false, sel = 0, playing = false, alive = true, view = "room";
     const subs = [];
     const me = () => ctx.me.uid;
@@ -60,7 +61,7 @@ App.registerGame({
       const used = cats().map(c=>c.name);
       let name = NAMES.filter(n=>!used.includes(n))[Math.floor(Math.random()*6)] || "麻糬";
       el.innerHTML = `<div class="box petAdopt">
-        <h2>${second ? `🐾 幫 ${esc(cats()[0].name)} 找個伴` : "🐾 領養我們的貓"}</h2>
+        <h2>${second ? `🐾 幫 ${esc(cats()[0].name)} 找個伴` : (solo ? "🐾 領養我的貓" : "🐾 領養我們的貓")}</h2>
         <p>${second ? "兩隻貓會一起玩、互相蹭蹭、一起睡覺～" : (ctx.partner() ? "你們兩個一起養，" : "") + "用小魚乾餵牠、摸摸牠，牠會慢慢長大～<br>先領養第一隻，等等可以再領養第二隻！"}</p>
         <div class="paCats" id="paCats">${COLORS.map(c=>`<button data-c="${c}" class="${c===pick?"on":""}">${sprite(c,"normal")}<i>${Pix.CNAME[c]}</i></button>`).join("")}</div>
         <label class="paName">名字 <input id="paNm" maxlength="8" value="${esc(name)}"></label>
@@ -108,7 +109,7 @@ App.registerGame({
           <button id="ptPlay"><span>🧶</span>逗貓棒<i id="ptPlayI"></i></button>
         </div>
         <div id="ptMore"></div>
-        <div class="petHow">點貓咪可以切換要照顧哪一隻。小魚乾兩隻共用：默契大考驗答對 +1・你畫我猜答對 +1・釣魚每 5 條 +1・兩個人都說早安/晚安 +2</div>
+        <div class="petHow">點貓咪可以切換要照顧哪一隻。小魚乾兩隻共用：${solo ? "釣魚大賽每 5 條 +1" : "默契大考驗答對 +1・你畫我猜答對 +1・釣魚每 5 條 +1・兩個人都說早安/晚安 +2"}</div>
         <ul class="petLog" id="ptLog"></ul></div>`;
       $("#ptFeed").addEventListener("click", feed);
       $("#ptPet").addEventListener("click", ()=>care("pet"));
@@ -292,7 +293,7 @@ App.registerGame({
           ${tab==="a" ? `<div class="pdWho">${cats().map((c,i)=>`<button data-who="${i}" class="${i===who?"on":""}">${sprite(c.color,"normal")}${esc(c.name)}</button>`).join("")}</div>` : ""}
           ${tab==="f" ? `<button class="btn mint pdMove" data-move>✋ 到房間裡自己擺位置</button>` : ""}
           <div class="pdFil">${[["all","全部"],["own","已擁有"],["buy","商店"],["ach","成就"]].map(([k,n])=>`<button data-fil="${k}" class="${filter===k?"on":""}">${n}</button>`).join("")}</div>
-          <div class="pdSub">擁有 ${nOwn}/${all.length}・${tab==="f"?"點一下放進房間、再點一下收起來":tab==="a"?"點一下戴上、再點一下拿掉（頭上、脖子、臉上各一件）":"點一下換上"}・🔒 是成就，兩個人一起達成就解鎖；標價的用貓幣買</div>
+          <div class="pdSub">擁有 ${nOwn}/${all.length}・${tab==="f"?"點一下放進房間、再點一下收起來":tab==="a"?"點一下戴上、再點一下拿掉（頭上、脖子、臉上各一件）":"點一下換上"}・🔒 是成就，${solo ? "" : "兩個人一起"}達成就解鎖；標價的用貓幣買</div>
           <div class="pdGrid">${list.map(x=>card(x,d)).join("") || `<p class="pdEmpty">這裡還沒有東西～</p>`}</div></div>`;
         ov.querySelector(".pdBox").scrollTop = keep;
       }
@@ -488,7 +489,7 @@ App.registerGame({
     async function feed(){
       if(busy || !s) return; const i = sel, c = cats()[i];
       const f = P.fullness(c), food = P.food(s, earned());
-      if(food < 1){ ctx.toast(`${sprite(c.color,"cry")} 沒有小魚乾了！玩默契大考驗、你畫我猜、釣魚，或兩個人一起說早安晚安就能賺`, 4500); return; }
+      if(food < 1){ ctx.toast(`${sprite(c.color,"cry")} ${solo ? "沒有小魚乾了！去玩釣魚大賽就能賺" : "沒有小魚乾了！玩默契大考驗、你畫我猜、釣魚，或兩個人一起說早安晚安就能賺"}`, 4500); return; }
       if(f >= 95){ ctx.toast(`${sprite(c.color,"happy")} ${esc(c.name)} 吃不下了，晚點再餵～`); return; }
       busy = true; const before = P.stage(c);
       const ns = await ctx.update("pet", st=>{ st = P.norm(st ? clone(st) : null); if(!st || !st.cats[i]) return undefined; const now = Date.now(); if(P.food(st, earned()) < 1) return undefined;
