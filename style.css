@@ -2303,3 +2303,10 @@ body.solo #nav [data-go=chat],body.solo #top .duo .mid,body.solo #top .duo .who:
 .admFbA{display:flex;gap:6px;justify-content:flex-end}.admFbA button{font:inherit;font-size:12px;border:2px solid var(--line);background:var(--paper);color:var(--ink);padding:2px 10px}
 body.admin #nav [data-go=chat]{display:none}
 body.admin #top .duo .mid,body.admin #top .duo .who:last-child,body.admin #fab,body.admin #stkFab{display:none!important}
+/* 換手機 */
+.mvCard{display:flex;gap:8px;margin:2px 0 8px}.mvCard>div{flex:1;border:3px solid var(--line);background:var(--card);padding:6px;display:flex;flex-direction:column;align-items:center}
+.mvCard span{font-size:12px;color:var(--muted)}.mvCard b{font-weight:400;font-size:20px;color:var(--pinkT);letter-spacing:2px;word-break:break-all;text-align:center}
+.mvSteps{margin:0 0 8px;padding-left:22px;font-size:14px;line-height:1.8}.mvSteps b{font-weight:400;color:var(--pinkT)}
+.joinTip b{font-weight:400;color:var(--pinkT)}
+.careModal .mvSteps{display:inline-block;text-align:left;margin:0 auto 4px}
+.careModal .cmBox:has(.mvCard){text-align:center}

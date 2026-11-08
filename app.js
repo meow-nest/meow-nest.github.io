@@ -649,6 +649,28 @@ const App = (function(){
     o.firstChild.animate([{transform:"translateY(40px) scale(.95)",opacity:0},{transform:"none",opacity:1}],{duration:220,easing:"ease-out"});
     return o;
   }
+  // ---- 換手機 ----
+  function moveText(){ return `喵喵小窩・換手機用（不要給別人看）\n網址：${location.origin}${location.pathname}\n邀請碼：${B.code||""}\n暱稱：${me.name||""}`; }
+  function moveCard(){
+    return `<div class="mvCard"><div><span>邀請碼</span><b>${esc(B.code||"")}</b></div><div><span>暱稱</span><b>${esc(me.name||"")}</b></div></div>
+      <ol class="mvSteps"><li>在新手機打開喵喵小窩</li><li>按「我有邀請碼／換手機」</li><li>輸入<b>邀請碼</b>，暱稱填得<b>一模一樣</b></li></ol>`;
+  }
+  function moveBox(){
+    return `<div class="box set"><h2>換手機</h2>${moveCard()}
+      <div class="k">請自己記好，${isSolo() ? "" : `除了${pw()}以外，`}不要給別人看：知道這兩個的人就能進你的小窩。改了暱稱的話，要記新的暱稱喔。</div>
+      <button class="btn sub" id="bMove">📋 複製起來（貼到記事本保存）</button></div>`;
+  }
+  async function copyMove(){
+    try{ await navigator.clipboard.writeText(moveText()); toast("複製好了！貼到記事本或備忘錄存起來吧"); SFX.select(); }
+    catch(e){ toast("沒辦法自動複製，請把邀請碼和暱稱抄下來", 4000); }
+  }
+  function showMoveTip(){
+    const o = modal(`<h3>📱 先記下來，換手機會用到</h3><p class="k" style="margin:0 0 8px">沒有帳號密碼，換手機時要用這兩個：</p>${moveCard()}
+      <button class="btn" id="mvCopy" style="width:100%;margin-top:6px">📋 複製起來</button><button class="btn sub" id="mvOk" style="width:100%;margin-top:8px">我記好了</button>
+      <div class="k" style="margin-top:8px;text-align:center">之後也可以在「設定 → 換手機」看到</div>`);
+    o.querySelector("#mvCopy").addEventListener("click", copyMove);
+    o.querySelector("#mvOk").addEventListener("click", ()=>o.remove());
+  }
   // ---- 回報問題給站長 ----
   function askFeedback(){
     SFX.tap();
@@ -1951,6 +1973,7 @@ const App = (function(){
       <div class="box set"><h2>通知</h2><div class="k">${ps==="on"?"✅ 已開啟：ta 傳訊息時你的手機會跳通知":ps==="denied"?"❌ 通知被封鎖了，請到手機的瀏覽器設定裡允許通知":ps==="ios-home"?"📱 iPhone 要先把這個網頁「加入主畫面」，從主畫面圖示打開後才能開通知":ps==="unsupported"?"這個瀏覽器不支援通知，請用 Chrome（Android）或 Safari 加入主畫面（iPhone）":"還沒開啟"}</div>
         ${ps!=="on"&&ps!=="unsupported"&&ps!=="ios-home"?`<button class="btn mint" id="bPush2">開啟通知</button>`:""}${ps==="on"?`<button class="btn mint" id="bSelfTest" style="margin-bottom:8px">🔔 傳一則測試通知給自己</button><button class="btn sub" id="bTest">傳一則測試訊息給 ta</button>`:""}</div>
       <div class="box set"><h2>邀請碼</h2><div class="code" style="text-align:center">${esc(B.code||"")}</div><div class="k">${pw()}打開網址後輸入這組碼就能加入。換手機時，用同一個名字再輸入一次即可。</div><button class="btn sub" id="bInv2">傳邀請連結</button></div>
+      ${moveBox()}
       ${lockBox()}
       <div class="box set"><h2>其他</h2><div class="row" style="justify-content:flex-start"><button class="btn sub" id="bSnd">${SFX.on?"♪ 音效 開":"♪ 音效 關"}</button><button class="btn sub" id="bNews">📢 更新紀錄</button><button class="btn sub" id="bReload">重新整理</button><a class="btn sub" href="about.html" style="text-decoration:none;color:inherit">📜 網站聲明</a></div>
         <div class="fbRow"><button class="btn sub" id="bFeedback">📮 回報問題給站長</button><div class="k">遇到 bug、有建議，或想請站長幫忙，都可以寫給站長。</div></div>
@@ -1985,6 +2008,7 @@ const App = (function(){
     $("bSnd").addEventListener("click", e=>{ SFX.toggle(); e.target.textContent = SFX.on?"♪ 音效 開":"♪ 音效 關"; });
     $("bDelNest").addEventListener("click", ()=>askDeleteNest());
     $("bFeedback").addEventListener("click", ()=>askFeedback());
+    $("bMove").addEventListener("click", copyMove);
     $("bReload").addEventListener("click", ()=>location.reload());
     $("bNews").addEventListener("click", ()=>{ SFX.tap(); showNews(true); });
     setTimeout(()=>collapseSettings(v), 0);
@@ -2002,10 +2026,10 @@ const App = (function(){
     const th = SITE_THEMES.find(x=>x[0]===(store.get("mw_theme")||"cream")), kt = KB_THEMES.find(x=>x[0]===(store.get("mw_kb")||"strawberry")),
           an = KB_ANIMS.find(x=>x[0]===(store.get("mw_anim")||"jelly")), wl = WALLS.find(x=>x[0]===(store.get("mw_wall")||"paws"));
     return ({ "我的貓": me.name||"", "小窩模式": MI().name, "整體風格": th?th[1]:"", "字體": store.get("mw_font")==="sys"?"一般字":"像素字",
-      "鍵盤設定": ({s:"小",m:"中",l:"大"})[store.get("mw_kbsize")||"m"]+"鍵", "鍵盤配色": kt?kt[1]:"", "打字動畫": an?an[1]:"", "聊天背景": wl?wl[1]:"", "通知": pushState()==="on"?"已開啟":"未開啟", "邀請碼": B.code||"", "密碼鎖": Lock.on() ? "已開啟" : "未開啟" })[t] || "";
+      "鍵盤設定": ({s:"小",m:"中",l:"大"})[store.get("mw_kbsize")||"m"]+"鍵", "鍵盤配色": kt?kt[1]:"", "打字動畫": an?an[1]:"", "聊天背景": wl?wl[1]:"", "通知": pushState()==="on"?"已開啟":"未開啟", "邀請碼": B.code||"", "換手機": "邀請碼＋暱稱", "密碼鎖": Lock.on() ? "已開啟" : "未開啟" })[t] || "";
   }
   const SET_ICON = { "我的貓":()=>sprite(me.cat||"orange","happy"), "小窩模式":()=>icon("heart"), "整體風格":()=>icon("star"), "字體":()=>icon("chat"), "鍵盤設定":()=>icon("keys"), "鍵盤配色":()=>icon("star",{Y:"#f0708d"}),
-    "打字動畫":()=>icon("spark"), "聊天背景":()=>icon("paw"), "通知":()=>icon("bell"), "邀請碼":()=>icon("home"), "密碼鎖":()=>icon("lock"), "其他":()=>icon("gear") };
+    "打字動畫":()=>icon("spark"), "聊天背景":()=>icon("paw"), "通知":()=>icon("bell"), "邀請碼":()=>icon("home"), "換手機":()=>icon("phone"), "密碼鎖":()=>icon("lock"), "其他":()=>icon("gear") };
   function collapseSettings(v){
     // 單人模式：沒有模式切換、邀請碼、聊天背景；其他模式不能切成單人
     v.querySelectorAll(".box.set").forEach(box=>{ const h = box.querySelector("h2"), t = h ? h.textContent.trim() : "";
@@ -2112,8 +2136,8 @@ const App = (function(){
       <input id="nm" maxlength="10" placeholder="你的暱稱，例如：小橘" value="${esc(me.name)}">
       ${prefCode?`<div>你收到的邀請碼</div><input id="cd" maxlength="6" value="${esc(prefCode)}" style="letter-spacing:6px;text-transform:uppercase"><button class="btn" id="bJoin">加入小窩</button>`:
       `<div class="modePick four" id="mPick">${Object.keys(MODES).map(m=>`<button data-m="${m}" class="${m==="couple"?"on":""}">${modeArt(m)}<b>${MODES[m].name}</b><i>${MODES[m].desc}</i></button>`).join("")}</div>
-       <button class="btn" id="bCreate">建立我們的小窩</button><button class="btn sub" id="bHave" style="width:100%">我有邀請碼</button>
-       <div id="joinBox" class="hidden" style="display:flex;flex-direction:column;gap:10px"><input id="cd" maxlength="6" placeholder="輸入 6 碼邀請碼" style="letter-spacing:6px;text-transform:uppercase"><button class="btn" id="bJoin">加入小窩</button></div>`}
+       <button class="btn" id="bCreate">建立我們的小窩</button><button class="btn sub" id="bHave" style="width:100%">我有邀請碼／換手機</button>
+       <div id="joinBox" class="hidden" style="display:flex;flex-direction:column;gap:10px"><input id="cd" maxlength="6" placeholder="輸入 6 碼邀請碼" style="letter-spacing:6px;text-transform:uppercase"><div class="k joinTip">📱 換手機的話：輸入原本的邀請碼，上面的暱稱要填得<b>跟原本一模一樣</b>，就能回到原本的小窩。</div><button class="btn" id="bJoin">加入小窩</button></div>`}
       <div class="err" id="err">${esc(errMsg||"")}</div></div>`;
     const drawPk=()=>{ $("pv").innerHTML=sprite(pick,"wave"); $("pk").innerHTML=COLORS.map(c=>`<button class="${c===pick?"on":""}" data-c="${c}">${sprite(c,"normal")}</button>`).join(""); $("pk").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{pick=b.dataset.c;drawPk();})); };
     drawPk();
@@ -2134,7 +2158,7 @@ const App = (function(){
     const bh=$("bHave"); if(bh) bh.addEventListener("click", ()=>{ $("joinBox").classList.remove("hidden"); bh.classList.add("hidden"); $("cd").focus(); });
     const bj=$("bJoin"); if(bj) bj.addEventListener("click", async()=>{ const n=getName(); if(!n) return; const c=$("cd").value.trim().toUpperCase(); if(c.length!==6){ $("err").textContent="邀請碼是 6 碼喔"; return; } bj.disabled=true;
       try{ save(n); await B.joinCouple(c,n,pick); history.replaceState(null,"",location.pathname+"#home"); await enterNest(false); }
-      catch(e){ bj.disabled=false; const m=String(e.message||e); $("err").textContent = m.includes("code_not_found")?"找不到這個邀請碼，再確認一下":m.includes("solo_nest")?"這是單人模式的小窩，不能加入喔":m.includes("full")?"這個小窩已經有兩個人了；如果是換手機，請用原本的名字加入":"加入失敗："+m; } });
+      catch(e){ bj.disabled=false; const m=String(e.message||e); $("err").textContent = m.includes("code_not_found")?"找不到這個邀請碼，再確認一下":m.includes("solo_nest")?"這是單人模式的小窩，別人不能加入。如果是你自己換手機，暱稱要填得跟原本一模一樣喔":m.includes("full")?"這個小窩已經有兩個人了；如果是換手機，請用原本的名字加入":"加入失敗："+m; } });
   }
 
   // ---------- enter the nest ----------
@@ -2181,6 +2205,7 @@ const App = (function(){
     B.connect();
     if(justCreated) location.hash = isSolo() ? "home" : "settings"; else if(!location.hash || location.hash==="#") location.hash="home";
     render();
+    if(justCreated && isSolo()) setTimeout(showMoveTip, 900);
     if(justCreated) setTimeout(()=>toast(isSolo() ? `${sprite(me.cat,"wave")} 小窩建好了！挑一個遊戲開始玩吧` : `${sprite(me.cat,"wave")} 小窩建好了！把邀請碼傳給${pw()}吧`, 5000), 300);
     if(pushState()==="on") subscribePush().catch(()=>{});
     clearNotifs();
