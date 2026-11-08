@@ -2327,3 +2327,16 @@ body.admin #top .duo .mid,body.admin #top .duo .who:last-child,body.admin #fab,b
 /* 所有輸入框都要能打字、選字（body 設了不能選字，iPhone 會連帶打不了字） */
 input,textarea,[contenteditable]{user-select:text;-webkit-user-select:text}
 .admReBox textarea,.fbTxt{font-size:16px}
+/* 站長信箱對話 */
+.fbTh{display:flex;flex-direction:column;gap:6px;margin:4px 0 6px}
+.fbT{max-width:86%;border:2px solid var(--line);padding:4px 8px;text-align:left;font-size:14px;line-height:1.6;background:var(--card);color:var(--ink)}
+.fbT.u{align-self:flex-end}
+.fbT.a{align-self:flex-start;background:var(--pinkL);border-color:var(--pinkT)}
+.fbTH{display:flex;gap:6px;align-items:baseline}.fbTH b{font-weight:400;font-size:12px;color:var(--pinkT)}.fbT.u .fbTH b{color:var(--muted)}.fbTH i{font-style:normal;font-size:11px;color:var(--muted)}
+.fbTB{white-space:pre-wrap;word-break:break-word}
+.fbMI{position:relative}.fbMI.new{border-color:var(--pinkT)}
+.fbNew{display:inline-block;background:var(--pink);color:var(--onPink);border:2px solid var(--line);font-size:11px;padding:0 6px;margin-bottom:2px}
+.fbDot{display:inline-block;min-width:18px;background:var(--pink);color:var(--onPink);border-radius:9px;font-size:12px;line-height:18px;padding:0 4px;margin-left:4px;text-align:center}
+.fbRe textarea{width:100%;box-sizing:border-box;font:inherit;font-size:16px;line-height:1.6;padding:6px;border:2px solid var(--line);background:var(--paper);color:var(--ink);margin:4px 0 6px}
+.fbBan .bi{font-size:28px;line-height:1}
+.fbModal .cmBox{text-align:left}.fbModal h3{text-align:center}

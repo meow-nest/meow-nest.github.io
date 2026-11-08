@@ -176,8 +176,10 @@ const App = (function(){
     if(pushState()!=="on") html += `<div class="box banner"><span class="bi">${icon("bell")}</span><div style="flex:1">${isSolo() ? "開啟通知，記事本的提醒時間到了手機會跳出來" : "開啟通知，ta 傳訊息時手機會跳出來"}</div><button class="btn mint" id="bPush">開啟</button></div>`;
     html += `<div class="games">` + games.filter(g=>!g.hidden && (!isSolo() || g.solo)).map(g=>`<button class="gcard" data-g="${g.id}"><span class="gi">${window.GameArt && GameArt[g.id] ? `<span class="ga">${GameArt[g.id]()}</span>` : g.icon()}</span><span class="gn">${esc(g.name)}</span><span class="gd">${esc(g.desc)}</span>${g.badge&&g.badge()?`<span class="gb">${esc(g.badge())}</span>`:""}</button>`).join("")
       + `<div class="gcard soon"><span class="gi">${sprite("gray","sleep",{soft:true})}</span><span class="gn">新遊戲</span><span class="gd">敬請期待…</span></div></div>`;
+    if(fbUnread > 0) html = html.replace('<div id="truceHome">', `<div class="box banner fbBan" id="fbBan"><span class="bi">📮</span><div style="flex:1">站長回覆你的回報了！</div><button class="btn" id="bFbH">看看</button></div><div id="truceHome">`);
     v.innerHTML = html;
     renderMeter();
+    const bfh=$("bFbH"); if(bfh) bfh.addEventListener("click", ()=>askFeedback());
     v.querySelectorAll("[data-g]").forEach(b=>b.addEventListener("click",()=>go("game-"+b.dataset.g)));
     bindTiles();
     const bi=$("bInv"); if(bi) bi.addEventListener("click", shareInvite);
@@ -548,6 +550,7 @@ const App = (function(){
   }
   function addMessage(m){
     if(!m || messages.some(x=>x.id===m.id)) return;
+    if(m.kind==="memo" && String(m.body||"").startsWith("📮 站長回覆")) setTimeout(checkFb, 300);
     messages.push(m); messages.sort((a,b)=>a.id-b.id); if(messages.length>300 && !olderLoaded) messages=messages.slice(-300);
     if(chatVisible()){ drawList(false); markSeen(); if(isLove(m)) queueLove(m.sender); }
     else renderBadge();
@@ -679,25 +682,58 @@ const App = (function(){
     o.querySelector("#mvOk").addEventListener("click", ()=>o.remove());
   }
   // ---- 回報問題給站長 ----
+  // ---- 站長信箱（回報＋對話）----
+  let fbUnread = 0;
+  const fbThread = f => (f.thread && f.thread.length) ? f.thread : [{ by:"u", body:f.body, at:f.created_at }].concat(f.reply ? [{ by:"a", body:f.reply, at:f.replied_at }] : []);
+  const fbBubbles = (f, uName, aName) => `<div class="fbTh">${fbThread(f).map(t=>`<div class="fbT ${t.by==="a"?"a":"u"}"><div class="fbTH"><b>${esc(t.by==="a" ? aName : uName)}</b><i>${agoTxt(t.at)}</i></div><div class="fbTB">${esc(t.body)}</div></div>`).join("")}</div>`;
+  function fbBadges(){
+    const bf = $("bFeedback"); if(bf) bf.innerHTML = `📮 站長信箱・回報問題${fbUnread ? ` <span class="fbDot">${fbUnread}</span>` : ""}`;
+    const ban = $("fbBan");
+    if(route==="home" && !isAdmin && (!!ban) !== (fbUnread>0)) render();
+  }
+  function checkFb(){
+    if(isAdmin || !B || !B.myFeedbackUnread) return;
+    B.myFeedbackUnread().then(n=>{ const was = fbUnread; fbUnread = +n || 0; fbBadges();
+      if(fbUnread > was) toast(`${sprite("orange","wave")} 站長回覆你的回報了！`, 3500); }).catch(()=>{});
+  }
   function askFeedback(){
     SFX.tap();
-    const o = modal(`<h3>📮 回報問題給站長</h3><p class="k" style="margin:0 0 8px">遇到的問題、想要的功能、想請站長幫忙的事，都可以寫在這裡。站長會看到你的暱稱和小窩邀請碼，方便幫你處理。</p>
-      <textarea id="fbTxt" maxlength="500" rows="5" placeholder="例如：玩喵喵方塊的時候畫面卡住了…" class="fbTxt"></textarea>
+    const o = modal(`<h3>📮 站長信箱</h3>
+      <div id="fbMine"><div class="k" style="text-align:center">讀取中…</div></div>
+      <h4 class="fbMH">✏️ 寫新的回報</h4>
+      <p class="k" style="margin:0 0 8px;text-align:left">遇到的問題、想要的功能、想請站長幫忙的事，都可以寫在這裡。站長會看到你的暱稱和小窩邀請碼，方便幫你處理。</p>
+      <textarea id="fbTxt" maxlength="500" rows="4" placeholder="例如：玩喵喵方塊的時候畫面卡住了…" class="fbTxt"></textarea>
       <div class="fbCnt"><span id="fbN">0</span> / 500</div>
-      <button class="btn" id="fbGo" style="width:100%">送出</button><button class="btn sub" id="fbNo" style="width:100%;margin-top:8px">取消</button>
-      <div id="fbMine"></div>`);
-    B.myFeedback && B.myFeedback().then(list=>{ const el = o.querySelector("#fbMine"); if(!el || !list || !list.length) return;
-      el.innerHTML = `<h4 class="fbMH">我傳過的回報</h4>` + list.map(f=>`<div class="fbMI"><div class="fbMQ"><i>${agoTxt(f.created_at)}</i>${esc(f.body)}</div>
-        ${f.reply ? `<div class="fbMA"><b>👑 站長回覆</b><i>${agoTxt(f.replied_at)}</i><div>${esc(f.reply)}</div></div>` : `<div class="fbMW">站長還沒回覆，看到會盡快處理 🐾</div>`}</div>`).join(""); }).catch(()=>{});
+      <button class="btn" id="fbGo" style="width:100%">送出新回報</button><button class="btn sub" id="fbNo" style="width:100%;margin-top:8px">關閉</button>`, "fbModal");
+    const tooMany = m => m.includes("too_many") ? "一小時最多只能傳 10 則喔，晚點再試" : null;
+    const drawMine = () => B.myFeedback && B.myFeedback().then(list=>{ const el = o.querySelector("#fbMine"); if(!el) return;
+      if(!list || !list.length){ el.innerHTML = ""; return; }
+      el.innerHTML = `<h4 class="fbMH" style="margin-top:4px">💬 我和站長的對話</h4>` + list.map(f=>{ const th = fbThread(f), hasA = th.some(t=>t.by==="a"), last = th[th.length-1];
+        return `<div class="fbMI ${f.user_seen===false?"new":""}" data-id="${f.id}">${f.user_seen===false ? `<span class="fbNew">新回覆</span>` : ""}${fbBubbles(f, "你", "👑 站長")}
+          ${last.by==="u" ? `<div class="fbMW">${hasA ? "站長看到會再回覆你 🐾" : "站長還沒回覆，看到會盡快處理 🐾"}</div>` : ""}
+          <div class="fbRe hidden"><textarea maxlength="500" rows="2" placeholder="${hasA ? "回覆站長…" : "想補充什麼？"}"></textarea><div class="admFbA"><button data-a="cancel">取消</button><button data-a="send" class="pri">送出</button></div></div>
+          <div class="admFbA fbActs"><button data-a="reply">${hasA ? "💬 回覆站長" : "✏️ 補充"}</button></div></div>`; }).join("");
+      el.querySelectorAll(".fbMI").forEach(it=>{ const id = +it.dataset.id, rb = it.querySelector(".fbRe"), acts = it.querySelector(".fbActs"), ta2 = rb.querySelector("textarea");
+        acts.querySelector('[data-a="reply"]').addEventListener("click", ()=>{ SFX.tap(); rb.classList.remove("hidden"); acts.classList.add("hidden"); ta2.focus(); });
+        rb.querySelector('[data-a="cancel"]').addEventListener("click", ()=>{ rb.classList.add("hidden"); acts.classList.remove("hidden"); });
+        rb.querySelector('[data-a="send"]').addEventListener("click", async e=>{ const t = ta2.value.trim(); if(!t){ toast("先寫一點內容喔"); return; }
+          if(!B.feedbackFollowup){ toast("網站還沒設定好回覆功能"); return; }
+          const b = e.currentTarget; b.disabled = true; b.textContent = "送出中…";
+          try{ await B.feedbackFollowup(id, t); SFX.select(); toast("送出了，站長看到會回覆你 🐾"); drawMine(); }
+          catch(err){ console.error(err); b.disabled = false; b.textContent = "送出"; const m = String(err.message||err);
+            toast(tooMany(m) || (m.includes("too_long") ? "這則對話太長了，請寫一則新的回報" : /feedback_followup|function/i.test(m) ? "網站還沒設定好回覆功能（更新 14）" : "送出失敗，請檢查網路再試一次"), 4000); } });
+      });
+      if(B.myFeedbackSeen && list.some(f=>f.user_seen===false)) B.myFeedbackSeen().then(()=>{ fbUnread = 0; fbBadges(); });
+    }).catch(()=>{ const el = o.querySelector("#fbMine"); if(el) el.innerHTML = ""; });
+    drawMine();
     const ta = o.querySelector("#fbTxt"); ta.addEventListener("input", ()=>{ o.querySelector("#fbN").textContent = ta.value.length; });
     o.querySelector("#fbNo").addEventListener("click", ()=>o.remove());
     o.querySelector("#fbGo").addEventListener("click", async ()=>{
       const t = ta.value.trim(); if(!t){ toast("先寫一點內容喔"); return; }
       const b = o.querySelector("#fbGo"); b.disabled = true; b.textContent = "送出中…";
-      try{ await B.sendFeedback(t); o.querySelector(".cmBox").innerHTML = `<h3>送出了 🐾</h3><p>謝謝你！站長看到會盡快處理。</p><button class="btn" id="fbOk" style="width:100%">好</button>`;
-        o.querySelector("#fbOk").addEventListener("click", ()=>o.remove()); SFX.select(); }
-      catch(e){ console.error(e); b.disabled = false; b.textContent = "送出";
-        const m = String(e.message||e); toast(m.includes("too_many") ? "一小時最多只能送 3 則喔，晚點再試" : /send_feedback|function/i.test(m) ? "網站還沒設定好回報功能" : "送出失敗，請檢查網路再試一次", 4000); }
+      try{ await B.sendFeedback(t); SFX.select(); toast("送出了 🐾 謝謝你！站長看到會盡快處理"); ta.value = ""; o.querySelector("#fbN").textContent = "0"; b.disabled = false; b.textContent = "送出新回報"; drawMine(); }
+      catch(e){ console.error(e); b.disabled = false; b.textContent = "送出新回報";
+        const m = String(e.message||e); toast(tooMany(m) || (/send_feedback|function/i.test(m) ? "網站還沒設定好回報功能" : "送出失敗，請檢查網路再試一次"), 4000); }
     });
   }
   // ---- 站長後台 ----
@@ -732,11 +768,10 @@ const App = (function(){
       <div class="box admBox"><h3>📮 回報信箱 ${st.unread ? `<span class="admBadge">${st.unread}</span>` : ""}</h3>
         <div class="admTabs"><button data-t="new" class="${admTab==="new"?"on":""}">未處理</button><button data-t="all" class="${admTab==="all"?"on":""}">全部</button></div>
         <div class="admFb">${(fb||[]).length ? fb.map(f=>`<div class="admFbI ${f.done?"done":""}" data-id="${f.id}">
-            <div class="admFbH"><b>${esc(f.name||"（沒有暱稱）")}</b><span>${esc(f.code||"")}</span><i>${agoTxt(f.created_at)}</i></div>
-            <div class="admFbB">${esc(f.body)}</div>
-            ${f.reply ? `<div class="admRe"><b>👑 你的回覆</b><i>${agoTxt(f.replied_at)}</i><div>${esc(f.reply)}</div></div>` : ""}
-            <div class="admReBox hidden"><textarea maxlength="500" rows="3" placeholder="${f.alive===false ? "這個小窩已經刪除了，對方收不到回覆" : "回覆給對方，對方的手機會收到通知"}">${esc(f.reply||"")}</textarea><div class="admFbA"><button data-a="cancel">取消</button><button data-a="send" class="pri">送出回覆</button></div></div>
-            <div class="admFbA admActs"><button data-a="reply">${f.reply ? "✏️ 改回覆" : "💬 回覆"}</button><button data-a="done">${f.done ? "↩ 改回未處理" : "✓ 已處理"}</button><button data-a="del">🗑 刪除</button></div></div>`).join("")
+            <div class="admFbH"><b>${esc(f.name||"（沒有暱稱）")}</b><span>${esc(f.code||"")}</span><i>${agoTxt(f.last_at||f.created_at)}</i></div>
+            ${(()=>{ const th = fbThread(f); return th.length>1 && th[th.length-1].by==="u" && th.some(t=>t.by==="a") ? `<span class="fbNew">對方又回覆了</span>` : ""; })()}${fbBubbles(f, f.name||"對方", "👑 你")}
+            <div class="admReBox hidden"><textarea maxlength="500" rows="3" placeholder="${f.alive===false ? "這個小窩已經刪除了，對方收不到回覆" : "回覆給對方，對方的手機會收到通知"}"></textarea><div class="admFbA"><button data-a="cancel">取消</button><button data-a="send" class="pri">送出回覆</button></div></div>
+            <div class="admFbA admActs"><button data-a="reply">💬 回覆</button><button data-a="done">${f.done ? "↩ 改回未處理" : "✓ 已處理"}</button><button data-a="del">🗑 刪除</button></div></div>`).join("")
           : `<div class="k" style="text-align:center;padding:10px">${admTab==="new" ? "目前沒有未處理的回報 🐾" : "還沒有人傳回報"}</div>`}</div></div>`;
     body.querySelectorAll(".admTabs [data-t]").forEach(b=>b.addEventListener("click", ()=>{ admTab = b.dataset.t; SFX.tap(); drawAdmin(); }));
     body.querySelectorAll(".admFbI").forEach(it=>{ const id = +it.dataset.id, f = fb.find(x=>x.id===id);
@@ -2005,7 +2040,7 @@ const App = (function(){
       ${moveBox()}
       ${lockBox()}
       <div class="box set"><h2>其他</h2><div class="row" style="justify-content:flex-start"><button class="btn sub" id="bSnd">${SFX.on?"♪ 音效 開":"♪ 音效 關"}</button><button class="btn sub" id="bNews">📢 更新紀錄</button><button class="btn sub" id="bReload">重新整理</button><a class="btn sub" href="about.html" style="text-decoration:none;color:inherit">📜 網站聲明</a></div>
-        <div class="fbRow"><button class="btn sub" id="bFeedback">📮 回報問題給站長</button><div class="k">遇到 bug、有建議，或想請站長幫忙，都可以寫給站長。</div></div>
+        <div class="fbRow"><button class="btn sub" id="bFeedback">📮 站長信箱・回報問題${fbUnread ? ` <span class="fbDot">${fbUnread}</span>` : ""}</button><div class="k">遇到 bug、有建議，或想請站長幫忙，都可以寫給站長。</div></div>
         <div class="delNest"><button class="btn sub" id="bDelNest">🗑 刪除小窩</button><div class="k">把這個小窩的聊天、遊戲紀錄、記事本全部刪掉，兩個人都會看不到，刪了就救不回來。</div></div>
         </div>`;
     let pick = me.cat||"orange";
@@ -2256,6 +2291,7 @@ const App = (function(){
     await getState("pins").catch(()=>{});
     onState("pins", ()=>drawPinBar());
     setTimeout(()=>maybeNews(justCreated), 1600);
+    setTimeout(checkFb, 2400);
     setInterval(refreshTiles, 60000);
     if(!NO_MEDIA){ setTimeout(cleanupVoices, 8000); setInterval(cleanupVoices, 3*3600e3); }
     if(!NO_MEDIA) setTimeout(()=>{ const a = stateCache.album && stateCache.album.state; if(!a || Date.now()-(a.at||0) > 12*3600e3) recountAlbum().catch(()=>{}); }, 4000);
@@ -2293,7 +2329,7 @@ const App = (function(){
     window.addEventListener("hashchange", ()=>{ if(B && B.coupleId) render(); });
     document.addEventListener("visibilitychange", ()=>{
       if(!B || !B.coupleId) return;
-      if(document.visibilityState==="visible"){ B.track({ name: me.name, cat: me.cat }); B.reconnect(); clearNotifs(); if(chatVisible()) markSeen(); }
+      if(document.visibilityState==="visible"){ B.track({ name: me.name, cat: me.cat }); B.reconnect(); clearNotifs(); if(chatVisible()) markSeen(); checkFb(); }
       else B.track({ name: me.name, cat: me.cat, away: Date.now() });
     });
     window.addEventListener("pagehide", ()=>{ try{ B.track({ name: me.name, cat: me.cat, away: Date.now() }); }catch(e){} });

@@ -77,6 +77,9 @@
     B.adminReply = (id, body) => rpcOrThrow("admin_reply", { p_id: id, p_body: body });
     B.unsend = (id) => rpcOrThrow("unsend_message", { p_id: id });
     B.myFeedback = () => rpcOrThrow("my_feedback");
+    B.feedbackFollowup = (id, body) => rpcOrThrow("feedback_followup", { p_id: id, p_body: body });
+    B.myFeedbackUnread = async () => { try { return (await rpcOrThrow("my_feedback_unread")) || 0; } catch (e) { return 0; } };
+    B.myFeedbackSeen = async () => { try { await rpcOrThrow("my_feedback_seen"); } catch (e) {} };
     B.touch = async () => { try { await sb.rpc("touch_me"); } catch (e) {} };
     // 刪除整個小窩（兩個人的聊天、遊戲紀錄、記事全部刪掉，救不回來）
     B.deleteNest = async () => {
@@ -249,6 +252,9 @@
     B.adminReply = async (id, body) => call("adminReply", { id, body });
     B.unsend = async (id) => call("unsend", { id });
     B.myFeedback = async () => call("myFeedback");
+    B.feedbackFollowup = async (id, body) => call("fbFollow", { id, body });
+    B.myFeedbackUnread = async () => (await call("fbUnread")) || 0;
+    B.myFeedbackSeen = async () => call("fbSeen");
     B.touch = async () => {};
     B.deleteNest = async () => call("delnest", { cid: B.coupleId });
     B.deletePhotos = async (rows) => call("delphotos", { cid: B.coupleId, ids: rows.map(r => r.id) });
