@@ -2094,8 +2094,8 @@ const App = (function(){
         <div class="k">點一下可以預覽，只會改變你自己的手機。</div></div>
       <div class="box set"><h2>聊天背景</h2><div class="walls" id="wls">${WALLS.map(([id,n])=>`<button data-w="${id}" class="${(store.get("mw_wall")||"paws")===id?"on":""}"><span class="wv" data-wall="${id}"><span class="chat"><span class="list"></span></span></span>${n}</button>`).join("")}</div>
         <div class="k">「我的照片」可以選一張你們的合照當背景（只存在這支手機）。</div></div>
-      <div class="box set"><h2>通知</h2><div class="k">${ps==="on"?"✅ 已開啟：ta 傳訊息時你的手機會跳通知":ps==="denied"?"❌ 通知被封鎖了，請到手機的瀏覽器設定裡允許通知":ps==="ios-home"?"📱 iPhone 要先把這個網頁「加入主畫面」，從主畫面圖示打開後才能開通知":ps==="unsupported"?"這個瀏覽器不支援通知，請用 Chrome（Android）或 Safari 加入主畫面（iPhone）":"還沒開啟"}</div>
-        ${ps!=="on"&&ps!=="unsupported"&&ps!=="ios-home"?`<button class="btn mint" id="bPush2">開啟通知</button>`:""}${ps==="on"?`<button class="btn mint" id="bSelfTest" style="margin-bottom:8px">🔔 傳一則測試通知給自己</button><button class="btn sub" id="bTest">傳一則測試訊息給 ta</button>`:""}</div>
+      <div class="box set"><h2>通知</h2><div class="k">${ps==="on"?(isSolo()?"✅ 已開啟：記事提醒時間到了手機會跳通知":"✅ 已開啟：ta 傳訊息時你的手機會跳通知"):ps==="denied"?"❌ 通知被封鎖了，請到手機的瀏覽器設定裡允許通知":ps==="ios-home"?"📱 iPhone 要先把這個網頁「加入主畫面」，從主畫面圖示打開後才能開通知":ps==="unsupported"?"這個瀏覽器不支援通知，請用 Chrome（Android）或 Safari 加入主畫面（iPhone）":"還沒開啟"}</div>
+        ${ps!=="on"&&ps!=="unsupported"&&ps!=="ios-home"?`<button class="btn mint" id="bPush2">開啟通知</button>`:""}${ps==="on"?`<button class="btn mint" id="bSelfTest" style="margin-bottom:8px">🔔 傳一則測試通知給自己</button>${isSolo()?"":`<button class="btn sub" id="bTest">傳一則測試訊息給 ta</button>`}`:""}<button class="btn sub" id="bPushHelp" style="margin-top:8px">🤔 收不到通知？看這裡</button></div>
       <div class="box set"><h2>邀請碼</h2><div class="code" style="text-align:center">${esc(B.code||"")}</div><div class="k">${pw()}打開網址後輸入這組碼就能加入。換手機時，用同一個名字再輸入一次即可。</div><button class="btn sub" id="bInv2">傳邀請連結</button></div>
       ${moveBox()}
       ${lockBox()}
@@ -2112,10 +2112,11 @@ const App = (function(){
       SFX.tap(); bst.disabled = true;
       try{ await subscribePush(); }catch(e){}
       const ok = B.memoSet ? await B.memoSet("test-"+me.uid, "🔔 測試通知：收到這則就代表通知正常！", new Date().toISOString(), [me.uid]).catch(()=>false) : false;
-      if(ok) toast("送出了！把螢幕關掉等 1 分鐘，看看會不會跳出通知 🐾", 7000);
+      if(ok) toast("送出了！把螢幕關掉等 1 分鐘，看看會不會跳出通知 🐾<br>沒收到的話，按下面的「收不到通知？」", 8000);
       else toast("要先在 Supabase 跑 update_9_memo.sql，才能傳測試通知給自己喔", 6000);
       setTimeout(()=>{ if(bst.isConnected) bst.disabled = false; }, 60000);
     });
+    const bph=$("bPushHelp"); if(bph) bph.addEventListener("click", ()=>showPushHelp());
     const bt=$("bTest"); if(bt) bt.addEventListener("click", ()=>{ sendMsg("（測試通知）喵～收到了嗎？","text"); toast("已送出，看看 ta 的手機有沒有跳通知"); });
     $("bInv2").addEventListener("click", shareInvite); bindLockBox();
     // wallpaper previews reuse the real CSS by scoping data-wall on each swatch
@@ -2247,8 +2248,53 @@ const App = (function(){
       const perm = await Notification.requestPermission();
       if(perm!=="granted"){ toast("沒有允許通知，之後可以在設定裡再開"); return; }
       await subscribePush();
-      toast(`${icon("bell")} 通知開好了！`);
+      toast(`${icon("bell")} 通知開好了！<br>之後收不到的話，到設定 → 通知 →「收不到通知？」`, 6000);
     }catch(e){ console.error(e); toast("開啟通知失敗："+esc(e.message||e), 5000); }
+  }
+
+  async function resetPush(){   // 重新訂閱：舊的訂閱失效時常常就是收不到的原因
+    const st = pushState();
+    if(st==="ios-home"){ toast("iPhone 請先「加入主畫面」，再從主畫面打開喔", 5000); return false; }
+    if(st==="unsupported"){ toast("這個瀏覽器不支援通知，請換 Chrome（Android）或 Safari（iPhone）", 5000); return false; }
+    if(st==="denied"){ toast("通知被封鎖了，請照上面第 3 步打開", 5000); return false; }
+    try{
+      const perm = await Notification.requestPermission();
+      if(perm!=="granted"){ toast("沒有允許通知，跳出詢問時要按「允許」喔", 5000); return false; }
+      const reg = await navigator.serviceWorker.ready;
+      const old = await reg.pushManager.getSubscription(); if(old) await old.unsubscribe().catch(()=>{});
+      await subscribePush();
+      toast(`${icon("bell")} 通知重新設定好了！再傳一則測試看看`, 5000); return true;
+    }catch(e){ console.error(e); toast("重新設定失敗："+esc(e.message||e), 5000); return false; }
+  }
+  function showPushHelp(){
+    SFX.tap();
+    const solo = isSolo(), ios = isIOS;
+    const andSteps = `<ol class="mvSteps phSteps">
+      <li><b>從桌面的喵喵小窩打開</b>：不要在 LINE／IG／脆裡面打開，那裡收不到通知。還沒下載的話，到設定 →「下載 App」。</li>
+      <li>在設定 → 通知按「<b>開啟通知</b>」，跳出詢問時按「<b>允許</b>」。</li>
+      <li>打開手機的「設定」→「通知」→ 找到 <b>Chrome</b>（或喵喵小窩）→ 打開「<b>允許通知</b>」，也把「<b>橫幅／懸浮通知</b>」「<b>鎖定畫面</b>」打開。</li>
+      <li><b>小米／紅米／POCO</b>：設定 →「應用程式」→「管理應用程式」→ Chrome →「<b>省電策略</b>」選「<b>無限制</b>」，再把「<b>自動啟動</b>」打開。<br><b>三星</b>：設定 →「電池」→「背景使用限制」→ 不要讓 Chrome 進入睡眠。<br><b>OPPO／vivo／realme</b>：在電池或應用程式設定裡，允許 Chrome「<b>背景執行</b>」。</li>
+      <li>確認<b>勿擾模式</b>沒有開。</li>
+    </ol>`;
+    const iosSteps = `<ol class="mvSteps phSteps">
+      <li>iPhone 要 <b>iOS 16.4 以上</b>（設定 →「一般」→「關於本機」看版本）。</li>
+      <li>一定要用 <b>Safari</b> 打開網站 → 下面的「<b>分享</b>」→「<b>加入主畫面</b>」，之後都<b>從主畫面的圖示打開</b>。直接在 Safari、LINE、IG 裡面開，是收不到通知的。</li>
+      <li>從主畫面打開後，到設定 → 通知按「<b>開啟通知</b>」，跳出詢問時按「<b>允許</b>」。</li>
+      <li>打開 iPhone 的「設定」→「通知」→ 找到<b>喵喵小窩</b> → 打開「<b>允許通知</b>」，「<b>鎖定畫面</b>」「<b>橫幅</b>」都勾起來。</li>
+      <li>確認<b>專注模式</b>（勿擾）沒有開，或把喵喵小窩加到允許的 App。</li>
+    </ol>`;
+    const o = modal(`<h3>🤔 收不到通知？</h3>
+      <p class="k" style="margin:0 0 8px;text-align:left">${solo ? "照著下面一步一步檢查。" : "<b>兩個人都要</b>照著下面檢查一次，你才收得到 ta 的訊息、ta 也才收得到你的。"}</p>
+      <div class="admTabs phTabs"><button data-p="and" class="${ios?"":"on"}">Android</button><button data-p="ios" class="${ios?"on":""}">iPhone</button></div>
+      <div id="phBody">${ios ? iosSteps : andSteps}</div>
+      <div class="phBox"><b>都檢查過還是收不到？</b>
+        <ol class="mvSteps phSteps"><li>先按下面的「<b>🔄 重新設定通知</b>」（換過手機、重新下載 App、清過瀏覽器資料之後，常常要重新設定）。</li>
+        <li>再到設定 → 通知按「<b>🔔 傳一則測試通知給自己</b>」，然後<b>把螢幕關掉等 1 分鐘</b>。</li>
+        <li>還是不行的話，到設定 →「<b>📮 站長信箱</b>」告訴站長你的手機型號，站長會幫你看看。</li></ol></div>
+      <button class="btn mint" id="phReset" style="width:100%">🔄 重新設定通知</button><button class="btn sub" id="phNo" style="width:100%;margin-top:8px">關閉</button>`, "phModal");
+    o.querySelectorAll(".phTabs [data-p]").forEach(b=>b.addEventListener("click", ()=>{ o.querySelectorAll(".phTabs [data-p]").forEach(x=>x.classList.toggle("on", x===b)); o.querySelector("#phBody").innerHTML = b.dataset.p==="ios" ? iosSteps : andSteps; }));
+    o.querySelector("#phNo").addEventListener("click", ()=>o.remove());
+    o.querySelector("#phReset").addEventListener("click", async e=>{ const b = e.currentTarget; b.disabled = true; b.textContent = "設定中…"; const ok = await resetPush(); b.disabled = false; b.textContent = "🔄 重新設定通知"; if(ok && route==="settings") render(); });
   }
 
   // ---------- routing ----------
