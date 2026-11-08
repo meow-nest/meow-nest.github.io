@@ -2324,3 +2324,6 @@ body.admin #top .duo .mid,body.admin #top .duo .who:last-child,body.admin #fab,b
 .instBan .bi{font-size:22px}.instBan .btn{width:auto;padding:6px 12px}
 .instX{font:inherit;border:0;background:none;color:var(--muted);font-size:16px;padding:4px 2px 4px 6px;cursor:pointer}
 .careModal.inst .cmBox{text-align:center}.instSteps{display:inline-block;text-align:left;margin:0 auto 4px}.instSteps b{font-weight:400;color:var(--pinkT)}
+/* 所有輸入框都要能打字、選字（body 設了不能選字，iPhone 會連帶打不了字） */
+input,textarea,[contenteditable]{user-select:text;-webkit-user-select:text}
+.admReBox textarea,.fbTxt{font-size:16px}
