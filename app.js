@@ -168,7 +168,7 @@ const App = (function(){
     if(isAdmin && !force) return viewAdmin(v);
     const p = partner();
     let html = `<div class="title">喵喵<b>小窩</b>${isBestie()||isSolo()?`<span class="modeTag">${modeArt(roomMode)}${MI().name}</span>`:""}<div class="meterSlim" id="meter"></div></div><div id="truceHome">${truceBar()}</div><div class="hTiles" id="hTiles">${homeTiles()}</div>`;
-    if(!p && !isSolo()) html += `<div class="box banner"><span class="bi">${icon("heart")}</span><div style="flex:1">${pw()}還沒加入！<br>把邀請碼 <b style="font-weight:400;color:var(--pinkT);letter-spacing:2px">${esc(B.code||"")}</b> 傳給 ta<br><span class="k" style="font-size:12px">開了 14 天都沒人加入、也沒打開的話，小窩會自動刪除喔</span></div><button class="btn" id="bInv">傳邀請</button></div>`;
+    if(!p && !isSolo()) html += `<div class="box banner warn waitBan"><span class="bi">⚠️</span><div style="flex:1">${pw()}還沒加入！把邀請碼 <b style="font-weight:400;color:var(--pinkT);letter-spacing:2px">${esc(B.code||"")}</b> 傳給 ta<div class="waitWarn">⏰ <b>14 天</b>都沒人加入、你也沒打開的話，<b>小窩會自動刪除</b>，裡面的紀錄也會不見！</div></div><button class="btn" id="bInv">傳邀請</button></div>`;
     const alb = stateCache.album && stateCache.album.state, apct = alb ? (alb.bytes||0)/albumLimit : 0;
     if(apct >= .7 && !NO_MEDIA) html = html.replace('<div id="truceHome">', `<div class="box banner ${apct>=.85?"warn":""}" id="albBan"><span class="bi">${icon("camera")}</span><div style="flex:1">相簿已經用了 ${Math.round(apct*100)}%${apct>=.85?"，該刪一些照片了 🥺":"，可以開始整理照片囉"}</div><button class="btn" id="bAlbum">去整理</button></div><div id="truceHome">`);
     if(false) html += `<div class="box banner ${apct>=.85?"warn":""}"><span class="bi">${icon("camera")}</span><div style="flex:1">相簿已經用了 ${Math.round(apct*100)}%${apct>=.85?"，該刪一些照片了 🥺":"，可以開始整理照片囉"}</div><button class="btn" id="bAlbum">去整理</button></div>`;
@@ -183,6 +183,11 @@ const App = (function(){
     v.querySelectorAll("[data-g]").forEach(b=>b.addEventListener("click",()=>go("game-"+b.dataset.g)));
     bindTiles();
     const bi=$("bInv"); if(bi) bi.addEventListener("click", shareInvite);
+    if(!p && !isSolo() && !store.get("mw_waitWarn")){ store.set("mw_waitWarn","1");
+      setTimeout(()=>{ if(route!=="home" || partner() || document.querySelector(".careModal")) { store.set("mw_waitWarn",""); return; }
+        const o = modal(`<h3>⚠️ 重要提醒</h3><p style="text-align:left;line-height:1.8">你的小窩還在等 ${esc(pw())} 加入。<br><b style="color:var(--pinkT);font-weight:400">開了 14 天都沒人加入、你也沒打開的話，小窩會自動刪除</b>，裡面的紀錄也會一起不見。<br><br>記得把邀請碼 <b style="font-weight:400;color:var(--pinkT);letter-spacing:2px">${esc(B.code||"")}</b> 傳給 ta 喔！只想自己玩的話，可以重新開一個「單人模式」的小窩。</p><button class="btn" id="wwInv" style="width:100%">💌 現在傳邀請給 ta</button><button class="btn sub" id="wwOk" style="width:100%;margin-top:8px">我知道了</button>`, "waitModal");
+        o.querySelector("#wwInv").addEventListener("click", ()=>{ o.remove(); shareInvite(); });
+        o.querySelector("#wwOk").addEventListener("click", ()=>o.remove()); }, 2200); }
     const ba=$("bAlbum"); if(ba) ba.addEventListener("click", ()=>go("album"));
     const bp=$("bPush"); if(bp) bp.addEventListener("click", ()=>enablePush().then(()=>render()));
     const bih=$("bInstH"); if(bih) bih.addEventListener("click", doInstall);

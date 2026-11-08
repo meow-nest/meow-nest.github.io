@@ -2423,3 +2423,5 @@ input,textarea,[contenteditable]{user-select:text;-webkit-user-select:text}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 body:not(.admin) #nav [data-go=games]{display:none!important}
 .admGamesTip{font-size:13px;line-height:1.6}
+.waitWarn{margin-top:4px;font-size:13px;line-height:1.6;color:#b3264a}.waitWarn b{font-weight:400;text-decoration:underline}
+body[data-theme="night"] .waitWarn{color:#ff9db2}
