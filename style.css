@@ -2319,3 +2319,8 @@ body.admin #top .duo .mid,body.admin #top .duo .who:last-child,body.admin #fab,b
 .fbMQ i,.fbMA i{display:block;font-style:normal;font-size:11px;color:var(--muted)}
 .fbMA{border-left:4px solid var(--pink);background:var(--pinkL);padding:4px 8px;margin-top:6px}.fbMA b{font-weight:400;font-size:12px;color:var(--pinkT)}.fbMA i{display:inline;margin-left:6px}
 .fbMW{font-size:12px;color:var(--muted);margin-top:4px}
+/* 下載 App */
+.instBtn{width:100%;margin-top:8px}
+.instBan .bi{font-size:22px}.instBan .btn{width:auto;padding:6px 12px}
+.instX{font:inherit;border:0;background:none;color:var(--muted);font-size:16px;padding:4px 2px 4px 6px;cursor:pointer}
+.careModal.inst .cmBox{text-align:center}.instSteps{display:inline-block;text-align:left;margin:0 auto 4px}.instSteps b{font-weight:400;color:var(--pinkT)}

@@ -172,6 +172,7 @@ const App = (function(){
     const alb = stateCache.album && stateCache.album.state, apct = alb ? (alb.bytes||0)/albumLimit : 0;
     if(apct >= .7 && !NO_MEDIA) html = html.replace('<div id="truceHome">', `<div class="box banner ${apct>=.85?"warn":""}" id="albBan"><span class="bi">${icon("camera")}</span><div style="flex:1">相簿已經用了 ${Math.round(apct*100)}%${apct>=.85?"，該刪一些照片了 🥺":"，可以開始整理照片囉"}</div><button class="btn" id="bAlbum">去整理</button></div><div id="truceHome">`);
     if(false) html += `<div class="box banner ${apct>=.85?"warn":""}"><span class="bi">${icon("camera")}</span><div style="flex:1">相簿已經用了 ${Math.round(apct*100)}%${apct>=.85?"，該刪一些照片了 🥺":"，可以開始整理照片囉"}</div><button class="btn" id="bAlbum">去整理</button></div>`;
+    if(!standalone && !store.get("mw_instHide")) html += `<div class="box banner instBan"><span class="bi">📲</span><div style="flex:1">下載到手機，用起來像 App，也收得到通知</div><button class="btn" id="bInstH">下載</button><button class="instX" id="bInstX" aria-label="關閉">✕</button></div>`;
     if(pushState()!=="on") html += `<div class="box banner"><span class="bi">${icon("bell")}</span><div style="flex:1">${isSolo() ? "開啟通知，記事本的提醒時間到了手機會跳出來" : "開啟通知，ta 傳訊息時手機會跳出來"}</div><button class="btn mint" id="bPush">開啟</button></div>`;
     html += `<div class="games">` + games.filter(g=>!g.hidden && (!isSolo() || g.solo)).map(g=>`<button class="gcard" data-g="${g.id}"><span class="gi">${window.GameArt && GameArt[g.id] ? `<span class="ga">${GameArt[g.id]()}</span>` : g.icon()}</span><span class="gn">${esc(g.name)}</span><span class="gd">${esc(g.desc)}</span>${g.badge&&g.badge()?`<span class="gb">${esc(g.badge())}</span>`:""}</button>`).join("")
       + `<div class="gcard soon"><span class="gi">${sprite("gray","sleep",{soft:true})}</span><span class="gn">新遊戲</span><span class="gd">敬請期待…</span></div></div>`;
@@ -182,6 +183,8 @@ const App = (function(){
     const bi=$("bInv"); if(bi) bi.addEventListener("click", shareInvite);
     const ba=$("bAlbum"); if(ba) ba.addEventListener("click", ()=>go("album"));
     const bp=$("bPush"); if(bp) bp.addEventListener("click", ()=>enablePush().then(()=>render()));
+    const bih=$("bInstH"); if(bih) bih.addEventListener("click", doInstall);
+    const bix=$("bInstX"); if(bix) bix.addEventListener("click", ()=>{ store.set("mw_instHide","1"); const b=bix.closest(".instBan"); if(b) b.remove(); toast("之後可以在「設定 → 其他」下載"); });
   }
 
   // ---------- chat ----------
@@ -1992,7 +1995,7 @@ const App = (function(){
       <div class="box set"><h2>其他</h2><div class="row" style="justify-content:flex-start"><button class="btn sub" id="bSnd">${SFX.on?"♪ 音效 開":"♪ 音效 關"}</button><button class="btn sub" id="bNews">📢 更新紀錄</button><button class="btn sub" id="bReload">重新整理</button><a class="btn sub" href="about.html" style="text-decoration:none;color:inherit">📜 網站聲明</a></div>
         <div class="fbRow"><button class="btn sub" id="bFeedback">📮 回報問題給站長</button><div class="k">遇到 bug、有建議，或想請站長幫忙，都可以寫給站長。</div></div>
         <div class="delNest"><button class="btn sub" id="bDelNest">🗑 刪除小窩</button><div class="k">把這個小窩的聊天、遊戲紀錄、記事本全部刪掉，兩個人都會看不到，刪了就救不回來。</div></div>
-        <div class="help">📱 <b style="font-weight:400">加入主畫面</b><br>Android（Chrome）：右上角「⋮」→「加到主畫面」<br>iPhone（Safari）：下方分享按鈕 →「加入主畫面」</div></div>`;
+        ${installBtn("bInstS","sub")}</div>`;
     let pick = me.cat||"orange";
     const drawPk=()=>{ $("pk").innerHTML=COLORS.map(c=>`<button class="${c===pick?"on":""}" data-c="${c}">${sprite(c,"normal")}</button>`).join(""); $("pk").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{pick=b.dataset.c;drawPk();})); };
     drawPk();
@@ -2022,6 +2025,7 @@ const App = (function(){
     $("bSnd").addEventListener("click", e=>{ SFX.toggle(); e.target.textContent = SFX.on?"♪ 音效 開":"♪ 音效 關"; });
     $("bDelNest").addEventListener("click", ()=>askDeleteNest());
     $("bFeedback").addEventListener("click", ()=>askFeedback());
+    const bis=$("bInstS"); if(bis) bis.addEventListener("click", doInstall);
     $("bMove").addEventListener("click", copyMove);
     $("bReload").addEventListener("click", ()=>location.reload());
     $("bNews").addEventListener("click", ()=>{ SFX.tap(); showNews(true); });
@@ -2084,6 +2088,36 @@ const App = (function(){
   // ---------- push notifications ----------
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
   const standalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone===true;
+  // ---------- 下載 App（加到主畫面） ----------
+  let installEvt = null;
+  const inAppBrowser = /Instagram|Barcelona|Threads|FBAN|FBAV|FB_IAB|Line\/|MicroMessenger|KAKAOTALK/i.test(navigator.userAgent);
+  window.addEventListener("beforeinstallprompt", e=>{ e.preventDefault(); installEvt = e; });
+  window.addEventListener("appinstalled", ()=>{ installEvt = null; store.set("mw_instHide", "1"); document.querySelectorAll(".instBan").forEach(x=>x.remove()); toast("裝好了！之後從手機桌面的喵喵小窩打開就好 🐾", 5000); });
+  const installBtn = (id, cls) => standalone ? "" : `<button class="btn ${cls||""} instBtn" id="${id}">📲 下載 App 到手機</button>`;
+  async function doInstall(){
+    SFX.tap();
+    if(inAppBrowser) return showInAppTip();
+    if(installEvt){ try{ installEvt.prompt(); const r = await installEvt.userChoice; if(r && r.outcome === "accepted"){ installEvt = null; return; } }catch(e){} }
+    showInstallGuide();
+  }
+  async function copyUrl(){ const u = location.origin + location.pathname; try{ await navigator.clipboard.writeText(u); toast("網址複製好了！打開 Chrome 或 Safari 貼上就好"); }catch(e){ toast(u, 6000); } }
+  function showInAppTip(){
+    const o = modal(`<h3>📲 先換到瀏覽器打開</h3><p class="k" style="margin:0 0 8px">你現在是在 IG／脆／LINE 裡面打開的，這裡沒辦法下載 App，也收不到通知。</p>
+      <ol class="mvSteps instSteps"><li>點右上角的「<b>⋯</b>」或「<b>⋮</b>」</li><li>選「<b>在瀏覽器中開啟</b>」</li><li>在瀏覽器裡再按一次「下載 App」</li></ol>
+      <p class="k" style="margin:4px 0 8px">找不到的話，複製網址貼到 <b>Chrome</b>（Android）或 <b>Safari</b>（iPhone）也可以。</p>
+      <button class="btn" id="iaCopy" style="width:100%">📋 複製網址</button><button class="btn sub" id="iaOk" style="width:100%;margin-top:8px">好</button>`, "inst");
+    o.querySelector("#iaCopy").addEventListener("click", copyUrl); o.querySelector("#iaOk").addEventListener("click", ()=>o.remove());
+  }
+  function showInstallGuide(){
+    const steps = isIOS
+      ? `<ol class="mvSteps instSteps"><li>點 Safari 下面的「<b>分享</b>」按鈕（方框加向上箭頭）</li><li>往下滑，選「<b>加入主畫面</b>」</li><li>按右上角的「<b>新增</b>」</li></ol><p class="k" style="margin:4px 0 0">iPhone 要用 <b>Safari</b> 打開才能下載，下載後才收得到通知。</p>`
+      : /Android/i.test(navigator.userAgent)
+        ? `<ol class="mvSteps instSteps"><li>點 Chrome 右上角的「<b>⋮</b>」</li><li>選「<b>安裝應用程式</b>」或「<b>加到主畫面</b>」</li><li>按「<b>安裝</b>」</li></ol>`
+        : `<ol class="mvSteps instSteps"><li>點網址列右邊的「<b>安裝</b>」小圖示</li><li>或打開瀏覽器選單，選「<b>安裝喵喵小窩</b>」</li></ol><p class="k" style="margin:4px 0 0">用手機打開這個網址，就能下載到手機上。</p>`;
+    const o = modal(`<h3>📲 把喵喵小窩下載到手機</h3><p class="k" style="margin:0 0 8px">下載後會出現在手機桌面，打開就像一般的 App，也才收得到通知。</p>${steps}
+      <button class="btn" id="igOk" style="width:100%;margin-top:10px">好</button>`, "inst");
+    o.querySelector("#igOk").addEventListener("click", ()=>o.remove());
+  }
   function pushState(){
     if(!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) return isIOS && !standalone ? "ios-home" : "unsupported";
     if(Notification.permission==="denied") return "denied";
@@ -2150,7 +2184,7 @@ const App = (function(){
       <input id="nm" maxlength="10" placeholder="你的暱稱，例如：小橘" value="${esc(me.name)}">
       ${prefCode?`<div>你收到的邀請碼</div><input id="cd" maxlength="6" value="${esc(prefCode)}" style="letter-spacing:6px;text-transform:uppercase"><button class="btn" id="bJoin">加入小窩</button>`:
       `<div class="modePick four" id="mPick">${Object.keys(MODES).map(m=>`<button data-m="${m}" class="${m==="couple"?"on":""}">${modeArt(m)}<b>${MODES[m].name}</b><i>${MODES[m].desc}</i></button>`).join("")}</div>
-       <button class="btn" id="bCreate">建立我們的小窩</button><button class="btn sub" id="bHave" style="width:100%">我有邀請碼／換手機</button>
+       <button class="btn" id="bCreate">建立我們的小窩</button><button class="btn sub" id="bHave" style="width:100%">我有邀請碼／換手機</button>${installBtn("bInstW","sub")}
        <div id="joinBox" class="hidden" style="display:flex;flex-direction:column;gap:10px"><input id="cd" maxlength="6" placeholder="輸入 6 碼邀請碼" style="letter-spacing:6px;text-transform:uppercase"><div class="k joinTip">📱 換手機的話：輸入原本的邀請碼，上面的暱稱要填得<b>跟原本一模一樣</b>，就能回到原本的小窩。</div><button class="btn" id="bJoin">加入小窩</button></div>`}
       <div class="err" id="err">${esc(errMsg||"")}</div></div>`;
     const drawPk=()=>{ $("pv").innerHTML=sprite(pick,"wave"); $("pk").innerHTML=COLORS.map(c=>`<button class="${c===pick?"on":""}" data-c="${c}">${sprite(c,"normal")}</button>`).join(""); $("pk").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{pick=b.dataset.c;drawPk();})); };
@@ -2169,6 +2203,7 @@ const App = (function(){
         o.querySelector("#swYes").addEventListener("click", ()=>{ o.remove(); pick(); });
       }));
     const bc=$("bCreate"); if(bc) bc.addEventListener("click", async()=>{ const n=getName(); if(!n) return; bc.disabled=true; try{ save(n); await B.createCouple(n,pick); await enterNest(true); }catch(e){ bc.disabled=false; $("err").textContent = /site_full/.test(String(e.message||e)) ? "喵喵小窩的位子已經滿了 🥺 請跟分享網址給你的人說一聲" : "建立失敗："+(e.message||e); } });
+    const biw=$("bInstW"); if(biw) biw.addEventListener("click", doInstall);
     const bh=$("bHave"); if(bh) bh.addEventListener("click", ()=>{ $("joinBox").classList.remove("hidden"); bh.classList.add("hidden"); $("cd").focus(); });
     const bj=$("bJoin"); if(bj) bj.addEventListener("click", async()=>{ const n=getName(); if(!n) return; const c=$("cd").value.trim().toUpperCase(); if(c.length!==6){ $("err").textContent="邀請碼是 6 碼喔"; return; } bj.disabled=true;
       try{ save(n); await B.joinCouple(c,n,pick); history.replaceState(null,"",location.pathname+"#home"); await enterNest(false); }
