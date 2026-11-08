@@ -184,7 +184,7 @@ const App = (function(){
     const ba=$("bAlbum"); if(ba) ba.addEventListener("click", ()=>go("album"));
     const bp=$("bPush"); if(bp) bp.addEventListener("click", ()=>enablePush().then(()=>render()));
     const bih=$("bInstH"); if(bih) bih.addEventListener("click", doInstall);
-    const bix=$("bInstX"); if(bix) bix.addEventListener("click", ()=>{ store.set("mw_instHide","1"); const b=bix.closest(".instBan"); if(b) b.remove(); toast("之後可以在「設定 → 其他」下載"); });
+    const bix=$("bInstX"); if(bix) bix.addEventListener("click", ()=>{ store.set("mw_instHide","1"); const b=bix.closest(".instBan"); if(b) b.remove(); toast("之後可以在「設定 → 下載 App」下載"); });
   }
 
   // ---------- chat ----------
@@ -658,6 +658,9 @@ const App = (function(){
   function moveCard(){
     return `<div class="mvCard"><div><span>邀請碼</span><b>${esc(B.code||"")}</b></div><div><span>暱稱</span><b>${esc(me.name||"")}</b></div></div>
       <ol class="mvSteps"><li>在新手機打開喵喵小窩</li><li>按「我有邀請碼／換手機」</li><li>輸入<b>邀請碼</b>，暱稱填得<b>一模一樣</b></li></ol>`;
+  }
+  function appBox(){
+    return standalone ? "" : `<div class="box set"><h2>下載 App</h2>${0 ? "" : `<div class="k">下載後喵喵小窩會出現在手機桌面，打開就像一般的 App，也才收得到通知。</div>${installBtn("bInstS")}`}</div>`;
   }
   function moveBox(){
     return `<div class="box set"><h2>換手機</h2>${moveCard()}
@@ -1973,7 +1976,7 @@ const App = (function(){
   }
   function viewSettings(v){
     const ps=pushState();
-    v.innerHTML = `<div class="box set"><h2>我的貓</h2><div class="picks" id="pk"></div><input id="nm" maxlength="10" value="${esc(me.name)}" style="font-size:17px;padding:8px;border:3px solid var(--line);text-align:center;border-radius:0"><button class="btn" id="bSave">儲存</button></div>
+    v.innerHTML = `${appBox()}<div class="box set"><h2>我的貓</h2><div class="picks" id="pk"></div><input id="nm" maxlength="10" value="${esc(me.name)}" style="font-size:17px;padding:8px;border:3px solid var(--line);text-align:center;border-radius:0"><button class="btn" id="bSave">儲存</button></div>
       <div class="box set"><h2>小窩模式</h2><div class="modePick" id="mSet">${Object.keys(MODES).map(m=>`<button data-m="${m}" class="${roomMode===m?"on":""}">${modeArt(m)}<b>${MODES[m].name}</b></button>`).join("")}</div><div class="k">兩個人會一起切換。閨蜜／兄弟模式會換掉情侶向的題目和用語</div></div>
       <div class="box set"><h2>整體風格</h2><div class="sthemes" id="sthm">${SITE_THEMES.map(([id,n,bg,pa,ln,ac,sh])=>`<button data-st="${id}" class="${(store.get("mw_theme")||"cream")===id?"on":""}"><span class="stPrev" style="background-color:${bg};background-image:linear-gradient(${ln}14 1px,transparent 1px),linear-gradient(90deg,${ln}14 1px,transparent 1px)"><b style="background:${pa};border-color:${ln};box-shadow:2px 2px 0 ${sh}"></b><i style="background:${ac};border-color:${ln}"></i><s>${icon("heart",{K:ac,W:pa,O:ln})}</s></span>${n}</button>`).join("")}</div></div>
       <div class="box set"><h2>字體</h2><div class="fontPick" id="fPick"><button data-f="pixel" class="${store.get("mw_font")==="sys"?"":"on"}" style="font-family:Cubic11">像素字 喵喵小窩</button><button data-f="sys" class="${store.get("mw_font")==="sys"?"on":""}" style="font-family:-apple-system,'PingFang TC','Noto Sans TC',sans-serif">一般字 喵喵小窩</button></div></div>
@@ -1995,7 +1998,7 @@ const App = (function(){
       <div class="box set"><h2>其他</h2><div class="row" style="justify-content:flex-start"><button class="btn sub" id="bSnd">${SFX.on?"♪ 音效 開":"♪ 音效 關"}</button><button class="btn sub" id="bNews">📢 更新紀錄</button><button class="btn sub" id="bReload">重新整理</button><a class="btn sub" href="about.html" style="text-decoration:none;color:inherit">📜 網站聲明</a></div>
         <div class="fbRow"><button class="btn sub" id="bFeedback">📮 回報問題給站長</button><div class="k">遇到 bug、有建議，或想請站長幫忙，都可以寫給站長。</div></div>
         <div class="delNest"><button class="btn sub" id="bDelNest">🗑 刪除小窩</button><div class="k">把這個小窩的聊天、遊戲紀錄、記事本全部刪掉，兩個人都會看不到，刪了就救不回來。</div></div>
-        ${installBtn("bInstS","sub")}</div>`;
+        </div>`;
     let pick = me.cat||"orange";
     const drawPk=()=>{ $("pk").innerHTML=COLORS.map(c=>`<button class="${c===pick?"on":""}" data-c="${c}">${sprite(c,"normal")}</button>`).join(""); $("pk").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{pick=b.dataset.c;drawPk();})); };
     drawPk();
@@ -2044,10 +2047,10 @@ const App = (function(){
     const th = SITE_THEMES.find(x=>x[0]===(store.get("mw_theme")||"cream")), kt = KB_THEMES.find(x=>x[0]===(store.get("mw_kb")||"strawberry")),
           an = KB_ANIMS.find(x=>x[0]===(store.get("mw_anim")||"jelly")), wl = WALLS.find(x=>x[0]===(store.get("mw_wall")||"paws"));
     return ({ "我的貓": me.name||"", "小窩模式": MI().name, "整體風格": th?th[1]:"", "字體": store.get("mw_font")==="sys"?"一般字":"像素字",
-      "鍵盤設定": ({s:"小",m:"中",l:"大"})[store.get("mw_kbsize")||"m"]+"鍵", "鍵盤配色": kt?kt[1]:"", "打字動畫": an?an[1]:"", "聊天背景": wl?wl[1]:"", "通知": pushState()==="on"?"已開啟":"未開啟", "邀請碼": B.code||"", "換手機": "邀請碼＋暱稱", "密碼鎖": Lock.on() ? "已開啟" : "未開啟" })[t] || "";
+      "鍵盤設定": ({s:"小",m:"中",l:"大"})[store.get("mw_kbsize")||"m"]+"鍵", "鍵盤配色": kt?kt[1]:"", "打字動畫": an?an[1]:"", "聊天背景": wl?wl[1]:"", "通知": pushState()==="on"?"已開啟":"未開啟", "邀請碼": B.code||"", "下載 App": standalone ? "已下載" : "還沒下載", "換手機": "邀請碼＋暱稱", "密碼鎖": Lock.on() ? "已開啟" : "未開啟" })[t] || "";
   }
   const SET_ICON = { "我的貓":()=>sprite(me.cat||"orange","happy"), "小窩模式":()=>icon("heart"), "整體風格":()=>icon("star"), "字體":()=>icon("chat"), "鍵盤設定":()=>icon("keys"), "鍵盤配色":()=>icon("star",{Y:"#f0708d"}),
-    "打字動畫":()=>icon("spark"), "聊天背景":()=>icon("paw"), "通知":()=>icon("bell"), "邀請碼":()=>icon("home"), "換手機":()=>icon("phone"), "密碼鎖":()=>icon("lock"), "其他":()=>icon("gear") };
+    "打字動畫":()=>icon("spark"), "聊天背景":()=>icon("paw"), "通知":()=>icon("bell"), "邀請碼":()=>icon("home"), "換手機":()=>icon("phone"), "下載 App":()=>icon("home"), "密碼鎖":()=>icon("lock"), "其他":()=>icon("gear") };
   function collapseSettings(v){
     // 單人模式：沒有模式切換、邀請碼、聊天背景；其他模式不能切成單人
     v.querySelectorAll(".box.set").forEach(box=>{ const h = box.querySelector("h2"), t = h ? h.textContent.trim() : "";
