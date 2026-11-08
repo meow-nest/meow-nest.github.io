@@ -281,6 +281,8 @@ const App = (function(){
     const mine = m.sender===me.uid;
     if(m.kind==="game") return `<div class="msg sys"><div class="bub">${/^[🏳🤝💗]/u.test(m.body)||m.body.includes("心情")?"":"🎮 "}${esc(m.body)}</div></div>`;
     if(m.kind==="ping") return "";
+    if(m.kind==="memo" && String(m.body||"").startsWith("📮") && m.sender===me.uid && partner()) return "";   // 這則是推播給另一個人的
+    if(m.kind==="memo" && isAdmin && String(m.body||"").startsWith("📮") && !String(m.body||"").startsWith("📮 站長回覆")) return `<div class="msg sys memoMsg"><button class="bub" data-goadm="1">${esc(m.body)}</button></div>`;
     if(m.kind==="memo") return String(m.body||"").startsWith("📮 站長回覆") ? `<div class="msg sys memoMsg"><button class="bub" data-gofb="1">${esc(m.body)}</button></div>` : `<div class="msg sys memoMsg"><button class="bub" data-gonotes="1">${esc(m.body)}</button></div>`;
     if(m.kind==="call") return `<div class="msg sys callMsg"><span class="bub">${esc(m.body)}</span><button class="cbk" data-callback="${m.body.includes("視訊")?1:0}">${m.sender===me.uid ? "再打一次" : "回撥"}</button></div>`;
     if(m.kind==="album") return `<div class="msg sys albumMsg"><button class="bub" data-goalbum>${esc(m.body)}<br><small>點我去整理相簿 ▶</small></button></div>`;
@@ -360,6 +362,7 @@ const App = (function(){
       const cb = e.target.closest("[data-callback]"); if(cb){ startCall(cb.dataset.callback==="1"); return; }
       if(e.target.closest("[data-gonotes]")){ SFX.tap(); go("game-notes"); return; }
       if(e.target.closest("[data-gofb]")){ askFeedback(); return; }
+      if(e.target.closest("[data-goadm]")){ SFX.tap(); go("home"); return; }
       const jq=e.target.closest("[data-jump]"); if(jq){ jumpTo(+jq.dataset.jump); return; }
       const vb=e.target.closest("[data-voice]"); if(vb){ if(vb._lp){ vb._lp=false; return; } playVoice(+vb.dataset.voice); return; }
       const lt=e.target.closest("[data-letter]"); if(lt){ const m=messages.find(x=>x.id===+lt.dataset.letter); if(m) openLetter(m); return; }
@@ -737,7 +740,8 @@ const App = (function(){
     });
   }
   // ---- 站長後台 ----
-  let isAdmin = false, admTab = "new", admTimer = 0;
+  let isAdmin = false, admRole = "boss", admTab = "new", admTimer = 0;
+  const isBoss = () => admRole === "boss";
   const agoTxt = t => { const d = (Date.now() - new Date(t).getTime())/1000; return d < 60 ? "剛剛" : d < 3600 ? `${Math.floor(d/60)} 分鐘前` : d < 86400 ? `${Math.floor(d/3600)} 小時前` : d < 86400*30 ? `${Math.floor(d/86400)} 天前` : new Date(t).toLocaleDateString("zh-TW"); };
   let admUsersData = null, admQ = "", admSort = "recent", admShow = 20;
   const seenTxt = t => { const d = (Date.now() - new Date(t).getTime())/1000; return d < 3600 ? "1 小時內" : d < 86400 ? `${Math.floor(d/3600)} 小時前` : `${Math.floor(d/86400)} 天前`; };
@@ -755,9 +759,9 @@ const App = (function(){
       + (shown.length ? shown.map(n=>{ const ms = n.members||[], md = MODES[n.mode] || MODES.couple, idle = idleDays(n.last_at||n.created_at);
         return `<div class="admN ${n.owner?"own":""}" data-id="${esc(n.id)}">
           <div class="admNH"><span class="admMT">${n.owner ? "👑 站長" : esc(md.name)}</span><b>${esc(n.code||"")}</b><i>開了 ${Math.max(0, idleDays(n.created_at))} 天・${n.msgs||0} 則訊息</i></div>
-          ${ms.map(m=>{ const d = idleDays(m.seen); return `<div class="admU" data-uid="${esc(m.uid)}"><span class="admUC">${sprite(m.cat||"orange","normal")}</span><div class="admUN"><b>${esc(m.name||"（沒有暱稱）")}</b><i class="${d>=60?"old":d>=14?"mid":""}">上線：${seenTxt(m.seen)}</i></div>${!n.owner && ms.length>1 ? `<button class="admUX" data-a="rm">移出</button>` : ""}</div>`; }).join("")}
+          ${ms.map(m=>{ const d = idleDays(m.seen); return `<div class="admU" data-uid="${esc(m.uid)}"><span class="admUC">${sprite(m.cat||"orange","normal")}</span><div class="admUN"><b>${esc(m.name||"（沒有暱稱）")}</b><i class="${d>=60?"old":d>=14?"mid":""}">上線：${seenTxt(m.seen)}</i></div>${isBoss() && !n.owner && ms.length>1 ? `<button class="admUX" data-a="rm">移出</button>` : ""}</div>`; }).join("")}
           ${!n.owner && n.mode!=="solo" && ms.length<2 ? `<div class="k admNote">等另一個人加入中</div>` : ""}
-          ${!n.owner ? `<div class="admFbA"><span class="k admIdle">${idle>=60 ? `⚠ ${idle} 天沒人用，滿 90 天自動刪除` : ""}</span><button data-a="delnest">🗑 刪除小窩</button></div>` : ""}</div>`; }).join("")
+          ${!n.owner ? `<div class="admFbA"><span class="k admIdle">${idle>=60 ? `⚠ ${idle} 天沒人用，滿 90 天自動刪除` : ""}</span>${isBoss() ? `<button data-a="delnest">🗑 刪除小窩</button>` : ""}</div>` : ""}</div>`; }).join("")
         : `<div class="k" style="text-align:center;padding:10px">${q ? "找不到符合的使用者" : "還沒有人開小窩"}</div>`)
       + (list.length > admShow ? `<button class="btn sub" id="admMore" style="width:100%;margin-top:6px">顯示更多（還有 ${list.length-admShow} 個）</button>` : "");
     const more = $("admMore"); if(more) more.addEventListener("click", ()=>{ admShow += 20; drawUsers(); });
@@ -778,10 +782,10 @@ const App = (function(){
     o.querySelector("#acOk").addEventListener("click", async e=>{ const b = e.currentTarget; b.disabled = true; b.textContent = "處理中…";
       try{ await fn(); o.remove(); drawUsers(); SFX.select(); }
       catch(err){ console.error(err); b.disabled = false; b.textContent = okTxt; const m = String(err.message||err);
-        toast(m.includes("owner_nest") ? "站長自己的小窩不能刪" : /admin_|function/i.test(m) ? "資料庫還沒加上這個功能（更新 15）" : m.includes("not_found") ? "找不到這個人，可能已經離開了" : "沒有成功，再試一次", 4000); } });
+        toast(m.includes("not_boss") ? "只有站長本人可以做這件事" : m.includes("owner_nest") ? "站長自己的小窩不能刪" : /admin_|function/i.test(m) ? "資料庫還沒加上這個功能（更新 15）" : m.includes("not_found") ? "找不到這個人，可能已經離開了" : "沒有成功，再試一次", 4000); } });
   }
   async function viewAdmin(v){
-    v.innerHTML = `<div class="adm"><div class="box admHead"><div><h2>👑 站長後台</h2><span class="k" id="admAt">讀取中…</span></div><button class="btn sub" id="admRf">🔄 更新</button></div><div id="admBody"><div class="box k" style="text-align:center">讀取中…</div></div></div>`;
+    v.innerHTML = `<div class="adm"><div class="box admHead"><div><h2>👑 ${isBoss() ? "站長後台" : "管理員後台"}</h2><span class="k" id="admAt">讀取中…</span></div><button class="btn sub" id="admRf">🔄 更新</button></div><div id="admBody"><div class="box k" style="text-align:center">讀取中…</div></div></div>`;
     $("admRf").addEventListener("click", ()=>{ SFX.tap(); drawAdmin(); });
     clearInterval(admTimer); admTimer = setInterval(()=>{ if(route==="home" && isAdmin && document.visibilityState==="visible") drawAdmin(true); else if(route!=="home") clearInterval(admTimer); }, 60000);
     drawAdmin();
@@ -816,7 +820,7 @@ const App = (function(){
             <div class="admFbH"><b>${esc(f.name||"（沒有暱稱）")}</b><span>${esc(f.code||"")}</span><i>${agoTxt(f.last_at||f.created_at)}</i></div>
             ${(()=>{ const th = fbThread(f); return th.length>1 && th[th.length-1].by==="u" && th.some(t=>t.by==="a") ? `<span class="fbNew">對方又回覆了</span>` : ""; })()}${fbBubbles(f, f.name||"對方", "👑 你")}
             <div class="admReBox hidden"><textarea maxlength="500" rows="3" placeholder="${f.alive===false ? "這個小窩已經刪除了，對方收不到回覆" : "回覆給對方，對方的手機會收到通知"}"></textarea><div class="admFbA"><button data-a="cancel">取消</button><button data-a="send" class="pri">送出回覆</button></div></div>
-            <div class="admFbA admActs"><button data-a="reply">💬 回覆</button><button data-a="done">${f.done ? "↩ 改回未處理" : "✓ 已處理"}</button><button data-a="del">🗑 刪除</button></div></div>`).join("")
+            <div class="admFbA admActs"><button data-a="reply">💬 回覆</button><button data-a="done">${f.done ? "↩ 改回未處理" : "✓ 已處理"}</button>${isBoss() ? `<button data-a="del">🗑 刪除</button>` : ""}</div></div>`).join("")
           : `<div class="k" style="text-align:center;padding:10px">${admTab==="new" ? "目前沒有未處理的回報 🐾" : "還沒有人傳回報"}</div>`}</div></div>`;
     admUsersData = us;
     if(us){ drawUsers();
@@ -833,7 +837,7 @@ const App = (function(){
         try{ await B.adminReply(id, t); SFX.select(); toast("回覆送出了 🐾"); drawAdmin(); }
         catch(err){ console.error(err); b.disabled = false; b.textContent = "送出回覆"; toast(/admin_reply|function/i.test(String(err.message||err)) ? "資料庫還沒加上回覆功能（更新 12）" : "沒有成功，再試一次", 4000); } });
       it.querySelector('[data-a="done"]').addEventListener("click", async ()=>{ try{ await B.adminFeedbackSet(id, !f.done, false); SFX.select(); drawAdmin(); }catch(e){ toast("沒有成功，再試一次"); } });
-      it.querySelector('[data-a="del"]').addEventListener("click", async e=>{ const b = e.currentTarget; if(b.dataset.arm !== "1"){ b.dataset.arm = "1"; b.textContent = "再按一次刪除"; setTimeout(()=>{ if(b.isConnected){ b.dataset.arm = ""; b.textContent = "🗑 刪除"; } }, 2500); return; }
+      const delB = it.querySelector('[data-a="del"]'); if(delB) delB.addEventListener("click", async e=>{ const b = e.currentTarget; if(b.dataset.arm !== "1"){ b.dataset.arm = "1"; b.textContent = "再按一次刪除"; setTimeout(()=>{ if(b.isConnected){ b.dataset.arm = ""; b.textContent = "🗑 刪除"; } }, 2500); return; }
         try{ await B.adminFeedbackSet(id, false, true); SFX.tap(); drawAdmin(); }catch(err){ toast("沒有成功，再試一次"); } });
     });
   }
@@ -2306,6 +2310,7 @@ const App = (function(){
     { const ab=$("alBar"); if(ab) ab.remove(); const vr=$("vrec"); if(vr){ const c=vr.querySelector("#vrX"); if(c) c.click(); else vr.remove(); } }
     if(curGame && curGame.unmount){ try{ curGame.unmount(); }catch(e){} } curGame=null; closeSheet(); kb=null; document.body.classList.remove("kbd"); const ofab=$("fab"); if(ofab) ofab.remove(); stkClose(true); Object.keys(RS).forEach(k=>{ RS[k].un && RS[k].un(); delete RS[k]; }); rqBar(null);
     route = r.startsWith("game-") ? "game" : r;
+    document.body.classList.toggle("admsolo", isAdmin && isSolo());
     document.body.classList.toggle("compact", route!=="home");
     document.body.classList.toggle("ingame", route==="game");
     document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("on", b.dataset.go===route || (route==="game"&&b.dataset.go===(isAdmin?"games":"home"))));
@@ -2322,7 +2327,7 @@ const App = (function(){
       curGame = g; lastGame = r; g.mount($("gArea"), ctx);
       const fab=document.createElement("button"); fab.id="fab"; fab.className="fab"; fab.innerHTML=`${icon("chat")}<b id="fabBadge" class="hidden">0</b>`; fab.addEventListener("click", openSheet); document.body.appendChild(fab); if(!curGame || curGame.id !== "notes") stkFab();
     } else if(route==="games" && isAdmin){ lastGame = null; viewHome(v, true);
-      v.insertAdjacentHTML("afterbegin", `<div class="box banner admGamesTip"><span class="bi">👑</span><div style="flex:1">站長測試區：你的小窩是單人模式，這裡只看得到單人也能玩的遊戲。<br>雙人遊戲要用另一支手機開一個雙人小窩、兩個人一起測。</div></div>`); }
+      if(isSolo()) v.insertAdjacentHTML("afterbegin", `<div class="box banner admGamesTip"><span class="bi">👑</span><div style="flex:1">站長測試區：你的小窩是單人模式，這裡只看得到單人也能玩的遊戲。<br>雙人遊戲要用另一支手機開一個雙人小窩、兩個人一起測。</div></div>`); }
     else { if(r==="home") lastGame = null; viewHome(v); }
     renderHeader(); renderBadge();
     window.scrollTo(0,0);
@@ -2386,7 +2391,7 @@ const App = (function(){
     try{ const q = await B.quotaMB(); if(q) albumLimit = q*1e6; }catch(e){}
     setTimeout(loadSite, 5000); setInterval(loadSite, 6*3600e3);
     if(B.touch){ B.touch(); setInterval(()=>B.touch(), 3*3600e3); }
-    B.isOwner && B.isOwner().then(o=>{ if(!o) return; isAdmin = true; document.body.classList.add("admin");
+    B.isOwner && B.isOwner().then(async o=>{ if(!o) return; isAdmin = true; document.body.classList.add("admin"); if(B.adminRole) admRole = await B.adminRole(); document.body.classList.toggle("admsolo", isSolo());
       const hb = document.querySelector('#nav [data-go="home"]'); if(hb) hb.lastChild.textContent = "後台";
       if(route==="home") render(); }).catch(()=>{});
     try{ const rm = await getState("room"); roomMode = validMode(rm && rm.state && rm.state.mode); }catch(e){}

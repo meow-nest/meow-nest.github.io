@@ -2301,8 +2301,8 @@ body.solo #nav [data-go=chat],body.solo #top .duo .mid,body.solo #top .duo .who:
 .admFbH{display:flex;gap:8px;align-items:baseline;font-size:13px}.admFbH b{font-weight:400;color:var(--pinkT)}.admFbH span{color:var(--muted);letter-spacing:1px}.admFbH i{margin-left:auto;font-style:normal;font-size:12px;color:var(--muted)}
 .admFbB{margin:6px 0;font-size:15px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
 .admFbA{display:flex;gap:6px;justify-content:flex-end}.admFbA button{font:inherit;font-size:12px;border:2px solid var(--line);background:var(--paper);color:var(--ink);padding:2px 10px}
-body.admin #nav [data-go=chat]{display:none}
-body.admin #top .duo .mid,body.admin #top .duo .who:last-child,body.admin #fab,body.admin #stkFab{display:none!important}
+body.admsolo #nav [data-go=chat]{display:none}
+body.admsolo #top .duo .mid,body.admsolo #top .duo .who:last-child,body.admsolo #fab,body.admsolo #stkFab{display:none!important}
 /* 換手機 */
 .mvCard{display:flex;gap:8px;margin:2px 0 8px}.mvCard>div{flex:1;border:3px solid var(--line);background:var(--card);padding:6px;display:flex;flex-direction:column;align-items:center}
 .mvCard span{font-size:12px;color:var(--muted)}.mvCard b{font-weight:400;font-size:20px;color:var(--pinkT);letter-spacing:2px;word-break:break-all;text-align:center}

@@ -71,6 +71,7 @@
     const rpcOrThrow = async (fn, args) => { const { data, error } = await sb.rpc(fn, args || {}); if (error) throw error; return data; };
     B.sendFeedback = (body) => rpcOrThrow("send_feedback", { p_body: body });
     B.isOwner = async () => { try { return !!(await rpcOrThrow("is_site_owner")); } catch (e) { return false; } };
+    B.adminRole = async () => { try { return (await rpcOrThrow("my_admin_role")) || "boss"; } catch (e) { return "boss"; } };
     B.adminStats = () => rpcOrThrow("admin_stats");
     B.adminFeedback = (all) => rpcOrThrow("admin_feedback", { p_all: !!all });
     B.adminFeedbackSet = (id, done, del) => rpcOrThrow("admin_feedback_set", { p_id: id, p_done: !!done, p_delete: !!del });
@@ -249,6 +250,7 @@
     B.photoUsage = async () => call("usage", { cid: B.coupleId });
     B.sendFeedback = async (body) => call("feedback", { body });
     B.isOwner = async () => !!window.__owner;
+    B.adminRole = async () => window.__adminRole || "boss";
     B.adminStats = async () => call("adminStats");
     B.adminFeedback = async (all) => call("adminFeedback", { all });
     B.adminFeedbackSet = async (id, done, del) => call("adminFeedbackSet", { id, done, del });
