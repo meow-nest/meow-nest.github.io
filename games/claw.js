@@ -200,11 +200,13 @@ App.registerGame({
     let state = "idle", tLeft = TIME, dir = { x: 0, z: 0 }, lastPlay = -1e9;
     function info(){
       const tl = triesLeft(), l = luck(), c = myCol();
-      el.querySelector("#cwInfo").innerHTML = `<div>今天免費 <b>${tl}</b> / ${FREE} 次</div><div class="cwLuck">幸運值 <i>${Array.from({ length: PITY }, (_, i) => `<span class="${i < l ? "on" : ""}"></span>`).join("")}</i></div>`;
+      const adm = ctx.isAdmin && ctx.isAdmin();
+      el.querySelector("#cwInfo").innerHTML = `<div>${adm ? `🔧 <b>站長測試</b>：無限次數` : `今天免費 <b>${tl}</b> / ${FREE} 次`}</div><div class="cwLuck">幸運值 <i>${Array.from({ length: PITY }, (_, i) => `<span class="${i < l ? "on" : ""}"></span>`).join("")}</i></div>`;
       el.querySelector("#cwCol").textContent = `🎁 收藏 ${owned(c)}/${PRIZES.length}`;
-      if(state === "idle"){ goBtn.textContent = tl > 0 ? "投幣" : "1🪙 投幣"; goBtn.classList.toggle("paid", tl <= 0); goBtn.classList.remove("grab"); }
+      if(state === "idle"){ const free = adm || tl > 0; goBtn.textContent = free ? "投幣" : "1🪙 投幣"; goBtn.classList.toggle("paid", !free); goBtn.classList.remove("grab"); }
     }
     async function pay(){
+      if(ctx.isAdmin && ctx.isAdmin()) return true;   // 站長／管理員測試：不扣次數也不扣貓幣
       if(triesLeft() > 0){ let ok = false; await ctx.update("claw", st => { st = st || {}; st.tries = st.tries || {}; const t = st.tries[me()];
           const cur = t && t.day === today() ? t : { day: today(), n: 0 }; if(cur.n >= FREE) return undefined; cur.n++; st.tries[me()] = cur; ok = true; return st; }); return ok; }
       let ok = false;
@@ -264,7 +266,7 @@ App.registerGame({
         await ctx.update("claw", st => { st = st || {}; st.luck = st.luck || {}; st.luck[me()] = Math.min(PITY, (st.luck[me()] || 0) + 1); return st; }); }
       if(prizes.length < 15) spawn(15 - prizes.length);
       state = "idle"; claw.rT = OPEN; lastPlay = performance.now(); info();
-      if(triesLeft() <= 0 && !won.length && !msgEl.classList.contains("bad")) msg("今天的免費次數用完了，可以用 1 個貓幣再玩一次 🪙");
+      if(!(ctx.isAdmin && ctx.isAdmin()) && triesLeft() <= 0 && !won.length && !msgEl.classList.contains("bad")) msg("今天的免費次數用完了，可以用 1 個貓幣再玩一次 🪙");
     }
     async function win(kind){
       const P = PRIZES[kind], wasNew = !(myCol()[kind] > 0);

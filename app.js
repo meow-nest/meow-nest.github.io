@@ -125,7 +125,7 @@ const App = (function(){
 
   const ctx = { get me(){return me}, partner, isOnline, nameOf, catOf, players, sprite, icon, SFX, burst, toast, floatSvg, esc,
     getState, update, onState, notifyPartner, back: ()=>go("home") };
-  ctx.mode = () => roomMode; ctx.pw = pw; ctx.isBusy = uid => isBusy(uid); Object.defineProperty(ctx, "backend", { get: () => B });
+  ctx.mode = () => roomMode; ctx.pw = pw; ctx.isAdmin = () => isAdmin; ctx.isBusy = uid => isBusy(uid); Object.defineProperty(ctx, "backend", { get: () => B });
   // fast, unsaved messages between the two phones (real-time co-op games)
   const bcSubs = [];
   ctx.broadcast = p => { if(B.bcast) B.bcast(Object.assign({ from: me.uid }, p)); };
