@@ -166,7 +166,11 @@ function drawCat(P, d, o){
   if(!o.noBody){
     if(deco && o.prop !== false) drawProp(P, d, t);
     // 尾巴：一圈雪球
-    if(!o.noTail) [[1.0,.62,4.6],[1.18,.36,4.2],[1.27,.06,3.8],[1.22,-.22,3.4],[1.08,-.42,3]].forEach(([a, b, r]) => disc(cx + rb*a, by + rb*b, r, SNOW, { shade: SNOWS }));
+    // 尾巴：一條彎彎的貓尾巴（先畫一圈描邊、再填白色，看起來才是連在一起的一條）
+    if(!o.noTail){ const pts = []; for(let i = 0; i <= 22; i++){ const u = i/22; pts.push([cx + rb*(.78 + .42*Math.sin(u*Math.PI*.85)) - (u > .82 ? (u - .82)*rb*.9 : 0), by + rb*(.62 - 1.05*u), 4.6 - u*1.8]); }
+      pts.forEach(([x, y, r]) => disc(x, y, r, OL, { ol: false }));
+      pts.forEach(([x, y, r], i) => disc(x, y, r - 1.1, i > 17 ? SH1 : SNOW, { ol: false }));
+      pts.forEach(([x, y, r], i) => { if(i % 3 === 0) px(x + r*.4, y + r*.3, SH2); }); }
     // 手（在身體後面）
     const hold = deco ? d.hold : "none";
     const armEnd = s => [cx + s*(rb*.86 + 13), by - rb*.42 - 10];
@@ -467,8 +471,8 @@ App.registerGame({
         puffs.forEach(p => { p.x += p.vx*dt; p.y += p.vy*dt; p.vy += 50*dt; p.l -= dt; }); puffs = puffs.filter(p => p.l > 0);
         const P = painter(cv); P.g.clearRect(0, 0, VW, VH); drawBg(P, d.bg, t);
         const wob = stage === "deco" && now - shakeT < 300 ? Math.sin((now - shakeT)/30)*(1 - (now - shakeT)/300)*1.5 : 0;
-        const bodyOnly = { noHead: true, deco: false, t };
-        if(stage === "body") drawCat(P, d, Object.assign({ noTail: d.rb < 14 }, bodyOnly));
+        const bodyOnly = { noHead: true, deco: false, noTail: true, t };
+        if(stage === "body") drawCat(P, d, bodyOnly);
         else if(stage === "head"){ drawCat(P, d, bodyOnly); const ry = GROUND - 2*d.rb - d.rh - 8; drawCat(P, d, { noBody: true, deco: false, hy: Math.max(d.rh + 4, ry), t }); }
         else if(stage === "drop"){
           const target = GROUND - d.rb + 3 - d.rb - d.rh + 7;
