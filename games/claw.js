@@ -38,6 +38,12 @@ const FREE = 10, PITY = 8;
 const today = () => new Date().toDateString();
 const pick = () => { const r = Math.random(), tier = r < .07 ? 2 : r < .32 ? 1 : 0; const L = PRIZES.map((p, i) => [p, i]).filter(([p]) => p[1] === tier); return L[(Math.random()*L.length)|0][1]; };
 const art = i => `<span class="cwArt ${PRIZES[i][3] || ""}">${PRIZES[i][2]()}</span>`;
+// 機台裡的娃娃：後面疊兩層深色做出厚度，上面再蓋一層光影（用娃娃自己的形狀當遮罩）
+const MASKS = {};
+const maskOf = i => { if(MASKS[i]) return MASKS[i]; const m = PRIZES[i][2]().match(/<svg[\s\S]*?<\/svg>/g); const svg = m ? m[m.length - 1] : "";
+  return MASKS[i] = `url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}")`; };
+const art3d = i => { const a = PRIZES[i][2](), fx = PRIZES[i][3] || "", mk = maskOf(i);
+  return `<span class="cw3d ${fx}"><span class="cwEx e1">${a}</span><span class="cwEx e2">${a}</span><span class="cwFr">${a}</span><span class="cwLt" style="-webkit-mask-image:${mk};mask-image:${mk}"></span></span>`; };
 
 
 // ---------- 3D 機台（地板座標 x 左→右、z 前→後，0～1；y 是高度） ----------
@@ -109,7 +115,7 @@ App.registerGame({
     let prizes = [];
     const inHole = (x, z) => x < HX && z < HZ;
     function mk(kind, x, y, z){ const p = { kind, x, y, z, vx: 0, vy: 0, vz: 0, r: R, rot: (Math.random() - .5)*40, held: false, el: document.createElement("div") };
-      p.el.className = "cwP3"; p.el.innerHTML = art(kind); p.sh = document.createElement("div"); p.sh.className = "cwPSh"; V.appendChild(p.sh); V.appendChild(p.el); p.sq = 0; p.fz = -1; prizes.push(p); return p; }
+      p.el.className = "cwP3"; p.el.innerHTML = art3d(kind); p.sh = document.createElement("div"); p.sh.className = "cwPSh"; V.appendChild(p.sh); V.appendChild(p.el); p.sq = 0; p.fz = -1; prizes.push(p); return p; }
     function spawn(n){ for(let i = 0; i < n; i++){ let x, z; do{ x = .08 + Math.random()*.84; z = .08 + Math.random()*.84; } while(x < HX + R*2 && z < HZ + R*2); mk(pick(), x, .35 + Math.random()*.5, z); } }
     // 爪子：三根爪腳，每根都是會真的碰到娃娃的小球（kinematic）
     const OPEN = .128, CLOSED = .022, CRR = .017;
@@ -192,8 +198,12 @@ App.registerGame({
         if(pr.front) front += g; else back += g; });
       const hubW = 16*k, hub = `<rect x="${cx - hubW/2}" y="${hubY - hubW*.55}" width="${hubW}" height="${hubW*.75}" rx="${hubW*.2}" fill="#9aa6bd" stroke="#4a5878" stroke-width="2"/><rect x="${cx - hubW*.3}" y="${hubY - hubW*.45}" width="${hubW*.25}" height="${hubW*.2}" fill="#fff" opacity=".7"/>`;
       clawB.innerHTML = back; clawF.innerHTML = front + hub; clawB.style.zIndex = base - 90; clawF.style.zIndex = base + 120;
-      shadow.style.width = (34*k) + "px"; shadow.style.height = (10*k) + "px"; shadow.style.transform = `translate(${cx - 17*k}px, ${PY(claw.z, 0) - 5*k}px)`;
-      shadow.style.opacity = state === "aim" ? .5 : .25;
+      let surf = 0, under = null; for(const p of prizes){ const d = Math.hypot(p.x - claw.x, p.z - claw.z); if(d < p.r*.92){ const top = p.y + Math.sqrt(p.r*p.r - d*d); if(top > surf && top < claw.tip + .02){ surf = top; under = p; } } }
+      const gap = Math.max(0, claw.tip - surf), shk = sz(claw.z)*(1 - Math.min(.45, gap*.45)), sw2 = 46*shk;
+      shadow.style.width = sw2 + "px"; shadow.style.height = (sw2*.34) + "px"; const shY = under ? (PY(under.z, under.y) - 2*under.r*Wf*sz(under.z)*1.45*.62 + 2*under.r*Wf*sz(under.z)*1.45*.24) : PY(claw.z, 0);   // 落在娃娃看得到的頭頂上
+      shadow.style.transform = `translate(${cx - sw2/2}px, ${shY - sw2*.17}px)`;
+      shadow.style.zIndex = under ? (+under.el.style.zIndex + 2) : 6; shadow.style.display = !under && inHole(claw.x, claw.z) ? "none" : "";
+      shadow.style.opacity = (.5 + .45*(1 - Math.min(1, gap/.8))).toFixed(2);
     }
 
     // ---- 流程 ----
