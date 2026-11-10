@@ -348,9 +348,12 @@ App.registerGame({
       function rollCtl(label){
         ctl.innerHTML = `<button class="scRoll" id="scRoll"><span>${label}</span><i>按住不放</i></button>`;
         const b = ctl.querySelector("#scRoll");
-        const down = e => { e.preventDefault(); if(stage !== "body" && stage !== "head") return; holding = true; b.classList.add("on"); SFX.tap(); };
-        const up = () => { if(!holding) return; holding = false; b.classList.remove("on"); release(); };
-        b.addEventListener("pointerdown", down); b.addEventListener("pointerup", up); b.addEventListener("pointerleave", up); b.addEventListener("pointercancel", up);
+        // 只有「手指離開螢幕」才算放開：安卓長按時瀏覽器會插手（pointercancel），不能把它當成放開
+        const up = () => { if(!holding) return; holding = false; b.classList.remove("on"); ["pointerup","touchend","mouseup"].forEach(t => window.removeEventListener(t, up)); release(); };
+        const down = e => { if(e.cancelable) e.preventDefault(); if(holding || (stage !== "body" && stage !== "head")) return; holding = true; b.classList.add("on"); SFX.tap();
+          ["pointerup","touchend","mouseup"].forEach(t => window.addEventListener(t, up)); };
+        b.addEventListener("pointerdown", down); b.addEventListener("touchstart", down, { passive: false });
+        b.addEventListener("contextmenu", e => e.preventDefault());
       }
       function release(){
         if(stage === "body"){
