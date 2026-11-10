@@ -2574,21 +2574,32 @@ body.cwOn #fab,body.cwOn #stkFab{display:none!important}
 .cwI{display:inline-block;width:1.15em;vertical-align:-.2em;line-height:0}.cwI svg{width:100%;height:auto;display:block}
 .cwI.star0{opacity:.9}.cwStars .cwI{width:18px;margin:0 1px}.cwRar .cwI{width:13px}
 .cwTabs button .cwI{width:20px;vertical-align:middle}.cwCrest .cwI{width:16px}.cwFront .cwI{width:11px;vertical-align:-1px}
-/* 夾娃娃機：閃亮版 */
-.cwShinyA{position:relative;display:block}.cwShinyA .cwArt svg{filter:saturate(1.3) brightness(1.08)}
-.cwSheen{position:absolute;inset:0;-webkit-mask-size:100% 100%;mask-size:100% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.95) 45%,rgba(255,236,150,.8) 52%,rgba(150,220,255,.7) 58%,transparent 70%) 0 0/300% 100% no-repeat;animation:cwSheenMv 2.2s ease-in-out infinite;pointer-events:none;mix-blend-mode:screen}
-@keyframes cwSheenMv{0%{background-position:100% 0}60%,100%{background-position:-50% 0}}
-.cwPed.shiny .cwOnPed{filter:drop-shadow(0 0 4px #fff) drop-shadow(0 0 10px rgba(255,200,80,.95))}
-.cwPed.shiny .cwBeam{background:linear-gradient(rgba(255,250,215,.85),rgba(255,220,140,.08));opacity:1}
-.cwPed.shiny .cwBase{background:linear-gradient(90deg,#fff4d0,#ffd27a,#c6f0ff,#ffd27a,#fff4d0);background-size:200% 100%;animation:cwGoldMv 2s linear infinite}
-.cwPed.shiny .cwPlate{background:linear-gradient(90deg,#ffe7a6,#fffbe8,#ffe7a6);background-size:200% 100%;animation:cwGoldMv 2.5s linear infinite;color:#8a4b00}
-.cwPed.shiny::after{content:"";position:absolute;right:12px;top:18px;width:6px;height:6px;background:#fff;box-shadow:0 0 6px #ffe08a;transform:rotate(45deg);animation:cwTw 1.2s infinite;z-index:2}
-.cwPed.shiny::before{content:"";position:absolute;left:12px;top:40px;width:5px;height:5px;background:#ffe08a;transform:rotate(45deg);animation:cwTw 1.2s .6s infinite;z-index:2}
-.cwShinyBar{display:flex;align-items:center;gap:6px;color:#ffe3a1;font-size:12px;margin:-4px 4px 8px}.cwShinyBar div{flex:1;height:8px;border:2px solid #d9a441;background:#2a0c1c}.cwShinyBar span{display:block;height:100%;background:linear-gradient(90deg,#ffd27a,#fff,#9fe0ff,#ffd27a);background-size:200% 100%;animation:cwGoldMv 2s linear infinite}.cwShinyBar b{font-weight:400}
-.cwPage.shiny{background-color:#fffdf2}
-.cwPage.shiny .cwFrame{border-color:#c8922f;background:radial-gradient(#fff6cf,#fff 70%);box-shadow:0 0 0 3px #ffe08a,0 0 18px rgba(255,200,80,.8),4px 4px 0 rgba(200,146,47,.35)}
-.cwPage.shiny .cwPgName{color:#a8650a;text-shadow:0 0 8px rgba(255,210,90,.7)}.cwPgName .cwI{width:16px}
+/* 夾娃娃機：閃亮版（彩虹偏光＋金邊＋像素星星） */
+.cwDay{font-size:11.5px;opacity:.85}.cwDay b{font-size:13px!important}
+.cwShinyA{position:relative;display:block;isolation:isolate}
+.cwShinyA .cwArt svg{filter:drop-shadow(1.5px 0 0 #ffe27a) drop-shadow(-1.5px 0 0 #ffe27a) drop-shadow(0 1.5px 0 #ffe27a) drop-shadow(0 -1.5px 0 #ffe27a) drop-shadow(0 0 5px rgba(255,236,160,.95))!important;animation:none!important}
+.cwHolo,.cwSheen{position:absolute;inset:0;-webkit-mask-size:100% 100%;mask-size:100% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;pointer-events:none}
+.cwHolo{background:linear-gradient(120deg,#ff7eb3,#ffd36b,#8ef0a6,#7fd3ff,#c79bff,#ff7eb3) 0 0/300% 300%;mix-blend-mode:color;opacity:.6;animation:cwHoloMv 3s linear infinite}
+@keyframes cwHoloMv{to{background-position:300% 300%}}
+.cwSheen{background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.95) 48%,transparent 60%) 0 0/300% 100% no-repeat;animation:cwSheenMv 2.4s ease-in-out infinite}
+@keyframes cwSheenMv{0%{background-position:100% 0}55%,100%{background-position:-50% 0}}
+.cwSpk{position:absolute;width:30%;z-index:2;animation:cwSpkA 1.8s ease-in-out infinite;pointer-events:none}.cwSpk svg{width:100%;display:block}
+.cwSpk.k1{left:-10%;top:-4%;width:22%}.cwSpk.k2{right:-14%;top:20%;width:22%;animation-delay:-.45s}.cwSpk.k3{left:-6%;bottom:2%;width:20%;animation-delay:-.9s}.cwSpk.k4{right:-4%;bottom:-8%;width:26%;animation-delay:-1.35s}
+@keyframes cwSpkA{0%,100%{transform:scale(0) rotate(0)}40%{transform:scale(1) rotate(45deg)}70%{transform:scale(.2) rotate(90deg)}}
+.cwPed.shiny .cwOnPed{filter:none}
+.cwPed.shiny .cwBeam{background:linear-gradient(rgba(255,255,255,.9),rgba(255,180,230,.25) 50%,rgba(140,220,255,.05));opacity:1;animation:cwBeamHue 3s linear infinite}
+@keyframes cwBeamHue{to{filter:hue-rotate(360deg)}}
+.cwPed.shiny .cwBase{background:linear-gradient(90deg,#ff9cc6,#ffe27a,#9ff0b5,#8fd8ff,#c9a6ff,#ff9cc6);background-size:300% 100%;animation:cwGoldMv 2.5s linear infinite}
+.cwPed.shiny .cwPlate{background:linear-gradient(90deg,#ffd6ea,#fff4c2,#d4ffe0,#d2f0ff,#ead9ff,#ffd6ea);background-size:300% 100%;animation:cwGoldMv 3s linear infinite;color:#7a3c00;border-color:#d99a1e}
+.cwPed.shiny .cwPlate::before{content:"閃";display:inline-block;background:#d9455f;color:#fff;font-size:8.5px;line-height:11px;padding:0 2px;margin-right:2px;vertical-align:1px}
+.cwShinyBar{display:flex;align-items:center;gap:6px;color:#ffe3a1;font-size:12px;margin:-4px 4px 8px}.cwShinyBar div{flex:1;height:8px;border:2px solid #d9a441;background:#2a0c1c}.cwShinyBar span{display:block;height:100%;background:linear-gradient(90deg,#ff9cc6,#ffe27a,#9ff0b5,#8fd8ff,#c9a6ff);background-size:200% 100%;animation:cwGoldMv 2s linear infinite}.cwShinyBar b{font-weight:400}
+.cwPage.shiny{background-color:#fffdf6}
+.cwPage.shiny .cwFrame{border-color:#d99a1e;background:linear-gradient(120deg,#ffe1f0,#fff6cc,#dcffe6,#dcf3ff,#efe2ff,#ffe1f0) 0 0/300% 300%;animation:cwHoloMv 4s linear infinite;box-shadow:0 0 0 3px #fff,0 0 0 6px #ffd36b,0 0 22px rgba(255,190,90,.75)}
+.cwPage.shiny .cwFrame::after{content:"閃亮版";position:absolute;right:-30px;top:14px;transform:rotate(40deg);background:linear-gradient(90deg,#d9455f,#f0708d);color:#fff;font-size:12px;padding:2px 30px;border:2px solid #7a1f33;z-index:3}
+.cwPage.shiny .cwFrame{overflow:visible}.cwPage.shiny .cwFrameIn{position:relative;z-index:2}
+.cwPage.shiny .cwPgName{background:linear-gradient(90deg,#e0559a,#d99a1e,#2fae7a,#3a8fd9,#8b5ad9,#e0559a);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:cwGoldMv 3s linear infinite}
+.cwPgName .cwI{width:16px}
 .cwPage.shiny .cwStamp{border-color:#d9a441;color:#c8922f;box-shadow:inset 0 0 0 2px #fffaf0,inset 0 0 0 4px #d9a441,0 0 10px rgba(255,210,90,.6);font-size:16px}
-.cwShinyB{width:100%;background:linear-gradient(90deg,#ffd27a,#fff3c4,#ffd27a);background-size:200% 100%;animation:cwGoldMv 2.5s linear infinite;color:#6b3a10}
+.cwShinyB{width:100%;background:linear-gradient(90deg,#ffd6ea,#fff3c4,#d4ffe0,#d2f0ff,#ffd6ea);background-size:300% 100%;animation:cwGoldMv 3s linear infinite;color:#6b3a10}
 .cwShinyHint{font-size:11.5px;color:#a8650a;background:#fff3d6;border:1px dashed #d9a441;padding:3px 8px}
 .cwShinyUp .cwBig{width:140px}
