@@ -1,5 +1,5 @@
-// 遊戲：喵喵夾娃娃機
-// 按住 ◀ ▶ 移動爪子，按「夾！」夾娃娃。夾起來的娃娃可能會在半路滑掉 😹
+// 遊戲：喵喵夾娃娃機（像真的娃娃機：前後左右移動、30 秒倒數、娃娃有物理）
+// 投幣後用十字鍵移動爪子，按「夾！」或時間到就下爪。娃娃會滾、會疊、會卡在出口擋板上，也可以把娃娃推進出口。
 // 每天 10 次免費，之後 1 次 1 個貓幣。連續沒夾到 8 次，下一次一定夾得到（幸運值）。
 // 夾到的娃娃收進「收藏」，有重複的可以送給 ta。
 (function(){
@@ -39,16 +39,21 @@ const today = () => new Date().toDateString();
 const pick = () => { const r = Math.random(), tier = r < .07 ? 2 : r < .32 ? 1 : 0; const L = PRIZES.map((p, i) => [p, i]).filter(([p]) => p[1] === tier); return L[(Math.random()*L.length)|0][1]; };
 const art = i => `<span class="cwArt ${PRIZES[i][3] || ""}">${PRIZES[i][2]()}</span>`;
 
+
+// ---------- 3D 機台（地板座標 x 左→右、z 前→後，0～1；y 是高度） ----------
+const R = .082, HX = .27, HZ = .29, RIM = .085, YTOP = .86, CR = .045, G3 = 3.4, SPEED = .34, TIME = 30;
+const HOME = { x: HX/2, z: HZ/2 };
+
 App.registerGame({
   id: "claw",
   solo: true,
   wip: true,   // 站長測試中：一般使用者先看不到
   name: "喵喵夾娃娃機",
-  desc: "夾娃娃收集貓咪玩偶，還能送給 ta",
+  desc: "像真的娃娃機！前後左右對準，夾娃娃收集貓咪玩偶",
   icon: () => Pix.sprite("orange", "wave"),
   mount(el, ctx){
     const { esc, SFX } = ctx, K = window.MiniKit;
-    let s = null, alive = true, raf = 0, busy = false;
+    let s = null, alive = true, raf = 0;
     const me = () => ctx.me.uid, partner = () => ctx.partner();
     const myCol = () => ((s && s.col) || {})[me()] || {};
     const triesLeft = () => { const t = ((s && s.tries) || {})[me()]; return t && t.day === today() ? Math.max(0, FREE - t.n) : FREE; };
@@ -59,55 +64,113 @@ App.registerGame({
     el.innerHTML = `<div class="box cw">
       <div class="cwTop"><div class="cwInfo" id="cwInfo"></div><button class="btn sub cwColBtn" id="cwCol">🎁 收藏</button></div>
       <div class="cwM"><div class="cwMarq"><span class="cwLights"></span><b>喵喵夾娃娃機</b><span class="cwLights"></span></div>
-        <div class="cwGlass" id="cwGlass"><div class="cwRail"></div><div class="cwChute"><span>出口</span></div><div class="cwShine"></div>
-          <div class="cwClaw" id="cwClaw"><div class="cwRope"></div><div class="cwHead" id="cwHead">${CLAW_OPEN}</div></div></div>
-        <div class="cwMsg" id="cwMsg">按住 ◀ ▶ 移動爪子，對準了按「夾！」</div>
-        <div class="cwPanel"><button class="cwBtn" id="cwL">◀</button><button class="cwGo" id="cwGo">夾！</button><button class="cwBtn" id="cwR">▶</button></div></div></div>`;
-    const G = el.querySelector("#cwGlass"), clawEl = el.querySelector("#cwClaw"), head = el.querySelector("#cwHead"), rope = clawEl.querySelector(".cwRope"), msgEl = el.querySelector("#cwMsg");
+        <div class="cw3" id="cw3"><svg class="cwBg" id="cwBg"></svg><svg class="cwRimB" id="cwRimB"></svg><svg class="cwRimA" id="cwRimA"></svg>
+          <div class="cwGantry" id="cwGantry"></div><div class="cwShadow" id="cwShadow"></div><div class="cwRope3" id="cwRope"></div><div class="cwHead3" id="cwHead">${CLAW_OPEN}</div>
+          <div class="cwFront"><span>⬇ 出口</span></div><div class="cwShine"></div><div class="cwTimer hidden" id="cwTimer">30</div></div>
+        <div class="cwMsg" id="cwMsg">按「投幣」開始，30 秒內用十字鍵把爪子移到娃娃正上方</div>
+        <div class="cwPanel3"><div class="cwPad"><button data-d="up" class="u">▲</button><button data-d="left" class="l">◀</button><button data-d="right" class="r">▶</button><button data-d="down" class="d">▼</button><i></i></div>
+          <button class="cwGo" id="cwGo">投幣</button></div></div></div>`;
+    const V = el.querySelector("#cw3"), head = el.querySelector("#cwHead"), rope = el.querySelector("#cwRope"), gantry = el.querySelector("#cwGantry"), shadow = el.querySelector("#cwShadow"),
+      timerEl = el.querySelector("#cwTimer"), msgEl = el.querySelector("#cwMsg"), goBtn = el.querySelector("#cwGo");
     const msg = (h, cls) => { msgEl.innerHTML = h; msgEl.className = "cwMsg " + (cls || ""); };
-    let GW = 300, GH = 330, PW = 54, chuteW = 66, floor = 8;
-    let prizes = [], nid = 0;
-    const claw = { x: 0, len: 0, open: true, carry: null, sway: 0 };
-    let move = 0;   // -1 / 0 / 1
 
-    function sizes(){ GW = G.clientWidth; GH = G.clientHeight; PW = Math.round(GW*.19); chuteW = Math.round(GW*.22); }
-    // 娃娃堆：下排一排格子，上排每格靠下面兩隻撐著
-    let rows = [];   // rows[0] 最下排；rows[i][k] 靠 rows[i-1][k] 和 rows[i-1][k+1] 撐著
-    function layout(){ const n = Math.max(3, Math.floor((maxX() - minX())/(PW*.92)) + 1), step = (maxX() - minX())/(n - 1);
-      rows = [0, 1, 2].map(i => Array.from({ length: n - i }, (_, k) => ({ i, k, x: minX() + (k + i/2)*step, y: i*PW*.5, p: null }))); }
-    function mk(kind){ const p = { id: ++nid, kind, x: 0, y: GH, w: PW, r: (Math.random() - .5)*20, vy: 0, slot: null, el: document.createElement("div") };
-      p.el.className = "cwP"; p.el.innerHTML = art(kind); p.el.style.width = PW + "px"; G.insertBefore(p.el, clawEl); prizes.push(p); return p; }
-    const place = p => { p.el.style.transform = `translate(${p.x - p.w/2}px, ${GH - floor - p.y - p.w}px) rotate(${p.r}deg)`; p.el.style.zIndex = 10 + Math.round(p.y); };
-    const minX = () => chuteW + PW*.6, maxX = () => GW - PW*.6;
-    const supported = sl => sl.i === 0 || (rows[sl.i - 1][sl.k].p && rows[sl.i - 1][sl.k + 1].p);
-    function seat(p, sl){ if(p.slot) p.slot.p = null; sl.p = p; p.slot = sl; p.drop = true; }
-    function freeSlotNear(x){ for(const R of rows){ const L = R.filter(sl => !sl.p && supported(sl)); if(L.length) return L.reduce((b, sl) => Math.abs(sl.x - x) < Math.abs(b.x - x) ? sl : b); } return null; }
-    function unseat(p){ if(p.slot){ p.slot.p = null; p.slot = null; }
-      // 上面沒人撐的娃娃往下掉到空位
-      for(let pass = 0; pass < 3; pass++) rows.slice(1).forEach(R => R.forEach(sl => { if(sl.p && !supported(sl)){ const q = sl.p; sl.p = null; q.slot = null; const t = freeSlotNear(sl.x); if(t) seat(q, t); } })); }
-    function fill(){
-      const want = rows.reduce((a, R) => a + R.length, 0) - 3;
-      while(prizes.length < want){ const sl = freeSlotNear(minX() + Math.random()*(maxX() - minX())); if(!sl) break; const p = mk(pick()); p.x = sl.x; p.y = GH*.85; seat(p, sl); }
+    // ---- 投影 ----
+    let W = 300, H = 320, Wf = 270, FY = 280, BY = 140;
+    const sz = z => 1 - .36*z;
+    const PX = (x, z) => W/2 + (x - .5)*Wf*sz(z);
+    const PY = (z, y) => FY + (BY - FY)*z - y*Wf*sz(z)*.56;
+    function sizes(){ W = V.clientWidth;
+      // 機台高度：盡量大，但十字鍵和按鈕要留在畫面裡
+      const room = window.innerHeight - 270; V.style.height = Math.round(Math.max(250, Math.min(W*1.1, room))) + "px";
+      H = V.clientHeight; Wf = W*.94; FY = H*.8; BY = H*.36; drawMachine(); }
+    function drawMachine(){
+      const P = (x, z, y) => `${PX(x, z).toFixed(1)},${PY(z, y || 0).toFixed(1)}`;
+      const top = 1.0;
+      el.querySelector("#cwBg").innerHTML =
+        `<defs><pattern id="cwChk" width="22" height="22" patternUnits="userSpaceOnUse"><rect width="22" height="22" fill="#ffd9e3"/><rect width="11" height="11" fill="#ffc8d6"/><rect x="11" y="11" width="11" height="11" fill="#ffc8d6"/></pattern>
+          <pattern id="cwHaz" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="12" height="12" fill="#ffd34d"/><rect width="5" height="12" fill="#5a3b2e"/></pattern></defs>
+        <polygon points="${P(0,1,0)} ${P(1,1,0)} ${P(1,1,top)} ${P(0,1,top)}" fill="#d9ecff"/>
+        <polygon points="${P(0,0,0)} ${P(0,1,0)} ${P(0,1,top)} ${P(0,0,top)}" fill="#e8f4ff"/>
+        <polygon points="${P(1,0,0)} ${P(1,1,0)} ${P(1,1,top)} ${P(1,0,top)}" fill="#e8f4ff"/>
+        <polygon points="${P(0,0,0)} ${P(1,0,0)} ${P(1,1,0)} ${P(0,1,0)}" fill="url(#cwChk)" stroke="#5a3b2e" stroke-width="2"/>
+        <polygon points="${P(0,0,0)} ${P(HX,0,0)} ${P(HX,HZ,0)} ${P(0,HZ,0)}" fill="#2e2240"/>
+        <polygon points="${P(.02,.02,0)} ${P(HX-.02,.02,0)} ${P(HX-.02,HZ-.02,0)} ${P(.02,HZ-.02,0)}" fill="#1b1428"/>
+        <line x1="${PX(0,1)}" y1="${PY(1,top)}" x2="${PX(1,1)}" y2="${PY(1,top)}" stroke="#9aa6bd" stroke-width="5"/>
+        <line x1="${PX(0,0)}" y1="${PY(0,top)}" x2="${PX(0,1)}" y2="${PY(1,top)}" stroke="#9aa6bd" stroke-width="5"/><line x1="${PX(1,0)}" y1="${PY(0,top)}" x2="${PX(1,1)}" y2="${PY(1,top)}" stroke="#9aa6bd" stroke-width="5"/>`;
+      // 出口旁邊的透明擋板（娃娃要越過它才會掉進去）
+      const rim = (a, b) => `<polygon points="${P(a[0],a[1],0)} ${P(b[0],b[1],0)} ${P(b[0],b[1],RIM)} ${P(a[0],a[1],RIM)}" fill="rgba(170,215,255,.45)" stroke="#6f8fb8" stroke-width="2"/>`;
+      el.querySelector("#cwRimB").innerHTML = rim([0, HZ], [HX, HZ]);
+      el.querySelector("#cwRimA").innerHTML = rim([HX, 0], [HX, HZ]);
+      el.querySelectorAll(".cwBg,.cwRimA,.cwRimB").forEach(x => x.setAttribute("viewBox", `0 0 ${W} ${H}`));
     }
-    function startPile(){ prizes.forEach(p => p.el.remove()); prizes = []; layout();
-      rows.forEach((R, i) => R.forEach((sl, k) => { if(i === 2 && k % 2 === 1) return; const p = mk(pick()); p.x = sl.x; p.y = sl.y; seat(p, sl); p.drop = false; place(p); })); }
-    // 娃娃掉到自己的位置
-    function settle(dt){ prizes.forEach(p => { if(p === claw.carry || !p.drop || !p.slot) return;
-      p.x += (p.slot.x - p.x)*Math.min(1, dt*8); p.vy -= 900*dt; p.y += p.vy*dt;
-      if(p.y <= p.slot.y){ p.y = p.slot.y; if(p.vy < -150) SFX.key(.6); p.vy = 0; if(Math.abs(p.x - p.slot.x) < 1){ p.x = p.slot.x; p.drop = false; } }
-      place(p); }); }
 
-    // 爪子正下方最上面的娃娃（有的話）
-    const topPrize = x => { let best = null; prizes.forEach(p => { if(p.slot && p !== claw.carry && Math.abs(p.slot.x - x) < p.w*.55 && (!best || p.slot.y > best.slot.y)) best = p; }); return best; };
-    const topAt = x => { const p = topPrize(x); return p ? p.slot.y + p.w*.62 : 0; };
+    // ---- 娃娃（物理球） ----
+    let prizes = [];
+    const inHole = (x, z) => x < HX && z < HZ;
+    function mk(kind, x, y, z){ const p = { kind, x, y, z, vx: 0, vy: 0, vz: 0, r: R, rot: (Math.random() - .5)*40, held: false, el: document.createElement("div") };
+      p.el.className = "cwP3"; p.el.innerHTML = art(kind); V.appendChild(p.el); prizes.push(p); return p; }
+    function spawn(n){ for(let i = 0; i < n; i++){ let x, z; do{ x = .08 + Math.random()*.84; z = .08 + Math.random()*.84; } while(x < HX + R*2 && z < HZ + R*2); mk(pick(), x, .35 + Math.random()*.5, z); } }
+    const claw = { x: HOME.x, z: HOME.z, tip: YTOP, open: true, vx: 0, vz: 0, swing: 0, held: null, off: null, q: 0 };
+    let captured = [];
 
+    function physics(dt){
+      const n = prizes.length;
+      for(const p of prizes){
+        if(p.held){ const tx = claw.x + p.off.x + claw.swing*.02, ty = claw.tip - R*.85, tz = claw.z + p.off.z;
+          p.vx = (tx - p.x)*16; p.vy = (ty - p.y)*16; p.vz = (tz - p.z)*16; p.x += p.vx*dt; p.y += p.vy*dt; p.z += p.vz*dt; continue; }
+        p.vy -= G3*dt; p.x += p.vx*dt; p.y += p.vy*dt; p.z += p.vz*dt;
+        const hole = inHole(p.x, p.z);
+        if(!hole && p.y < p.r){ p.y = p.r; if(p.vy < 0) p.vy *= -.18; p.vx *= Math.max(0, 1 - 4.5*dt); p.vz *= Math.max(0, 1 - 4.5*dt); p.rot += p.vx*dt*500; }
+        // 牆
+        if(p.x < p.r){ p.x = p.r; p.vx = Math.abs(p.vx)*.3; } if(p.x > 1 - p.r){ p.x = 1 - p.r; p.vx = -Math.abs(p.vx)*.3; }
+        if(p.z < p.r && !hole){ p.z = p.r; p.vz = Math.abs(p.vz)*.3; } if(p.z > 1 - p.r){ p.z = 1 - p.r; p.vz = -Math.abs(p.vz)*.3; }
+        if(hole){ if(p.z < p.r*.6) { p.z = p.r*.6; p.vz = Math.abs(p.vz)*.2; } if(p.x < p.r*.6){ p.x = p.r*.6; p.vx = Math.abs(p.vx)*.2; } }
+        // 出口擋板（兩片薄牆，上緣是圓的，可以滾過去）
+        for(const [ax, az, bx, bz] of [[0, HZ, HX, HZ], [HX, 0, HX, HZ]]){
+          const qx = Math.max(Math.min(ax, bx), Math.min(Math.max(ax, bx), p.x)), qz = Math.max(Math.min(az, bz), Math.min(Math.max(az, bz), p.z)), qy = Math.max(0, Math.min(RIM, p.y));
+          const dx = p.x - qx, dy = p.y - qy, dz = p.z - qz, d = Math.hypot(dx, dy, dz);
+          if(d < p.r && d > 1e-6){ const k = (p.r - d)/d; p.x += dx*k; p.y += dy*k; p.z += dz*k; const vn = (p.vx*dx + p.vy*dy + p.vz*dz)/d; if(vn < 0){ p.vx -= 1.3*vn*dx/d; p.vy -= 1.3*vn*dy/d; p.vz -= 1.3*vn*dz/d; } }
+        }
+        p.vx *= 1 - .4*dt; p.vz *= 1 - .4*dt;
+      }
+      // 娃娃互相推擠
+      for(let i = 0; i < n; i++) for(let j = i + 1; j < n; j++){
+        const a = prizes[i], b = prizes[j], dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z, d = Math.hypot(dx, dy, dz), m = a.r + b.r;
+        if(d >= m || d < 1e-6) continue;
+        const nx = dx/d, ny = dy/d, nz = dz/d, ov = m - d, wa = a.held ? 0 : b.held ? 1 : .5, wb = 1 - wa;
+        a.x -= nx*ov*wa; a.y -= ny*ov*wa; a.z -= nz*ov*wa; b.x += nx*ov*wb; b.y += ny*ov*wb; b.z += nz*ov*wb;
+        const vn = (b.vx - a.vx)*nx + (b.vy - a.vy)*ny + (b.vz - a.vz)*nz;
+        if(vn < 0){ const jv = -1.2*vn; if(!a.held){ a.vx -= jv*nx*wa*2; a.vy -= jv*ny*wa*2; a.vz -= jv*nz*wa*2; } if(!b.held){ b.vx += jv*nx*wb*2; b.vy += jv*ny*wb*2; b.vz += jv*nz*wb*2; } }
+        // 疊在上面的娃娃會慢慢往旁邊滑（像真的娃娃堆）
+        if(Math.abs(ny) > .6 && !a.held && !b.held){ const top = ny > 0 ? b : a; top.vx += (ny > 0 ? nx : -nx)*.35*dt*10; top.vz += (ny > 0 ? nz : -nz)*.35*dt*10; }
+      }
+      // 爪子會推開碰到的娃娃
+      if(claw.tip < YTOP - .02){ for(const p of prizes){ if(p.held) continue; const dx = p.x - claw.x, dy = p.y - (claw.tip + .02), dz = p.z - claw.z, d = Math.hypot(dx, dy, dz), m = p.r + CR;
+        if(d < m && d > 1e-6){ const k = (m - d)/d; p.x += dx*k; p.z += dz*k; if(dy > 0) p.y += dy*k; p.vx += dx*k*8; p.vz += dz*k*8; } } }
+      // 掉進出口
+      for(const p of prizes.slice()) if(p.y < -.32){ captured.push(p.kind); p.el.remove(); prizes = prizes.filter(x => x !== p); if(p === claw.held) claw.held = null; SFX.coin && SFX.coin(); }
+    }
+    function draw(){
+      for(const p of prizes){ const k = sz(p.z), size = 2*p.r*Wf*k*1.3, X = PX(p.x, p.z), Y = PY(p.z, p.y);
+        p.el.style.width = size + "px"; p.el.style.transform = `translate(${X - size/2}px, ${Y - size*.62}px) rotate(${(p.rot % 360).toFixed(1)}deg)`;
+        p.el.style.zIndex = Math.round(2000 - p.z*1000 + p.y*60) + (p.held ? 40 : 0);
+        p.el.style.opacity = p.y < -.12 ? Math.max(0, 1 + (p.y + .12)*6) : 1; }
+      const k = sz(claw.z), hw = .17*Wf*k, cx = PX(claw.x, claw.z), topY = PY(claw.z, 1.0), tipY = PY(claw.z, claw.tip);
+      gantry.style.left = PX(0, claw.z) + "px"; gantry.style.width = (PX(1, claw.z) - PX(0, claw.z)) + "px"; gantry.style.top = (topY - 3) + "px"; gantry.style.zIndex = Math.round(2000 - claw.z*1000 + 200);
+      rope.style.left = (cx - 1.5) + "px"; rope.style.top = topY + "px"; rope.style.height = Math.max(0, tipY - topY - hw*.55) + "px"; rope.style.zIndex = gantry.style.zIndex;
+      head.style.width = hw + "px"; head.style.transform = `translate(${cx - hw/2}px, ${tipY - hw*.62}px) rotate(${claw.swing.toFixed(1)}deg)`; head.style.zIndex = Math.round(2000 - claw.z*1000 + 250);
+      shadow.style.width = (hw*.7) + "px"; shadow.style.height = (hw*.22) + "px"; shadow.style.transform = `translate(${cx - hw*.35}px, ${PY(claw.z, 0) - hw*.11}px)`;
+      shadow.style.opacity = state === "aim" ? .5 : .25;
+    }
+
+    // ---- 流程 ----
+    let state = "idle", tLeft = TIME, dir = { x: 0, z: 0 }, lastPlay = -1e9;
     function info(){
       const tl = triesLeft(), l = luck(), c = myCol();
-      el.querySelector("#cwInfo").innerHTML = `<div>今天免費 <b>${tl}</b> / ${FREE} 次</div><div class="cwLuck" title="幸運值">幸運值 <i>${Array.from({ length: PITY }, (_, i) => `<span class="${i < l ? "on" : ""}"></span>`).join("")}</i></div>`;
+      el.querySelector("#cwInfo").innerHTML = `<div>今天免費 <b>${tl}</b> / ${FREE} 次</div><div class="cwLuck">幸運值 <i>${Array.from({ length: PITY }, (_, i) => `<span class="${i < l ? "on" : ""}"></span>`).join("")}</i></div>`;
       el.querySelector("#cwCol").textContent = `🎁 收藏 ${owned(c)}/${PRIZES.length}`;
-      const go = el.querySelector("#cwGo"); go.textContent = tl > 0 ? "夾！" : "1🪙 夾！"; go.classList.toggle("paid", tl <= 0);
+      if(state === "idle"){ goBtn.textContent = tl > 0 ? "投幣" : "1🪙 投幣"; goBtn.classList.toggle("paid", tl <= 0); goBtn.classList.remove("grab"); }
     }
-    // 開始一次：先扣次數（免費或貓幣）
     async function pay(){
       if(triesLeft() > 0){ let ok = false; await ctx.update("claw", st => { st = st || {}; st.tries = st.tries || {}; const t = st.tries[me()];
           const cur = t && t.day === today() ? t : { day: today(), n: 0 }; if(cur.n >= FREE) return undefined; cur.n++; st.tries[me()] = cur; ok = true; return st; }); return ok; }
@@ -116,39 +179,59 @@ App.registerGame({
       if(!ok) ctx.toast("今天的免費次數用完了，貓幣也不夠～<br>明天再來，或玩其他遊戲賺貓幣吧 🪙", 4000);
       return ok;
     }
-    async function grab(){
-      if(busy) return; busy = true; move = 0;
-      if(!(await pay())){ busy = false; return; }
-      SFX.tap(); msg("爪子下去囉…");
-      const lucky = luck() >= PITY;
-      // 1. 往下
-      const stopAt = Math.max(10, GH - floor - topAt(claw.x) - 14 - head.offsetHeight*.6);
-      await anim(t => { claw.len = Math.min(stopAt, claw.len + 260*t); return claw.len >= stopAt; });
-      // 2. 夾起來
-      claw.open = false; head.innerHTML = CLAW_SHUT; SFX.key(1.2); await K.wait(350);
-      const target = topPrize(claw.x); let held = false;
-      if(target){ const align = 1 - Math.abs(target.slot.x - claw.x)/(target.w*.55); held = lucky || Math.random() < .22 + .55*align; }
-      if(held){ claw.carry = target; unseat(target); target.r = (Math.random() - .5)*16; SFX.select(); }
-      else if(target){ target.r = (Math.random() - .5)*30; place(target); }
-      // 3. 往上
-      await anim(t => { claw.len = Math.max(0, claw.len - 200*t); return claw.len <= 0; });
-      // 4. 移到出口（中途可能會滑掉）
-      const rar = held ? PRIZES[claw.carry.kind][1] : 0;
-      const slip = held && !lucky && Math.random() < [.28, .45, .62][rar];
-      const slipAt = .25 + Math.random()*.5, from = claw.x, to = chuteW/2;
-      let slipped = false;
-      await anim(t => { claw.x = Math.max(to, claw.x - 150*t);
-        if(slip && !slipped && (from - claw.x)/(from - to) > slipAt){ slipped = true; const p = claw.carry; claw.carry = null; p.vy = 0; const sl = freeSlotNear(Math.max(minX(), p.x)); if(sl) seat(p, sl); else { p.el.remove(); prizes = prizes.filter(x => x !== p); } SFX.miss(); msg("啊！<b>滑掉了</b>…差一點點 😿", "bad"); }
-        return claw.x <= to; });
-      // 5. 放開
-      claw.open = true; head.innerHTML = CLAW_OPEN;
-      if(claw.carry){ const p = claw.carry; claw.carry = null; p.el.classList.add("cwWin"); await K.wait(450); p.el.remove(); prizes = prizes.filter(x => x !== p); await win(p.kind); }
-      else { if(!slipped) { msg(target ? "爪子沒抓穩，<b>沒夾到</b>～" : "什麼都沒夾到～再對準一點！", "bad"); SFX.miss(); }
+    goBtn.addEventListener("click", async () => {
+      if(state === "idle"){ state = "paying"; if(!(await pay())){ state = "idle"; return; }
+        SFX.coin ? SFX.coin() : SFX.select(); state = "aim"; tLeft = TIME; timerEl.classList.remove("hidden"); goBtn.textContent = "夾！"; goBtn.classList.add("grab"); goBtn.classList.remove("paid");
+        msg("用十字鍵移動爪子 🕹 看地上的影子對準，按「夾！」"); info(); }
+      else if(state === "aim") startDrop();
+    });
+    let seq = null;   // 自動流程的計時
+    function startDrop(){ if(state !== "aim") return; state = "drop"; dir = { x: 0, z: 0 }; timerEl.classList.add("hidden"); goBtn.textContent = "…"; goBtn.classList.remove("grab"); SFX.tap(); msg("爪子下去囉…"); seq = { t: 0 }; }
+    const lucky = () => luck() >= PITY;
+    function grabCheck(){
+      let best = null, bd = 1e9; const reach = R + .05 + (lucky() ? .04 : 0);
+      for(const p of prizes){ const d = Math.hypot(p.x - claw.x, p.z - claw.z); if(d < reach && p.y + p.r >= claw.tip - .07 && d < bd){ bd = d; best = p; } }
+      if(!best) return null;
+      const q = lucky() ? 1 : 1 - bd/reach;
+      if(!lucky() && Math.random() > .25 + .7*q) return null;
+      claw.q = q; best.held = true; best.off = { x: (best.x - claw.x)*.6, z: (best.z - claw.z)*.6 }; claw.held = best; return best;
+    }
+    function drop(p, why){ if(!p) return; p.held = false; p.vx = claw.vx*.9 + (Math.random() - .5)*.15; p.vz = claw.vz*.9 + (Math.random() - .5)*.15; p.vy = 0; claw.held = null;
+      SFX.miss(); msg(why || "啊！<b>滑掉了</b>…差一點點 😿", "bad"); }
+    function step(dt){
+      const rar = claw.held ? PRIZES[claw.held.kind][1] : 0, L = lucky();
+      if(state === "aim"){
+        tLeft -= dt; timerEl.textContent = Math.max(0, Math.ceil(tLeft)); timerEl.classList.toggle("low", tLeft < 6);
+        claw.vx = dir.x*SPEED; claw.vz = dir.z*SPEED;
+        claw.x = Math.max(.06, Math.min(.94, claw.x + claw.vx*dt)); claw.z = Math.max(.06, Math.min(.94, claw.z + claw.vz*dt));
+        if(tLeft <= 0){ msg("時間到！自動下爪～"); startDrop(); }
+      } else claw.vx = claw.vz = 0;
+      if(state === "drop"){
+        const blocked = prizes.some(p => !p.held && Math.hypot(p.x - claw.x, p.z - claw.z) < p.r*.8 && p.y + p.r >= claw.tip - .01);
+        if(claw.tip > CR && !blocked) claw.tip -= .55*dt; else { seq.t += dt; if(seq.t > .25){ state = "close"; seq.t = 0; head.innerHTML = CLAW_SHUT; SFX.key(1.2); } }
+      } else if(state === "close"){ seq.t += dt; if(seq.t > .35){ const g = grabCheck(); state = "rise"; seq.t = 0; seq.slip1 = g && !L && Math.random() < Math.max(.06, Math.min(.5, .5 - .55*claw.q))*(1 + rar*.25); if(g) SFX.select(); else msg("爪子沒抓到～", "bad"); } }
+      else if(state === "rise"){ claw.tip = Math.min(YTOP, claw.tip + .42*dt); seq.t += dt;
+        if(seq.slip1 && seq.t > .3 && claw.held){ seq.slip1 = false; drop(claw.held, "才剛拉起來就<b>掉了</b>…😿"); }
+        if(claw.tip >= YTOP){ state = "top"; seq.t = 0; } }
+      else if(state === "top"){ seq.t += dt; claw.swing = Math.sin(seq.t*30)*3*(1 - seq.t/.4);
+        if(seq.t > .4){ if(claw.held && !L && Math.random() < .1 + .1*rar) drop(claw.held, "爪子在最上面<b>鬆掉了</b>！真的娃娃機也會這樣 😹"); state = "back"; seq.t = 0; } }
+      else if(state === "back"){ const dx = HOME.x - claw.x, dz = HOME.z - claw.z, d = Math.hypot(dx, dz);
+        if(d < .005){ claw.x = HOME.x; claw.z = HOME.z; state = "release"; seq.t = 0; }
+        else { const v = Math.min(d, .3*dt); claw.vx = dx/d*.3; claw.vz = dz/d*.3; claw.x += dx/d*v; claw.z += dz/d*v;
+          if(claw.held && !L && Math.random() < dt*.22*(1 - claw.q)*(1 + rar*.3)) drop(claw.held); } }
+      else if(state === "release"){ if(seq.t === 0){ head.innerHTML = CLAW_OPEN; if(claw.held){ const p = claw.held; p.held = false; p.vx = (Math.random() - .5)*.1; p.vz = (Math.random() - .5)*.1; claw.held = null; } } seq.t += dt;
+        if(seq.t > 1.6){ finish(); } }
+      claw.swing += (Math.sin(performance.now()/240)*(claw.held ? 4 : 1.2) - claw.swing)*Math.min(1, dt*3);
+    }
+    async function finish(){
+      state = "done";
+      const won = captured.splice(0);
+      if(won.length){ for(const k of won) await win(k); }
+      else { msg(msgEl.classList.contains("bad") ? msgEl.innerHTML : "沒有夾到～再對準一點！", "bad");
         await ctx.update("claw", st => { st = st || {}; st.luck = st.luck || {}; st.luck[me()] = Math.min(PITY, (st.luck[me()] || 0) + 1); return st; }); }
-      await K.wait(300);
-      await anim(t => { claw.x = Math.min(GW/2, claw.x + 220*t); return claw.x >= GW/2; });
-      fill(); busy = false; info();
-      if(triesLeft() <= 0 && !msgEl.classList.contains("good")) msg("今天的免費次數用完了，可以用 1 個貓幣再夾一次 🪙");
+      if(prizes.length < 15) spawn(15 - prizes.length);
+      state = "idle"; lastPlay = performance.now(); info();
+      if(triesLeft() <= 0 && !won.length) msg("今天的免費次數用完了，可以用 1 個貓幣再玩一次 🪙");
     }
     async function win(kind){
       const P = PRIZES[kind], wasNew = !(myCol()[kind] > 0);
@@ -157,14 +240,12 @@ App.registerGame({
       SFX.level(); ctx.burst(); if(P[1] >= 1) SFX.combo();
       msg(`🎉 夾到了 <b>${esc(P[0])}</b>！`, "good");
       if(P[1] === 2 && partner()) ctx.notifyPartner(`${ctx.me.name} 在夾娃娃機夾到超稀有的「${P[0]}」！✨`);
-      const o = document.createElement("div"); o.className = "careModal cwReveal";
-      o.innerHTML = `<div class="cmBox"><div class="cwRay r${P[1]}"></div><div class="cwBig">${art(kind)}</div>${wasNew ? `<div class="cwNew">NEW!</div>` : ""}
-        <h3>${esc(P[0])}</h3><div class="cwRar" style="background:${RAR[P[1]][1]}">${"★".repeat(P[1] + 1)} ${RAR[P[1]][0]}</div>
-        <div class="k">${wasNew ? "第一次夾到！已經收進收藏 🎁" : `收藏裡有 ${(myCol()[kind] || 1)} 個了`}</div><button class="btn" style="width:100%">好耶！</button></div>`;
-      document.body.appendChild(o); o.querySelector("button").addEventListener("click", () => o.remove());
+      await new Promise(res => { const o = document.createElement("div"); o.className = "careModal cwReveal";
+        o.innerHTML = `<div class="cmBox"><div class="cwRay r${P[1]}"></div><div class="cwBig">${art(kind)}</div>${wasNew ? `<div class="cwNew">NEW!</div>` : ""}
+          <h3>${esc(P[0])}</h3><div class="cwRar" style="background:${RAR[P[1]][1]}">${"★".repeat(P[1] + 1)} ${RAR[P[1]][0]}</div>
+          <div class="k">${wasNew ? "第一次夾到！已經收進收藏 🎁" : `收藏裡有 ${(myCol()[kind] || 1)} 個了`}</div><button class="btn" style="width:100%">好耶！</button></div>`;
+        document.body.appendChild(o); o.querySelector("button").addEventListener("click", () => { o.remove(); res(); }); });
     }
-    // 動畫小幫手：每一格跑 step(dt)，回傳 true 就結束
-    const anim = step => new Promise(res => { let last = performance.now(); const f = now => { if(!alive) return res(); const dt = Math.min(.05, (now - last)/1000); last = now; if(step(dt)) res(); else requestAnimationFrame(f); }; requestAnimationFrame(f); });
 
     function openCol(){
       SFX.tap(); const c = myCol(), p = partner(), pc = p ? (((s && s.col) || {})[p.user_id] || {}) : null;
@@ -176,7 +257,7 @@ App.registerGame({
       document.body.appendChild(o);
       o.querySelector("#cwX").addEventListener("click", () => o.remove());
       o.querySelectorAll(".cwSlot[data-i]").forEach(b => b.addEventListener("click", async () => {
-        const i = +b.dataset.i; if(!p){ return; } if(!(myCol()[i] > 1)){ ctx.toast("只有 1 個的捨不得送啦～有重複的才能送喔"); return; }
+        const i = +b.dataset.i; if(!p) return; if(!(myCol()[i] > 1)){ ctx.toast("只有 1 個的捨不得送啦～有重複的才能送喔"); return; }
         if(!b.dataset.ok){ o.querySelectorAll(".cwSlot").forEach(x => { delete x.dataset.ok; x.classList.remove("ask"); }); b.dataset.ok = 1; b.classList.add("ask"); ctx.toast(`再點一次，把 1 個「${PRIZES[i][0]}」送給 ${esc(p.name)}`); return; }
         let ok = false;
         await ctx.update("claw", st => { const c2 = st && st.col && st.col[me()]; if(!c2 || !(c2[i] > 1)) return undefined; c2[i]--; const pc2 = st.col[p.user_id] = st.col[p.user_id] || {}; pc2[i] = (pc2[i] || 0) + 1; ok = true; return st; });
@@ -184,30 +265,32 @@ App.registerGame({
       }));
     }
 
-    // 控制：按住 ◀ ▶ 移動（只看手指放開，安卓長按不會中斷）
-    const hold = (btn, dir) => {
-      const up = () => { if(move === dir) move = 0; btn.classList.remove("on"); ["pointerup","touchend","mouseup"].forEach(t => window.removeEventListener(t, up)); };
-      const down = e => { if(e.cancelable) e.preventDefault(); if(busy) return; move = dir; btn.classList.add("on"); ["pointerup","touchend","mouseup"].forEach(t => window.addEventListener(t, up)); };
-      btn.addEventListener("pointerdown", down); btn.addEventListener("touchstart", down, { passive: false }); btn.addEventListener("contextmenu", e => e.preventDefault()); };
-    hold(el.querySelector("#cwL"), -1); hold(el.querySelector("#cwR"), 1);
-    el.querySelector("#cwGo").addEventListener("click", grab);
+    // ---- 十字鍵：按住移動（只看手指放開，安卓長按不會中斷） ----
+    const DIRS = { up: [0, 1], down: [0, -1], left: [-1, 0], right: [1, 0] };
+    el.querySelectorAll(".cwPad [data-d]").forEach(btn => {
+      const [dx, dz] = DIRS[btn.dataset.d];
+      const up = () => { if(dir.x === dx && dir.z === dz) dir = { x: 0, z: 0 }; btn.classList.remove("on"); ["pointerup","touchend","mouseup"].forEach(t => window.removeEventListener(t, up)); };
+      const down = e => { if(e.cancelable) e.preventDefault(); if(state !== "aim") { if(state === "idle") msg("先按「投幣」才能移動爪子喔 🪙"); return; } dir = { x: dx, z: dz }; btn.classList.add("on"); SFX.key(.8);
+        ["pointerup","touchend","mouseup"].forEach(t => window.addEventListener(t, up)); };
+      btn.addEventListener("pointerdown", down); btn.addEventListener("touchstart", down, { passive: false }); btn.addEventListener("contextmenu", e => e.preventDefault());
+    });
     el.querySelector("#cwCol").addEventListener("click", openCol);
 
-    let last = performance.now(), t0 = last;
+    let last = performance.now();
     const loop = now => {
-      if(!alive) return; const dt = Math.min(.05, (now - last)/1000); last = now;
-      if(!busy && move){ claw.x = Math.max(chuteW*.5 + 10, Math.min(GW - 22, claw.x + move*170*dt)); }
-      claw.sway = Math.sin((now - t0)/260) * (claw.carry ? 5 : busy ? 2 : 1);
-      clawEl.style.transform = `translateX(${claw.x}px)`; rope.style.height = (14 + claw.len) + "px";
-      head.style.transform = `translate(-50%, 0) rotate(${claw.sway}deg)`;
-      if(claw.carry){ const p = claw.carry; p.x = claw.x; p.y = GH - floor - (14 + claw.len + head.offsetHeight*.75) - p.w; place(p); }
-      settle(dt);
+      if(!alive) return; const dt = Math.min(.04, (now - last)/1000); last = now;
+      step(dt); for(let i = 0; i < 3; i++) physics(dt/3); draw();
+      // 玩完後幾秒內滾進出口的也算；沒在玩的時候自己滾進去的不算（放回機台裡）
+      if(state === "idle" && captured.length){ if(performance.now() - lastPlay < 4000) finish(); else { const ks = captured.splice(0); ks.forEach(k => mk(k, .5 + Math.random()*.4, .9, .5 + Math.random()*.4)); } }
       raf = requestAnimationFrame(loop);
     };
-    requestAnimationFrame(() => { sizes(); claw.x = GW/2; startPile(); info(); raf = requestAnimationFrame(loop); });
+    requestAnimationFrame(() => { try{ el.querySelector(".cw").scrollIntoView({ block: "start" }); }catch(e){} sizes(); spawn(16); for(let i = 0; i < 240; i++) physics(1/60); captured.forEach(k => mk(k, .6, .9, .6)); captured = []; for(let i = 0; i < 120; i++) physics(1/60); captured = []; draw(); info(); raf = requestAnimationFrame(loop); });
+    const onR = () => { if(alive) sizes(); }; window.addEventListener("resize", onR);
     this._u = ctx.onState("claw", st => { s = st; if(alive) info(); });
-    this._stop = () => { alive = false; document.body.classList.remove("cwOn"); cancelAnimationFrame(raf); document.querySelectorAll(".cwReveal,.cwColM").forEach(x => x.remove()); };
+    this._stop = () => { alive = false; window.removeEventListener("resize", onR); document.body.classList.remove("cwOn"); cancelAnimationFrame(raf); document.querySelectorAll(".cwReveal,.cwColM").forEach(x => x.remove()); };
     (async () => { const cur = await ctx.getState("claw").catch(() => null); s = cur ? cur.state : null; if(alive) info(); })();
+    // 測試用
+    if(window.__mock) window.__cw = { claw, prizes: () => prizes, state: () => state, HOME };
   },
   unmount(){ if(this._u) this._u(); if(this._stop) this._stop(); },
 });
