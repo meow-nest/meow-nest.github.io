@@ -89,10 +89,11 @@ App.registerGame({
       el.querySelector("#cwBg").innerHTML =
         `<defs><pattern id="cwChk" width="22" height="22" patternUnits="userSpaceOnUse"><rect width="22" height="22" fill="#ffd9e3"/><rect width="11" height="11" fill="#ffc8d6"/><rect x="11" y="11" width="11" height="11" fill="#ffc8d6"/></pattern>
           <pattern id="cwHaz" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="12" height="12" fill="#ffd34d"/><rect width="5" height="12" fill="#5a3b2e"/></pattern></defs>
-        <polygon points="${P(0,1,0)} ${P(1,1,0)} ${P(1,1,top)} ${P(0,1,top)}" fill="#d9ecff"/>
-        <polygon points="${P(0,0,0)} ${P(0,1,0)} ${P(0,1,top)} ${P(0,0,top)}" fill="#e8f4ff"/>
-        <polygon points="${P(1,0,0)} ${P(1,1,0)} ${P(1,1,top)} ${P(1,0,top)}" fill="#e8f4ff"/>
-        <polygon points="${P(0,0,0)} ${P(1,0,0)} ${P(1,1,0)} ${P(0,1,0)}" fill="url(#cwChk)" stroke="#5a3b2e" stroke-width="2"/>
+        <linearGradient id="cwWallL" x1="0" x2="1"><stop offset="0" stop-color="#bcd6f2"/><stop offset="1" stop-color="#e3f0ff"/></linearGradient><linearGradient id="cwWallR" x1="1" x2="0"><stop offset="0" stop-color="#bcd6f2"/><stop offset="1" stop-color="#e3f0ff"/></linearGradient><linearGradient id="cwFloorF" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5a3b5e" stop-opacity=".28"/><stop offset=".55" stop-color="#5a3b5e" stop-opacity="0"/></linearGradient><linearGradient id="cwBack" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfe3fa"/><stop offset="1" stop-color="#b7cfeb"/></linearGradient>
+        <polygon points="${P(0,1,0)} ${P(1,1,0)} ${P(1,1,top)} ${P(0,1,top)}" fill="url(#cwBack)"/>
+        <polygon points="${P(0,0,0)} ${P(0,1,0)} ${P(0,1,top)} ${P(0,0,top)}" fill="url(#cwWallL)"/>
+        <polygon points="${P(1,0,0)} ${P(1,1,0)} ${P(1,1,top)} ${P(1,0,top)}" fill="url(#cwWallR)"/>
+        <polygon points="${P(0,0,0)} ${P(1,0,0)} ${P(1,1,0)} ${P(0,1,0)}" fill="url(#cwChk)" stroke="#5a3b2e" stroke-width="2"/><polygon points="${P(0,0,0)} ${P(1,0,0)} ${P(1,1,0)} ${P(0,1,0)}" fill="url(#cwFloorF)"/>
         <polygon points="${P(0,0,0)} ${P(HX,0,0)} ${P(HX,HZ,0)} ${P(0,HZ,0)}" fill="#2e2240"/>
         <polygon points="${P(.02,.02,0)} ${P(HX-.02,.02,0)} ${P(HX-.02,HZ-.02,0)} ${P(.02,HZ-.02,0)}" fill="#1b1428"/>
         <line x1="${PX(0,1)}" y1="${PY(1,top)}" x2="${PX(1,1)}" y2="${PY(1,top)}" stroke="#9aa6bd" stroke-width="5"/>
@@ -108,7 +109,7 @@ App.registerGame({
     let prizes = [];
     const inHole = (x, z) => x < HX && z < HZ;
     function mk(kind, x, y, z){ const p = { kind, x, y, z, vx: 0, vy: 0, vz: 0, r: R, rot: (Math.random() - .5)*40, held: false, el: document.createElement("div") };
-      p.el.className = "cwP3"; p.el.innerHTML = art(kind); V.appendChild(p.el); prizes.push(p); return p; }
+      p.el.className = "cwP3"; p.el.innerHTML = art(kind); p.sh = document.createElement("div"); p.sh.className = "cwPSh"; V.appendChild(p.sh); V.appendChild(p.el); p.sq = 0; p.fz = -1; prizes.push(p); return p; }
     function spawn(n){ for(let i = 0; i < n; i++){ let x, z; do{ x = .08 + Math.random()*.84; z = .08 + Math.random()*.84; } while(x < HX + R*2 && z < HZ + R*2); mk(pick(), x, .35 + Math.random()*.5, z); } }
     const claw = { x: HOME.x, z: HOME.z, tip: YTOP, open: true, vx: 0, vz: 0, swing: 0, held: null, off: null, q: 0 };
     let captured = [];
@@ -120,7 +121,7 @@ App.registerGame({
           p.vx = (tx - p.x)*16; p.vy = (ty - p.y)*16; p.vz = (tz - p.z)*16; p.x += p.vx*dt; p.y += p.vy*dt; p.z += p.vz*dt; continue; }
         p.vy -= G3*dt; p.x += p.vx*dt; p.y += p.vy*dt; p.z += p.vz*dt;
         const hole = inHole(p.x, p.z);
-        if(!hole && p.y < p.r){ p.y = p.r; if(p.vy < 0) p.vy *= -.18; p.vx *= Math.max(0, 1 - 4.5*dt); p.vz *= Math.max(0, 1 - 4.5*dt); p.rot += p.vx*dt*500; }
+        if(!hole && p.y < p.r){ p.y = p.r; if(p.vy < -.6) p.sq = Math.min(.25, -p.vy*.08); if(p.vy < 0) p.vy *= -.18; p.vx *= Math.max(0, 1 - 4.5*dt); p.vz *= Math.max(0, 1 - 4.5*dt); p.rot += p.vx*dt*500; }
         // 牆
         if(p.x < p.r){ p.x = p.r; p.vx = Math.abs(p.vx)*.3; } if(p.x > 1 - p.r){ p.x = 1 - p.r; p.vx = -Math.abs(p.vx)*.3; }
         if(p.z < p.r && !hole){ p.z = p.r; p.vz = Math.abs(p.vz)*.3; } if(p.z > 1 - p.r){ p.z = 1 - p.r; p.vz = -Math.abs(p.vz)*.3; }
@@ -148,11 +149,17 @@ App.registerGame({
       if(claw.tip < YTOP - .02){ for(const p of prizes){ if(p.held) continue; const dx = p.x - claw.x, dy = p.y - (claw.tip + .02), dz = p.z - claw.z, d = Math.hypot(dx, dy, dz), m = p.r + CR;
         if(d < m && d > 1e-6){ const k = (m - d)/d; p.x += dx*k; p.z += dz*k; if(dy > 0) p.y += dy*k; p.vx += dx*k*8; p.vz += dz*k*8; } } }
       // 掉進出口
-      for(const p of prizes.slice()) if(p.y < -.32){ captured.push(p.kind); p.el.remove(); prizes = prizes.filter(x => x !== p); if(p === claw.held) claw.held = null; SFX.coin && SFX.coin(); }
+      for(const p of prizes.slice()) if(p.y < -.32){ captured.push(p.kind); p.el.remove(); p.sh.remove(); prizes = prizes.filter(x => x !== p); if(p === claw.held) claw.held = null; SFX.coin && SFX.coin(); }
     }
     function draw(){
-      for(const p of prizes){ const k = sz(p.z), size = 2*p.r*Wf*k*1.3, X = PX(p.x, p.z), Y = PY(p.z, p.y);
-        p.el.style.width = size + "px"; p.el.style.transform = `translate(${X - size/2}px, ${Y - size*.62}px) rotate(${(p.rot % 360).toFixed(1)}deg)`;
+      for(const p of prizes){ const k = sz(p.z), size = 2*p.r*Wf*k*1.45, X = PX(p.x, p.z), Y = PY(p.z, p.y);
+        p.sq *= .82; const sx = 1 + p.sq*.6, sy = 1 - p.sq;
+        p.el.style.width = size + "px"; p.el.style.transform = `translate(${X - size/2}px, ${Y - size*.62}px) rotate(${(p.rot % 360).toFixed(1)}deg) scale(${sx.toFixed(3)},${sy.toFixed(3)})`;
+        // 地上的影子：離地越高越小越淡
+        const h = Math.max(0, p.y - p.r), sw = size*.9*Math.max(.35, 1 - h*1.6), inH = inHole(p.x, p.z);
+        p.sh.style.width = sw + "px"; p.sh.style.height = (sw*.32) + "px"; p.sh.style.transform = `translate(${X - sw/2}px, ${PY(p.z, 0) - sw*.16}px)`; p.sh.style.opacity = inH ? 0 : Math.max(0, .55 - h*1.2).toFixed(2);
+        // 越後面越暗一點（有景深）
+        const fz = Math.round(p.z*20); if(fz !== p.fz){ p.fz = fz; p.el.style.filter = `brightness(${(1 - p.z*.16).toFixed(2)}) saturate(${(1 - p.z*.12).toFixed(2)})`; }
         p.el.style.zIndex = Math.round(2000 - p.z*1000 + p.y*60) + (p.held ? 40 : 0);
         p.el.style.opacity = p.y < -.12 ? Math.max(0, 1 + (p.y + .12)*6) : 1; }
       const k = sz(claw.z), hw = .17*Wf*k, cx = PX(claw.x, claw.z), topY = PY(claw.z, 1.0), tipY = PY(claw.z, claw.tip);

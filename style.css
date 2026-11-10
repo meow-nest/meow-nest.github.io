@@ -2471,7 +2471,8 @@ body.cwOn #fab,body.cwOn #stkFab{display:none!important}
 .cw3{position:relative;width:100%;height:300px;overflow:hidden;border:4px solid #5a3b2e;border-radius:6px;background:#cfe6ff;touch-action:none}
 .cwBg,.cwRimA,.cwRimB{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .cwRimB{z-index:1760}.cwRimA{z-index:1850}
-.cwP3{position:absolute;left:0;top:0;transform-origin:50% 62%;will-change:transform}.cwP3 svg{width:100%;height:auto;display:block}
+.cwP3{position:absolute;left:0;top:0;transform-origin:50% 75%;will-change:transform}.cwP3 svg{width:100%;height:auto;display:block;filter:drop-shadow(-1px -1px 0 rgba(255,255,255,.55)) drop-shadow(1px 2px 0 rgba(70,40,80,.35))}
+.cwPSh{position:absolute;left:0;top:0;border-radius:50%;background:radial-gradient(closest-side,rgba(60,30,70,.55),rgba(60,30,70,0));z-index:5;pointer-events:none}
 .cwGantry{position:absolute;height:6px;background:#9aa6bd;border:2px solid #5b6b8c;border-radius:3px}
 .cwRope3{position:absolute;width:3px;background:#5b6b8c}
 .cwHead3{position:absolute;left:0;top:0;transform-origin:50% 0}.cwHead3 svg{width:100%;display:block}
