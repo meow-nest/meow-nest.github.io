@@ -20,9 +20,36 @@ const OPTS = {
   bg:    [["day","白天"],["night","夜晚"],["sunset","黃昏"],["aurora","極光"],["xmas","聖誕夜"],["storm","暴風雪"]],
 };
 // [分類, 名字, 顏色欄位, 這些選項才有顏色]
-const TABS = [["hat","帽子","hatC",["beanie","muff","bow","tophat","bucket","santa"]],["neck","脖子","neckC",["plain","stripe","plaid","hearts","bowtie"]],["eye","眼睛"],["nose","鼻子"],["mouth","嘴巴"],["cheek","臉頰"],["ear","耳朵"],
+const TABS = [["draw","✏️ 畫畫"],["sticker","✨ 貼紙"],["hat","帽子","hatC",["beanie","muff","bow","tophat","bucket","santa"]],["neck","脖子","neckC",["plain","stripe","plaid","hearts","bowtie"]],["eye","眼睛"],["nose","鼻子"],["mouth","嘴巴"],["cheek","臉頰"],["ear","耳朵"],
   ["hold","手","holdC",["mitten","balloon","gift"]],["body","身上","bodyC",["sweater"]],["prop","旁邊"],["bg","背景"]];
-const DEF = { rb: 26, rh: 18, hat: "beanie", hatC: "red", neck: "plain", neckC: "blue", eye: "dot", nose: "pink", mouth: "w", cheek: "blush", ear: "cat", hold: "twig", holdC: "pink", body: "coal", bodyC: "green", prop: "none", bg: "day" };
+const DEF = { rb: 26, rh: 18, hat: "beanie", hatC: "red", neck: "plain", neckC: "blue", eye: "dot", nose: "pink", mouth: "w", cheek: "blush", ear: "cat", hold: "twig", holdC: "pink", body: "coal", bodyC: "green", prop: "none", bg: "day", st: [] };
+
+// ---------- 像素貼紙 ----------
+const PAL = ["", "#ffffff","#cfd8e6","#2d2440","#e5484d","#f590aa","#f5944a","#f7cc4a","#4fb88a","#2f8a63","#9fd0ff","#5e9de6","#3d4f9a","#a785ea","#a8754e","#6a4a2e","#ffe0bd"];
+const PCH = "0123456789abcdefg";
+const mkSt = rows => ({ w: Math.max(...rows.map(r => r.length)), h: rows.length, p: rows.map(r => r.padEnd(Math.max(...rows.map(x => x.length)), ".")).join("").replace(/\./g, "0") });
+const PRESETS = [
+  ["雪花", mkSt(["....b....",".b..b..b.","..b.b.b..","...bbb...","bbbbbbbbb","...bbb...","..b.b.b..",".b..b..b.","....b...."])],
+  ["星星", mkSt(["....e....","...e7e...","eeee7eeee","e7777777e",".e77777e.","..e777e..",".e7e.e7e.",".ee...ee."])],
+  ["愛心", mkSt([".44...44.","4554.4554","455555554","455555554",".4555554.","..45554..","...454...","....4...."])],
+  ["禮物", mkSt(["..77.77..","...777...","333373333","344474443","333373333",".3447443.",".3447443.",".3447443.",".3333333."])],
+  ["拐杖糖", mkSt(["..441..",".4..14.",".1...4.",".....1.",".....4.",".....1.",".....4.",".....1.",".....4."])],
+  ["鈴鐺", mkSt(["....e....","...e7e...","..e777e..",".e77777e.",".e77777e.","e7777777e","eeeeeeeee","...e7e...","....e...."])],
+  ["月亮", mkSt(["..777...",".77.....","77......","77......","77......",".77.....","..777..."])],
+  ["小魚", mkSt(["..bbbb..b.",".baaaab.bb","ba3aaaabb.",".baaaab.bb","..bbbb..b."])],
+  ["手套", mkSt([".444....","45554...","45554.4.","4555454.","45555554","45555554","41111114","44444444"])],
+  ["樹", mkSt(["....7....","...898...","..89998..","...898...","..89998..",".8999998.","..89998..",".8999998.","899999998","....f....","....f...."])],
+];
+function drawSticker(P, st, sel){
+  const s = st.s || 1;
+  for(let j = 0; j < st.h; j++) for(let i = 0; i < st.w; i++){ const c = PAL[PCH.indexOf(st.p[j*st.w + i])]; if(c) P.rect(st.x + i*s, st.y + j*s, s, s, c); }
+  if(sel){ const w = st.w*s, h = st.h*s; for(let i = -1; i <= w; i += 2){ P.px(st.x + i, st.y - 2, "#e5486a"); P.px(st.x + i, st.y + h + 1, "#e5486a"); } for(let j = -1; j <= h; j += 2){ P.px(st.x - 2, st.y + j, "#e5486a"); P.px(st.x + w + 1, st.y + j, "#e5486a"); } }
+}
+// 把畫好的 16×16 裁成剛好的大小
+function cropDrawing(cells){ let x0 = 16, y0 = 16, x1 = -1, y1 = -1;
+  for(let y = 0; y < 16; y++) for(let x = 0; x < 16; x++) if(cells[y*16 + x]){ x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+  if(x1 < 0) return null; const w = x1 - x0 + 1, h = y1 - y0 + 1; let p = "";
+  for(let y = y0; y <= y1; y++) for(let x = x0; x <= x1; x++) p += PCH[cells[y*16 + x]]; return { w, h, p }; }
 
 // ---------- 像素畫筆 ----------
 function painter(cv){
@@ -238,12 +265,12 @@ function drawCat(P, d, o){
   if(h === "halo"){ const y = hy - rh*1.25 + Math.sin(t*2)*1; for(let a = 0; a < 6.3; a += .05){ const x = hx + Math.cos(a)*rh*.62, yy = y + Math.sin(a)*3; rect(x, yy, 2, 1, Math.sin(a) > 0 ? "#f7cc4a" : "#fff07a"); } }
 }
 
-function render(cv, d, o){ o = o || {}; const P = painter(cv); P.g.clearRect(0, 0, VW, VH); drawBg(P, d.bg, o.t || 0); drawCat(P, d, o); if(o.snow !== false) drawSnow(P, o.t || 0, o.snowN, d.bg); }
+function render(cv, d, o){ o = o || {}; const P = painter(cv); P.g.clearRect(0, 0, VW, VH); drawBg(P, d.bg, o.t || 0); drawCat(P, d, o); (d.st || []).forEach((st, i) => drawSticker(P, st, o.sel === i)); if(o.snow !== false) drawSnow(P, o.t || 0, o.snowN, d.bg); }
 function thumb(d){ const c = document.createElement("canvas"); c.width = VW; c.height = VH; render(c, Object.assign({}, DEF, d), { snow: false, t: 2 }); return c; }
 function randomLook(d){ const r = a => a[(Math.random()*a.length)|0]; const cs = Object.keys(COLORS);
   ["hat","neck","eye","nose","mouth","cheek","ear","hold","body","prop","bg"].forEach(k => { d[k] = r(OPTS[k])[0]; });
   ["hatC","neckC","holdC","bodyC"].forEach(k => { d[k] = r(cs); }); if(d.eye === "shades" && Math.random() < .6) d.eye = "shine"; return d; }
-window.SnowCat = { render, thumb, DEF, VW, VH, OPTS, randomLook };
+window.SnowCat = { render, thumb, DEF, VW, VH, OPTS, randomLook, PRESETS, PAL };
 
 // ---------- 遊戲 ----------
 App.registerGame({
@@ -300,8 +327,8 @@ App.registerGame({
     // ---------- 堆雪貓 ----------
     function build(){
       SFX.tap(); view = "build"; cancelAnimationFrame(raf);
-      const d = Object.assign({}, DEF, { rb: 8, rh: 6, hat: "none", neck: "none", hold: "none", body: "none" });
-      let stage = "body", holding = false, t0 = performance.now(), last = t0, drop = null, puffs = [], tab = "hat", shakeT = 0;
+      const d = Object.assign({}, DEF, { rb: 8, rh: 6, hat: "none", neck: "none", hold: "none", body: "none", st: [] });
+      let stage = "body", holding = false, t0 = performance.now(), last = t0, drop = null, puffs = [], tab = "hat", shakeT = 0, sel = -1, drag = null;
       el.innerHTML = `<div class="box sc"><div class="scMsg" id="scMsg"></div><div class="scStage"><canvas width="${VW}" height="${VH}" class="scCv" id="scCv"></canvas></div><div id="scCtl"></div></div>`;
       const cv = el.querySelector("#scCv"), msg = el.querySelector("#scMsg"), ctl = el.querySelector("#scCtl");
       const say = h => { msg.innerHTML = h; msg.classList.remove("pop"); void msg.offsetWidth; msg.classList.add("pop"); };
@@ -322,20 +349,84 @@ App.registerGame({
           stage = "drop"; ctl.innerHTML = ""; drop = { y: -d.rh, v: 0, fail: d.rh >= d.rb - 1, t: 0, x: 0 };
         }
       }
+      const myDraws = () => { try{ return JSON.parse(localStorage.getItem("mw_scDraw") || "[]"); }catch(e){ return []; } };
+      const saveDraw = st => { try{ const L = myDraws().filter(x => x.p !== st.p); L.unshift({ w: st.w, h: st.h, p: st.p }); localStorage.setItem("mw_scDraw", JSON.stringify(L.slice(0, 12))); }catch(e){} };
+      const stThumb = st => { const c = document.createElement("canvas"); c.width = st.w; c.height = st.h; drawSticker(painter(c), Object.assign({}, st, { x: 0, y: 0, s: 1 })); return c.toDataURL(); };
+      function addSticker(base){
+        if(d.st.length >= 12){ ctx.toast("貼紙最多 12 個喔"); return; }
+        const sc = Math.max(1, Math.min(3, Math.round(18 / Math.max(base.w, base.h)) || 1));
+        d.st.push({ w: base.w, h: base.h, p: base.p, s: sc, x: Math.round(60 - base.w*sc/2 + (Math.random() - .5)*30), y: Math.round(36 + Math.random()*30) });
+        sel = d.st.length - 1; SFX.select(); decoCtl();
+      }
+      function selBar(){
+        if(sel < 0 || !d.st[sel]) return "";
+        return `<div class="scSel"><span>選到貼紙了，拖曳畫面可以移動</span><button data-s="small">➖</button><button data-s="big">➕</button><button data-s="front">⬆ 最上面</button><button data-s="del">🗑</button><button data-s="ok">✔</button></div>`;
+      }
       function decoCtl(){
-        const T = TABS.find(x => x[0] === tab), opts = OPTS[tab];
-        const hasCol = T[2] && T[3].includes(d[tab]);
-        ctl.innerHTML = `<div class="scTabs">${TABS.map(([k, n]) => `<button class="scTab ${tab === k ? "on" : ""}" data-t="${k}">${n}</button>`).join("")}</div>
-          <div class="scOpts">${opts.map(([v, n]) => `<button class="scOpt ${d[tab] === v ? "on" : ""}" data-v="${v}">${n}</button>`).join("")}</div>
-          ${hasCol ? `<div class="scCols">${Object.keys(COLORS).map(c => `<button class="scCol ${d[T[2]] === c ? "on" : ""}" data-c="${c}" style="background:${COLORS[c][0]}" aria-label="${CNAME[c]}"></button>`).join("")}</div>` : ""}
-          <div class="scDone"><button class="btn sub" id="scRand">🎲 隨機</button><button class="btn sub" id="scRe">↩ 重堆</button><button class="btn" id="scOk">✅ 完成！</button></div>`;
+        if(tab === "draw") return drawCtl();
+        const T = TABS.find(x => x[0] === tab);
+        const tabsH = `<div class="scTabs">${TABS.map(([k, n]) => `<button class="scTab ${tab === k ? "on" : ""} ${k === "draw" || k === "sticker" ? "hot" : ""}" data-t="${k}">${n}</button>`).join("")}</div>`;
+        let body = "";
+        if(tab === "sticker"){
+          const mine = myDraws();
+          body = `<div class="k scHint">點一下就會貼到畫面上，再用手指拖曳到想要的位置 ✨</div>
+            <div class="scStk">${PRESETS.map(([n, st], i) => `<button class="scSt" data-pre="${i}"><img src="${stThumb(st)}" alt=""><span>${n}</span></button>`).join("")}</div>
+            ${mine.length ? `<div class="k scHint">我畫過的</div><div class="scStk">${mine.map((st, i) => `<button class="scSt" data-my="${i}"><img src="${stThumb(st)}" alt=""></button>`).join("")}</div>` : `<div class="k scHint">到「✏️ 畫畫」畫自己的貼紙，也會出現在這裡</div>`}`;
+        } else {
+          const opts = OPTS[tab], hasCol = T[2] && T[3].includes(d[tab]);
+          body = `<div class="scOpts">${opts.map(([v, n]) => `<button class="scOpt ${d[tab] === v ? "on" : ""}" data-v="${v}">${n}</button>`).join("")}</div>
+            ${hasCol ? `<div class="scCols">${Object.keys(COLORS).map(c => `<button class="scCol ${d[T[2]] === c ? "on" : ""}" data-c="${c}" style="background:${COLORS[c][0]}" aria-label="${CNAME[c]}"></button>`).join("")}</div>` : ""}`;
+        }
+        ctl.innerHTML = selBar() + tabsH + body + `<div class="scDone"><button class="btn sub" id="scRand">🎲 隨機</button><button class="btn sub" id="scRe">↩ 重堆</button><button class="btn" id="scOk">✅ 完成！</button></div>`;
         ctl.querySelectorAll(".scTab").forEach(b => b.addEventListener("click", () => { tab = b.dataset.t; SFX.key(.9); decoCtl(); }));
         ctl.querySelectorAll(".scOpt").forEach(b => b.addEventListener("click", () => { d[tab] = b.dataset.v; SFX.select(); shakeT = performance.now(); decoCtl(); }));
         ctl.querySelectorAll(".scCol").forEach(b => b.addEventListener("click", () => { d[T[2]] = b.dataset.c; SFX.key(1.1); shakeT = performance.now(); decoCtl(); }));
+        ctl.querySelectorAll("[data-pre]").forEach(b => b.addEventListener("click", () => addSticker(PRESETS[+b.dataset.pre][1])));
+        ctl.querySelectorAll("[data-my]").forEach(b => b.addEventListener("click", () => addSticker(myDraws()[+b.dataset.my])));
+        ctl.querySelectorAll(".scSel [data-s]").forEach(b => b.addEventListener("click", () => { const st = d.st[sel]; if(!st) return; const k = b.dataset.s;
+          if(k === "small" || k === "big"){ const cx0 = st.x + st.w*st.s/2, cy0 = st.y + st.h*st.s/2; st.s = Math.max(1, Math.min(4, st.s + (k === "big" ? 1 : -1))); st.x = Math.round(cx0 - st.w*st.s/2); st.y = Math.round(cy0 - st.h*st.s/2); SFX.key(1); }
+          if(k === "front"){ d.st.splice(sel, 1); d.st.push(st); sel = d.st.length - 1; SFX.key(1); }
+          if(k === "del"){ d.st.splice(sel, 1); sel = -1; SFX.miss(); }
+          if(k === "ok"){ sel = -1; SFX.tap(); }
+          decoCtl(); }));
         ctl.querySelector("#scRand").addEventListener("click", () => { randomLook(d); SFX.select(); shakeT = performance.now(); decoCtl(); });
         ctl.querySelector("#scRe").addEventListener("click", () => { SFX.tap(); build(); });
-        ctl.querySelector("#scOk").addEventListener("click", finish);
+        ctl.querySelector("#scOk").addEventListener("click", () => { sel = -1; finish(); });
       }
+      // ---------- 像素畫畫 ----------
+      function drawCtl(){
+        const N = 16, cells = new Array(N*N).fill(0); let color = 4, tool = "pen", painting = false;
+        ctl.innerHTML = `<div class="pxEd"><div class="k scHint">畫一個自己的貼紙（16×16 格）</div>
+          <canvas class="pxCv" width="${N*18}" height="${N*18}"></canvas>
+          <div class="pxTools"><button data-tool="pen" class="on">✏️ 筆</button><button data-tool="erase">🧽 橡皮擦</button><button data-tool="fill">🪣 油漆桶</button><button id="pxClr">🗑 清空</button></div>
+          <div class="pxPal">${PAL.slice(1).map((c, i) => `<button data-c="${i + 1}" class="${i + 1 === color ? "on" : ""}" style="background:${c}"></button>`).join("")}</div>
+          <div class="scDone"><button class="btn sub" id="pxNo">取消</button><button class="btn" id="pxOk">✅ 貼到畫面上</button></div></div>`;
+        const cv2 = ctl.querySelector(".pxCv"), g = cv2.getContext("2d");
+        const paint = () => { for(let y = 0; y < N; y++) for(let x = 0; x < N; x++){ const c = cells[y*N + x]; g.fillStyle = c ? PAL[c] : ((x + y) % 2 ? "#f3f6fb" : "#e9eef6"); g.fillRect(x*18, y*18, 18, 18); }
+          g.strokeStyle = "rgba(90,107,140,.25)"; g.lineWidth = 1; for(let i = 0; i <= N; i++){ g.beginPath(); g.moveTo(i*18 + .5, 0); g.lineTo(i*18 + .5, N*18); g.stroke(); g.beginPath(); g.moveTo(0, i*18 + .5); g.lineTo(N*18, i*18 + .5); g.stroke(); }
+          g.strokeStyle = "rgba(229,72,106,.35)"; g.beginPath(); g.moveTo(8*18 + .5, 0); g.lineTo(8*18 + .5, N*18); g.moveTo(0, 8*18 + .5); g.lineTo(N*18, 8*18 + .5); g.stroke(); };
+        const cellAt = e => { const r = cv2.getBoundingClientRect(); const x = Math.floor((e.clientX - r.left)/r.width*N), y = Math.floor((e.clientY - r.top)/r.height*N); return x >= 0 && y >= 0 && x < N && y < N ? [x, y] : null; };
+        const flood = (x, y, to) => { const from = cells[y*N + x]; if(from === to) return; const q = [[x, y]]; while(q.length){ const [a, b] = q.pop(); if(a < 0 || b < 0 || a >= N || b >= N || cells[b*N + a] !== from) continue; cells[b*N + a] = to; q.push([a + 1, b], [a - 1, b], [a, b + 1], [a, b - 1]); } };
+        const act = e => { const c = cellAt(e); if(!c) return; const [x, y] = c; if(tool === "fill"){ flood(x, y, color); SFX.key(1.2); } else { const v = tool === "erase" ? 0 : color; if(cells[y*N + x] !== v){ cells[y*N + x] = v; } } paint(); };
+        cv2.addEventListener("pointerdown", e => { e.preventDefault(); painting = tool !== "fill"; cv2.setPointerCapture(e.pointerId); act(e); });
+        cv2.addEventListener("pointermove", e => { if(painting) act(e); });
+        const stop = () => { painting = false; }; cv2.addEventListener("pointerup", stop); cv2.addEventListener("pointercancel", stop);
+        ctl.querySelectorAll("[data-tool]").forEach(b => b.addEventListener("click", () => { tool = b.dataset.tool; SFX.tap(); ctl.querySelectorAll("[data-tool]").forEach(x => x.classList.toggle("on", x === b)); }));
+        ctl.querySelectorAll(".pxPal [data-c]").forEach(b => b.addEventListener("click", () => { color = +b.dataset.c; if(tool === "erase") { tool = "pen"; ctl.querySelectorAll("[data-tool]").forEach(x => x.classList.toggle("on", x.dataset.tool === "pen")); } SFX.key(1); ctl.querySelectorAll(".pxPal [data-c]").forEach(x => x.classList.toggle("on", x === b)); }));
+        ctl.querySelector("#pxClr").addEventListener("click", () => { cells.fill(0); SFX.miss(); paint(); });
+        ctl.querySelector("#pxNo").addEventListener("click", () => { tab = "sticker"; decoCtl(); });
+        ctl.querySelector("#pxOk").addEventListener("click", () => { const st = cropDrawing(cells); if(!st){ ctx.toast("先畫一點東西喔"); return; } saveDraw(st); tab = "sticker"; addSticker(st); });
+        paint();
+      }
+      // 在畫面上拖曳貼紙
+      const scenePt = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left)/r.width*VW, (e.clientY - r.top)/r.height*VH]; };
+      cv.addEventListener("pointerdown", e => { if(stage !== "deco") return; const [x, y] = scenePt(e);
+        let hit = -1; for(let i = d.st.length - 1; i >= 0; i--){ const st = d.st[i]; if(x >= st.x - 2 && y >= st.y - 2 && x <= st.x + st.w*st.s + 2 && y <= st.y + st.h*st.s + 2){ hit = i; break; } }
+        if(hit !== sel){ sel = hit; if(tab === "draw") tab = "sticker"; decoCtl(); }
+        if(hit >= 0){ e.preventDefault(); cv.setPointerCapture(e.pointerId); drag = { dx: x - d.st[hit].x, dy: y - d.st[hit].y }; } });
+      cv.addEventListener("pointermove", e => { if(!drag || sel < 0) return; const [x, y] = scenePt(e), st = d.st[sel];
+        st.x = Math.round(Math.max(-st.w*st.s/2, Math.min(VW - st.w*st.s/2, x - drag.dx))); st.y = Math.round(Math.max(-st.h*st.s/2, Math.min(VH - st.h*st.s/2, y - drag.dy))); });
+      const endDrag = () => { if(drag) SFX.place(); drag = null; }; cv.addEventListener("pointerup", endDrag); cv.addEventListener("pointercancel", endDrag);
       async function finish(){
         stage = "done"; SFX.level(); ctx.burst();
         const p = partner(), item = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), by: me(), at: Date.now(), d: Object.assign({}, d), likes: {} };
@@ -373,7 +464,7 @@ App.registerGame({
             if(drop.t > 1.1){ stage = "head"; d.rh = 6; rollCtl("⛄ 再滾一次頭"); } }
           drawCat(P, d, bodyOnly); if(stage === "drop" || stage === "deco") drawCat(P, d, { noBody: true, deco: false, hy: drop.y, hdx: drop.x, t });
         }
-        else drawCat(P, d, { hdx: wob, t });
+        else { drawCat(P, d, { hdx: wob, t }); d.st.forEach((st, i) => drawSticker(P, st, stage === "deco" && i === sel && Math.floor(t*3) % 2 === 0)); }
         puffs.forEach(p => P.px(p.x, p.y, "#ffffff"));
         drawSnow(P, t, null, d.bg);
         raf = requestAnimationFrame(loop);
