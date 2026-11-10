@@ -1,7 +1,7 @@
 // 遊戲：喵喵夾娃娃機（像真的娃娃機：前後左右移動、30 秒倒數、娃娃有物理）
 // 投幣後用十字鍵移動爪子，按「夾！」或時間到就下爪。娃娃會滾、會疊、會卡在出口擋板上，也可以把娃娃推進出口。
 // 每天 10 次免費，之後 1 次 1 個貓幣。連續沒夾到 8 次，下一次一定夾得到（幸運值）。
-// 夾到的娃娃擺進「蒐集櫃」（展示用），點下去打開「蒐集冊」那一頁看介紹；有重複的可以送給 ta。
+// 夾到的娃娃擺進「蒐集櫃」（展示用），點下去打開「蒐集冊」那一頁看介紹；同一款有 3 個可以用 2 個升級成閃亮版，重複的也可以送給 ta。
 (function(){
 const O = "#5a3b2e";
 const PX = (rows, pal) => { pal = Object.assign({ O }, pal); const w = Math.max(...rows.map(r => r.length)), h = rows.length; let r = "";
@@ -127,6 +127,9 @@ const art = i => `<span class="cwArt ${PRIZES[i][3] || ""}">${PRIZES[i][2]()}</s
 const MASKS = {};
 const maskOf = i => { if(MASKS[i]) return MASKS[i]; const m = PRIZES[i][2]().match(/<svg[\s\S]*?<\/svg>/g); const svg = m ? m[m.length - 1] : "";
   return MASKS[i] = `url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}")`; };
+// 閃亮版：娃娃本身外面加一道會掃過去的光（用娃娃形狀當遮罩）
+const shinyArt = i => { const mk = maskOf(i); return `<span class="cwShinyA">${art(i)}<span class="cwSheen" style="-webkit-mask-image:${mk};mask-image:${mk}"></span></span>`; };
+const SHINY_COST = 2, SHINY_NEED = 3;
 const art3d = i => { const a = PRIZES[i][2](), fx = PRIZES[i][3] || "", mk = maskOf(i);
   return `<span class="cw3d ${fx}"><span class="cwEx e1">${a}</span><span class="cwEx e2">${a}</span><span class="cwFr">${a}</span><span class="cwLt" style="-webkit-mask-image:${mk};mask-image:${mk}"></span></span>`; };
 
@@ -378,24 +381,42 @@ App.registerGame({
       await new Promise(res => { const o = document.createElement("div"); o.className = "careModal cwReveal";
         o.innerHTML = `<div class="cmBox"><div class="cwRay r${P[1]}"></div><div class="cwBig">${art(kind)}</div>${wasNew ? `<div class="cwNew">NEW!</div>` : ""}
           <h3>${esc(P[0])}</h3><div class="cwRar" style="background:${RAR[P[1]][1]}">${stars(P[1])} ${RAR[P[1]][0]}</div>
-          <div class="cwDesc">${esc(P[6])}</div><div class="k">${wasNew ? "第一次夾到！已經擺進蒐集櫃、寫進蒐集冊" : `蒐集櫃裡有 ${(myCol()[id] || 1)} 個了`}</div><button class="btn" style="width:100%">好耶！</button></div>`;
+          <div class="cwDesc">${esc(P[6])}</div><div class="k">${wasNew ? "第一次夾到！已經擺進蒐集櫃、寫進蒐集冊" : (myCol()[id] >= SHINY_NEED && !myShiny()[id] ? `有 ${myCol()[id]} 個了！可以去蒐集冊把牠升級成閃亮版` : `蒐集櫃裡有 ${(myCol()[id] || 1)} 個了`)}</div><button class="btn" style="width:100%">好耶！</button></div>`;
         document.body.appendChild(o); o.querySelector("button").addEventListener("click", () => { o.remove(); res(); }); });
     }
 
     // ---- 蒐集櫃：博物館展示櫃（玻璃門、聚光燈、展示台） ----
     const myFirst = () => (((s && s.first) || {})[me()]) || {};
+    const myShiny = () => (((s && s.shiny) || {})[me()]) || {};
+    // 用 2 個重複的，把這隻升級成閃亮版（原本那隻留著）
+    async function makeShiny(i){
+      const id = PRIZES[i][4]; let ok = false;
+      await ctx.update("claw", st => { if(!st || !st.col) return undefined; const c2 = st.col[me()] = normCol(st.col[me()]);
+        st.shiny = st.shiny || {}; const sh = st.shiny[me()] = st.shiny[me()] || {};
+        if(sh[id] || !(c2[id] >= SHINY_NEED)) return undefined; c2[id] -= SHINY_COST; sh[id] = Date.now(); ok = true; return st; });
+      if(!ok){ ctx.toast("升級失敗了，再試一次看看"); return false; }
+      await new Promise(r => setTimeout(r, 250));
+      SFX.combo(); SFX.level(); ctx.burst();
+      await new Promise(res => { const o = document.createElement("div"); o.className = "careModal cwReveal cwShinyUp";
+        o.innerHTML = `<div class="cmBox"><div class="cwRay r2"></div><div class="cwBig">${shinyArt(i)}</div><div class="cwNew">閃亮版！</div>
+          <h3>${esc(PRIZES[i][0])}</h3><div class="k">用掉 ${SHINY_COST} 個重複的，這隻變成閃亮版了<br>蒐集櫃和蒐集冊裡都會閃閃發光</div><button class="btn" style="width:100%">太美了！</button></div>`;
+        document.body.appendChild(o); o.querySelector("button").addEventListener("click", () => { o.remove(); res(); }); });
+      return true;
+    }
     function openCol(){
       SFX.level(); const c = myCol(), n = owned(c), N = PRIZES.length;
       document.querySelectorAll(".cwCabM").forEach(x => x.remove());
       const o = document.createElement("div"); o.className = "careModal cwCabM";
-      const ped = i => { const P = PRIZES[i], k = c[P[4]] || 0;
-        return `<button class="cwPed r${P[1]} ${k ? "on" : "no"}" data-i="${i}"><span class="cwBeam"></span><span class="cwOnPed">${art(i)}</span><span class="cwBase"></span><span class="cwPlate">${k ? esc(P[0]) : "？？？"}</span>${k > 1 ? `<i>×${k}</i>` : ""}</button>`; };
+      const sh = myShiny(), ns = Object.keys(sh).filter(k => c[k] > 0).length;
+      const ped = i => { const P = PRIZES[i], k = c[P[4]] || 0, z = k && sh[P[4]];
+        return `<button class="cwPed r${P[1]} ${k ? "on" : "no"} ${z ? "shiny" : ""}" data-i="${i}"><span class="cwBeam"></span><span class="cwOnPed">${z ? shinyArt(i) : art(i)}</span><span class="cwBase"></span><span class="cwPlate">${k ? esc(P[0]) : "？？？"}</span>${k > 1 ? `<i>×${k}</i>` : ""}</button>`; };
       const tier = ([cat]) => { const L = PRIZES.map((P, i) => i).filter(i => PRIZES[i][5] === cat), got = L.filter(i => c[PRIZES[i][4]] > 0).length;
         return `<div class="cwTier t-${cat}"><div class="cwTierH"><span>${cat === "sp" ? `${I("spark")} 至寶展示台 ${I("spark")}` : catLabel(CATS.find(x => x[0] === cat))}</span><em>${got} / ${L.length}</em></div><div class="cwRow">${L.map(ped).join("")}</div></div>`; };
       const order = [CATS[4], CATS[0], CATS[1], CATS[2], CATS[3]];
       o.innerHTML = `<div class="cwCase">
         <div class="cwCrest"><span>${I("spark")}</span><b>獎品蒐集櫃</b><span>${I("spark")}</span></div>
         <div class="cwCaseSub">珍藏 <b>${n}</b> / ${N} 件${n === N ? ` ${I("crown")} 全部收集完成！` : ""}</div>
+        <div class="cwShinyBar">${I("spark")} 閃亮版 <div><span style="width:${(ns/N*100).toFixed(1)}%"></span></div><b>${ns} / ${N}</b></div>
         <div class="cwCaseIn"><div class="cwGlassHi"></div>${order.map(tier).join("")}<div class="cwDoor l"></div><div class="cwDoor r"></div></div>
         <div class="cwCaseFoot"><button class="btn" id="cwToBook">${I("book")} 蒐集冊</button><button class="btn sub" id="cwX">關上櫃子</button></div></div>`;
       document.body.appendChild(o);
@@ -413,18 +434,22 @@ App.registerGame({
         <button class="btn sub" style="width:100%" id="cwBX">闔上蒐集冊</button></div>`;
       document.body.appendChild(o);
       const pg = o.querySelector("#cwPg"), N = PRIZES.length;
-      const render = d => { const P = PRIZES[i], id = P[4], k = myCol()[id] || 0, f = myFirst()[id], p = partner(), cat = CATS.find(x => x[0] === P[5]);
+      const render = d => { const P = PRIZES[i], id = P[4], k = myCol()[id] || 0, z = k && myShiny()[id], f = myFirst()[id], p = partner(), cat = CATS.find(x => x[0] === P[5]);
         o.querySelectorAll(".cwTabs button").forEach(b => b.classList.toggle("on", b.dataset.c === P[5]));
         o.querySelector("#cwPno").textContent = `${i + 1} / ${N}`;
-        pg.className = `cwPage r${P[1]} ${k ? "" : "no"} ${d ? (d > 0 ? "flipN" : "flipP") : ""}`;
+        pg.className = `cwPage r${P[1]} ${k ? "" : "no"} ${z ? "shiny" : ""} ${d ? (d > 0 ? "flipN" : "flipP") : ""}`;
         pg.innerHTML = `<div class="cwPgHead"><span class="cwNo">No.${String(i + 1).padStart(2, "0")}</span><span>${catLabel(cat)}</span></div>
-          <div class="cwFrame"><span class="cwTape a"></span><span class="cwTape b"></span><div class="cwFrameIn">${art(i)}</div></div>
-          <div class="cwPgName">${k ? esc(P[0]) : "？？？"}</div>
+          <div class="cwFrame"><span class="cwTape a"></span><span class="cwTape b"></span><div class="cwFrameIn">${z ? shinyArt(i) : art(i)}</div></div>
+          <div class="cwPgName">${k ? (z ? `${I("spark")} ${esc(P[0])} ${I("spark")}` : esc(P[0])) : "？？？"}</div>
           <div class="cwStars">${stars(P[1])}<small>${RAR[P[1]][0]}</small></div>
           <div class="cwLined">${k ? esc(P[6]) : `這一頁還是空白的……<br>夾到之後，這裡就會寫上牠的故事 ${I("lock")}`}</div>
-          <div class="cwPgFoot">${k ? `擁有 ×${k}　·　${f ? `第一次夾到：${new Date(f).toLocaleDateString("zh-TW")}` : "很久以前就夾到了"}` : "尚未收集"}</div>
-          <div class="cwStamp">${k ? "已收集" : "未收集"}</div>
+          <div class="cwPgFoot">${k ? `擁有 ×${k}　·　${f ? `第一次夾到：${new Date(f).toLocaleDateString("zh-TW")}` : "很久以前就夾到了"}${z ? `<br>升級閃亮版：${new Date(z).toLocaleDateString("zh-TW")}` : ""}` : "尚未收集"}</div>
+          <div class="cwStamp">${z ? "閃亮" : k ? "已收集" : "未收集"}</div>
+          ${k && !z ? (k >= SHINY_NEED ? `<button class="btn cwShinyB" id="cwShine">${I("spark")} 用 ${SHINY_COST} 個重複的升級成閃亮版</button>` : `<div class="cwShinyHint">再收集 ${SHINY_NEED - k} 個，就能升級成閃亮版</div>`) : ""}
           ${k > 1 && p ? `<button class="btn mint cwGiftB" id="cwGift">${I("gift")} 送 1 個給 ${esc(p.name)}</button>` : ""}`;
+        const sb = pg.querySelector("#cwShine"); if(sb) sb.addEventListener("click", async () => {
+          if(!sb.dataset.ok){ sb.dataset.ok = 1; sb.innerHTML = `${I("spark")} 確定嗎？會用掉 ${SHINY_COST} 個，再按一次`; return; }
+          sb.disabled = true; if(await makeShiny(i)){ render(0); if(document.querySelector(".cwCabM")){ document.querySelectorAll(".cwCabM").forEach(x => x.remove()); openCol(); document.body.appendChild(o); } } else sb.disabled = false; });
         const g = pg.querySelector("#cwGift"); if(g) g.addEventListener("click", async () => {
           if(!g.dataset.ok){ g.dataset.ok = 1; g.textContent = `確定要送給 ${p.name} 嗎？再按一次`; return; }
           g.disabled = true; let ok = false;
