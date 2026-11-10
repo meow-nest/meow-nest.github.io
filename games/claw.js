@@ -43,7 +43,23 @@ const ART = {
 const ic = k => () => ART[k][0];
 const sp = (c, f) => () => Pix.sprite(c, f);
 // 獎品：[名字, 稀有度 0 普通 1 稀有 2 超稀有, 畫法, 特效 class, id, 分類, 介紹]
-const CATS = [["cat", "🐱 貓咪娃娃"], ["ani", "🐾 動物朋友"], ["food", "🍰 點心"], ["item", "🎀 小物"], ["sp", "✨ 超稀有"]];
+// 介面用的小像素圖示（不用 emoji）
+const ICO = {
+  cat: () => PX([".O.....O.","OYO...OYO","OYYOOOYYO","OYYYYYYYO","OYEYYYEYO","OYYYNYYYO",".OYYYYYO.","..OOOOO.."], { Y: "#f2b06a", E: "#2b1d18", N: "#f0708d" }),
+  paw: () => Pix.icon("paw"), cake: () => ART.cake[0], ribbon: () => ART.ribbon[0], gift: () => ART.gift[0], crown: () => CROWN, lock: () => ICO._lock,
+  spark: () => PX(["...O...","...Y...","..OYO..","OYYWYYO","..OYO..","...Y...","...O..."], { O: "#c8922f", Y: "#f6c45f", W: "#fff6c8" }),
+  star: () => Pix.icon("star"), star0: () => Pix.icon("star", { Y: "#eadfce", O: "#b9a99a" }),
+  trophy: () => PX(["..OOOOOOO..","OOOYYHYYOOO","OYOYYHYYOYO","OYOYYYYYOYO",".OOYYYYYOO.","...OYYYO...","....OYO....","....OYO....","...OOOOO...","..OBBBBBO..","..OOOOOOO.."], { Y: "#f6c45f", H: "#fff2b0", B: "#8b5a2b" }),
+  book: () => PX(["OOOOOOOOOO","OKKKKKKKKO","OKOYYYYOKO","OKKKKKKKKO","OKKKKKKKKO","OKKKKKKKKO","OKKKKKKKKO","OOOOOOOOOO","OWWWWWWWWO","OOOOOOOOOO"], { K: "#d9455f", Y: "#f6c45f", W: "#ffffff" }),
+  coin: () => PX(["..OOOO..",".OYYYYO.","OYHYYYYO","OYYOOYYO","OYYOOYYO","OYYYYYYO",".OYYYYO.","..OOOO.."], { Y: "#f6c45f", H: "#fff2b0" }),
+  wrench: () => PX(["....O.O","....OGO","...OGGO","..OGGO.",".OGGO..","OGGO...","OOO...."], { G: "#a7aec2" }),
+  down: () => PX(["..OOO..","..OWO..","..OWO..","OOOWOOO",".OWWWO.","..OWO..","...O..."], { O: "#3a2a22", W: "#ffd95a" }),
+  _lock: PX(["..OOOO..",".OO..OO.",".O....O.","OOOOOOOO","OYYYYYYO","OYYOOYYO","OYYOOYYO","OYYYYYYO","OOOOOOOO"], { Y: "#f6c45f" }),
+};
+const I = (k, cls) => `<span class="cwI ${cls || ""}">${ICO[k]()}</span>`;
+const stars = r => I("star").repeat(r + 1) + I("star0").repeat(2 - r);
+const CATS = [["cat", "貓咪娃娃", "cat"], ["ani", "動物朋友", "paw"], ["food", "點心", "cake"], ["item", "小物", "ribbon"], ["sp", "超稀有", "spark"]];
+const catLabel = c => `${I(c[2])} ${c[1]}`;
 const PRIZES = [
   ["橘貓娃娃", 0, sp("orange", "happy"), "", "cat_orange", "cat", "最常見也最受歡迎的橘貓，抱起來暖呼呼的，聽說吃得比誰都多。"],
   ["白貓娃娃", 0, sp("white", "normal"), "", "cat_white", "cat", "安靜又乖巧的白貓，喜歡坐在窗邊看外面的鳥。"],
@@ -137,11 +153,11 @@ App.registerGame({
 
     document.body.classList.add("cwOn");
     el.innerHTML = `<div class="box cw">
-      <div class="cwTop"><div class="cwInfo" id="cwInfo"></div><div class="cwBtns"><button class="btn sub cwColBtn" id="cwCol">🏆 蒐集櫃</button><button class="btn sub cwColBtn" id="cwBookBtn">📖 蒐集冊</button></div></div>
+      <div class="cwTop"><div class="cwInfo" id="cwInfo"></div><div class="cwBtns"><button class="btn sub cwColBtn" id="cwCol"></button><button class="btn sub cwColBtn" id="cwBookBtn">${I("book")} 蒐集冊</button></div></div>
       <div class="cwM"><div class="cwMarq"><span class="cwLights"></span><b>喵喵夾娃娃機</b><span class="cwLights"></span></div>
         <div class="cw3" id="cw3"><svg class="cwBg" id="cwBg"></svg><svg class="cwRimB" id="cwRimB"></svg><svg class="cwRimA" id="cwRimA"></svg>
           <div class="cwGantry" id="cwGantry"></div><div class="cwShadow" id="cwShadow"></div><div class="cwRope3" id="cwRope"></div><svg class="cwClawL" id="cwClawB"></svg><svg class="cwClawL" id="cwClawF"></svg>
-          <div class="cwFront"><span>⬇ 出口</span></div><div class="cwShine"></div><div class="cwTimer hidden" id="cwTimer">30</div></div>
+          <div class="cwFront"><span>${I("down")} 出口</span></div><div class="cwShine"></div><div class="cwTimer hidden" id="cwTimer">30</div></div>
         <div class="cwMsg" id="cwMsg">按「投幣」開始，30 秒內用十字鍵把爪子移到娃娃正上方</div>
         <div class="cwPanel3"><div class="cwPad"><button data-d="up" class="u">▲</button><button data-d="left" class="l">◀</button><button data-d="right" class="r">▶</button><button data-d="down" class="d">▼</button><i></i></div>
           <button class="cwGo" id="cwGo">投幣</button></div></div></div>`;
@@ -285,9 +301,9 @@ App.registerGame({
     function info(){
       const tl = triesLeft(), l = luck(), c = myCol();
       const adm = ctx.isAdmin && ctx.isAdmin();
-      el.querySelector("#cwInfo").innerHTML = `<div>${adm ? `🔧 <b>站長測試</b>：無限次數` : `今天免費 <b>${tl}</b> / ${FREE} 次`}</div><div class="cwLuck">幸運值 <i>${Array.from({ length: PITY }, (_, i) => `<span class="${i < l ? "on" : ""}"></span>`).join("")}</i></div>`;
-      el.querySelector("#cwCol").textContent = `🏆 蒐集櫃 ${owned(c)}/${PRIZES.length}`;
-      if(state === "idle"){ const free = adm || tl > 0; goBtn.textContent = free ? "投幣" : "1🪙 投幣"; goBtn.classList.toggle("paid", !free); goBtn.classList.remove("grab"); }
+      el.querySelector("#cwInfo").innerHTML = `<div>${adm ? `${I("wrench")} <b>站長測試</b>：無限次數` : `今天免費 <b>${tl}</b> / ${FREE} 次`}</div><div class="cwLuck">幸運值 <i>${Array.from({ length: PITY }, (_, i) => `<span class="${i < l ? "on" : ""}"></span>`).join("")}</i></div>`;
+      el.querySelector("#cwCol").innerHTML = `${I("trophy")} 蒐集櫃 ${owned(c)}/${PRIZES.length}`;
+      if(state === "idle"){ const free = adm || tl > 0; goBtn.innerHTML = free ? "投幣" : `1${I("coin")} 投幣`; goBtn.classList.toggle("paid", !free); goBtn.classList.remove("grab"); }
     }
     async function pay(){
       if(ctx.isAdmin && ctx.isAdmin()) return true;   // 站長／管理員測試：不扣次數也不扣貓幣
@@ -295,13 +311,13 @@ App.registerGame({
           const cur = t && t.day === today() ? t : { day: today(), n: 0 }; if(cur.n >= FREE) return undefined; cur.n++; st.tries[me()] = cur; ok = true; return st; }); return ok; }
       let ok = false;
       await ctx.update("pet", st => { if(!st || !(st.coins >= 1)) return undefined; st = JSON.parse(JSON.stringify(st)); st.coins -= 1; ok = true; return st; });
-      if(!ok) ctx.toast("今天的免費次數用完了，貓幣也不夠～<br>明天再來，或玩其他遊戲賺貓幣吧 🪙", 4000);
+      if(!ok) ctx.toast("今天的免費次數用完了，貓幣也不夠～<br>明天再來，或玩其他遊戲賺貓幣吧", 4000);
       return ok;
     }
     goBtn.addEventListener("click", async () => {
       if(state === "idle"){ state = "paying"; if(!(await pay())){ state = "idle"; return; }
         SFX.coin ? SFX.coin() : SFX.select(); state = "aim"; tLeft = TIME; timerEl.classList.remove("hidden"); goBtn.textContent = "夾！"; goBtn.classList.add("grab"); goBtn.classList.remove("paid");
-        msg("用十字鍵移動爪子 🕹 看地上的影子對準，按「夾！」"); info(); }
+        msg("用十字鍵移動爪子，看地上的影子對準，按「夾！」"); info(); }
       else if(state === "aim") startDrop();
     });
     let seq = null, holdSet = new Set();   // 自動流程的計時、被爪子撐起來的娃娃
@@ -311,8 +327,8 @@ App.registerGame({
     const lifted = () => prizes.filter(p => Math.hypot(p.x - claw.x, p.z - claw.z) < .12 && p.y > p.r + .05 && p.y > claw.tip - .08 && p.y < claw.tip + .22);
     function watchHold(){
       const now = new Set(lifted());
-      if(!holdSet.size && now.size && (state === "rise" || state === "top")){ msg("夾起來了！撐住…撐住… 😼", "good2"); SFX.select(); }
-      if(holdSet.size && [...holdSet].some(p => !now.has(p))){ const where = state === "rise" ? "才剛拉起來就<b>掉了</b>…😿" : state === "top" ? "爪子在最上面<b>鬆了一下</b>，娃娃掉下去了 😹" : "啊！半路<b>滑掉了</b>…差一點點 😿";
+      if(!holdSet.size && now.size && (state === "rise" || state === "top")){ msg("夾起來了！撐住…撐住…", "good2"); SFX.select(); }
+      if(holdSet.size && [...holdSet].some(p => !now.has(p))){ const where = state === "rise" ? "才剛拉起來就<b>掉了</b>…" : state === "top" ? "爪子在最上面<b>鬆了一下</b>，娃娃掉下去了" : "啊！半路<b>滑掉了</b>…差一點點";
         if(!now.size){ msg(where, "bad"); SFX.miss(); } }
       holdSet = now;
     }
@@ -350,23 +366,23 @@ App.registerGame({
         await ctx.update("claw", st => { st = st || {}; st.luck = st.luck || {}; st.luck[me()] = Math.min(PITY, (st.luck[me()] || 0) + 1); return st; }); }
       refill();
       state = "idle"; claw.rT = OPEN; lastPlay = performance.now(); info();
-      if(!(ctx.isAdmin && ctx.isAdmin()) && triesLeft() <= 0 && !won.length && !msgEl.classList.contains("bad")) msg("今天的免費次數用完了，可以用 1 個貓幣再玩一次 🪙");
+      if(!(ctx.isAdmin && ctx.isAdmin()) && triesLeft() <= 0 && !won.length && !msgEl.classList.contains("bad")) msg("今天的免費次數用完了，可以用 1 個貓幣再玩一次");
     }
     async function win(kind){
       const P = PRIZES[kind], id = P[4], wasNew = !(myCol()[id] > 0);
       await ctx.update("claw", st => { st = st || {}; st.col = st.col || {}; const c = st.col[me()] = normCol(st.col[me()]); c[id] = (c[id] || 0) + 1; st.luck = st.luck || {}; st.luck[me()] = 0; st.first = st.first || {}; const f = st.first[me()] = st.first[me()] || {}; if(!f[id]) f[id] = Date.now();
         st.last = { by: me(), kind: id, at: Date.now() }; return st; });
       SFX.level(); ctx.burst(); if(P[1] >= 1) SFX.combo();
-      msg(`🎉 夾到了 <b>${esc(P[0])}</b>！`, "good");
-      if(P[1] === 2 && partner()) ctx.notifyPartner(`${ctx.me.name} 在夾娃娃機夾到超稀有的「${P[0]}」！✨`);
+      msg(`${I("star")} 夾到了 <b>${esc(P[0])}</b>！`, "good");
+      if(P[1] === 2 && partner()) ctx.notifyPartner(`${ctx.me.name} 在夾娃娃機夾到超稀有的「${P[0]}」！`);
       await new Promise(res => { const o = document.createElement("div"); o.className = "careModal cwReveal";
         o.innerHTML = `<div class="cmBox"><div class="cwRay r${P[1]}"></div><div class="cwBig">${art(kind)}</div>${wasNew ? `<div class="cwNew">NEW!</div>` : ""}
-          <h3>${esc(P[0])}</h3><div class="cwRar" style="background:${RAR[P[1]][1]}">${"★".repeat(P[1] + 1)} ${RAR[P[1]][0]}</div>
-          <div class="cwDesc">${esc(P[6])}</div><div class="k">${wasNew ? "第一次夾到！已經擺進蒐集櫃、寫進蒐集冊 ✨" : `蒐集櫃裡有 ${(myCol()[id] || 1)} 個了`}</div><button class="btn" style="width:100%">好耶！</button></div>`;
+          <h3>${esc(P[0])}</h3><div class="cwRar" style="background:${RAR[P[1]][1]}">${stars(P[1])} ${RAR[P[1]][0]}</div>
+          <div class="cwDesc">${esc(P[6])}</div><div class="k">${wasNew ? "第一次夾到！已經擺進蒐集櫃、寫進蒐集冊" : `蒐集櫃裡有 ${(myCol()[id] || 1)} 個了`}</div><button class="btn" style="width:100%">好耶！</button></div>`;
         document.body.appendChild(o); o.querySelector("button").addEventListener("click", () => { o.remove(); res(); }); });
     }
 
-    // ---- 🏆 蒐集櫃：博物館展示櫃（玻璃門、聚光燈、展示台） ----
+    // ---- 蒐集櫃：博物館展示櫃（玻璃門、聚光燈、展示台） ----
     const myFirst = () => (((s && s.first) || {})[me()]) || {};
     function openCol(){
       SFX.level(); const c = myCol(), n = owned(c), N = PRIZES.length;
@@ -374,24 +390,24 @@ App.registerGame({
       const o = document.createElement("div"); o.className = "careModal cwCabM";
       const ped = i => { const P = PRIZES[i], k = c[P[4]] || 0;
         return `<button class="cwPed r${P[1]} ${k ? "on" : "no"}" data-i="${i}"><span class="cwBeam"></span><span class="cwOnPed">${art(i)}</span><span class="cwBase"></span><span class="cwPlate">${k ? esc(P[0]) : "？？？"}</span>${k > 1 ? `<i>×${k}</i>` : ""}</button>`; };
-      const tier = ([cat, label]) => { const L = PRIZES.map((P, i) => i).filter(i => PRIZES[i][5] === cat), got = L.filter(i => c[PRIZES[i][4]] > 0).length;
-        return `<div class="cwTier t-${cat}"><div class="cwTierH"><span>${cat === "sp" ? "✦ 至寶展示台 ✦" : label}</span><em>${got} / ${L.length}</em></div><div class="cwRow">${L.map(ped).join("")}</div></div>`; };
+      const tier = ([cat]) => { const L = PRIZES.map((P, i) => i).filter(i => PRIZES[i][5] === cat), got = L.filter(i => c[PRIZES[i][4]] > 0).length;
+        return `<div class="cwTier t-${cat}"><div class="cwTierH"><span>${cat === "sp" ? `${I("spark")} 至寶展示台 ${I("spark")}` : catLabel(CATS.find(x => x[0] === cat))}</span><em>${got} / ${L.length}</em></div><div class="cwRow">${L.map(ped).join("")}</div></div>`; };
       const order = [CATS[4], CATS[0], CATS[1], CATS[2], CATS[3]];
       o.innerHTML = `<div class="cwCase">
-        <div class="cwCrest"><span>✦</span><b>獎品蒐集櫃</b><span>✦</span></div>
-        <div class="cwCaseSub">珍藏 <b>${n}</b> / ${N} 件${n === N ? " 👑 全部收集完成！" : ""}</div>
+        <div class="cwCrest"><span>${I("spark")}</span><b>獎品蒐集櫃</b><span>${I("spark")}</span></div>
+        <div class="cwCaseSub">珍藏 <b>${n}</b> / ${N} 件${n === N ? ` ${I("crown")} 全部收集完成！` : ""}</div>
         <div class="cwCaseIn"><div class="cwGlassHi"></div>${order.map(tier).join("")}<div class="cwDoor l"></div><div class="cwDoor r"></div></div>
-        <div class="cwCaseFoot"><button class="btn" id="cwToBook">📖 蒐集冊</button><button class="btn sub" id="cwX">關上櫃子</button></div></div>`;
+        <div class="cwCaseFoot"><button class="btn" id="cwToBook">${I("book")} 蒐集冊</button><button class="btn sub" id="cwX">關上櫃子</button></div></div>`;
       document.body.appendChild(o);
       o.querySelector("#cwX").addEventListener("click", () => o.remove());
       o.querySelector("#cwToBook").addEventListener("click", () => openBook(0));
       o.querySelectorAll(".cwPed").forEach(b => b.addEventListener("click", () => openBook(+b.dataset.i)));
     }
-    // ---- 📖 蒐集冊：一個獎品一頁，可以左右翻 ----
+    // ---- 蒐集冊：一個獎品一頁，可以左右翻 ----
     function openBook(start){
       SFX.tap(); document.querySelectorAll(".cwBookM").forEach(x => x.remove());
       const o = document.createElement("div"); o.className = "careModal cwBookM"; let i = start || 0;
-      o.innerHTML = `<div class="cwBook"><div class="cwTabs">${CATS.map(([cat, label]) => `<button data-c="${cat}">${label.split(" ")[0]}</button>`).join("")}</div>
+      o.innerHTML = `<div class="cwBook"><div class="cwTabs">${CATS.map(c => `<button data-c="${c[0]}" aria-label="${c[1]}">${I(c[2])}</button>`).join("")}</div>
         <div class="cwPageWrap"><div class="cwPage" id="cwPg"></div></div>
         <div class="cwBookNav"><button class="btn sub" id="cwPrev">◀</button><span id="cwPno"></span><button class="btn sub" id="cwNext">▶</button></div>
         <button class="btn sub" style="width:100%" id="cwBX">闔上蒐集冊</button></div>`;
@@ -401,21 +417,21 @@ App.registerGame({
         o.querySelectorAll(".cwTabs button").forEach(b => b.classList.toggle("on", b.dataset.c === P[5]));
         o.querySelector("#cwPno").textContent = `${i + 1} / ${N}`;
         pg.className = `cwPage r${P[1]} ${k ? "" : "no"} ${d ? (d > 0 ? "flipN" : "flipP") : ""}`;
-        pg.innerHTML = `<div class="cwPgHead"><span class="cwNo">No.${String(i + 1).padStart(2, "0")}</span><span>${cat[1]}</span></div>
+        pg.innerHTML = `<div class="cwPgHead"><span class="cwNo">No.${String(i + 1).padStart(2, "0")}</span><span>${catLabel(cat)}</span></div>
           <div class="cwFrame"><span class="cwTape a"></span><span class="cwTape b"></span><div class="cwFrameIn">${art(i)}</div></div>
           <div class="cwPgName">${k ? esc(P[0]) : "？？？"}</div>
-          <div class="cwStars">${"★".repeat(P[1] + 1)}${"☆".repeat(2 - P[1])}<small>${RAR[P[1]][0]}</small></div>
-          <div class="cwLined">${k ? esc(P[6]) : "這一頁還是空白的……<br>夾到之後，這裡就會寫上牠的故事 🔒"}</div>
+          <div class="cwStars">${stars(P[1])}<small>${RAR[P[1]][0]}</small></div>
+          <div class="cwLined">${k ? esc(P[6]) : `這一頁還是空白的……<br>夾到之後，這裡就會寫上牠的故事 ${I("lock")}`}</div>
           <div class="cwPgFoot">${k ? `擁有 ×${k}　·　${f ? `第一次夾到：${new Date(f).toLocaleDateString("zh-TW")}` : "很久以前就夾到了"}` : "尚未收集"}</div>
           <div class="cwStamp">${k ? "已收集" : "未收集"}</div>
-          ${k > 1 && p ? `<button class="btn mint cwGiftB" id="cwGift">🎁 送 1 個給 ${esc(p.name)}</button>` : ""}`;
+          ${k > 1 && p ? `<button class="btn mint cwGiftB" id="cwGift">${I("gift")} 送 1 個給 ${esc(p.name)}</button>` : ""}`;
         const g = pg.querySelector("#cwGift"); if(g) g.addEventListener("click", async () => {
           if(!g.dataset.ok){ g.dataset.ok = 1; g.textContent = `確定要送給 ${p.name} 嗎？再按一次`; return; }
           g.disabled = true; let ok = false;
           await ctx.update("claw", st => { if(!st || !st.col) return undefined; const c2 = st.col[me()] = normCol(st.col[me()]); if(!(c2[id] > 1)) return undefined; c2[id]--;
             const pc2 = st.col[p.user_id] = normCol(st.col[p.user_id]); pc2[id] = (pc2[id] || 0) + 1;
             st.first = st.first || {}; const pf = st.first[p.user_id] = st.first[p.user_id] || {}; if(!pf[id]) pf[id] = Date.now(); ok = true; return st; });
-          if(ok){ SFX.select(); ctx.burst(); ctx.toast(`送出了 🎁 ${esc(p.name)} 收到 1 個「${P[0]}」`); ctx.notifyPartner(`${ctx.me.name} 送你 1 個「${P[0]}」🎁 快去夾娃娃機的蒐集冊看看！`);
+          if(ok){ SFX.select(); ctx.burst(); ctx.toast(`送出了！${esc(p.name)} 收到 1 個「${P[0]}」`); ctx.notifyPartner(`${ctx.me.name} 送你 1 個「${P[0]}」，快去夾娃娃機的蒐集冊看看！`);
             await new Promise(r => setTimeout(r, 300)); render(0);
             if(document.querySelector(".cwCabM")){ document.querySelectorAll(".cwCabM").forEach(x => x.remove()); openCol(); document.body.appendChild(o); } }
           else { g.disabled = false; ctx.toast("送不出去，再試一次看看"); } });
@@ -435,7 +451,7 @@ App.registerGame({
     el.querySelectorAll(".cwPad [data-d]").forEach(btn => {
       const [dx, dz] = DIRS[btn.dataset.d];
       const up = () => { if(dir.x === dx && dir.z === dz) dir = { x: 0, z: 0 }; btn.classList.remove("on"); ["pointerup","touchend","mouseup"].forEach(t => window.removeEventListener(t, up)); };
-      const down = e => { if(e.cancelable) e.preventDefault(); if(state !== "aim") { if(state === "idle") msg("先按「投幣」才能移動爪子喔 🪙"); return; } dir = { x: dx, z: dz }; btn.classList.add("on"); SFX.key(.8);
+      const down = e => { if(e.cancelable) e.preventDefault(); if(state !== "aim") { if(state === "idle") msg("先按「投幣」才能移動爪子喔"); return; } dir = { x: dx, z: dz }; btn.classList.add("on"); SFX.key(.8);
         ["pointerup","touchend","mouseup"].forEach(t => window.addEventListener(t, up)); };
       btn.addEventListener("pointerdown", down); btn.addEventListener("touchstart", down, { passive: false }); btn.addEventListener("contextmenu", e => e.preventDefault());
     });
