@@ -65,12 +65,12 @@ App.registerGame({
       <div class="cwTop"><div class="cwInfo" id="cwInfo"></div><button class="btn sub cwColBtn" id="cwCol">🎁 收藏</button></div>
       <div class="cwM"><div class="cwMarq"><span class="cwLights"></span><b>喵喵夾娃娃機</b><span class="cwLights"></span></div>
         <div class="cw3" id="cw3"><svg class="cwBg" id="cwBg"></svg><svg class="cwRimB" id="cwRimB"></svg><svg class="cwRimA" id="cwRimA"></svg>
-          <div class="cwGantry" id="cwGantry"></div><div class="cwShadow" id="cwShadow"></div><div class="cwRope3" id="cwRope"></div><div class="cwHead3" id="cwHead">${CLAW_OPEN}</div>
+          <div class="cwGantry" id="cwGantry"></div><div class="cwShadow" id="cwShadow"></div><div class="cwRope3" id="cwRope"></div><svg class="cwClawL" id="cwClawB"></svg><svg class="cwClawL" id="cwClawF"></svg>
           <div class="cwFront"><span>⬇ 出口</span></div><div class="cwShine"></div><div class="cwTimer hidden" id="cwTimer">30</div></div>
         <div class="cwMsg" id="cwMsg">按「投幣」開始，30 秒內用十字鍵把爪子移到娃娃正上方</div>
         <div class="cwPanel3"><div class="cwPad"><button data-d="up" class="u">▲</button><button data-d="left" class="l">◀</button><button data-d="right" class="r">▶</button><button data-d="down" class="d">▼</button><i></i></div>
           <button class="cwGo" id="cwGo">投幣</button></div></div></div>`;
-    const V = el.querySelector("#cw3"), head = el.querySelector("#cwHead"), rope = el.querySelector("#cwRope"), gantry = el.querySelector("#cwGantry"), shadow = el.querySelector("#cwShadow"),
+    const V = el.querySelector("#cw3"), clawB = el.querySelector("#cwClawB"), clawF = el.querySelector("#cwClawF"), rope = el.querySelector("#cwRope"), gantry = el.querySelector("#cwGantry"), shadow = el.querySelector("#cwShadow"),
       timerEl = el.querySelector("#cwTimer"), msgEl = el.querySelector("#cwMsg"), goBtn = el.querySelector("#cwGo");
     const msg = (h, cls) => { msgEl.innerHTML = h; msgEl.className = "cwMsg " + (cls || ""); };
 
@@ -102,7 +102,7 @@ App.registerGame({
       const rim = (a, b) => `<polygon points="${P(a[0],a[1],0)} ${P(b[0],b[1],0)} ${P(b[0],b[1],RIM)} ${P(a[0],a[1],RIM)}" fill="rgba(170,215,255,.45)" stroke="#6f8fb8" stroke-width="2"/>`;
       el.querySelector("#cwRimB").innerHTML = rim([0, HZ], [HX, HZ]);
       el.querySelector("#cwRimA").innerHTML = rim([HX, 0], [HX, HZ]);
-      el.querySelectorAll(".cwBg,.cwRimA,.cwRimB").forEach(x => x.setAttribute("viewBox", `0 0 ${W} ${H}`));
+      el.querySelectorAll(".cwBg,.cwRimA,.cwRimB,.cwClawL").forEach(x => x.setAttribute("viewBox", `0 0 ${W} ${H}`));
     }
 
     // ---- 娃娃（物理球） ----
@@ -111,14 +111,19 @@ App.registerGame({
     function mk(kind, x, y, z){ const p = { kind, x, y, z, vx: 0, vy: 0, vz: 0, r: R, rot: (Math.random() - .5)*40, held: false, el: document.createElement("div") };
       p.el.className = "cwP3"; p.el.innerHTML = art(kind); p.sh = document.createElement("div"); p.sh.className = "cwPSh"; V.appendChild(p.sh); V.appendChild(p.el); p.sq = 0; p.fz = -1; prizes.push(p); return p; }
     function spawn(n){ for(let i = 0; i < n; i++){ let x, z; do{ x = .08 + Math.random()*.84; z = .08 + Math.random()*.84; } while(x < HX + R*2 && z < HZ + R*2); mk(pick(), x, .35 + Math.random()*.5, z); } }
-    const claw = { x: HOME.x, z: HOME.z, tip: YTOP, open: true, vx: 0, vz: 0, swing: 0, held: null, off: null, q: 0 };
+    // 爪子：三根爪腳，每根都是會真的碰到娃娃的小球（kinematic）
+    const OPEN = .128, CLOSED = .022, CRR = .017;
+    const claw = { x: HOME.x, z: HOME.z, tip: YTOP, r: OPEN, rT: OPEN, vx: 0, vz: 0, swing: 0, contact: false };
+    const ANG = [Math.PI/2, Math.PI/2 + 2*Math.PI/3, Math.PI/2 + 4*Math.PI/3];
+    function prongs(c){ return ANG.map(a => { const ca = Math.cos(a), sa = Math.sin(a), hy = c.tip + .16, ey = c.tip + .085;
+      const pt = (rad, y) => [c.x + ca*rad, y, c.z + sa*rad];
+      return { front: sa < 0, pts: [pt(.024, hy), pt(c.r*.85 + .04, ey), pt(c.r, c.tip), pt(Math.max(0, c.r - .022), c.tip + .012)] }; }); }
+    function colliders(c){ const L = [[c.x, c.tip + .155, c.z, .032, 1]]; prongs(c).forEach(pr => { const [h, e, t, k] = pr.pts; L.push(e, [(e[0] + t[0])/2, (e[1] + t[1])/2, (e[2] + t[2])/2], t, k); }); return L; }
     let captured = [];
 
-    function physics(dt){
+    function physics(dt, C0, C1){
       const n = prizes.length;
       for(const p of prizes){
-        if(p.held){ const tx = claw.x + p.off.x + claw.swing*.02, ty = claw.tip - R*.85, tz = claw.z + p.off.z;
-          p.vx = (tx - p.x)*16; p.vy = (ty - p.y)*16; p.vz = (tz - p.z)*16; p.x += p.vx*dt; p.y += p.vy*dt; p.z += p.vz*dt; continue; }
         p.vy -= G3*dt; p.x += p.vx*dt; p.y += p.vy*dt; p.z += p.vz*dt;
         const hole = inHole(p.x, p.z);
         if(!hole && p.y < p.r){ p.y = p.r; if(p.vy < -.6) p.sq = Math.min(.25, -p.vy*.08); if(p.vy < 0) p.vy *= -.18; p.vx *= Math.max(0, 1 - 4.5*dt); p.vz *= Math.max(0, 1 - 4.5*dt); p.rot += p.vx*dt*500; }
@@ -145,11 +150,25 @@ App.registerGame({
         // 疊在上面的娃娃會慢慢往旁邊滑（像真的娃娃堆）
         if(Math.abs(ny) > .6 && !a.held && !b.held){ const top = ny > 0 ? b : a; top.vx += (ny > 0 ? nx : -nx)*.35*dt*10; top.vz += (ny > 0 ? nz : -nz)*.35*dt*10; }
       }
-      // 爪子會推開碰到的娃娃
-      if(claw.tip < YTOP - .02){ for(const p of prizes){ if(p.held) continue; const dx = p.x - claw.x, dy = p.y - (claw.tip + .02), dz = p.z - claw.z, d = Math.hypot(dx, dy, dz), m = p.r + CR;
-        if(d < m && d > 1e-6){ const k = (m - d)/d; p.x += dx*k; p.z += dz*k; if(dy > 0) p.y += dy*k; p.vx += dx*k*8; p.vz += dz*k*8; } } }
+      // 爪腳：真的碰撞。娃娃被推開、被撐住、被帶著走，都是碰撞算出來的
+      if(C1){ const A = colliders(C0), B = colliders(C1);
+        // 每隻娃娃把所有爪腳的推力加起來一次算（三根同時夾，才不會被擠飛）
+        for(const p of prizes){ let fx = 0, fy = 0, fz = 0, n = 0, vx = 0, vy = 0, vz = 0;
+          for(let ci = 0; ci < B.length; ci++){ const c = B[ci], dx = p.x - c[0], dy = p.y - c[1], dz = p.z - c[2], d = Math.hypot(dx, dy, dz), m = p.r + (c[3] || CRR);
+            if(d >= m || d < 1e-6) continue; const nx = dx/d, ny = dy/d, nz = dz/d, ov = m - d; n++;
+            fx += nx*ov; fy += ny*ov; fz += nz*ov;
+            const cv = [(c[0] - A[ci][0])/dt, (c[1] - A[ci][1])/dt, (c[2] - A[ci][2])/dt];
+            const rvx = p.vx - cv[0], rvy = p.vy - cv[1], rvz = p.vz - cv[2], vn = rvx*nx + rvy*ny + rvz*nz;
+            if(vn < 0){ vx -= vn*nx; vy -= vn*ny; vz -= vn*nz; }
+            const tx = rvx - vn*nx, ty = rvy - vn*ny, tz = rvz - vn*nz; vx -= tx*.3; vy -= ty*.3; vz -= tz*.3;
+            if(c[4] && ny < -.3) claw.contact = true;
+            if(!c[4] && state === "close") claw.grip = true; }
+          if(n){ p.x += fx; p.y += fy; p.z += fz; p.vx += vx/n*Math.min(n, 1.5); p.vy += vy/n*Math.min(n, 1.5); p.vz += vz/n*Math.min(n, 1.5); } } }
+      // 幸運值滿了：爪子會把娃娃穩穩抱住
+      if(lucky() && (state === "rise" || state === "top" || state === "back")) for(const p of prizes){ const h = Math.hypot(p.x - claw.x, p.z - claw.z);
+        if(h < .13 && p.y > claw.tip - .06 && p.y < claw.tip + .2){ p.vx += (claw.x - p.x)*40*dt + (claw.vx - p.vx)*8*dt; p.vz += (claw.z - p.z)*40*dt + (claw.vz - p.vz)*8*dt; p.vy += (claw.tip + .075 - p.y)*40*dt; } }
       // 掉進出口
-      for(const p of prizes.slice()) if(p.y < -.32){ captured.push(p.kind); p.el.remove(); p.sh.remove(); prizes = prizes.filter(x => x !== p); if(p === claw.held) claw.held = null; SFX.coin && SFX.coin(); }
+      for(const p of prizes.slice()) if(p.y < -.32){ captured.push(p.kind); p.el.remove(); p.sh.remove(); prizes = prizes.filter(x => x !== p); SFX.coin && SFX.coin(); }
     }
     function draw(){
       for(const p of prizes){ const k = sz(p.z), size = 2*p.r*Wf*k*1.45, X = PX(p.x, p.z), Y = PY(p.z, p.y);
@@ -160,13 +179,20 @@ App.registerGame({
         p.sh.style.width = sw + "px"; p.sh.style.height = (sw*.32) + "px"; p.sh.style.transform = `translate(${X - sw/2}px, ${PY(p.z, 0) - sw*.16}px)`; p.sh.style.opacity = inH ? 0 : Math.max(0, .55 - h*1.2).toFixed(2);
         // 越後面越暗一點（有景深）
         const fz = Math.round(p.z*20); if(fz !== p.fz){ p.fz = fz; p.el.style.filter = `brightness(${(1 - p.z*.16).toFixed(2)}) saturate(${(1 - p.z*.12).toFixed(2)})`; }
-        p.el.style.zIndex = Math.round(2000 - p.z*1000 + p.y*60) + (p.held ? 40 : 0);
+        p.el.style.zIndex = Math.round(2000 - p.z*1000 + p.y*60);
         p.el.style.opacity = p.y < -.12 ? Math.max(0, 1 + (p.y + .12)*6) : 1; }
-      const k = sz(claw.z), hw = .17*Wf*k, cx = PX(claw.x, claw.z), topY = PY(claw.z, 1.0), tipY = PY(claw.z, claw.tip);
-      gantry.style.left = PX(0, claw.z) + "px"; gantry.style.width = (PX(1, claw.z) - PX(0, claw.z)) + "px"; gantry.style.top = (topY - 3) + "px"; gantry.style.zIndex = Math.round(2000 - claw.z*1000 + 200);
-      rope.style.left = (cx - 1.5) + "px"; rope.style.top = topY + "px"; rope.style.height = Math.max(0, tipY - topY - hw*.55) + "px"; rope.style.zIndex = gantry.style.zIndex;
-      head.style.width = hw + "px"; head.style.transform = `translate(${cx - hw/2}px, ${tipY - hw*.62}px) rotate(${claw.swing.toFixed(1)}deg)`; head.style.zIndex = Math.round(2000 - claw.z*1000 + 250);
-      shadow.style.width = (hw*.7) + "px"; shadow.style.height = (hw*.22) + "px"; shadow.style.transform = `translate(${cx - hw*.35}px, ${PY(claw.z, 0) - hw*.11}px)`;
+      const k = sz(claw.z), cx = PX(claw.x, claw.z), topY = PY(claw.z, 1.0), hubY = PY(claw.z, claw.tip + .16), base = Math.round(2000 - claw.z*1000 + claw.tip*60);
+      gantry.style.left = PX(0, claw.z) + "px"; gantry.style.width = (PX(1, claw.z) - PX(0, claw.z)) + "px"; gantry.style.top = (topY - 3) + "px"; gantry.style.zIndex = base + 150;
+      rope.style.left = (cx - 1.5) + "px"; rope.style.top = topY + "px"; rope.style.height = Math.max(0, hubY - topY) + "px"; rope.style.zIndex = base + 150;
+      // 三根爪腳：後面那根畫在娃娃後面，前面兩根畫在娃娃前面
+      const sw = claw.swing*.0025, P2 = q => `${(PX(q[0] + sw*(q[1] - claw.tip - .16)*-1, q[2])).toFixed(1)},${PY(q[2], q[1]).toFixed(1)}`;
+      let back = "", front = ""; const lw = Math.max(3, 6*k);
+      prongs(claw).forEach(pr => { const pts = pr.pts.map(P2).join(" ");
+        const g = `<polyline points="${pts}" fill="none" stroke="#4a5878" stroke-width="${lw}" stroke-linejoin="round" stroke-linecap="round"/><polyline points="${pts}" fill="none" stroke="#c9d3e3" stroke-width="${lw*.4}" stroke-linejoin="round" stroke-linecap="round"/>`;
+        if(pr.front) front += g; else back += g; });
+      const hubW = 16*k, hub = `<rect x="${cx - hubW/2}" y="${hubY - hubW*.55}" width="${hubW}" height="${hubW*.75}" rx="${hubW*.2}" fill="#9aa6bd" stroke="#4a5878" stroke-width="2"/><rect x="${cx - hubW*.3}" y="${hubY - hubW*.45}" width="${hubW*.25}" height="${hubW*.2}" fill="#fff" opacity=".7"/>`;
+      clawB.innerHTML = back; clawF.innerHTML = front + hub; clawB.style.zIndex = base - 90; clawF.style.zIndex = base + 120;
+      shadow.style.width = (34*k) + "px"; shadow.style.height = (10*k) + "px"; shadow.style.transform = `translate(${cx - 17*k}px, ${PY(claw.z, 0) - 5*k}px)`;
       shadow.style.opacity = state === "aim" ? .5 : .25;
     }
 
@@ -192,43 +218,43 @@ App.registerGame({
         msg("用十字鍵移動爪子 🕹 看地上的影子對準，按「夾！」"); info(); }
       else if(state === "aim") startDrop();
     });
-    let seq = null;   // 自動流程的計時
-    function startDrop(){ if(state !== "aim") return; state = "drop"; dir = { x: 0, z: 0 }; timerEl.classList.add("hidden"); goBtn.textContent = "…"; goBtn.classList.remove("grab"); SFX.tap(); msg("爪子下去囉…"); seq = { t: 0 }; }
+    let seq = null, holdSet = new Set();   // 自動流程的計時、被爪子撐起來的娃娃
+    function startDrop(){ if(state !== "aim") return; state = "drop"; dir = { x: 0, z: 0 }; timerEl.classList.add("hidden"); goBtn.textContent = "…"; goBtn.classList.remove("grab"); SFX.tap(); msg("爪子下去囉…"); seq = { t: 0 }; claw.contact = false; }
     const lucky = () => luck() >= PITY;
-    function grabCheck(){
-      let best = null, bd = 1e9; const reach = R + .05 + (lucky() ? .04 : 0);
-      for(const p of prizes){ const d = Math.hypot(p.x - claw.x, p.z - claw.z); if(d < reach && p.y + p.r >= claw.tip - .07 && d < bd){ bd = d; best = p; } }
-      if(!best) return null;
-      const q = lucky() ? 1 : 1 - bd/reach;
-      if(!lucky() && Math.random() > .25 + .7*q) return null;
-      claw.q = q; best.held = true; best.off = { x: (best.x - claw.x)*.6, z: (best.z - claw.z)*.6 }; claw.held = best; return best;
+    // 現在被爪子撐在空中的娃娃
+    const lifted = () => prizes.filter(p => Math.hypot(p.x - claw.x, p.z - claw.z) < .12 && p.y > p.r + .05 && p.y > claw.tip - .08 && p.y < claw.tip + .22);
+    function watchHold(){
+      const now = new Set(lifted());
+      if(!holdSet.size && now.size && (state === "rise" || state === "top")){ msg("夾起來了！撐住…撐住… 😼", "good2"); SFX.select(); }
+      if(holdSet.size && [...holdSet].some(p => !now.has(p))){ const where = state === "rise" ? "才剛拉起來就<b>掉了</b>…😿" : state === "top" ? "爪子在最上面<b>鬆了一下</b>，娃娃掉下去了 😹" : "啊！半路<b>滑掉了</b>…差一點點 😿";
+        if(!now.size){ msg(where, "bad"); SFX.miss(); } }
+      holdSet = now;
     }
-    function drop(p, why){ if(!p) return; p.held = false; p.vx = claw.vx*.9 + (Math.random() - .5)*.15; p.vz = claw.vz*.9 + (Math.random() - .5)*.15; p.vy = 0; claw.held = null;
-      SFX.miss(); msg(why || "啊！<b>滑掉了</b>…差一點點 😿", "bad"); }
     function step(dt){
-      const rar = claw.held ? PRIZES[claw.held.kind][1] : 0, L = lucky();
       if(state === "aim"){
         tLeft -= dt; timerEl.textContent = Math.max(0, Math.ceil(tLeft)); timerEl.classList.toggle("low", tLeft < 6);
         claw.vx = dir.x*SPEED; claw.vz = dir.z*SPEED;
         claw.x = Math.max(.06, Math.min(.94, claw.x + claw.vx*dt)); claw.z = Math.max(.06, Math.min(.94, claw.z + claw.vz*dt));
         if(tLeft <= 0){ msg("時間到！自動下爪～"); startDrop(); }
-      } else claw.vx = claw.vz = 0;
+      } else { claw.vx = claw.vz = 0; }
+      // 爪腳慢慢張開／合起來
+      claw.r += Math.max(-.26*dt, Math.min(.3*dt, claw.rT - claw.r));
       if(state === "drop"){
-        const blocked = prizes.some(p => !p.held && Math.hypot(p.x - claw.x, p.z - claw.z) < p.r*.8 && p.y + p.r >= claw.tip - .01);
-        if(claw.tip > CR && !blocked) claw.tip -= .55*dt; else { seq.t += dt; if(seq.t > .25){ state = "close"; seq.t = 0; head.innerHTML = CLAW_SHUT; SFX.key(1.2); } }
-      } else if(state === "close"){ seq.t += dt; if(seq.t > .35){ const g = grabCheck(); state = "rise"; seq.t = 0; seq.slip1 = g && !L && Math.random() < Math.max(.06, Math.min(.5, .5 - .55*claw.q))*(1 + rar*.25); if(g) SFX.select(); else msg("爪子沒抓到～", "bad"); } }
-      else if(state === "rise"){ claw.tip = Math.min(YTOP, claw.tip + .42*dt); seq.t += dt;
-        if(seq.slip1 && seq.t > .3 && claw.held){ seq.slip1 = false; drop(claw.held, "才剛拉起來就<b>掉了</b>…😿"); }
-        if(claw.tip >= YTOP){ state = "top"; seq.t = 0; } }
-      else if(state === "top"){ seq.t += dt; claw.swing = Math.sin(seq.t*30)*3*(1 - seq.t/.4);
-        if(seq.t > .4){ if(claw.held && !L && Math.random() < .1 + .1*rar) drop(claw.held, "爪子在最上面<b>鬆掉了</b>！真的娃娃機也會這樣 😹"); state = "back"; seq.t = 0; } }
+        if(claw.tip > .018 && !claw.contact) claw.tip = Math.max(.018, claw.tip - .5*dt);
+        else { seq.t += dt; if(seq.t > .2){ state = "close"; seq.t = 0; seq.stall = false; claw.grip = false; claw.rT = lucky() ? CLOSED*.8 : CLOSED; SFX.key(1.2); } }
+      } else if(state === "close"){ seq.t += dt; if(claw.grip && !seq.stall){ seq.stall = true; claw.rT = Math.max(CLOSED, claw.r - .01); }   // 夾到東西了：馬達停住（再多夾緊一點）
+        if(seq.t > .6){ state = "rise"; seq.t = 0; holdSet = new Set(); } }
+      else if(state === "rise"){ claw.tip = Math.min(YTOP, claw.tip + .36*dt); seq.t += dt; watchHold(); if(claw.tip >= YTOP){ state = "top"; seq.t = 0; seq.loose = false; } }
+      else if(state === "top"){ seq.t += dt; claw.swing = Math.sin(seq.t*28)*3*(1 - seq.t/.6);
+        // 真的娃娃機：到最上面爪子會鬆一點（越稀有的娃娃越鬆）
+        if(seq.t > .15 && !lucky() && !seq.loose){ seq.loose = true; const rar = Math.max(0, ...lifted().map(p => PRIZES[p.kind][1])); claw.rT = claw.r + (Math.random() < .3 ? 0 : .003 + Math.random()*.009) + rar*.004; }
+        watchHold(); if(seq.t > .6){ state = "back"; seq.t = 0; } }
       else if(state === "back"){ const dx = HOME.x - claw.x, dz = HOME.z - claw.z, d = Math.hypot(dx, dz);
-        if(d < .005){ claw.x = HOME.x; claw.z = HOME.z; state = "release"; seq.t = 0; }
-        else { const v = Math.min(d, .3*dt); claw.vx = dx/d*.3; claw.vz = dz/d*.3; claw.x += dx/d*v; claw.z += dz/d*v;
-          if(claw.held && !L && Math.random() < dt*.22*(1 - claw.q)*(1 + rar*.3)) drop(claw.held); } }
-      else if(state === "release"){ if(seq.t === 0){ head.innerHTML = CLAW_OPEN; if(claw.held){ const p = claw.held; p.held = false; p.vx = (Math.random() - .5)*.1; p.vz = (Math.random() - .5)*.1; claw.held = null; } } seq.t += dt;
-        if(seq.t > 1.6){ finish(); } }
-      claw.swing += (Math.sin(performance.now()/240)*(claw.held ? 4 : 1.2) - claw.swing)*Math.min(1, dt*3);
+        if(d < .004){ claw.x = HOME.x; claw.z = HOME.z; state = "release"; seq.t = 0; }
+        else { const v = Math.min(d, .26*dt); claw.vx = dx/d*.26; claw.vz = dz/d*.26; claw.x += dx/d*v; claw.z += dz/d*v; }
+        watchHold(); }
+      else if(state === "release"){ if(seq.t === 0){ claw.rT = OPEN; SFX.key(.9); } seq.t += dt; if(seq.t > 1.8) finish(); }
+      if(state !== "top") claw.swing += (Math.sin(performance.now()/240)*(holdSet.size ? 3 : 1) - claw.swing)*Math.min(1, dt*3);
     }
     async function finish(){
       state = "done";
@@ -237,8 +263,8 @@ App.registerGame({
       else { msg(msgEl.classList.contains("bad") ? msgEl.innerHTML : "沒有夾到～再對準一點！", "bad");
         await ctx.update("claw", st => { st = st || {}; st.luck = st.luck || {}; st.luck[me()] = Math.min(PITY, (st.luck[me()] || 0) + 1); return st; }); }
       if(prizes.length < 15) spawn(15 - prizes.length);
-      state = "idle"; lastPlay = performance.now(); info();
-      if(triesLeft() <= 0 && !won.length) msg("今天的免費次數用完了，可以用 1 個貓幣再玩一次 🪙");
+      state = "idle"; claw.rT = OPEN; lastPlay = performance.now(); info();
+      if(triesLeft() <= 0 && !won.length && !msgEl.classList.contains("bad")) msg("今天的免費次數用完了，可以用 1 個貓幣再玩一次 🪙");
     }
     async function win(kind){
       const P = PRIZES[kind], wasNew = !(myCol()[kind] > 0);
@@ -286,7 +312,9 @@ App.registerGame({
     let last = performance.now();
     const loop = now => {
       if(!alive) return; const dt = Math.min(.04, (now - last)/1000); last = now;
-      step(dt); for(let i = 0; i < 3; i++) physics(dt/3); draw();
+      const c0 = { x: claw.x, z: claw.z, tip: claw.tip, r: claw.r }; step(dt);
+      const S = 4, lerp = (a, b, t) => a + (b - a)*t, at = t => ({ x: lerp(c0.x, claw.x, t), z: lerp(c0.z, claw.z, t), tip: lerp(c0.tip, claw.tip, t), r: lerp(c0.r, claw.r, t) });
+      for(let i = 0; i < S; i++) physics(dt/S, at(i/S), at((i + 1)/S)); draw();
       // 玩完後幾秒內滾進出口的也算；沒在玩的時候自己滾進去的不算（放回機台裡）
       if(state === "idle" && captured.length){ if(performance.now() - lastPlay < 4000) finish(); else { const ks = captured.splice(0); ks.forEach(k => mk(k, .5 + Math.random()*.4, .9, .5 + Math.random()*.4)); } }
       raf = requestAnimationFrame(loop);
@@ -297,7 +325,7 @@ App.registerGame({
     this._stop = () => { alive = false; window.removeEventListener("resize", onR); document.body.classList.remove("cwOn"); cancelAnimationFrame(raf); document.querySelectorAll(".cwReveal,.cwColM").forEach(x => x.remove()); };
     (async () => { const cur = await ctx.getState("claw").catch(() => null); s = cur ? cur.state : null; if(alive) info(); })();
     // 測試用
-    if(window.__mock) window.__cw = { claw, prizes: () => prizes, state: () => state, HOME };
+    if(window.__mock) window.__cw = { claw, prizes: () => prizes, state: () => state, HOME, lifted: () => lifted() };
   },
   unmount(){ if(this._u) this._u(); if(this._stop) this._stop(); },
 });
