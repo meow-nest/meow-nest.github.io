@@ -37,6 +37,7 @@
     B.joinCouple = async (code, name, cat) => {
       const { data, error } = await sb.rpc("join_couple", { p_code: code, p_name: name, p_cat: cat });
       if (error) throw new Error((error.message || "").includes("code_not_found") ? "code_not_found" : (error.message || "").includes("full") ? "full" : error.message);
+      if (data && data.error) throw new Error(data.error);
       B.coupleId = data.couple_id; B.code = data.code; return data;
     };
     B.updateMe = async (patch) => {

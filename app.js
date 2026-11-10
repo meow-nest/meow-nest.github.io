@@ -306,7 +306,7 @@ const App = (function(){
       return `<div class="msg ${mine?"me":""}">${mine?"":`<span class="av">${sprite(m.cat||catOf(m.sender),"cry")}</span>`}<div class="bub makeupBub">${mine?"你說：想跟 ta 和好 🤝":`${esc(m.name||"")} 想跟你和好 🥺`}${pending?`<button class="btn" data-makeup>🤝 好，我們和好</button>`:""}${!mk.req||!mk.req[m.sender]?`<i class="mkDone">${m.created_at && mk.last && mk.last.at > new Date(m.created_at).getTime() ? "已和好 💗" : "（已取消）"}</i>`:""}</div><span class="tm">${hhmm(m.created_at)}</span></div>`; }
     const av = `<span class="av">${sprite(m.cat||catOf(m.sender), m.kind==="poke"?"wave":"normal")}</span>`;
     let bub;
-    const rq = replyOf(m), quote = rq ? `<button class="rq" data-jump="${rq.r}"><b>${esc(rq.n||"")}</b><span>${esc(rq.t||"")}</span></button>` : "";
+    const rq = replyOf(m), quote = rq ? `<button class="rq" data-jump="${esc(String(rq.r))}"><b>${esc(rq.n||"")}</b><span>${esc(rq.t||"")}</span></button>` : "";
     if(m.kind==="sticker") bub = quote ? `<div class="bub rqBub">${quote}<span class="stk">${stickerHtml(m.body, m.cat||catOf(m.sender))}</span></div>` : `<span class="stk">${stickerHtml(m.body, m.cat||catOf(m.sender))}</span>`;
     else if(m.kind==="voice") bub = voiceHtml(m, mine);
     else if(m.kind==="image") bub = `<span class="pic"><img data-media="${esc(m.media||"")}" ${imgCache[m.media]?`src="${esc(imgCache[m.media])}"`:""} alt="照片"></span>`;
@@ -2376,7 +2376,7 @@ const App = (function(){
     const bh=$("bHave"); if(bh) bh.addEventListener("click", ()=>{ $("joinBox").classList.remove("hidden"); bh.classList.add("hidden"); $("cd").focus(); });
     const bj=$("bJoin"); if(bj) bj.addEventListener("click", async()=>{ const n=getName(); if(!n) return; const c=$("cd").value.trim().toUpperCase(); if(c.length!==6){ $("err").textContent="邀請碼是 6 碼喔"; return; } bj.disabled=true;
       try{ save(n); await B.joinCouple(c,n,pick); history.replaceState(null,"",location.pathname+"#home"); await enterNest(false); }
-      catch(e){ bj.disabled=false; const m=String(e.message||e); $("err").textContent = m.includes("code_not_found")?"找不到這個邀請碼，再確認一下":m.includes("solo_nest")?"這是單人模式的小窩，別人不能加入。如果是你自己換手機，暱稱要填得跟原本一模一樣喔":m.includes("full")?"這個小窩已經有兩個人了；如果是換手機，請用原本的名字加入":"加入失敗："+m; } });
+      catch(e){ bj.disabled=false; const m=String(e.message||e); $("err").textContent = m.includes("code_not_found")?"找不到這個邀請碼，再確認一下":m.includes("too_many_tries")?"輸錯太多次了，請 1 小時後再試":m.includes("solo_nest")?"這是單人模式的小窩，別人不能加入。如果是你自己換手機，暱稱要填得跟原本一模一樣喔":m.includes("full")?"這個小窩已經有兩個人了；如果是換手機，請用原本的名字加入":"加入失敗："+m; } });
   }
 
   // ---------- enter the nest ----------
@@ -2467,7 +2467,7 @@ const App = (function(){
       else onboarding(code||"");
     }catch(e){
       console.error(e);
-      $("view").innerHTML = `<div class="box form"><div class="preview">${sprite("orange","surprised")}</div><h2>連不上小窩</h2><div class="err">${esc(e.message||e)}</div><button class="btn" onclick="location.reload()">再試一次</button></div>`;
+      $("view").innerHTML = `<div class="box form"><div class="preview">${sprite("orange","surprised")}</div><h2>連不上小窩</h2><div class="err">${esc(e.message||e)}</div><button class="btn" data-reload="1">再試一次</button></div>`; const rl = $("view").querySelector("[data-reload]"); if(rl) rl.addEventListener("click", ()=>location.reload());
     }
   }
 
