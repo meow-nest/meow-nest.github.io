@@ -1,7 +1,7 @@
 // 遊戲：喵喵夾娃娃機（像真的娃娃機：前後左右移動、30 秒倒數、娃娃有物理）
 // 投幣後用十字鍵移動爪子，按「夾！」或時間到就下爪。娃娃會滾、會疊、會卡在出口擋板上，也可以把娃娃推進出口。
 // 每天 10 次免費，之後 1 次 1 個貓幣。連續沒夾到 8 次，下一次一定夾得到（幸運值）。
-// 夾到的娃娃收進「收藏」，有重複的可以送給 ta。
+// 夾到的娃娃放進「獎品蒐集櫃」（52 種，每種都有介紹），有重複的可以送給 ta。
 (function(){
 const O = "#5a3b2e";
 const PX = (rows, pal) => { pal = Object.assign({ O }, pal); const w = Math.max(...rows.map(r => r.length)), h = rows.length; let r = "";
@@ -13,26 +13,95 @@ const MOUSE = PX([".OOO.......OOO.","OGPGO.....OGPGO","OGPGOOOOOOOGPGO",".OGGGGG
 const CROWN = PX(["O...O...O","OYO.OYO.OYO".slice(0, 9),"OYYOYYOYO","OYYYRYYYO","OOOOOOOOO"], { Y: "#f6c45f", R: "#e5484d" });
 const HALO = PX(["..OOOOO..",".OY...YO.","..OOOOO.."], { Y: "#fff07a", O: "#e8a400" });
 
-// 娃娃：[名字, 稀有度 0 普通 1 稀有 2 超稀有, 畫法, 特效 class]
+// ---- 獎品的像素圖 ----
+const ART = {
+  chick: [PX(["...OOOOO...","..OYYYYYO..",".OYYYYYYYO.",".OYEYYYEYO.","OYYYYAYYYYO","OYPYYYYYPYO","OYYYYYYYYYO",".OYYYYYYYO.","..OOOOOOO..","...A...A..."], { Y: "#ffd95a", A: "#f29b38", E: "#2b1d18", P: "#f7a7b8" })],
+  rabbit: [PX(["..OO...OO..",".OWPO.OPWO.",".OWPO.OPWO.",".OWWOOOWWO.","OWWWWWWWWWO","OWEWWWWWEWO","OWPWWNWWPWO","OWWWWWWWWWO",".OWWWWWWWO.","..OOOOOOO.."], { W: "#ffffff", P: "#f7a7b8", N: "#f0708d", E: "#2b1d18" })],
+  bear: [PX([".OO.....OO.","OBBO...OBBO","OBBOOOOOBBO",".OBBBBBBBO.","OBBEBBBEBBO","OBBBTTTBBBO","OBPBTNTBPBO","OBBBTTTBBBO",".OBBBBBBBO.","..OOOOOOO.."], { B: "#b07a4f", T: "#ecd0a6", N: "#3a2a22", E: "#2b1d18", P: "#f2a1ae" })],
+  dog: [PX(["..OOOOOOO..",".OTTTTTTTO.","OBOTTTTTOBO","OBOETTTEOBO","OBOTTTTTOBO","OBOPTNTPOBO",".OOTTTTTOO.","..OTTKTTO..","...OOOOO..."], { T: "#f6e2c2", B: "#a8754a", E: "#2b1d18", N: "#3a2a22", P: "#f7a7b8", K: "#f0708d" })],
+  penguin: [PX(["...OOOOO...","..OKKKKKO..",".OKKWWWKKO.",".OKWEWEWKO.",".OKWWAWWKO.","OKKWWWWWKKO","OKOWWWWWOKO",".OKWWWWWKO.","..OOWWWOO..","..AA...AA.."], { K: "#3b4155", W: "#ffffff", A: "#f29b38", E: "#2b1d18" })],
+  frog: [PX([".OOO...OOO.","OWEWO.OWEWO","OGGGOOOGGGO","OGGGGGGGGGO","OGPGGGGGPGO","OGGOGGGOGGO","OGGGOOOGGGO",".OGGGGGGGO.","OGGOOOOOGGO",".OO.....OO."], { G: "#86d36f", W: "#ffffff", E: "#2b1d18", P: "#f7a7b8" })],
+  bird: [PX(["....OOOO...","...OBBBBO..","..OBBBBBBO.","AAOBEBBBBO.",".OBBBBBBBBO",".OBWWWBBBBO",".OBWWWWBBO.","..OBWWBBO..","...OOOOO...","....A.A...."], { B: "#7ab8f0", W: "#e3f2ff", A: "#f29b38", E: "#2b1d18" })],
+  pig: [PX([".OO.....OO.","OPPO...OPPO","OPPPOOOPPPO","OPPPPPPPPPO","OPEPPPPPEPO","OPPPQQQPPPO","OPKPNQNPKPO","OPPPQQQPPPO",".OPPPPPPPO.","..OOOOOOO.."], { P: "#f8bfcc", Q: "#f08ba3", N: "#a24a62", E: "#2b1d18", K: "#f0708d" })],
+  donut: [PX(["..OOOOOO..",".OKKWKKYO.","OKYKKKKWKO","OKKKOOKKKO","OKWO..OKYO","ODKKOOKKDO","ODDKKKKDDO",".ODDDDDDO.","..OOOOOO.."], { K: "#f7a7c8", W: "#ffffff", Y: "#ffd95a", D: "#e0a463" })],
+  pudding: [PX(["...OOOO...","..OCCCCO..","..OCCCCO..",".OYYYYYYO.",".OYHYYYYO.","OYYYYYYYYO","OYHYYYYYYO","OOOOOOOOOO","OWWWWWWWWO",".OOOOOOOO."], { C: "#8b4a26", Y: "#ffd56a", H: "#fff2b0", W: "#e9f1fb" })],
+  cake: [PX(["....OO....","...ORRO...","..OORROO..",".OWWWWWWO.",".OWWWWWWO.",".ORRRRRRO.",".OYYYYYYO.",".OWWWWWWO.",".OYYYYYYO.",".OOOOOOOO."], { R: "#ef5a6f", W: "#ffffff", Y: "#f6d58c" })],
+  boba: [PX([".....OO...",".....OS...","..OOOOOOO.",".OWWWWWWWO",".OMMMMMMMO",".OMMMMMMMO","..OMMMMMO.","..ODMDMDO.","..OMDMDMO.","...OOOOO.."], { M: "#d9b48f", D: "#3a2a22", W: "#fff7ec", S: "#f0708d" })],
+  onigiri: [PX(["....OO....","...OWWO...","..OWWWWO..",".OWWWWWWO.",".OWEWWEWO.","OWPWWWWPWO","OWWWWWWWWO","OWNNNNNNWO","ONNNNNNNNO",".OOOOOOOO."], { W: "#ffffff", N: "#2f3b33", E: "#2b1d18", P: "#f7a7b8" })],
+  sushi: [PX(["..OOOOOO..",".OSSWSSSO.","OSSSSWSSSO","OSWSSSSWSO","OOOOOOOOOO","OWWWWWWWWO","OWWWWWWWWO",".OOOOOOOO."], { S: "#f79a6a", W: "#ffffff" })],
+  icecream: [PX(["...OOOO...","..OPPPPO..",".OPPHPPPO.",".OPPPPPPO.","OPPOPPOPPO","OCCCCCCCCO",".OCXCCXCO.","..OCCXCO..","..OCXCCO..","...OCCO...","....OO...."], { P: "#f7a7c8", H: "#ffffff", C: "#ecbb78", X: "#c98a42" })],
+  milk: [PX(["...OOOO...","..OWWWWO..",".OWWWWWWO.",".OOOOOOOO.",".OWWWWWWO.",".OBBWWBBO.",".OWBBBBWO.",".OWWWWWWO.",".OWWWWWWO.",".OOOOOOOO."], { W: "#ffffff", B: "#7ab8f0" })],
+  yarn: [PX(["...OOOO....",".OORRLROO..",".ORLRRRLRO.","ORRRLRRRRO.","ORLRRRLRRO.","ORRRLRRRLO.",".ORRRRLRO..",".OOLRRROO..","...OOOOOOLL"], { R: "#f07a9a", L: "#ffc1d3" })],
+  bell: [PX(["....OO....","...OYYO...","..OOOOOO..",".OYYHYYYO.",".OYHYYYYO.","OYYYYYYYYO","OYYYYYYYYO","OOOOOOOOOO","...OKKO...","....OO...."], { Y: "#f6c45f", H: "#fff2b0", K: "#8b5a2b" })],
+  moon: [PX(["...OOOO...","..OYYYO...",".OYYYO....","OYYYO.....","OYYEO.....","OYYYO.....","OYPYYO....",".OYYYYOOO.","..OYYYYYYO","...OOOOOO."], { Y: "#ffe27a", E: "#2b1d18", P: "#f7a7b8" })],
+  cloud: [PX(["....OOO.....","..OOWWWOOO..",".OWWWWWWWWO.","OWWWWWWWWWWO","OWWEWWWWEWWO","OWPWWOOWWPWO","OWWWWWWWWWWO",".OOOOOOOOOO."], { W: "#ffffff", E: "#2b1d18", P: "#f7a7b8" })],
+  ribbon: [PX(["OO.......OO","OKOO...OOKO","OKKKOOOKKKO","OKKKOWOKKKO","OKKKOOOKKKO","OKOO.O.OOKO","OO..OKO..OO","...OKO.OKO.","...OO...OO."], { K: "#f0708d", W: "#ffc1d3" })],
+  gift: [PX(["..OO..OO..",".OKKOOKKO.","..OOKKOO..","OOOOKKOOOO","OBBBKKBBBO","OOOOKKOOOO",".OBBKKBBO.",".OBBKKBBO.",".OBBKKBBO.",".OOOOOOOO."], { B: "#7ab8f0", K: "#f0708d" })],
+  mushroom: [PX(["...OOOO...",".OORRRROO.","ORWRRRRWRO","ORRRRWRRRO","OOOOOOOOOO","..OWWWWO..","..OEWWEO..","..OWWWWO..","...OOOO..."], { R: "#e5484d", W: "#ffffff", E: "#2b1d18" })],
+  cactus: [PX(["....OO....","...OGGO...","...OGGO.O.",".O.OGGOOGO","OGOOGGOGGO","OGGGGGGGO.",".OOOGGOO..","..OOOOOOO.","..OTTTTTO.","...OTTTO.."], { G: "#6cbf5a", T: "#d8875a" })],
+};
+const ic = k => () => ART[k][0];
+const sp = (c, f) => () => Pix.sprite(c, f);
+// 獎品：[名字, 稀有度 0 普通 1 稀有 2 超稀有, 畫法, 特效 class, id, 分類, 介紹]
+const CATS = [["cat", "🐱 貓咪娃娃"], ["ani", "🐾 動物朋友"], ["food", "🍰 點心"], ["item", "🎀 小物"], ["sp", "✨ 超稀有"]];
 const PRIZES = [
-  ["橘貓娃娃", 0, () => Pix.sprite("orange", "happy")],
-  ["白貓娃娃", 0, () => Pix.sprite("white", "normal")],
-  ["灰貓娃娃", 0, () => Pix.sprite("gray", "happy")],
-  ["吐司貓", 0, () => Pix.sprite("orange", "loaf")],
-  ["小魚抱枕", 0, () => Pix.icon("fish")],
-  ["愛心抱枕", 0, () => Pix.icon("heart")],
-  ["貓掌抱枕", 0, () => Pix.icon("paw")],
-  ["老鼠玩偶", 0, () => MOUSE],
-  ["黑貓娃娃", 1, () => Pix.sprite("black", "love")],
-  ["三花貓娃娃", 1, () => Pix.sprite("calico", "happy")],
-  ["捲捲貓", 1, () => Pix.sprite("gray", "curl")],
-  ["星星抱枕", 1, () => Pix.icon("star")],
-  ["粉紅小魚", 1, () => Pix.icon("fish", { B: "#f7a7b8" })],
-  ["金色招財貓", 2, () => Pix.sprite("orange", "wave"), "gold"],
-  ["彩虹貓", 2, () => Pix.sprite("white", "happy"), "rainbow"],
-  ["皇冠貓", 2, () => `<span class="cwCrown">${CROWN}</span>${Pix.sprite("calico", "love")}`],
-  ["天使貓", 2, () => `<span class="cwHalo">${HALO}</span>${Pix.sprite("white", "sleep")}`],
+  ["橘貓娃娃", 0, sp("orange", "happy"), "", "cat_orange", "cat", "最常見也最受歡迎的橘貓，抱起來暖呼呼的，聽說吃得比誰都多。"],
+  ["白貓娃娃", 0, sp("white", "normal"), "", "cat_white", "cat", "安靜又乖巧的白貓，喜歡坐在窗邊看外面的鳥。"],
+  ["灰貓娃娃", 0, sp("gray", "happy"), "", "cat_gray", "cat", "毛色像下雨天的雲，個性卻像晴天一樣開朗。"],
+  ["吐司貓", 0, sp("orange", "loaf"), "", "cat_loaf", "cat", "把腳全部收起來變成一條吐司，是貓咪最放鬆的姿勢。"],
+  ["瞌睡橘貓", 0, sp("orange", "sleep"), "", "cat_sleepy", "cat", "一天要睡十六個小時，夾起來的時候也還在睡。"],
+  ["愛心眼白貓", 0, sp("white", "love"), "", "cat_heart", "cat", "看到罐罐眼睛就會變成愛心，非常好懂。"],
+  ["生氣灰貓", 0, sp("gray", "angry"), "", "cat_grump", "cat", "其實沒有在生氣，只是天生長這樣，摸摸就好了。"],
+  ["驚訝三花", 0, sp("calico", "surprised"), "", "cat_wow", "cat", "被小黃瓜嚇到的那一瞬間，被做成了娃娃。"],
+  ["愛哭橘貓", 0, sp("orange", "cry"), "", "cat_cry", "cat", "罐罐開慢了就會哭，抱抱牠就不哭了。"],
+  ["睡覺黑貓", 0, sp("black", "sleep"), "", "cat_bsleep", "cat", "在黑暗中睡覺時幾乎看不見，常常被踩到尾巴。"],
+  ["黑貓娃娃", 1, sp("black", "love"), "", "cat_black", "cat", "傳說抱著黑貓娃娃睡覺，會做到好夢。"],
+  ["三花貓娃娃", 1, sp("calico", "happy"), "", "cat_calico", "cat", "三種顏色的毛，每一隻花紋都獨一無二。"],
+  ["捲捲貓", 1, sp("gray", "curl"), "", "cat_curl", "cat", "捲成一顆圓圓的球，尾巴剛好蓋住鼻子。"],
+  ["黑吐司", 1, sp("black", "loaf"), "", "cat_bloaf", "cat", "烤焦的吐司？不，是一隻很滿足的黑貓。"],
+  ["招手白貓", 1, sp("white", "wave"), "", "cat_wave", "cat", "一直在跟你打招呼，好像很高興見到你。"],
+  ["三花捲捲", 1, sp("calico", "curl"), "", "cat_ccurl", "cat", "捲起來的時候，三種顏色會變成漂亮的漩渦。"],
+  ["老鼠玩偶", 0, () => MOUSE, "", "mouse", "ani", "貓咪最愛追的老鼠，這隻是布做的，不用怕。"],
+  ["小雞", 0, ic("chick"), "", "chick", "ani", "黃色毛毛的小雞，會一直跟在你後面嗶嗶叫。"],
+  ["小熊", 0, ic("bear"), "", "bear", "ani", "愛吃蜂蜜的小熊，抱起來軟綿綿的。"],
+  ["小狗", 0, ic("dog"), "", "dog", "ani", "貓咪的好朋友（有時候），尾巴搖個不停。"],
+  ["青蛙", 0, ic("frog"), "", "frog", "ani", "下雨天最開心的青蛙，叫聲是呱呱呱。"],
+  ["藍色小鳥", 0, ic("bird"), "", "bird", "ani", "貓咪每天在窗邊盯著看的那隻小鳥，終於抓到了！"],
+  ["小豬", 0, ic("pig"), "", "pig", "ani", "粉紅色的小豬，鼻子會發出噗噗聲。"],
+  ["兔兔", 1, ic("rabbit"), "", "rabbit", "ani", "長耳朵的兔兔，聽得到你小聲說的悄悄話。"],
+  ["企鵝", 1, ic("penguin"), "", "penguin", "ani", "從很冷的地方來的企鵝，走路搖搖擺擺的。"],
+  ["小魚乾", 0, () => Pix.icon("fish", { B: "#d9a066" }), "", "fish_dry", "food", "貓咪最愛的零食，聞到味道就會跑過來。"],
+  ["甜甜圈", 0, ic("donut"), "", "donut", "food", "粉紅色糖霜加彩色糖粒，中間的洞可以偷看。"],
+  ["布丁", 0, ic("pudding"), "", "pudding", "food", "搖一搖會晃來晃去，上面是苦苦甜甜的焦糖。"],
+  ["珍珠奶茶", 0, ic("boba"), "", "boba", "food", "台灣之光！珍珠要用大吸管才吸得上來。"],
+  ["飯糰", 0, ic("onigiri"), "", "onigiri", "food", "包著海苔的飯糰，今天的口味是鮭魚。"],
+  ["冰淇淋", 0, ic("icecream"), "", "icecream", "food", "草莓口味，要趕快吃不然會融化。"],
+  ["牛奶", 0, ic("milk"), "", "milk", "food", "小貓咪喝的是貓咪專用牛奶喔，人類的會拉肚子。"],
+  ["草莓蛋糕", 1, ic("cake"), "", "cake", "food", "生日才吃得到的草莓蛋糕，上面的草莓要留到最後吃。"],
+  ["鮭魚壽司", 1, ic("sushi"), "", "sushi", "food", "貓咪看到會流口水的鮭魚壽司，油花滿滿。"],
+  ["小魚抱枕", 0, () => Pix.icon("fish"), "", "pillow_fish", "item", "藍色小魚形狀的抱枕，午睡時枕著剛剛好。"],
+  ["愛心抱枕", 0, () => Pix.icon("heart"), "", "pillow_heart", "item", "送給喜歡的人的愛心，抱著會覺得被愛。"],
+  ["貓掌抱枕", 0, () => Pix.icon("paw"), "", "pillow_paw", "item", "粉紅色肉球，按下去軟軟彈彈的。"],
+  ["毛線球", 0, ic("yarn"), "", "yarn", "item", "貓咪的頭號玩具，一玩就會滾得到處都是。"],
+  ["鈴鐺", 0, ic("bell"), "", "bell", "item", "掛在項圈上叮叮噹噹，貓咪走到哪都知道。"],
+  ["雲朵", 0, ic("cloud"), "", "cloud", "item", "從天上摘下來的雲，軟到可以拿來當枕頭。"],
+  ["蝴蝶結", 0, ic("ribbon"), "", "ribbon", "item", "綁在貓咪脖子上，瞬間變成小紳士小淑女。"],
+  ["蘑菇", 0, ic("mushroom"), "", "mushroom", "item", "紅底白點的小蘑菇，看起來很可愛但不能吃。"],
+  ["仙人掌", 0, ic("cactus"), "", "cactus", "item", "布做的仙人掌，不會刺刺的，可以放心抱。"],
+  ["星星抱枕", 1, () => Pix.icon("star"), "", "pillow_star", "item", "晚上會在夢裡發光的星星抱枕。"],
+  ["粉紅小魚", 1, () => Pix.icon("fish", { B: "#f7a7b8" }), "", "fish_pink", "item", "很少見的粉紅色小魚，據說會帶來戀愛運。"],
+  ["月亮", 1, ic("moon"), "", "moon", "item", "彎彎的月亮在偷笑，陪你一起熬夜。"],
+  ["禮物盒", 1, ic("gift"), "", "gift", "item", "裡面裝著什麼？是驚喜，也可能是一隻貓。"],
+  ["金色招財貓", 2, sp("orange", "wave"), "gold", "sp_gold", "sp", "閃閃發亮的招財貓，一直招手把好運招過來。"],
+  ["彩虹貓", 2, sp("white", "happy"), "rainbow", "sp_rainbow", "sp", "會一直變色的神奇貓咪，雨後才會出現。"],
+  ["皇冠貓", 2, () => `<span class="cwCrown">${CROWN}</span>${Pix.sprite("calico", "love")}`, "", "sp_crown", "sp", "貓咪王國的國王，戴著閃亮的小皇冠。"],
+  ["天使貓", 2, () => `<span class="cwHalo">${HALO}</span>${Pix.sprite("white", "sleep")}`, "", "sp_angel", "sp", "頭上有光圈的天使，睡著的樣子像在守護你。"],
+  ["夜光貓", 2, sp("black", "happy"), "night", "sp_night", "sp", "在黑暗中會發出藍色的光，晚上關燈後最美。"],
 ];
+const IDX = {}; PRIZES.forEach((p, i) => IDX[p[4]] = i);
+// 舊版收藏是用編號存的，換成新的 id
+const OLD = ["cat_orange","cat_white","cat_gray","cat_loaf","pillow_fish","pillow_heart","pillow_paw","mouse","cat_black","cat_calico","cat_curl","pillow_star","fish_pink","sp_gold","sp_rainbow","sp_crown","sp_angel"];
+const normCol = c => { if(!c) return {}; const r = {}; for(const k in c){ const id = /^\d+$/.test(k) ? OLD[+k] : k; if(id && IDX[id] != null) r[id] = (r[id] || 0) + (c[k] || 0); } return r; };
 const RAR = [["普通", "#9aa3bd"], ["稀有", "#5e9de6"], ["超稀有", "#e8a400"]];
 const FREE = 10, PITY = 8;
 const today = () => new Date().toDateString();
@@ -61,14 +130,14 @@ App.registerGame({
     const { esc, SFX } = ctx, K = window.MiniKit;
     let s = null, alive = true, raf = 0;
     const me = () => ctx.me.uid, partner = () => ctx.partner();
-    const myCol = () => ((s && s.col) || {})[me()] || {};
+    const myCol = () => normCol(((s && s.col) || {})[me()]);
     const triesLeft = () => { const t = ((s && s.tries) || {})[me()]; return t && t.day === today() ? Math.max(0, FREE - t.n) : FREE; };
     const luck = () => ((s && s.luck) || {})[me()] || 0;
     const owned = c => Object.keys(c).filter(k => c[k] > 0).length;
 
     document.body.classList.add("cwOn");
     el.innerHTML = `<div class="box cw">
-      <div class="cwTop"><div class="cwInfo" id="cwInfo"></div><button class="btn sub cwColBtn" id="cwCol">🎁 收藏</button></div>
+      <div class="cwTop"><div class="cwInfo" id="cwInfo"></div><button class="btn sub cwColBtn" id="cwCol">🗄 蒐集櫃</button></div>
       <div class="cwM"><div class="cwMarq"><span class="cwLights"></span><b>喵喵夾娃娃機</b><span class="cwLights"></span></div>
         <div class="cw3" id="cw3"><svg class="cwBg" id="cwBg"></svg><svg class="cwRimB" id="cwRimB"></svg><svg class="cwRimA" id="cwRimA"></svg>
           <div class="cwGantry" id="cwGantry"></div><div class="cwShadow" id="cwShadow"></div><div class="cwRope3" id="cwRope"></div><svg class="cwClawL" id="cwClawB"></svg><svg class="cwClawL" id="cwClawF"></svg>
@@ -95,7 +164,7 @@ App.registerGame({
       el.querySelector("#cwBg").innerHTML =
         `<defs><pattern id="cwChk" width="22" height="22" patternUnits="userSpaceOnUse"><rect width="22" height="22" fill="#ffd9e3"/><rect width="11" height="11" fill="#ffc8d6"/><rect x="11" y="11" width="11" height="11" fill="#ffc8d6"/></pattern>
           <pattern id="cwHaz" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="12" height="12" fill="#ffd34d"/><rect width="5" height="12" fill="#5a3b2e"/></pattern></defs>
-        <linearGradient id="cwWallL" x1="0" x2="1"><stop offset="0" stop-color="#bcd6f2"/><stop offset="1" stop-color="#e3f0ff"/></linearGradient><linearGradient id="cwWallR" x1="1" x2="0"><stop offset="0" stop-color="#bcd6f2"/><stop offset="1" stop-color="#e3f0ff"/></linearGradient><linearGradient id="cwFloorF" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5a3b5e" stop-opacity=".28"/><stop offset=".55" stop-color="#5a3b5e" stop-opacity="0"/></linearGradient><linearGradient id="cwBack" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfe3fa"/><stop offset="1" stop-color="#b7cfeb"/></linearGradient>
+        <linearGradient id="cwWallL" x1="0" x2="1"><stop offset="0" stop-color="#bcd6f2"/><stop offset="1" stop-color="#e3f0ff"/></linearGradient><linearGradient id="cwWallR" x1="1" x2="0"><stop offset="0" stop-color="#bcd6f2"/><stop offset="1" stop-color="#e3f0ff"/></linearGradient><linearGradient id="cwFloorF" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5a3b5e" stop-opacity=".28"/><stop offset=".55" stop-color="#5a3b5e" stop-opacity="0"/></linearGradient><linearGradient id="cwDBack" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfe3fa"/><stop offset="1" stop-color="#b7cfeb"/></linearGradient>
         <polygon points="${P(0,1,0)} ${P(1,1,0)} ${P(1,1,top)} ${P(0,1,top)}" fill="url(#cwBack)"/>
         <polygon points="${P(0,0,0)} ${P(0,1,0)} ${P(0,1,top)} ${P(0,0,top)}" fill="url(#cwWallL)"/>
         <polygon points="${P(1,0,0)} ${P(1,1,0)} ${P(1,1,top)} ${P(1,0,top)}" fill="url(#cwWallR)"/>
@@ -116,7 +185,12 @@ App.registerGame({
     const inHole = (x, z) => x < HX && z < HZ;
     function mk(kind, x, y, z){ const p = { kind, x, y, z, vx: 0, vy: 0, vz: 0, r: R, rot: (Math.random() - .5)*40, held: false, el: document.createElement("div") };
       p.el.className = "cwP3"; p.el.innerHTML = art3d(kind); p.sh = document.createElement("div"); p.sh.className = "cwPSh"; V.appendChild(p.sh); V.appendChild(p.el); p.sq = 0; p.fz = -1; prizes.push(p); return p; }
-    function spawn(n){ for(let i = 0; i < n; i++){ let x, z; do{ x = .08 + Math.random()*.84; z = .08 + Math.random()*.84; } while(x < HX + R*2 && z < HZ + R*2); mk(pick(), x, .35 + Math.random()*.5, z); } }
+    // 整齊排好的位置：6 欄 × 5 排，出口旁邊空出來
+    const SPOTS = []; [.13, .37, .61, .85].forEach(z => [.095, .257, .419, .581, .743, .905].forEach(x => { if(!(x < HX + .08 && z < HZ + .06)) SPOTS.push([x, z]); }));
+    const spotFree = ([x, z]) => !prizes.some(p => Math.hypot(p.x - x, p.z - z) < R*1.3);
+    function arrange(){ SPOTS.forEach(([x, z]) => { const p = mk(pick(), x, R, z); p.rot = 0; }); }
+    // 空掉的位置從上面補一隻新的掉下來
+    function refill(){ SPOTS.filter(spotFree).slice(0, Math.max(0, SPOTS.length + 2 - prizes.length)).forEach(([x, z], i) => { const p = mk(pick(), x, .55 + i*.04, z); p.rot = (Math.random() - .5)*10; }); }
     // 爪子：三根爪腳，每根都是會真的碰到娃娃的小球（kinematic）
     const OPEN = .128, CLOSED = .022, CRR = .017;
     const claw = { x: HOME.x, z: HOME.z, tip: YTOP, r: OPEN, rT: OPEN, vx: 0, vz: 0, swing: 0, contact: false };
@@ -177,7 +251,7 @@ App.registerGame({
       for(const p of prizes.slice()) if(p.y < -.32){ captured.push(p.kind); p.el.remove(); p.sh.remove(); prizes = prizes.filter(x => x !== p); SFX.coin && SFX.coin(); }
     }
     function draw(){
-      for(const p of prizes){ const k = sz(p.z), size = 2*p.r*Wf*k*1.45, X = PX(p.x, p.z), Y = PY(p.z, p.y);
+      for(const p of prizes){ const k = sz(p.z), size = 2*p.r*Wf*k*1.25, X = PX(p.x, p.z), Y = PY(p.z, p.y);
         p.sq *= .82; const sx = 1 + p.sq*.6, sy = 1 - p.sq;
         p.el.style.width = size + "px"; p.el.style.transform = `translate(${X - size/2}px, ${Y - size*.62}px) rotate(${(p.rot % 360).toFixed(1)}deg) scale(${sx.toFixed(3)},${sy.toFixed(3)})`;
         // 地上的影子：離地越高越小越淡
@@ -212,7 +286,7 @@ App.registerGame({
       const tl = triesLeft(), l = luck(), c = myCol();
       const adm = ctx.isAdmin && ctx.isAdmin();
       el.querySelector("#cwInfo").innerHTML = `<div>${adm ? `🔧 <b>站長測試</b>：無限次數` : `今天免費 <b>${tl}</b> / ${FREE} 次`}</div><div class="cwLuck">幸運值 <i>${Array.from({ length: PITY }, (_, i) => `<span class="${i < l ? "on" : ""}"></span>`).join("")}</i></div>`;
-      el.querySelector("#cwCol").textContent = `🎁 收藏 ${owned(c)}/${PRIZES.length}`;
+      el.querySelector("#cwCol").textContent = `🗄 蒐集櫃 ${owned(c)}/${PRIZES.length}`;
       if(state === "idle"){ const free = adm || tl > 0; goBtn.textContent = free ? "投幣" : "1🪙 投幣"; goBtn.classList.toggle("paid", !free); goBtn.classList.remove("grab"); }
     }
     async function pay(){
@@ -274,40 +348,61 @@ App.registerGame({
       if(won.length){ for(const k of won) await win(k); }
       else { msg(msgEl.classList.contains("bad") ? msgEl.innerHTML : "沒有夾到～再對準一點！", "bad");
         await ctx.update("claw", st => { st = st || {}; st.luck = st.luck || {}; st.luck[me()] = Math.min(PITY, (st.luck[me()] || 0) + 1); return st; }); }
-      if(prizes.length < 15) spawn(15 - prizes.length);
+      refill();
       state = "idle"; claw.rT = OPEN; lastPlay = performance.now(); info();
       if(!(ctx.isAdmin && ctx.isAdmin()) && triesLeft() <= 0 && !won.length && !msgEl.classList.contains("bad")) msg("今天的免費次數用完了，可以用 1 個貓幣再玩一次 🪙");
     }
     async function win(kind){
-      const P = PRIZES[kind], wasNew = !(myCol()[kind] > 0);
-      await ctx.update("claw", st => { st = st || {}; st.col = st.col || {}; const c = st.col[me()] = st.col[me()] || {}; c[kind] = (c[kind] || 0) + 1; st.luck = st.luck || {}; st.luck[me()] = 0;
-        st.last = { by: me(), kind, at: Date.now() }; return st; });
+      const P = PRIZES[kind], id = P[4], wasNew = !(myCol()[id] > 0);
+      await ctx.update("claw", st => { st = st || {}; st.col = st.col || {}; const c = st.col[me()] = normCol(st.col[me()]); c[id] = (c[id] || 0) + 1; st.luck = st.luck || {}; st.luck[me()] = 0;
+        st.last = { by: me(), kind: id, at: Date.now() }; return st; });
       SFX.level(); ctx.burst(); if(P[1] >= 1) SFX.combo();
       msg(`🎉 夾到了 <b>${esc(P[0])}</b>！`, "good");
       if(P[1] === 2 && partner()) ctx.notifyPartner(`${ctx.me.name} 在夾娃娃機夾到超稀有的「${P[0]}」！✨`);
       await new Promise(res => { const o = document.createElement("div"); o.className = "careModal cwReveal";
         o.innerHTML = `<div class="cmBox"><div class="cwRay r${P[1]}"></div><div class="cwBig">${art(kind)}</div>${wasNew ? `<div class="cwNew">NEW!</div>` : ""}
           <h3>${esc(P[0])}</h3><div class="cwRar" style="background:${RAR[P[1]][1]}">${"★".repeat(P[1] + 1)} ${RAR[P[1]][0]}</div>
-          <div class="k">${wasNew ? "第一次夾到！已經收進收藏 🎁" : `收藏裡有 ${(myCol()[kind] || 1)} 個了`}</div><button class="btn" style="width:100%">好耶！</button></div>`;
+          <div class="cwDesc">${esc(P[6])}</div><div class="k">${wasNew ? "第一次夾到！已經放進獎品蒐集櫃 🎁" : `蒐集櫃裡有 ${(myCol()[id] || 1)} 個了`}</div><button class="btn" style="width:100%">好耶！</button></div>`;
         document.body.appendChild(o); o.querySelector("button").addEventListener("click", () => { o.remove(); res(); }); });
     }
 
+    // ---- 獎品蒐集櫃：木頭櫃子一層一層，沒夾到的是黑影 ----
     function openCol(){
-      SFX.tap(); const c = myCol(), p = partner(), pc = p ? (((s && s.col) || {})[p.user_id] || {}) : null;
+      SFX.tap(); const c = myCol(), p = partner(), pc = p ? normCol(((s && s.col) || {})[p.user_id]) : null, n = owned(c), N = PRIZES.length;
+      document.querySelectorAll(".cwColM").forEach(x => x.remove());
       const o = document.createElement("div"); o.className = "careModal cwColM";
-      o.innerHTML = `<div class="cmBox"><h3>🎁 我的收藏 ${owned(c)}/${PRIZES.length}</h3>${p ? `<div class="k" style="text-align:center">${esc(p.name)} 收集了 ${owned(pc)}/${PRIZES.length}</div>` : ""}
-        <div class="cwGrid">${PRIZES.map((P, i) => c[i] > 0 ? `<button class="cwSlot r${P[1]}" data-i="${i}">${art(i)}<b>${esc(P[0])}</b>${c[i] > 1 ? `<i>×${c[i]}</i>` : ""}</button>`
-          : `<div class="cwSlot r${P[1]} no"><span class="cwArt">${P[2]()}</span><b>？？？</b></div>`).join("")}</div>
-        <div class="k" style="text-align:center;margin:6px 0">${p ? "有重複的娃娃，點一下可以送 1 個給 ta 🎁" : "超稀有的娃娃很難夾，加油！"}</div><button class="btn sub" style="width:100%" id="cwX">關閉</button></div>`;
+      const shelf = ([cat, label]) => { const L = PRIZES.map((P, i) => [P, i]).filter(([P]) => P[5] === cat), got = L.filter(([P]) => c[P[4]] > 0).length;
+        return `<div class="cwSec"><div class="cwSecH"><span>${label}</span><i>${got}/${L.length}</i></div><div class="cwShelf">${L.map(([P, i]) => { const k = c[P[4]] || 0;
+          return `<button class="cwItem r${P[1]} ${k ? "" : "no"}" data-i="${i}">${art(i)}${k > 1 ? `<i>×${k}</i>` : ""}<b>${k ? esc(P[0]) : "？？？"}</b></button>`; }).join("")}</div></div>`; };
+      o.innerHTML = `<div class="cmBox"><h3>🗄 獎品蒐集櫃</h3>
+        <div class="cwProg"><div><span style="width:${(n/N*100).toFixed(1)}%"></span></div><b>${n} / ${N}</b></div>
+        ${p ? `<div class="k" style="text-align:center">${esc(p.name)} 收集了 ${owned(pc)} / ${N}</div>` : ""}
+        <div class="cwCab">${CATS.map(shelf).join("")}</div>
+        <div class="k" style="text-align:center;margin:6px 0">點娃娃可以看介紹${p ? "，有重複的可以送給 ta 🎁" : ""}</div><button class="btn sub" style="width:100%" id="cwX">關閉</button></div>`;
       document.body.appendChild(o);
       o.querySelector("#cwX").addEventListener("click", () => o.remove());
-      o.querySelectorAll(".cwSlot[data-i]").forEach(b => b.addEventListener("click", async () => {
-        const i = +b.dataset.i; if(!p) return; if(!(myCol()[i] > 1)){ ctx.toast("只有 1 個的捨不得送啦～有重複的才能送喔"); return; }
-        if(!b.dataset.ok){ o.querySelectorAll(".cwSlot").forEach(x => { delete x.dataset.ok; x.classList.remove("ask"); }); b.dataset.ok = 1; b.classList.add("ask"); ctx.toast(`再點一次，把 1 個「${PRIZES[i][0]}」送給 ${esc(p.name)}`); return; }
-        let ok = false;
-        await ctx.update("claw", st => { const c2 = st && st.col && st.col[me()]; if(!c2 || !(c2[i] > 1)) return undefined; c2[i]--; const pc2 = st.col[p.user_id] = st.col[p.user_id] || {}; pc2[i] = (pc2[i] || 0) + 1; ok = true; return st; });
-        if(ok){ SFX.select(); ctx.burst(); ctx.toast(`送出了 🎁 ${esc(p.name)} 收到 1 個「${PRIZES[i][0]}」`); ctx.notifyPartner(`${ctx.me.name} 送你 1 個「${PRIZES[i][0]}」娃娃 🎁 快去夾娃娃機的收藏看看！`); o.remove(); openCol(); }
-      }));
+      o.querySelectorAll(".cwItem").forEach(b => b.addEventListener("click", () => detail(+b.dataset.i, o)));
+    }
+    function detail(i, host){
+      SFX.tap(); const P = PRIZES[i], id = P[4], k = myCol()[id] || 0, p = partner();
+      const d = document.createElement("div"); d.className = "careModal cwColM cwDet";
+      d.innerHTML = `<div class="cmBox"><div class="cwRay r${P[1]} ${k ? "" : "off"}"></div><div class="cwBig ${k ? "" : "no"}">${art(i)}</div>
+        <h3>${k ? esc(P[0]) : "？？？"}</h3><div class="cwRar" style="background:${RAR[P[1]][1]}">${"★".repeat(P[1] + 1)} ${RAR[P[1]][0]}</div>
+        <div class="cwCat">${CATS.find(x => x[0] === P[5])[1]}</div>
+        <div class="cwDesc">${k ? esc(P[6]) : "還沒夾到喔～夾到之後才看得到介紹 🔒"}</div>
+        ${k ? `<div class="k">擁有 ${k} 個</div>` : ""}
+        ${k > 1 && p ? `<button class="btn mint" style="width:100%" id="cwGift">🎁 送 1 個給 ${esc(p.name)}</button>` : ""}
+        <button class="btn sub" style="width:100%" id="cwDBack">返回</button></div>`;
+      document.body.appendChild(d);
+      d.querySelector("#cwDBack").addEventListener("click", () => d.remove());
+      const g = d.querySelector("#cwGift"); if(g) g.addEventListener("click", async () => {
+        if(!g.dataset.ok){ g.dataset.ok = 1; g.textContent = `確定要送給 ${p.name} 嗎？再按一次`; return; }
+        g.disabled = true; let ok = false;
+        await ctx.update("claw", st => { if(!st || !st.col) return undefined; const c2 = st.col[me()] = normCol(st.col[me()]); if(!(c2[id] > 1)) return undefined; c2[id]--;
+          const pc2 = st.col[p.user_id] = normCol(st.col[p.user_id]); pc2[id] = (pc2[id] || 0) + 1; ok = true; return st; });
+        if(ok){ SFX.select(); ctx.burst(); ctx.toast(`送出了 🎁 ${esc(p.name)} 收到 1 個「${P[0]}」`); ctx.notifyPartner(`${ctx.me.name} 送你 1 個「${P[0]}」🎁 快去夾娃娃機的獎品蒐集櫃看看！`); d.remove(); if(host) host.remove(); openCol(); }
+        else { g.disabled = false; ctx.toast("送不出去，再試一次看看"); }
+      });
     }
 
     // ---- 十字鍵：按住移動（只看手指放開，安卓長按不會中斷） ----
@@ -328,10 +423,10 @@ App.registerGame({
       const S = 4, lerp = (a, b, t) => a + (b - a)*t, at = t => ({ x: lerp(c0.x, claw.x, t), z: lerp(c0.z, claw.z, t), tip: lerp(c0.tip, claw.tip, t), r: lerp(c0.r, claw.r, t) });
       for(let i = 0; i < S; i++) physics(dt/S, at(i/S), at((i + 1)/S)); draw();
       // 玩完後幾秒內滾進出口的也算；沒在玩的時候自己滾進去的不算（放回機台裡）
-      if(state === "idle" && captured.length){ if(performance.now() - lastPlay < 4000) finish(); else { const ks = captured.splice(0); ks.forEach(k => mk(k, .5 + Math.random()*.4, .9, .5 + Math.random()*.4)); } }
+      if(state === "idle" && captured.length){ if(performance.now() - lastPlay < 4000) finish(); else { const ks = captured.splice(0); refill(); } }
       raf = requestAnimationFrame(loop);
     };
-    requestAnimationFrame(() => { try{ el.querySelector(".cw").scrollIntoView({ block: "start" }); }catch(e){} sizes(); spawn(16); for(let i = 0; i < 240; i++) physics(1/60); captured.forEach(k => mk(k, .6, .9, .6)); captured = []; for(let i = 0; i < 120; i++) physics(1/60); captured = []; draw(); info(); raf = requestAnimationFrame(loop); });
+    requestAnimationFrame(() => { try{ el.querySelector(".cw").scrollIntoView({ block: "start" }); }catch(e){} sizes(); arrange(); for(let i = 0; i < 90; i++) physics(1/60); captured = []; draw(); info(); raf = requestAnimationFrame(loop); });
     const onR = () => { if(alive) sizes(); }; window.addEventListener("resize", onR);
     this._u = ctx.onState("claw", st => { s = st; if(alive) info(); });
     this._stop = () => { alive = false; window.removeEventListener("resize", onR); document.body.classList.remove("cwOn"); cancelAnimationFrame(raf); document.querySelectorAll(".cwReveal,.cwColM").forEach(x => x.remove()); };
