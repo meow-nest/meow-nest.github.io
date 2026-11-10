@@ -2455,3 +2455,4 @@ body[data-theme="night"] .waitWarn{color:#ff9db2}
 .pxPal{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin:8px auto 0;max-width:320px}.pxPal button{aspect-ratio:1/1;border:2px solid var(--line);padding:0}.pxPal button.on{outline:3px solid var(--pinkT);outline-offset:1px}
 body.scBusy #fab,body.scBusy #stkFab{display:none!important}
 .scMsg span{display:block}
+.gcard.wip{cursor:pointer}.gcard.wip .gi{filter:grayscale(.7);opacity:.6}

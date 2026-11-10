@@ -174,13 +174,14 @@ const App = (function(){
     if(false) html += `<div class="box banner ${apct>=.85?"warn":""}"><span class="bi">${icon("camera")}</span><div style="flex:1">相簿已經用了 ${Math.round(apct*100)}%${apct>=.85?"，該刪一些照片了 🥺":"，可以開始整理照片囉"}</div><button class="btn" id="bAlbum">去整理</button></div>`;
     if(!standalone && !store.get("mw_instHide")) html += `<div class="box banner instBan"><span class="bi">📲</span><div style="flex:1">下載到手機，用起來像 App，也收得到通知</div><button class="btn" id="bInstH">下載</button><button class="instX" id="bInstX" aria-label="關閉">✕</button></div>`;
     if(pushState()!=="on") html += `<div class="box banner"><span class="bi">${icon("bell")}</span><div style="flex:1">${isSolo() ? "開啟通知，記事本的提醒時間到了手機會跳出來" : "開啟通知，ta 傳訊息時手機會跳出來"}</div><button class="btn mint" id="bPush">開啟</button></div>`;
-    html += `<div class="games">` + games.filter(g=>!g.hidden && (!isSolo() || g.solo)).map(g=>`<button class="gcard" data-g="${g.id}"><span class="gi">${window.GameArt && GameArt[g.id] ? `<span class="ga">${GameArt[g.id]()}</span>` : g.icon()}</span><span class="gn">${esc(g.name)}</span><span class="gd">${esc(g.desc)}</span>${g.badge&&g.badge()?`<span class="gb">${esc(g.badge())}</span>`:""}</button>`).join("")
+    html += `<div class="games">` + games.filter(g=>!g.hidden && (!isSolo() || g.solo)).map(g=>g.wip && !isAdmin ? `<div class="gcard soon wip" data-wip="1"><span class="gi">${window.GameArt && GameArt[g.id] ? `<span class="ga">${GameArt[g.id]()}</span>` : g.icon()}</span><span class="gn">${esc(g.name)}</span><span class="gd">🚧 待開發中</span></div>` : `<button class="gcard" data-g="${g.id}"><span class="gi">${window.GameArt && GameArt[g.id] ? `<span class="ga">${GameArt[g.id]()}</span>` : g.icon()}</span><span class="gn">${esc(g.name)}</span><span class="gd">${esc(g.desc)}</span>${g.wip?`<span class="gb">🚧 測試中</span>`:g.badge&&g.badge()?`<span class="gb">${esc(g.badge())}</span>`:""}</button>`).join("")
       + `<div class="gcard soon"><span class="gi">${sprite("gray","sleep",{soft:true})}</span><span class="gn">新遊戲</span><span class="gd">敬請期待…</span></div></div>`;
     if(fbUnread > 0) html = html.replace('<div id="truceHome">', `<div class="box banner fbBan" id="fbBan"><span class="bi">📮</span><div style="flex:1">站長回覆你的回報了！</div><button class="btn" id="bFbH">看看</button></div><div id="truceHome">`);
     v.innerHTML = html;
     renderMeter();
     const bfh=$("bFbH"); if(bfh) bfh.addEventListener("click", ()=>askFeedback());
     v.querySelectorAll("[data-g]").forEach(b=>b.addEventListener("click",()=>go("game-"+b.dataset.g)));
+    v.querySelectorAll("[data-wip]").forEach(b=>b.addEventListener("click",()=>{ SFX.tap(); toast("🚧 這個遊戲還在開發中，敬請期待～"); }));
     bindTiles();
     const bi=$("bInv"); if(bi) bi.addEventListener("click", shareInvite);
     if(!p && !isSolo() && !store.get("mw_waitWarn")){ store.set("mw_waitWarn","1");
@@ -2326,7 +2327,7 @@ const App = (function(){
     else if(route==="album"){ if(NO_MEDIA) viewHome(v); else viewAlbum(v); }
     else if(route==="game"){
       const g = games.find(x=>x.id===r.slice(5));
-      if(!g){ go("home"); return; }
+      if(!g || (g.wip && !isAdmin)){ go("home"); return; }
       v.innerHTML = `<div class="gtop"><button class="btn sub" id="bBack">◀ 回小窩</button><span class="gname">${esc(g.id==="pet" && isSolo() ? "我的貓" : g.name)}</span></div><div id="gArea"></div>`;
       $("bBack").addEventListener("click", ()=>go(isAdmin ? "games" : "home"));
       curGame = g; lastGame = r; g.mount($("gArea"), ctx);

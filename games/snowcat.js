@@ -292,6 +292,7 @@ window.SnowCat = { render, thumb, DEF, VW, VH, OPTS, randomLook, PRESETS, PAL };
 App.registerGame({
   id: "snowcat",
   solo: true,
+  wip: true,   // 待開發中：只有站長和管理員能玩
   name: "堆雪貓",
   desc: "冬季限定！滾雪球堆一隻雪貓給 ta 看",
   icon: () => `<img src="${thumb(DEF).toDataURL()}" style="image-rendering:pixelated;width:100%;height:auto;display:block" alt="">`,
