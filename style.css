@@ -2428,7 +2428,7 @@ body[data-theme="night"] .waitWarn{color:#ff9db2}
 /* 堆雪貓 */
 .scHero{display:flex;justify-content:center}.scHero canvas,.scCv,.scBig{image-rendering:pixelated;display:block;border:3px solid var(--line);box-shadow:4px 4px 0 var(--shadow)}
 .scHero canvas{width:150px;height:auto}
-.sc{position:relative}.scStage{position:relative}.scCv{width:100%;height:auto}
+.sc{position:relative}.scStage{position:relative;display:flex;justify-content:center}.scCv{width:auto;height:min(50vh,calc((100vw - 48px)*1.25),520px);max-width:100%}
 .scMsg{position:relative;min-height:46px;display:flex;align-items:center;justify-content:center;margin-bottom:6px;text-align:center;background:#fff;border:2px solid var(--line);padding:4px 8px;font-size:14px;line-height:1.5;color:#5a3b2e}
 .scMsg b{font-weight:400;color:#e5486a}.scMsg.pop{animation:scPop .25s ease-out}@keyframes scPop{0%{transform:scale(.85);opacity:0}100%{transform:none;opacity:1}}
 .scRoll{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;margin-top:10px;padding:14px 0;font:inherit;font-size:22px;border:3px solid var(--line);background:var(--card);color:var(--ink);box-shadow:4px 4px 0 var(--shadow);touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
@@ -2442,7 +2442,7 @@ body[data-theme="night"] .waitWarn{color:#ff9db2}
 .scItem{font:inherit;color:var(--ink);background:var(--card);border:2px solid var(--line);padding:4px;display:flex;flex-direction:column;align-items:center;gap:2px}
 .scTh canvas{width:100%;height:auto;image-rendering:pixelated;display:block}.scItem b{font-weight:400;font-size:12px}.scItem i{font-style:normal;font-size:11px;color:var(--pinkT);min-height:14px}
 .scView .cmBox{display:flex;flex-direction:column;align-items:center;gap:8px}.scBig{width:min(78vw,300px);height:auto}.scBy{font-size:14px}.scBtns{display:flex;flex-direction:column;gap:6px;width:100%}
-.scTab.hot{background:#fff3c4}.scTab.hot.on{background:var(--pink)}
+.scTab.hot{background:#fff3c4;color:#5a3b2e}.scTab.hot.on{background:var(--pink);color:var(--onPink)}
 .scHint{margin:6px 0 4px;font-size:12px}
 .scStk{display:flex;flex-wrap:wrap;gap:6px}
 .scSt{font:inherit;color:var(--ink);background:var(--card);border:2px solid var(--line);box-shadow:2px 2px 0 var(--shadow);padding:4px;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:52px}
@@ -2453,3 +2453,5 @@ body[data-theme="night"] .waitWarn{color:#ff9db2}
 .pxEd{margin-top:6px}.pxCv{display:block;width:100%;max-width:320px;margin:0 auto;border:3px solid var(--line);touch-action:none;image-rendering:pixelated}
 .pxTools{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:8px}.pxTools button{font:inherit;font-size:14px;padding:5px 10px;border:2px solid var(--line);background:var(--card);color:var(--ink);box-shadow:2px 2px 0 var(--shadow)}.pxTools button.on{background:var(--pink);color:var(--onPink)}
 .pxPal{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin:8px auto 0;max-width:320px}.pxPal button{aspect-ratio:1/1;border:2px solid var(--line);padding:0}.pxPal button.on{outline:3px solid var(--pinkT);outline-offset:1px}
+body.scBusy #fab,body.scBusy #stkFab{display:none!important}
+.scMsg span{display:block}

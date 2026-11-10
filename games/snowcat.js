@@ -43,7 +43,7 @@ const PRESETS = [
 function drawSticker(P, st, sel){
   const s = st.s || 1;
   for(let j = 0; j < st.h; j++) for(let i = 0; i < st.w; i++){ const c = PAL[PCH.indexOf(st.p[j*st.w + i])]; if(c) P.rect(st.x + i*s, st.y + j*s, s, s, c); }
-  if(sel){ const w = st.w*s, h = st.h*s; for(let i = -1; i <= w; i += 2){ P.px(st.x + i, st.y - 2, "#e5486a"); P.px(st.x + i, st.y + h + 1, "#e5486a"); } for(let j = -1; j <= h; j += 2){ P.px(st.x - 2, st.y + j, "#e5486a"); P.px(st.x + w + 1, st.y + j, "#e5486a"); } }
+  if(sel){ const w = st.w*s, h = st.h*s; for(let i = -1; i <= w; i += 2){ P.px(st.x + i, st.y - 2, "#ff3d9a"); P.px(st.x + i, st.y + h + 1, "#ff3d9a"); } for(let j = -1; j <= h; j += 2){ P.px(st.x - 2, st.y + j, "#ff3d9a"); P.px(st.x + w + 1, st.y + j, "#ff3d9a"); } }
 }
 // 把畫好的 16×16 裁成剛好的大小
 function cropDrawing(cells){ let x0 = 16, y0 = 16, x1 = -1, y1 = -1;
@@ -89,7 +89,14 @@ function painter(cv){
 const col = (d, k) => COLORS[d[k]] || COLORS.red;
 
 // ---------- 背景 ----------
+const BGC = new Map();
 function drawBg(P, bg, t){
+  const key = bg + "|" + Math.floor(t*4);
+  let c = BGC.get(key);
+  if(!c){ c = document.createElement("canvas"); c.width = VW; c.height = VH; paintBg(painter(c), bg, Math.floor(t*4)/4); BGC.set(key, c); if(BGC.size > 6) BGC.delete(BGC.keys().next().value); }
+  P.g.drawImage(c, 0, 0);
+}
+function paintBg(P, bg, t){
   const { rect, px, disc, oval, poly } = P;
   const SK = { day: ["#a9d4ff","#b8dcff","#c7e4ff","#d6ebff","#e4f2ff","#eef7ff"], night: ["#141a3a","#1a2148","#212a57","#283366","#303d75","#384783"],
     sunset: ["#ffb98f","#ffb39a","#ffaea6","#ffa9b2","#f9a6bd","#f2a5c8"], aurora: ["#0f1530","#141c3d","#18244a","#1d2b57","#223364","#283c72"],
@@ -265,7 +272,12 @@ function drawCat(P, d, o){
   if(h === "halo"){ const y = hy - rh*1.25 + Math.sin(t*2)*1; for(let a = 0; a < 6.3; a += .05){ const x = hx + Math.cos(a)*rh*.62, yy = y + Math.sin(a)*3; rect(x, yy, 2, 1, Math.sin(a) > 0 ? "#f7cc4a" : "#fff07a"); } }
 }
 
-function render(cv, d, o){ o = o || {}; const P = painter(cv); P.g.clearRect(0, 0, VW, VH); drawBg(P, d.bg, o.t || 0); drawCat(P, d, o); (d.st || []).forEach((st, i) => drawSticker(P, st, o.sel === i)); if(o.snow !== false) drawSnow(P, o.t || 0, o.snowN, d.bg); }
+function sceneCache(holder, d, o){
+  const tq = Math.floor((o.t || 0)*4), key = JSON.stringify([d.rb, d.rh, d.hat, d.hatC, d.neck, d.neckC, d.eye, d.nose, d.mouth, d.cheek, d.ear, d.hold, d.holdC, d.body, d.bodyC, d.prop, d.bg, o.hdx || 0, o.deco, tq]);
+  if(!holder.__sc || holder.__sc.key !== key){ const c = (holder.__sc && holder.__sc.c) || document.createElement("canvas"); c.width = VW; c.height = VH;
+    const P = painter(c); drawBg(P, d.bg, o.t || 0); drawCat(P, d, Object.assign({}, o, { t: tq/4 })); holder.__sc = { key, c }; }
+  return holder.__sc.c; }
+function render(cv, d, o){ o = o || {}; const P = painter(cv); P.g.clearRect(0, 0, VW, VH); P.g.drawImage(sceneCache(cv, d, o), 0, 0); (d.st || []).forEach((st, i) => drawSticker(P, st, o.sel === i)); if(o.snow !== false) drawSnow(P, o.t || 0, o.snowN, d.bg); }
 function thumb(d){ const c = document.createElement("canvas"); c.width = VW; c.height = VH; render(c, Object.assign({}, DEF, d), { snow: false, t: 2 }); return c; }
 function randomLook(d){ const r = a => a[(Math.random()*a.length)|0]; const cs = Object.keys(COLORS);
   ["hat","neck","eye","nose","mouth","cheek","ear","hold","body","prop","bg"].forEach(k => { d[k] = r(OPTS[k])[0]; });
@@ -285,7 +297,7 @@ App.registerGame({
     const me = () => ctx.me.uid, partner = () => ctx.partner();
     const list = () => ((s && s.list) || []).slice().sort((a, b) => b.at - a.at);
     function lobby(){
-      if(!alive || view !== "lobby") return; cancelAnimationFrame(raf);
+      if(!alive || view !== "lobby") return; cancelAnimationFrame(raf); document.body.classList.remove("scBusy");
       const L = list(), p = partner();
       el.innerHTML = `<div class="box skLobby scLobby">
         <div class="scHero"><canvas width="${VW}" height="${VH}" id="scHero"></canvas></div>
@@ -326,12 +338,12 @@ App.registerGame({
 
     // ---------- 堆雪貓 ----------
     function build(){
-      SFX.tap(); view = "build"; cancelAnimationFrame(raf);
+      SFX.tap(); view = "build"; cancelAnimationFrame(raf); document.body.classList.add("scBusy");
       const d = Object.assign({}, DEF, { rb: 8, rh: 6, hat: "none", neck: "none", hold: "none", body: "none", st: [] });
       let stage = "body", holding = false, t0 = performance.now(), last = t0, drop = null, puffs = [], tab = "hat", shakeT = 0, sel = -1, drag = null;
       el.innerHTML = `<div class="box sc"><div class="scMsg" id="scMsg"></div><div class="scStage"><canvas width="${VW}" height="${VH}" class="scCv" id="scCv"></canvas></div><div id="scCtl"></div></div>`;
       const cv = el.querySelector("#scCv"), msg = el.querySelector("#scMsg"), ctl = el.querySelector("#scCtl");
-      const say = h => { msg.innerHTML = h; msg.classList.remove("pop"); void msg.offsetWidth; msg.classList.add("pop"); };
+      const say = h => { msg.innerHTML = `<span>${h}</span>`; msg.classList.remove("pop"); void msg.offsetWidth; msg.classList.add("pop"); };
       const sizeWord = (r, lo, hi) => r < lo + (hi - lo)*.33 ? "小小的" : r < lo + (hi - lo)*.7 ? "剛剛好" : "好大顆！";
       function rollCtl(label){
         ctl.innerHTML = `<button class="scRoll" id="scRoll"><span>${label}</span><i>按住不放</i></button>`;
@@ -464,7 +476,7 @@ App.registerGame({
             if(drop.t > 1.1){ stage = "head"; d.rh = 6; rollCtl("⛄ 再滾一次頭"); } }
           drawCat(P, d, bodyOnly); if(stage === "drop" || stage === "deco") drawCat(P, d, { noBody: true, deco: false, hy: drop.y, hdx: drop.x, t });
         }
-        else { drawCat(P, d, { hdx: wob, t }); d.st.forEach((st, i) => drawSticker(P, st, stage === "deco" && i === sel && Math.floor(t*3) % 2 === 0)); }
+        else { P.g.clearRect(0, 0, VW, VH); P.g.drawImage(sceneCache(cv, d, { hdx: Math.round(wob), t }), 0, 0); d.st.forEach((st, i) => drawSticker(P, st, stage === "deco" && i === sel && Math.floor(t*3) % 2 === 0)); }
         puffs.forEach(p => P.px(p.x, p.y, "#ffffff"));
         drawSnow(P, t, null, d.bg);
         raf = requestAnimationFrame(loop);
@@ -472,7 +484,7 @@ App.registerGame({
       raf = requestAnimationFrame(loop);
     }
     this._u = ctx.onState("snowcat", st => { s = st; if(view === "lobby") lobby(); });
-    this._stop = () => { alive = false; cancelAnimationFrame(raf); document.querySelectorAll(".scView").forEach(x => x.remove()); };
+    this._stop = () => { alive = false; cancelAnimationFrame(raf); document.body.classList.remove("scBusy"); document.querySelectorAll(".scView").forEach(x => x.remove()); };
     (async () => { const cur = await ctx.getState("snowcat").catch(() => null); s = cur ? cur.state : null; lobby(); })();
   },
   unmount(){ if(this._u) this._u(); if(this._stop) this._stop(); },
