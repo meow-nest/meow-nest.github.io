@@ -273,7 +273,7 @@ function play(opts){
       out.drawImage(lc, Math.round((W-dw)/2 - off + sh), Math.round((H-dh)/2 + sh*.5), Math.round(dw), Math.round(dh));
       $("#raD").textContent = `${Math.floor(R.dist)} m`; $("#raF b").textContent = R.fish;
     }
-    function loop(t){ if(done) return; const dt = Math.min(.05, (t - last)/1000 || 0); last = t;
+    function loop(t){ if(done) return; const dt = Math.max(0, Math.min(.05, (t - last)/1000 || 0)); last = t;
       try{
         if(cv.width < 4 || cv.height < 4 || Math.abs(cv.width - cv.clientWidth) > 2) size();
         if(R) step(dt); if(R) render();

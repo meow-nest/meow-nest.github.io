@@ -70,6 +70,7 @@
     // 站長後台＋回報信箱
     const rpcOrThrow = async (fn, args) => { const { data, error } = await sb.rpc(fn, args || {}); if (error) throw error; return data; };
     B.sendFeedback = (body) => rpcOrThrow("send_feedback", { p_body: body });
+    B.rpc = (fn, args) => rpcOrThrow(fn, args);   // 遊戲用（例如夾娃娃機的投幣，由伺服器處理）
     B.isOwner = async () => { try { return !!(await rpcOrThrow("is_site_owner")); } catch (e) { return false; } };
     B.adminRole = async () => { try { return (await rpcOrThrow("my_admin_role")) || "boss"; } catch (e) { return "boss"; } };
     B.adminStats = () => rpcOrThrow("admin_stats");
@@ -249,6 +250,7 @@
     B.uploadVoice = async (blob) => { const dataUrl = await new Promise(r => { const f = new FileReader(); f.onload = () => r(f.result); f.readAsDataURL(blob); }); return call("upload", { cid: B.coupleId, dataUrl, path: B.coupleId + "/v/" + Date.now() + ".webm" }); };
     B.photoUsage = async () => call("usage", { cid: B.coupleId });
     B.sendFeedback = async (body) => call("feedback", { body });
+    B.rpc = async (fn, args) => call("rpc", { fn, args });
     B.isOwner = async () => !!window.__owner;
     B.adminRole = async () => window.__adminRole || "boss";
     B.adminStats = async () => call("adminStats");

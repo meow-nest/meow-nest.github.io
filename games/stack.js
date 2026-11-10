@@ -170,7 +170,7 @@ function play(opts){
         if(p.h){ [[1,0],[3,0],[0,1],[1,1],[2,1],[3,1],[4,1],[1,2],[2,2],[3,2],[2,3]].forEach(([a,b]) => g.fillRect(x + (a-2)*.8, y + (b-1.5)*.8, .9, .9)); } else g.fillRect(x - p.s/2, y - p.s/2, p.s, p.s); }
       g.globalAlpha = 1;
     }
-    function loop(now){ if(done) return; let dt = (now - last) / 1000; last = now; if(dt > .05) dt = .05; update(dt); try{ draw(); }catch(e){} raf = requestAnimationFrame(loop); }
+    function loop(now){ if(done) return; let dt = Math.max(0, (now - last) / 1000); last = now; if(dt > .05) dt = .05; update(dt); try{ draw(); }catch(e){} raf = requestAnimationFrame(loop); }
     function finish(){
       if(done || $("#skEnd").classList.contains("hidden") === false) return;
       const floors = stack.length - 1;

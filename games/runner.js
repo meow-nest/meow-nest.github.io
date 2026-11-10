@@ -122,7 +122,7 @@ App.registerGame({
       let last = performance.now(), acc = 0;
       const step = (now) => {
         if(!run) return;
-        acc += Math.min(.05, (now-last)/1000); last = now;
+        acc += Math.max(0, Math.min(.05, (now-last)/1000)); last = now;
         while(acc >= 1/120 && !run.over){ tick(1/120); acc -= 1/120; }
         draw();
         if(!run.over) raf = requestAnimationFrame(step);

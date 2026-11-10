@@ -72,7 +72,7 @@ function play(opts){
       g.textAlign = "center"; g.font = `16px Cubic11, sans-serif`;
       for(const p of pops){ g.globalAlpha = 1 - p.t/0.8; g.fillStyle = p.col; g.fillText(p.text, p.x, p.y - 30 - p.t*40); } g.globalAlpha = 1;
     }
-    function loop(t){ if(!running) return; const dt = Math.min(0.05, (t - last)/1000 || 0); last = t; step(dt); draw(); hud(); if(running) raf = requestAnimationFrame(loop); }
+    function loop(t){ if(!running) return; const dt = Math.max(0, Math.min(0.05, (t - last)/1000 || 0)); last = t; step(dt); draw(); hud(); if(running) raf = requestAnimationFrame(loop); }
     function start(){ score = 0; lives = 3; timeLeft = 45; elapsed = 0; items = []; pops = []; spawnT = 0.4; combo = 0; face = "normal"; catX = target = W/2;
       $("#pcgM").style.display = "none"; running = true; last = performance.now(); hud(); snd("select"); raf = requestAnimationFrame(loop); }
     function end(){

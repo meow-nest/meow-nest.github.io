@@ -114,7 +114,10 @@ const App = (function(){
       const ns = fn(clone(cur ? cur.state : null));
       if(ns===undefined) return null;
       const v = await B.casState(game, cur ? cur.version : 0, ns);
-      if(v){ if(!stateCache[game] || v > stateCache[game].version){ stateCache[game] = { version:v, state:ns }; emitState(game); } return ns; }
+      if(v){
+        // 貓幣由伺服器檢查（超過上限會被扣回去），所以存完再讀一次伺服器上真正的樣子
+        if(game==="pet"){ const real = await B.getState(game).catch(()=>null); if(real && real.version===v){ stateCache[game] = { version:v, state:real.state }; emitState(game); return real.state; } }
+        if(!stateCache[game] || v > stateCache[game].version){ stateCache[game] = { version:v, state:ns }; emitState(game); } return ns; }
       const fresh = await B.getState(game);
       if(fresh) stateCache[game] = { version:fresh.version, state:fresh.state }; else delete stateCache[game];
     }
@@ -125,7 +128,7 @@ const App = (function(){
 
   const ctx = { get me(){return me}, partner, isOnline, nameOf, catOf, players, sprite, icon, SFX, burst, toast, floatSvg, esc,
     getState, update, onState, notifyPartner, back: ()=>go("home") };
-  ctx.mode = () => roomMode; ctx.pw = pw; ctx.isAdmin = () => isAdmin; ctx.isBusy = uid => isBusy(uid); Object.defineProperty(ctx, "backend", { get: () => B });
+  ctx.rpc = (fn, args) => B.rpc ? B.rpc(fn, args) : Promise.reject(new Error("no_rpc")); ctx.mode = () => roomMode; ctx.pw = pw; ctx.isAdmin = () => isAdmin; ctx.isBusy = uid => isBusy(uid); Object.defineProperty(ctx, "backend", { get: () => B });
   // fast, unsaved messages between the two phones (real-time co-op games)
   const bcSubs = [];
   ctx.broadcast = p => { if(B.bcast) B.bcast(Object.assign({ from: me.uid }, p)); };
