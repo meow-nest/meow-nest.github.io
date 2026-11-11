@@ -2212,6 +2212,25 @@ const App = (function(){
 
   // ---------- push notifications ----------
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
+  // 從脆、IG、LINE、FB 點連結進來時，是那個 App 裡面的瀏覽器，跟手機的 Chrome／Safari 是分開的（換過去小窩會找不到）
+  const inAppName = (()=>{ const u=navigator.userAgent||""; return /Barcelona|Threads/i.test(u)?"脆":/Instagram/i.test(u)?"IG":/\bLine\//i.test(u)?"LINE":/FBAN|FBAV|FB_IAB/i.test(u)?"Facebook":/MicroMessenger/i.test(u)?"微信":""; })();
+  function openOutside(){
+    const url = location.origin + location.pathname + location.search;
+    if(inAppName==="LINE"){ location.href = url + (location.search ? "&" : "?") + "openExternalBrowser=1"; return true; }
+    if(!isIOS){ location.href = "intent://" + location.host + location.pathname + location.search + "#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=" + encodeURIComponent(url) + ";end"; return true; }
+    return false;
+  }
+  function inAppBanner(){
+    if(!inAppName) return "";
+    return `<div class="inAppWarn"><b>你現在是在「${inAppName}」裡面打開的</b>
+      <div>這裡的小窩只存在 ${inAppName} 裡面。之後改用 ${isIOS?"Safari":"Chrome"} 打開、或加到主畫面時，會找不到這個小窩。<br>建議先換到 ${isIOS?"Safari":"Chrome"} 再開小窩。</div>
+      <div class="inAppBtns">${isIOS?"":`<button class="btn" id="bOut">用 Chrome 開</button>`}<button class="btn sub" id="bCopyUrl">複製網址</button></div>
+      ${isIOS?`<div class="k">複製網址後，打開 Safari 貼上；或點右上角的「⋯」選「在瀏覽器中開啟」。</div>`:""}</div>`;
+  }
+  function bindInApp(root){
+    const o=root.querySelector("#bOut"); if(o) o.addEventListener("click", ()=>{ openOutside(); });
+    const c=root.querySelector("#bCopyUrl"); if(c) c.addEventListener("click", async()=>{ const url=location.origin+location.pathname+location.search; try{ await navigator.clipboard.writeText(url); c.textContent="已複製！"; }catch(e){ prompt("長按複製這個網址：", url); } });
+  }
   const standalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone===true;
   // ---------- 下載 App（加到主畫面） ----------
   let installEvt = null;
@@ -2352,7 +2371,7 @@ const App = (function(){
     $("nav").classList.add("hidden"); $("top").classList.add("hidden");
     let pick = me.cat||"orange";
     const v=$("view");
-    v.innerHTML = `<div class="title" style="margin-top:8px">喵喵<b>小窩</b></div>
+    v.innerHTML = `<div class="title" style="margin-top:8px">喵喵<b>小窩</b></div>${inAppBanner()}
       <div class="box form"><div class="preview" id="pv"></div><div>選一隻代表你的貓</div><div class="picks" id="pk"></div>
       <input id="nm" maxlength="10" placeholder="你的暱稱，例如：小橘" value="${esc(me.name)}">
       ${prefCode?`<div>你收到的邀請碼</div><input id="cd" maxlength="6" value="${esc(prefCode)}" style="letter-spacing:6px;text-transform:uppercase"><button class="btn" id="bJoin">加入小窩</button>`:
@@ -2375,7 +2394,10 @@ const App = (function(){
         o.querySelector("#swNo").addEventListener("click", ()=>{ SFX.tap(); o.remove(); });
         o.querySelector("#swYes").addEventListener("click", ()=>{ o.remove(); pick(); });
       }));
-    const bc=$("bCreate"); if(bc) bc.addEventListener("click", async()=>{ const n=getName(); if(!n) return; bc.disabled=true; try{ save(n); await B.createCouple(n,pick); await enterNest(true); }catch(e){ bc.disabled=false; $("err").textContent = /site_full/.test(String(e.message||e)) ? "喵喵小窩的位子已經滿了 🥺 請跟分享網址給你的人說一聲" : "建立失敗："+(e.message||e); } });
+    bindInApp(v);
+    let inAppOk = false;
+    const bc=$("bCreate"); if(bc) bc.addEventListener("click", async()=>{ const n=getName(); if(!n) return;
+      if(inAppName && !inAppOk){ inAppOk = true; const w=v.querySelector(".inAppWarn"); if(w){ w.classList.add("shake"); w.scrollIntoView({block:"center",behavior:"smooth"}); } bc.textContent="還是要在這裡開？再按一次"; return; } bc.disabled=true; try{ save(n); await B.createCouple(n,pick); await enterNest(true); }catch(e){ bc.disabled=false; $("err").textContent = /site_full/.test(String(e.message||e)) ? "喵喵小窩的位子已經滿了 🥺 請跟分享網址給你的人說一聲" : "建立失敗："+(e.message||e); } });
     const biw=$("bInstW"); if(biw) biw.addEventListener("click", doInstall);
     const bh=$("bHave"); if(bh) bh.addEventListener("click", ()=>{ $("joinBox").classList.remove("hidden"); bh.classList.add("hidden"); $("cd").focus(); });
     const bj=$("bJoin"); if(bj) bj.addEventListener("click", async()=>{ const n=getName(); if(!n) return; const c=$("cd").value.trim().toUpperCase(); if(c.length!==6){ $("err").textContent="邀請碼是 6 碼喔"; return; } bj.disabled=true;
