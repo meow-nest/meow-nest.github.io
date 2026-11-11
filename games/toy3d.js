@@ -102,8 +102,9 @@
       if(o.cheek){ x.fillStyle = o.cheek; x.beginPath(); x.ellipse(128 + s*(ex + 22), ey + 34, 25, 21, 0, 0, 7); x.fill();
         if(o.cheekDot){ x.fillStyle = o.cheekDot; x.beginPath(); x.ellipse(128 + s*(ex + 36), ey + 44, 9, 7, -s*.4, 0, 7); x.fill(); } }
       const k = o.eye === "wink" && s > 0 ? "happy" : o.eye || "dot";
-      if(k === "dot" || k === "big"){ const r = k === "big" ? 1.25 : 1; x.fillStyle = o.eyeC || ink; x.beginPath(); x.ellipse(cx, ey, 15*r, 19*r, 0, 0, 7); x.fill(); x.fillStyle = "#fff"; x.beginPath(); x.arc(cx - 5*r, ey - 7*r, 6.5*r, 0, 7); x.fill(); x.beginPath(); x.arc(cx + 5*r, ey + 6*r, 3*r, 0, 7); x.fill(); }
-      if(k === "cat"){ x.fillStyle = o.eyeC || "#f5c842"; x.beginPath(); x.ellipse(cx, ey, 16, 19, 0, 0, 7); x.fill(); x.fillStyle = ink; x.beginPath(); x.ellipse(cx, ey, 5, 15, 0, 0, 7); x.fill(); x.fillStyle = "#fff"; x.beginPath(); x.arc(cx - 6, ey - 8, 4, 0, 7); x.fill(); }
+      if(k === "dot" || k === "big" || k === "cat"){ x.fillStyle = k === "cat" ? (o.eyeC || "#f5c842") : ink; x.beginPath(); x.ellipse(cx, ey + 2, 9, 11, 0, 0, 7); x.fill(); }   // 豆豆眼
+      if(false){ const r = k === "big" ? 1.25 : 1; x.fillStyle = o.eyeC || ink; x.beginPath(); x.ellipse(cx, ey, 15*r, 19*r, 0, 0, 7); x.fill(); x.fillStyle = "#fff"; x.beginPath(); x.arc(cx - 5*r, ey - 7*r, 6.5*r, 0, 7); x.fill(); x.beginPath(); x.arc(cx + 5*r, ey + 6*r, 3*r, 0, 7); x.fill(); }
+      if(false){ x.fillStyle = o.eyeC || "#f5c842"; x.beginPath(); x.ellipse(cx, ey, 16, 19, 0, 0, 7); x.fill(); x.fillStyle = ink; x.beginPath(); x.ellipse(cx, ey, 5, 15, 0, 0, 7); x.fill(); x.fillStyle = "#fff"; x.beginPath(); x.arc(cx - 6, ey - 8, 4, 0, 7); x.fill(); }
       if(k === "happy"){ x.strokeStyle = ink; x.lineWidth = 9; x.beginPath(); x.arc(cx, ey + 8, 15, Math.PI*1.12, Math.PI*1.88); x.stroke(); }
       if(k === "sleep"){ x.strokeStyle = ink; x.lineWidth = 9; x.beginPath(); x.arc(cx, ey - 8, 15, Math.PI*.12, Math.PI*.88); x.stroke(); }
       if(k === "line"){ x.strokeStyle = ink; x.lineWidth = 9; x.beginPath(); x.moveTo(cx - 14, ey); x.lineTo(cx + 14, ey); x.stroke(); }
