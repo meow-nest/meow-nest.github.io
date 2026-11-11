@@ -59,7 +59,7 @@ body.compact #top .mid{padding-bottom:26px}
 .gcard:active{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--shadow)}
 .gcard .gi svg{width:76px;height:76px;display:block}
 .gcard .gn{font-size:16px}
-.gcard .gd{font-size:12px;color:var(--muted);line-height:1.4}
+.gcard .gd{font-size:13px;color:var(--ink);opacity:.82;line-height:1.45;text-shadow:.45px 0 0 currentColor;word-break:keep-all;overflow-wrap:anywhere;text-wrap:balance}
 .gcard .gb{font-size:11px;background:var(--pink);color:var(--onPink);padding:1px 6px;border:2px solid var(--line)}
 .gcard.soon{background:#f8f1e8;border-style:dashed;color:var(--muted);box-shadow:none}
 .banner{padding:10px 12px;display:flex;gap:10px;align-items:center;font-size:14px;line-height:1.5}
