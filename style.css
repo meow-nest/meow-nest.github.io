@@ -2611,3 +2611,9 @@ body.cwOn #fab,body.cwOn #stkFab{display:none!important}
 body.dark .inAppWarn{background:#3a2028}
 /* 雙人小窩等 ta 加入時，要兩個人的遊戲 */
 .gcard.needTa{opacity:.62;filter:saturate(.6)}.gcard.needTa .gb.gWait{background:#8a7a70;color:#fff}
+/* 隱私說明 */
+.privList{margin:4px 0 0;padding-left:20px;font-size:14px;line-height:1.6;display:flex;flex-direction:column;gap:4px}
+.privList b,.privOnb b{color:var(--pinkT,#d9557a);font-weight:400}
+.privOnb{margin:0 0 12px;font-size:13.5px;line-height:1.6;padding:8px 12px;border:2px dashed #c9b29c;background:rgba(255,255,255,.7)}
+.privHd{color:var(--pinkT,#d9557a);margin-right:6px}
+.privMore{font:inherit;font-size:12.5px;margin-left:4px;background:none;border:0;padding:0;color:#8a6a55;text-decoration:underline;cursor:pointer}

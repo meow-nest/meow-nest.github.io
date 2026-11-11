@@ -2100,6 +2100,16 @@ const App = (function(){
     const off = $("lkOff"); if(off) off.addEventListener("click", async ()=>{ if(!await pinPad("verify", { title:"輸入密碼來關閉" })) return; Lock.off(); toast("密碼鎖已關閉"); rr(); });
     const af = $("lkAfter"); if(af) af.querySelectorAll("button").forEach(b=>b.addEventListener("click", ()=>{ store.set("mw_lockafter", b.dataset.v); af.querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b)); SFX.select(); }));
   }
+  // 隱私說明（新使用者開小窩畫面、設定頁都會看到）
+  const PRIVACY = [
+    "站長後台<b>不會顯示你們的聊天內容</b>，站長也不會去看你們的聊天。",
+    "站長看得到的只有：暱稱、選的貓咪、小窩模式、最後上線時間、訊息「數量」，用來了解大家使用的狀況、處理問題和容量。",
+    "站長不會用你們的邀請碼進入你們的小窩。",
+    "你寫到「站長信箱」的內容，站長會看到並回覆你。",
+    "想把所有資料刪掉的話，可以到「設定」刪除小窩，聊天、遊戲紀錄、記事會全部一起刪除。",
+  ];
+  const privacyList = () => `<ul class="privList">${PRIVACY.map(t=>`<li>${t}</li>`).join("")}</ul>`;
+  const privacyBox = () => `<div class="box set"><h2>隱私說明</h2>${privacyList()}</div>`;
   function viewSettings(v){
     const ps=pushState();
     v.innerHTML = `${appBox()}<div class="box set"><h2>我的貓</h2><div class="picks" id="pk"></div><input id="nm" maxlength="10" value="${esc(me.name)}" style="font-size:17px;padding:8px;border:3px solid var(--line);text-align:center;border-radius:0"><button class="btn" id="bSave">儲存</button></div>
@@ -2121,6 +2131,7 @@ const App = (function(){
       <div class="box set"><h2>邀請碼</h2><div class="code" style="text-align:center">${esc(B.code||"")}</div><div class="k">${pw()}打開網址後輸入這組碼就能加入。換手機時，用同一個名字再輸入一次即可。</div><button class="btn sub" id="bInv2">傳邀請連結</button></div>
       ${moveBox()}
       ${lockBox()}
+      ${privacyBox()}
       <div class="box set"><h2>其他</h2><div class="row" style="justify-content:flex-start"><button class="btn sub" id="bSnd">${SFX.on?"♪ 音效 開":"♪ 音效 關"}</button><button class="btn sub" id="bNews">📢 更新紀錄</button><button class="btn sub" id="bReload">重新整理</button><a class="btn sub" href="about.html" style="text-decoration:none;color:inherit">📜 網站聲明</a></div>
         <div class="fbRow"><button class="btn sub" id="bFeedback">📮 站長信箱・回報問題${fbUnread ? ` <span class="fbDot">${fbUnread}</span>` : ""}</button><div class="k">遇到 bug、有建議，或想請站長幫忙，都可以寫給站長。</div></div>
         <div class="delNest"><button class="btn sub" id="bDelNest">🗑 刪除小窩</button><div class="k">把這個小窩的聊天、遊戲紀錄、記事本全部刪掉，兩個人都會看不到，刪了就救不回來。</div></div>
@@ -2376,7 +2387,7 @@ const App = (function(){
     $("nav").classList.add("hidden"); $("top").classList.add("hidden");
     let pick = me.cat||"orange";
     const v=$("view");
-    v.innerHTML = `<div class="title" style="margin-top:8px">喵喵<b>小窩</b></div>${inAppBanner()}
+    v.innerHTML = `<div class="title" style="margin-top:8px">喵喵<b>小窩</b></div>${inAppBanner()}<div class="privOnb"><div><span class="privHd">關於隱私</span>站長後台<b>不會顯示你們的聊天內容</b>，站長也不會去看。<button class="privMore" id="privMore">看完整說明</button></div><div id="privFull" class="hidden">${privacyList()}</div></div>
       <div class="box form"><div class="preview" id="pv"></div><div>選一隻代表你的貓</div><div class="picks" id="pk"></div>
       <input id="nm" maxlength="10" placeholder="你的暱稱，例如：小橘" value="${esc(me.name)}">
       ${prefCode?`<div>你收到的邀請碼</div><input id="cd" maxlength="6" value="${esc(prefCode)}" style="letter-spacing:6px;text-transform:uppercase"><button class="btn" id="bJoin">加入小窩</button>`:
@@ -2400,6 +2411,7 @@ const App = (function(){
         o.querySelector("#swYes").addEventListener("click", ()=>{ o.remove(); pick(); });
       }));
     bindInApp(v);
+    const pm=$("privMore"); if(pm) pm.addEventListener("click", ()=>{ $("privFull").classList.toggle("hidden"); pm.textContent = $("privFull").classList.contains("hidden") ? "看完整說明" : "收起來"; });
     let inAppOk = false;
     const bc=$("bCreate"); if(bc) bc.addEventListener("click", async()=>{ const n=getName(); if(!n) return;
       if(inAppName && !inAppOk){ inAppOk = true; const w=v.querySelector(".inAppWarn"); if(w){ w.classList.add("shake"); w.scrollIntoView({block:"center",behavior:"smooth"}); } bc.textContent="還是要在這裡開？再按一次"; return; } bc.disabled=true; try{ save(n); await B.createCouple(n,pick); await enterNest(true); }catch(e){ bc.disabled=false; $("err").textContent = /site_full/.test(String(e.message||e)) ? "喵喵小窩的位子已經滿了 🥺 請跟分享網址給你的人說一聲" : "建立失敗："+(e.message||e); } });
