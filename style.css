@@ -2617,3 +2617,12 @@ body.dark .inAppWarn{background:#3a2028}
 .privOnb{margin:0 0 12px;font-size:13.5px;line-height:1.6;padding:8px 12px;border:2px dashed #c9b29c;background:rgba(255,255,255,.7)}
 .privHd{color:var(--pinkT,#d9557a);margin-right:6px}
 .privMore{font:inherit;font-size:12.5px;margin-left:4px;background:none;border:0;padding:0;color:#8a6a55;text-decoration:underline;cursor:pointer}
+
+/* 3D 夾娃娃機 */
+.c3d .cw3{background:#cfe6ff}.c3cv{position:absolute;inset:0;width:100%;height:100%;display:block}
+.cwArt.c3 img,.cwArt.c3 canvas{width:100%;height:auto;display:block}
+.cwBig.c3{width:150px}.cwBookM.c3 .cwFrameIn{width:150px}
+.cwPage.no .cwFrameIn .cwArt.c3,.cwPed.no .cwOnPed .cwArt.c3{filter:brightness(0) opacity(.3)}
+.cwShinyA .cwArt.c3 img,.cwShinyA .cwArt.c3 canvas{filter:drop-shadow(1.5px 0 0 #ffe27a) drop-shadow(-1.5px 0 0 #ffe27a) drop-shadow(0 1.5px 0 #ffe27a) drop-shadow(0 -1.5px 0 #ffe27a) drop-shadow(0 0 5px rgba(255,236,160,.95))}
+.cwCabM.c3 .cwOnPed{width:50px;margin-left:-25px}
+.c3spin .cwArt.c3 canvas{filter:drop-shadow(2px 0 0 #ffe27a) drop-shadow(-2px 0 0 #ffe27a) drop-shadow(0 2px 0 #ffe27a) drop-shadow(0 -2px 0 #ffe27a) drop-shadow(0 0 8px rgba(255,220,120,.95)) saturate(1.15) brightness(1.05)}
