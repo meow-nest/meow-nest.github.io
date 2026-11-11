@@ -2609,3 +2609,5 @@ body.cwOn #fab,body.cwOn #stkFab{display:none!important}
 .inAppWarn b{color:#c2334f;font-weight:400;font-size:15px}.inAppBtns{display:flex;gap:8px}.inAppBtns .btn{flex:1;font-size:15px;padding:8px 6px;white-space:nowrap;min-width:0}
 .inAppWarn.shake{animation:inAppShake .45s}@keyframes inAppShake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
 body.dark .inAppWarn{background:#3a2028}
+/* 雙人小窩等 ta 加入時，要兩個人的遊戲 */
+.gcard.needTa{opacity:.62;filter:saturate(.6)}.gcard.needTa .gb.gWait{background:#8a7a70;color:#fff}
