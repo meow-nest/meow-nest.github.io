@@ -12,6 +12,7 @@ const ICO = {
   paw: () => Pix.icon("paw"),
   cake: () => PX(["....OO....","...ORRO...","..OORROO..",".OWWWWWWO.",".OWWWWWWO.",".ORRRRRRO.",".OYYYYYYO.",".OWWWWWWO.",".OYYYYYYO.",".OOOOOOOO."], { R: "#ef5a6f", W: "#ffffff", Y: "#f6d58c" }),
   gift: () => PX(["..OO..OO..",".OKKOOKKO.","..OOKKOO..","OOOOKKOOOO","OBBBKKBBBO","OOOOKKOOOO",".OBBKKBBO.",".OBBKKBBO.",".OBBKKBBO.",".OOOOOOOO."], { B: "#7ab8f0", K: "#f0708d" }),
+  bird: () => PX(["....OOOO...","...OBBBBO..","..OBBBBBBO.","AAOBEBBBBO.",".OBBBBBBBBO",".OBWWWBBBBO",".OBWWWWBBO.","..OBWWBBO..","...OOOOO...","....A.A...."], { B: "#7ab8f0", W: "#e3f2ff", A: "#f29b38", E: "#2b1d18" }),
   crown: () => CROWN, lock: () => PX(["..OOOO..",".OO..OO.",".O....O.","OOOOOOOO","OYYYYYYO","OYYOOYYO","OYYOOYYO","OYYYYYYO","OOOOOOOO"], { Y: "#f6c45f" }),
   spark: () => PX(["...O...","...Y...","..OYO..","OYYWYYO","..OYO..","...Y...","...O..."], { O: "#c8922f", Y: "#f6c45f", W: "#fff6c8" }),
   star: () => Pix.icon("star"), star0: () => Pix.icon("star", { Y: "#eadfce", O: "#b9a99a" }),
@@ -23,7 +24,7 @@ const ICO = {
 };
 const I = (k, cls) => `<span class="cwI ${cls || ""}">${ICO[k]()}</span>`;
 const stars = r => I("star").repeat(r + 1) + I("star0").repeat(2 - r);
-const CATS = [["cat", "貓咪娃娃", "cat"], ["ani", "動物朋友", "paw"], ["food", "點心", "cake"], ["sp", "超稀有", "spark"]];
+const CATS = [["cat", "貓咪娃娃", "cat"], ["ani", "動物朋友", "paw"], ["bird", "小鳥", "bird"], ["food", "點心", "cake"], ["sp", "超稀有", "spark"]];
 const catLabel = c => `${I(c[2])} ${c[1]}`;
 
 // 獎品：[名字, 稀有度 0 普通 1 稀有 2 超稀有, 模型（也是 id）, 分類, 介紹]
@@ -50,12 +51,10 @@ const PRIZES = [
   ["書呆虎斑", 1, "c_glasses", "cat", "戴上圓圓的眼鏡，假裝自己看得懂報紙。"],
   ["愛哭粉貓", 0, "c_cry", "cat", "很容易感動到哭，看到你夾到牠也哭了。"],
   ["白襪睏睏貓", 0, "c_sleepy", "cat", "四隻腳都穿著白襪子，打哈欠的樣子超可愛。"],
-  ["小雞", 0, "a_chick", "ani", "圓滾滾的黃色小雞，頭上有一撮呆毛。"],
   ["小熊", 0, "a_bear", "ani", "咖啡色的小熊，鼻子圓圓的，最喜歡蜂蜜。"],
   ["熊貓", 1, "a_panda", "ani", "黑眼圈不是熬夜造成的，是天生的，牠發誓。"],
   ["小白兔", 0, "a_rabbit", "ani", "長長的耳朵裡是粉紅色的，跳起來很快。"],
   ["垂耳兔", 0, "a_bunnyB", "ani", "耳朵軟軟地垂下來，摸起來像棉花糖。"],
-  ["企鵝", 0, "a_penguin", "ani", "走路搖搖擺擺，在娃娃機裡也想滑來滑去。"],
   ["青蛙", 0, "a_frog", "ani", "大眼睛長在頭頂上，笑容永遠很燦爛。"],
   ["小豬", 0, "a_pig", "ani", "粉紅色的小豬，鼻子會呼嚕呼嚕。"],
   ["柴犬", 1, "a_shiba", "ani", "捲捲的尾巴、吐著小舌頭，看到你就超開心。"],
@@ -64,12 +63,37 @@ const PRIZES = [
   ["無尾熊", 1, "a_koala", "ani", "毛茸茸的大耳朵，一天要睡二十個小時。"],
   ["綿羊", 0, "a_sheep", "ani", "全身捲捲的羊毛，數牠的話會想睡覺。"],
   ["海豹寶寶", 0, "a_seal", "ani", "白白胖胖的海豹寶寶，在地上一扭一扭地前進。"],
-  ["小鴨", 0, "a_duck", "ani", "嘴巴扁扁的鵝黃色小鴨，洗澡的時候最愛陪你。"],
-  ["貓頭鷹", 1, "a_owl", "ani", "大大的眼睛晚上會發亮，懂很多事情。"],
   ["六角恐龍", 1, "a_axolotl", "ani", "臉頰旁邊有粉紅色的鰓，永遠都在微笑。"],
   ["小鯨魚", 1, "a_whale", "ani", "頭頂會噴出小水花，游泳的時候會唱歌。"],
   ["小恐龍", 0, "a_dino", "ani", "背上有黃色的小刺，吼起來一點都不可怕。"],
   ["小老鼠", 0, "a_mouse", "ani", "圓圓的大耳朵，聞到起司就會跑過來。"],
+  ["小雞", 0, "a_chick", "bird", "圓滾滾的黃色小雞，頭上有一撮呆毛。"],
+  ["企鵝", 0, "a_penguin", "bird", "走路搖搖擺擺，在娃娃機裡也想滑來滑去。"],
+  ["小鴨", 0, "a_duck", "bird", "嘴巴扁扁的鵝黃色小鴨，洗澡的時候最愛陪你。"],
+  ["貓頭鷹", 1, "a_owl", "bird", "大大的眼睛晚上會發亮，懂很多事情。"],
+  ["白文鳥", 0, "b_javaW", "bird", "全身雪白、粉紅色的大嘴巴，喜歡跳到你的手指上。"],
+  ["灰文鳥", 0, "b_javaG", "bird", "黑色帽子、白色臉頰，嘴巴像一顆櫻桃。"],
+  ["肉桂文鳥", 1, "b_javaC", "bird", "奶茶色的羽毛，聞起來好像有一點點肉桂香。"],
+  ["玄鳳鸚鵡", 0, "b_cockatiel", "bird", "頭上有一撮黃色呆毛，臉頰兩坨橘色的腮紅，會吹口哨。"],
+  ["灰玄鳳", 1, "b_cockatielG", "bird", "灰色身體配黃色的臉，心情好的時候呆毛會豎起來。"],
+  ["綠虎皮鸚鵡", 0, "b_budgieG", "bird", "黃色的頭、綠色的身體，翅膀上有一圈一圈的花紋。"],
+  ["藍虎皮鸚鵡", 0, "b_budgieB", "bird", "像天空一樣的藍色，學說話學得很快。"],
+  ["桃面愛情鳥", 1, "b_lovebird", "bird", "桃子色的臉，最喜歡跟另一半黏在一起。"],
+  ["太平洋鸚鵡", 0, "b_parrotlet", "bird", "小小一隻但是膽子很大，翅膀有一點藍藍的。"],
+  ["和尚鸚鵡", 0, "b_quaker", "bird", "胸前像圍了灰色的圍兜，很愛聊天。"],
+  ["麻雀", 0, "b_sparrow", "bird", "臉頰上有兩個小黑點，在路邊跳來跳去找麵包屑。"],
+  ["綠繡眼", 0, "b_whiteeye", "bird", "眼睛周圍有一圈白邊，像戴了一副白框眼鏡。"],
+  ["台灣藍鵲", 1, "b_magpie", "bird", "台灣特有的長尾巴藍色鳥，紅嘴巴紅腳丫，很有氣勢。"],
+  ["紅嘴黑鵯", 0, "b_bulbul", "bird", "黑色的龐克頭配紅嘴巴紅腳，叫聲像小貓。"],
+  ["白頭翁", 0, "b_whitehead", "bird", "後腦勺有一塊白色的毛，所以叫白頭翁，其實還很年輕。"],
+  ["雪之妖精", 1, "b_enaga", "bird", "銀喉長尾山雀，白白圓圓像一顆麻糬，尾巴細細長長的。"],
+  ["知更鳥", 0, "b_robin", "bird", "橘紅色的胸口，春天一到就開始唱歌。"],
+  ["金絲雀", 0, "b_canary", "bird", "黃澄澄的小鳥，唱歌的聲音最好聽。"],
+  ["鴿子", 0, "b_pigeon", "bird", "脖子上的羽毛會閃出綠色和紫色的光，咕咕咕。"],
+  ["紅鶴", 1, "b_flamingo", "bird", "粉紅色是因為吃了很多蝦子，喜歡用一隻腳站著。"],
+  ["翠鳥", 1, "b_kingfisher", "bird", "亮藍色的背、橘色的肚子，抓魚超級快。"],
+  ["巨嘴鳥", 1, "b_toucan", "bird", "大大的橘色嘴巴看起來很重，其實輕得像海綿。"],
+  ["母雞", 0, "b_hen", "bird", "頭上有紅色雞冠，每天早上都會咕咕叫你起床。"],
   ["甜甜圈", 0, "f_donut", "food", "粉紅糖霜上撒了彩色糖珠，咬一口就幸福。"],
   ["布丁", 0, "f_pudding", "food", "焦糖色的帽子，搖一搖會 Duang Duang 地晃。"],
   ["飯糰", 0, "f_onigiri", "food", "白白的飯糰包著海苔，裡面是什麼口味是秘密。"],
@@ -88,6 +112,8 @@ const PRIZES = [
   ["彩虹貓", 2, "s_rainbow", "sp", "雨過天晴的時候才會出現，身上有七彩的顏色。"],
   ["銀河貓", 2, "s_galaxy", "sp", "身上裝著整片星空，眼睛像兩顆藍色的星星。"],
   ["獨角貓", 2, "s_unicorn", "sp", "頭上有一根金色的角，尾巴是夢幻的紫色。"],
+  ["孔雀", 2, "s_peacock", "sp", "打開尾巴是一整面綠色的扇子，上面有好多藍色的眼睛。"],
+  ["鳳凰", 2, "s_phoenix", "sp", "頭上有火焰的羽冠，傳說看到牠的人會一整年好運。"],
 ];
 const IDX = {}; PRIZES.forEach((P, i) => IDX[P[2]] = i);
 const normCol = c => { const r = {}; if(c) for(const k in c) if(IDX[k] != null && c[k] > 0) r[k] = c[k]; return r; };
@@ -119,7 +145,7 @@ function spinner(i, shiny){ const id = "sp" + Math.random().toString(36).slice(2
   return shiny ? `<span class="cwShinyA c3spin">${c}${[1, 2, 3, 4].map(n => `<span class="cwSpk k${n}">${SPK}</span>`).join("")}</span>` : c; }
 
 // ---------- 機台（地板座標 x 左→右、z 前→後，0～1；y 是高度） ----------
-const R = .082, HX = .27, HZ = .29, RIM = .085, YTOP = .86, G3 = 3.4, SPEED = .34, TIME = 30;
+const R = .082, HX = .27, HZ = .29, RIM = .085, YTOP = .6, G3 = 3.4, SPEED = .34, TIME = 30;
 const HOME = { x: HX/2, z: HZ/2 };
 const SC = 6;   // 3D 世界裡機台地板是 6×6
 const Wp = (x, y, z) => [(x - .5)*SC, y*SC, (.5 - z)*SC];
@@ -129,7 +155,7 @@ App.registerGame({
   solo: true,
   wip: true,
   name: "3D 夾娃娃機",
-  desc: "立體的娃娃機！60 種立體布偶，有自己的蒐集櫃",
+  desc: "立體的娃娃機！80 多種立體布偶，有自己的蒐集櫃",
   icon: () => `<img src="${thumb("c_calico")}" alt="" style="width:100%">`,
   mount(el, ctx){
     const { esc, SFX } = ctx;
@@ -191,6 +217,9 @@ App.registerGame({
     const exitTex = () => tex("c3exit", () => { const c = C2(256, 96), x = c.getContext("2d"); x.fillStyle = "#2e2240"; x.fillRect(0, 0, 256, 96); x.strokeStyle = "#ffe08a"; x.lineWidth = 6; x.strokeRect(6, 6, 244, 84);
       x.fillStyle = "#ffe08a"; x.font = "bold 46px sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText("出口", 150, 50);
       x.beginPath(); x.moveTo(44, 30); x.lineTo(70, 30); x.lineTo(70, 50); x.lineTo(82, 50); x.lineTo(57, 76); x.lineTo(32, 50); x.lineTo(44, 50); x.closePath(); x.fill(); return c; });
+    const ringTex = () => tex("c3ring", () => { const c = C2(128, 128), x = c.getContext("2d"); x.strokeStyle = "#ff4f86"; x.lineWidth = 10; x.beginPath(); x.arc(64, 64, 52, 0, 7); x.stroke();
+      x.strokeStyle = "#ffffff"; x.lineWidth = 4; x.beginPath(); x.arc(64, 64, 52, 0, 7); x.stroke(); x.fillStyle = "#ff4f86"; x.beginPath(); x.arc(64, 64, 9, 0, 7); x.fill();
+      for(let i = 0; i < 4; i++){ const a = i*Math.PI/2; x.fillRect(64 + Math.cos(a)*30 - 4, 64 + Math.sin(a)*30 - 4, 8, 8); } return c; });
     const box = (a, b, col, o) => E.draw(E.M.BOX, chain(T((a[0] + b[0])/2, (a[1] + b[1])/2, (a[2] + b[2])/2), S(Math.abs(b[0] - a[0])/2, Math.abs(b[1] - a[1])/2, Math.abs(b[2] - a[2])/2)), col, o);
 
     // ---- 娃娃（物理球） ----
@@ -294,13 +323,15 @@ App.registerGame({
       E.blend(true);
       for(const p of prizes){ if(inHole(p.x, p.z) && p.y < p.r + .02) continue; const h = Math.max(0, p.y - p.r), k = Math.max(.35, 1 - h*1.6), a = Math.max(0, 1 - h*1.4); if(a <= 0) continue; const w = Wp(p.x, 0, p.z);
         E.draw(E.M.QUAD, chain(T(w[0], .015, w[2]), RX(-Math.PI/2), S(.62*k, .62*k, 1)), null, { tex: shTex(), decal: true, alpha: a }); }
-      let surf = 0; for(const p of prizes){ const d = Math.hypot(p.x - claw.x, p.z - claw.z); if(d < p.r*.92){ const top = p.y + Math.sqrt(p.r*p.r - d*d); if(top > surf && top < claw.tip + .02) surf = top; } }
+      let surf = 0, under = null; for(const p of prizes){ const d = Math.hypot(p.x - claw.x, p.z - claw.z); if(d < p.r*.92){ const top = p.y + Math.sqrt(p.r*p.r - d*d); if(top > surf && top < claw.tip + .02){ surf = top; under = p; } } }
+      const aiming = state === "aim" || state === "idle" || state === "paying", pulse = .5 + .5*Math.sin(performance.now()/180);
       if(!(surf === 0 && inHole(claw.x, claw.z))){ const gap = Math.max(0, claw.tip - surf); E.draw(E.M.QUAD, chain(T(cw[0], surf*SC + .03, cw[2]), RX(-Math.PI/2), S(.5, .5, 1)), null, { tex: shTex(), decal: true, alpha: .55 + .45*(1 - Math.min(1, gap/.8)) }); }
       E.blend(false);
-      // 娃娃
+      // 娃娃（被瞄準的那隻會發亮）
       const sc = R*SC*1.18;
       for(const p of prizes){ const w = Wp(p.x, p.y, p.z); p.sq *= .82; const sx = 1 + p.sq*.6, sy = 1 - p.sq;
-        Toy3D.drawModel(E, PRIZES[p.kind][2], chain(T(w[0], w[1], w[2]), RY(p.yaw), RX(p.tx), RZ(p.tz), S(sc*sx, sc*sy, sc*sx))); }
+        const g = aiming && state === "aim" && p === under ? [.22 + .14*pulse, .1 + .08*pulse, .16 + .08*pulse] : null;
+        Toy3D.drawModel(E, PRIZES[p.kind][2], chain(T(w[0], w[1], w[2]), RY(p.yaw), RX(p.tx), RZ(p.tz), S(sc*sx, sc*sy, sc*sx)), g ? { glow: g } : {}); }
       // 爪子
       const sw = claw.swing*.0025, Wc = q => { const v = Wp(q[0] - sw*(q[1] - claw.tip - .16), q[1], q[2]); return v; };
       const hub = Wc([claw.x, claw.tip + .16, claw.z]);
@@ -310,8 +341,11 @@ App.registerGame({
       prongs(claw).forEach(pr => { const pts = pr.pts.map(Wc);
         for(let i = 0; i < 3; i++) E.draw(E.M.CYL, seg(pts[i], pts[i + 1], i === 2 ? .06 : .075), METAL, { ow: .035 });
         for(let i = 1; i < 4; i++) E.draw(E.M.SPH, chain(T(...pts[i]), S(.09, .09, .09)), i === 3 ? "#9aa6bd" : METAL, { ow: .03 }); });
-      // 出口旁邊的透明擋板
+      // 出口旁邊的透明擋板、瞄準光柱
       E.blend(true);
+      // 瞄準圈：爪子正下方（畫在最上面，才不會被娃娃蓋住）
+      if(aiming && !(surf === 0 && inHole(claw.x, claw.z))) E.draw(E.M.QUAD, chain(T(cw[0], surf*SC + .05, cw[2]), RX(-Math.PI/2), S(.55 + .05*pulse, .55 + .05*pulse, 1)), null, { tex: ringTex(), decal: true, alpha: .95 });
+      if(state === "aim"){ const y0 = surf*SC + .05, y1 = hub[1] - .3; if(y1 > y0) E.draw(E.M.CYL, chain(T(hub[0], (y0 + y1)/2, hub[2]), S(.05, (y1 - y0), .05)), "#ff7aa6", { outline: false, alpha: .45 }); }
       const rH = RIM*SC;
       E.draw(E.M.BOX, chain(T((-3 + hx)/2, rH/2, hz), S((hx + 3)/2, rH/2, .03)), "#bfe0ff", { outline: false, alpha: .45 });
       E.draw(E.M.BOX, chain(T(hx, rH/2, (hz + 3)/2), S(.03, rH/2, (3 - hz)/2)), "#bfe0ff", { outline: false, alpha: .45 });
@@ -347,7 +381,7 @@ App.registerGame({
       if(!E) return;
       if(state === "idle"){ state = "paying"; if(!(await pay())){ state = "idle"; return; }
         SFX.coin ? SFX.coin() : SFX.select(); state = "aim"; tLeft = TIME; timerEl.classList.remove("hidden"); goBtn.textContent = "夾！"; goBtn.classList.add("grab"); goBtn.classList.remove("paid");
-        msg("用十字鍵移動爪子，看地上的影子對準，按「夾！」"); info(); }
+        msg("用十字鍵移動爪子，<b>粉紅色圈圈</b>對準的娃娃會發亮，對好就按「夾！」"); info(); }
       else if(state === "aim") startDrop();
     });
     let seq = null, holdSet = new Set();
@@ -439,7 +473,7 @@ App.registerGame({
         return `<button class="cwPed r${P[1]} ${k ? "on" : "no"} ${z ? "shiny" : ""}" data-i="${i}"><span class="cwBeam"></span><span class="cwOnPed">${z ? shinyArt(i) : art(i)}</span><span class="cwBase"></span><span class="cwPlate">${k ? esc(P[0]) : "？？？"}</span>${k > 1 ? `<i>×${k}</i>` : ""}</button>`; };
       const tier = ([cat]) => { const L = PRIZES.map((P, i) => i).filter(i => PRIZES[i][3] === cat), got = L.filter(i => c[PRIZES[i][2]] > 0).length;
         return `<div class="cwTier t-${cat}"><div class="cwTierH"><span>${cat === "sp" ? `${I("spark")} 至寶展示台 ${I("spark")}` : catLabel(CATS.find(x => x[0] === cat))}</span><em>${got} / ${L.length}</em></div><div class="cwRow">${L.map(ped).join("")}</div></div>`; };
-      const order = [CATS[3], CATS[0], CATS[1], CATS[2]];
+      const order = [CATS[4], CATS[0], CATS[1], CATS[2], CATS[3]];
       o.innerHTML = `<div class="cwCase">
         <div class="cwCrest"><span>${I("spark")}</span><b>3D 蒐集櫃</b><span>${I("spark")}</span></div>
         <div class="cwCaseSub">珍藏 <b>${n}</b> / ${N} 件${n === N ? ` ${I("crown")} 全部收集完成！` : ""}</div>

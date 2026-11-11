@@ -90,6 +90,9 @@
     const c = C2(256, 256), x = c.getContext("2d"), ink = o.ink || "#3a2424"; x.lineCap = "round"; x.lineJoin = "round";
     const ex = o.ex || 60, ey = 116;
     for(const s of [-1, 1]){ const cx = 128 + s*ex;
+      if(o.ring){ x.strokeStyle = o.ring; x.lineWidth = 8; x.beginPath(); x.arc(cx, ey, 23, 0, 7); x.stroke(); }
+      if(o.cheek){ x.fillStyle = o.cheek; x.beginPath(); x.ellipse(128 + s*(ex + 22), ey + 34, 25, 21, 0, 0, 7); x.fill();
+        if(o.cheekDot){ x.fillStyle = o.cheekDot; x.beginPath(); x.ellipse(128 + s*(ex + 36), ey + 44, 9, 7, -s*.4, 0, 7); x.fill(); } }
       const k = o.eye === "wink" && s > 0 ? "happy" : o.eye || "dot";
       if(k === "dot" || k === "big"){ const r = k === "big" ? 1.25 : 1; x.fillStyle = o.eyeC || ink; x.beginPath(); x.ellipse(cx, ey, 15*r, 19*r, 0, 0, 7); x.fill(); x.fillStyle = "#fff"; x.beginPath(); x.arc(cx - 5*r, ey - 7*r, 6.5*r, 0, 7); x.fill(); x.beginPath(); x.arc(cx + 5*r, ey + 6*r, 3*r, 0, 7); x.fill(); }
       if(k === "cat"){ x.fillStyle = o.eyeC || "#f5c842"; x.beginPath(); x.ellipse(cx, ey, 16, 19, 0, 0, 7); x.fill(); x.fillStyle = ink; x.beginPath(); x.ellipse(cx, ey, 5, 15, 0, 0, 7); x.fill(); x.fillStyle = "#fff"; x.beginPath(); x.arc(cx - 6, ey - 8, 4, 0, 7); x.fill(); }
@@ -140,6 +143,17 @@
     if(pat === "sprinkle"){ const cols = ["#fff", "#7fd3ff", "#ffe066", "#a8e6a1"]; for(let i = 0; i < 60; i++){ x.fillStyle = cols[i % 4]; x.save(); x.translate((i*97) % 512, (i*41) % 120 + 4); x.rotate(i); x.fillRect(-6, -2, 12, 4); x.restore(); } }
     if(pat === "panda"){ blob(.25, .9, .2, .25, c2); blob(.75, .5, .25, .4, c2); }
     if(pat === "fox"){ x.fillStyle = c2; x.beginPath(); x.ellipse(U(.25), Vv(.75), 80, 70, 0, 0, 7); x.fill(); }
+    const cap = (col, v1) => { x.fillStyle = col; x.fillRect(0, 0, 512, Vv(v1)); for(let i = 0; i < 33; i++){ x.beginPath(); x.arc(i*16, Vv(v1), 9, 0, 7); x.fill(); } };
+    if(pat === "cap") cap(c2, .3);
+    if(pat === "mask"){ x.fillStyle = c2; x.beginPath(); x.ellipse(U(.25), Vv(.42), 84, 66, 0, 0, 7); x.fill(); }
+    if(pat === "bib"){ x.fillStyle = c2; x.beginPath(); x.ellipse(U(.25), Vv(.62), 80, 72, 0, 0, 7); x.fill(); }
+    if(pat === "under"){ x.fillStyle = c2; x.fillRect(0, Vv(.58), 512, 256); for(let i = 0; i < 33; i++){ x.beginPath(); x.arc(i*16, Vv(.58), 9, 0, 7); x.fill(); } }
+    if(pat === "budgie"){ cap(c2, .34); x.strokeStyle = c3; x.lineWidth = 4; for(let r = 0; r < 4; r++) for(let i = 0; i < 9; i++){ const u = .5 + i*.065 + (r % 2)*.032; x.beginPath(); x.arc(U(u), Vv(.08 + r*.08), 11, .15*Math.PI, .85*Math.PI); x.stroke(); }
+      x.fillStyle = c3; for(const u of [.19, .25, .31]){ x.beginPath(); x.arc(U(u), Vv(.5), 5, 0, 7); x.fill(); } }
+    if(pat === "scallop"){ x.strokeStyle = c2; x.lineWidth = 5; for(let r = 0; r < 7; r++) for(let i = 0; i < 18; i++){ x.beginPath(); x.arc(i*30 + (r % 2)*15, 20 + r*32, 14, .15*Math.PI, .85*Math.PI); x.stroke(); } }
+    if(pat === "sparrow"){ cap(c2, .28); x.fillStyle = c3; x.beginPath(); x.ellipse(U(.25), Vv(.6), 14, 9, 0, 0, 7); x.fill(); }
+    if(pat === "whitehead"){ cap(c2, .3); x.fillStyle = c3; x.beginPath(); x.ellipse(U(.75), Vv(.17), 50, 30, 0, 0, 7); x.fill(); }
+    if(pat === "band"){ const g = x.createLinearGradient(0, 0, 512, 0); for(let i = 0; i <= 6; i++) g.addColorStop(i/6, i % 2 ? c3 : c2); x.fillStyle = g; x.fillRect(0, Vv(.3), 512, Vv(.15)); }
     if(pat === "socks"){ x.fillStyle = c2; x.fillRect(0, Vv(.86), 512, 40); }
     return c;
   }
@@ -252,6 +266,60 @@
     s_rainbow: cat({ c: "#ffffff", skin: "rainbow", ear: "#ff8fab", face: { eye: "star", mouth: "smile" } }),
     s_galaxy: cat({ c: "#3a3a8a", skin: "galaxy", ear: "#5a3b9e", face: { eye: "cat", eyeC: "#8ff0ff", ink: "#1a1418" }, glow: [.04, .06, .14] }),
     s_unicorn: cat({ c: "#fff6fb", face: { eye: "dot", lash: true }, earIn: "#c9a6ff", tail: "#c9a6ff", acc: [ACC.horn, () => [PART("SPH", chain(T(-.2, .82, -.3), S(.2, .14, .3)), "#ff9ec4"), PART("SPH", chain(T(.15, .85, -.35), S(.18, .12, .28)), "#9fe0ff")]] }),
+  });
+
+  // ---- 小鳥 ----
+  function birdParts(o){
+    const L = [], c = o.c, body = o.skin ? { skin: [c, o.skin, o.c2, o.c3] } : c;
+    if(o.fan) for(let i = 0; i < 9; i++){ const a = -1.25 + i*2.5/8;
+      L.push(PART("SPH", chain(T(Math.sin(a)*.95, -.15 + Math.cos(a)*.95, -.85), RZ(-a), S(.26, .62, .07)), o.fan));
+      L.push(PART("SPH", chain(T(Math.sin(a)*1.42, -.15 + Math.cos(a)*1.42, -.82), S(.16, .16, .06)), "#2a5fc4", { ow: .03 }));
+      L.push(PART("SPH", chain(T(Math.sin(a)*1.42, -.15 + Math.cos(a)*1.42, -.77), S(.08, .08, .04)), "#ffd84d", { outline: false })); }
+    if(o.longTail){ L.push(PART("SPH", chain(T(0, .38, -1.1), RX(.85), S(.17, .07, .62)), o.tail || c)); if(o.tailTip) L.push(PART("SPH", chain(T(0, .84, -1.5), RX(.85), S(.15, .07, .2)), o.tailTip));
+      if(o.tail3) for(const sx of [-1, 1]) L.push(PART("SPH", chain(T(sx*.38, .25, -1.1), RY(sx*.45), RX(.7), S(.12, .06, .55)), o.tail3)); }
+    else L.push(PART("SPH", chain(T(0, -.3, -.88), RX(-.45), S(.32, .08, .42)), o.tail || c));
+    L.push(PART("SPH", S(1, .95, .95), body));
+    const wing = o.wingSkin ? { skin: o.wingSkin } : (o.wing || c);
+    for(const sx of [-1, 1]) L.push(PART("SPH", chain(T(sx*.9, -.1, -.08), RY(sx*.25), RZ(sx*.3), S(.2, .52, .52)), wing));
+    for(const sx of [-1, 1]) L.push(PART("SPH", chain(T(sx*.3, -.9, .35), S(.16, .08, .22)), o.feet || "#f5a3a3"));
+    const bw = o.bw || .14, bl = o.bl || .26, by = o.by ?? -.05;
+    L.push(PART("CONE", chain(T(0, by, .88), RX(Math.PI/2 + (o.bd ?? .18)), S(bw, bl, bw*.85)), o.beak || "#f5b04a", { ow: .03 }));
+    if(o.beakTip) L.push(PART("CONE", chain(T(0, by - Math.sin(o.bd || 0)*bl*.75, .88 + Math.cos(o.bd || 0)*bl*.75), RX(Math.PI/2 + (o.bd || 0)), S(bw*.45, bl*.32, bw*.4)), o.beakTip, { outline: false }));
+    if(o.crest) for(let i = 0; i < 3; i++) L.push(PART("CONE", chain(T(0, .82, .32 - i*.14), RX(-.35 - i*.3), S(.09, .5 - i*.08, .08)), o.crest, { ow: .03 }));
+    if(o.tuft) L.push(PART("SPH", chain(T(0, .82, -.15), RX(-.6), S(.26, .2, .4)), o.tuft));
+    if(o.comb){ for(let i = 0; i < 3; i++) L.push(PART("SPH", chain(T(0, .92 - Math.abs(i - 1)*.06, .3 - i*.2), S(.1, .17, .1)), o.comb)); L.push(PART("SPH", chain(T(0, -.32, .9), S(.08, .14, .07)), o.comb, { ow: .03 })); }
+    if(o.flame) for(let i = 0; i < 3; i++) L.push(PART("CONE", chain(T((i - 1)*.18, .82, .1), RZ((1 - i)*.35), RX(-.2), S(.1, .55 - Math.abs(i - 1)*.15, .1)), i === 1 ? "#ffd84d" : "#ffa53a", { glow: [.1, .06, 0] }));
+    L.push(PART("QUAD", chain(T(0, .14, .965), S(.74, .74, 1)), null, { face: Object.assign({ eye: "dot", mouth: "none", ex: 50, blush: !o.cheek, ring: o.ring, cheek: o.cheek, cheekDot: o.cheekDot, eyeC: o.eyeC }, o.face || {}) }));
+    return L;
+  }
+  const bird = o => () => birdParts(o);
+  const BIG = { bw: .22, bl: .3 };
+  Object.assign(MODELS, {
+    b_javaW: bird(Object.assign({ c: "#fffdf8", beak: "#ff6b7d", ring: "#ff9aa6", feet: "#ffb3c0" }, BIG)),
+    b_javaG: bird(Object.assign({ c: "#9aa0ad", skin: "cap", c2: "#2e2a33", tail: "#2e2a33", wing: "#8a909e", beak: "#ff6b7d", cheek: "#ffffff", ring: "#ff9aa6", feet: "#ffb3c0" }, BIG)),
+    b_javaC: bird(Object.assign({ c: "#d9bfa3", skin: "cap", c2: "#8a5f45", tail: "#8a5f45", wing: "#cbb093", beak: "#ff6b7d", cheek: "#ffffff", ring: "#ff9aa6", feet: "#ffb3c0" }, BIG)),
+    b_cockatiel: bird({ c: "#fff3c4", wing: "#fff7d8", tail: "#fff7d8", crest: "#ffd84d", cheek: "#ff9a3c", beak: "#e8cba8", bw: .16, bl: .2 }),
+    b_cockatielG: bird({ c: "#9a9aa3", skin: "mask", c2: "#ffe066", wing: "#8a8a94", tail: "#7a7a84", crest: "#ffe066", cheek: "#ff9a3c", beak: "#c9b8a8", bw: .16, bl: .2 }),
+    b_budgieG: bird({ c: "#7ccf5a", skin: "budgie", c2: "#ffe066", c3: "#2e2a33", wingSkin: ["#ffe066", "scallop", "#2e2a33"], tail: "#3a6fd1", cheek: "#6a7fd8", beak: "#e8b88a", bw: .12, bl: .17, by: .0 }),
+    b_budgieB: bird({ c: "#7fb3f0", skin: "budgie", c2: "#ffffff", c3: "#2e2a33", wingSkin: ["#ffffff", "scallop", "#2e2a33"], tail: "#3150a8", cheek: "#7a62c9", beak: "#e8b88a", bw: .12, bl: .17, by: .0 }),
+    b_lovebird: bird({ c: "#7fd36a", skin: "mask", c2: "#ff9f7a", wing: "#5fb84f", tail: "#3a8fd1", beak: "#ff5a5a", ring: "#ffffff", bw: .2, bl: .24 }),
+    b_parrotlet: bird({ c: "#9fe07a", wing: "#6fae5a", tail: "#4a9fd8", beak: "#f2c9a8", bw: .17, bl: .2 }),
+    b_quaker: bird({ c: "#7fd36a", skin: "bib", c2: "#dfe4ea", wing: "#5fb84f", tail: "#4fa86a", beak: "#ffcf9a", bw: .18, bl: .22 }),
+    b_sparrow: bird({ c: "#c49a6c", skin: "sparrow", c2: "#8a5a3a", c3: "#2e2a33", wingSkin: ["#a8774e", "scallop", "#5a3b2a"], tail: "#8a5a3a", cheek: "#ffffff", cheekDot: "#2e2a33", beak: "#4a3a33", bw: .12, bl: .18, feet: "#c9a080" }),
+    b_whiteeye: bird({ c: "#b5d94a", skin: "under", c2: "#f2f0d8", wing: "#9cc23a", tail: "#8ab030", ring: "#ffffff", beak: "#4a3a33", bw: .1, bl: .24, feet: "#8a8a94" }),
+    b_magpie: bird({ c: "#2f6fd1", skin: "cap", c2: "#2a2530", wing: "#2a5fb8", longTail: true, tail: "#2f6fd1", tailTip: "#ffffff", beak: "#e8484d", feet: "#e8484d", ring: "#ffd84d", bw: .15, bl: .3 }),
+    b_bulbul: bird({ c: "#3e3e4a", wing: "#33333e", tail: "#33333e", tuft: "#3e3e4a", beak: "#ff4a3a", feet: "#ff4a3a", ring: "#6e6e7e", bw: .14, bl: .28 }),
+    b_whitehead: bird({ c: "#a3b56e", skin: "whitehead", c2: "#2e2a33", c3: "#ffffff", wing: "#8a9e58", tail: "#8a9e58", beak: "#3a3a44", bw: .12, bl: .22, feet: "#6a6a74", face: { eyeC: "#2e2a33" }, cheek: "#ffffff" }),
+    b_enaga: bird({ c: "#ffffff", wing: "#f0ebe4", longTail: true, tail: "#2e2a33", beak: "#2e2a33", bw: .07, bl: .1, by: .02, feet: "#5a5a64" }),
+    b_robin: bird({ c: "#a87a52", skin: "bib", c2: "#ff7a3a", wing: "#946a46", tail: "#946a46", beak: "#4a3a33", bw: .11, bl: .2, feet: "#c9a080" }),
+    b_canary: bird({ c: "#ffe23a", wing: "#ffd21a", tail: "#ffd21a", beak: "#ffb08a", bw: .13, bl: .18 }),
+    b_pigeon: bird({ c: "#b3b9c8", skin: "band", c2: "#6fbf8a", c3: "#a77bd1", wing: "#a2a9b8", tail: "#8a90a0", beak: "#5a5a66", bw: .1, bl: .2, feet: "#ff7a8a" }),
+    b_flamingo: bird({ c: "#ffa3b8", wing: "#ff7f9e", tail: "#ff7f9e", beak: "#fff0f3", beakTip: "#2e2a33", bd: .55, bw: .16, bl: .4, feet: "#ff7f9e" }),
+    b_kingfisher: bird({ c: "#2fa0d8", skin: "under", c2: "#ff8a3a", wing: "#1f86c0", tail: "#1f86c0", cheek: "#ff8a3a", beak: "#2e2a33", bw: .12, bl: .55, feet: "#ff6a4a" }),
+    b_toucan: bird({ c: "#2e2a33", skin: "mask", c2: "#ffffff", wing: "#25222a", tail: "#25222a", ring: "#5fc4ff", beak: "#ff9a1a", beakTip: "#e8484d", bw: .3, bl: .8, by: -.1, feet: "#5fc4ff" }),
+    b_hen: bird({ c: "#fffaf2", wing: "#f5efe4", tail: "#f5efe4", comb: "#e8484d", beak: "#ffb52a", feet: "#ffb52a", bw: .15, bl: .2 }),
+    s_peacock: bird({ c: "#2f62c9", skin: "under", c2: "#1f8a8a", fan: "#3fae6a", wing: "#2a8a7a", tail: "#3fae6a", crest: "#2f62c9", ring: "#ffffff", beak: "#c9b8a8", bw: .12, bl: .2 }),
+    s_phoenix: bird({ c: "#e8484d", skin: "under", c2: "#ffcf3a", wing: "#ffa53a", longTail: true, tail: "#ffcf3a", tailTip: "#e8484d", tail3: "#ffa53a", flame: true, ring: "#ffe066", beak: "#ffcf3a", bw: .14, bl: .24, feet: "#ffcf3a" }),
   });
 
   // 把模型畫出來（所有部件都乘上 base 矩陣）
