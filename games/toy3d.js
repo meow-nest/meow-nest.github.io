@@ -60,10 +60,15 @@
     function quad(){ return mesh([-1,-1,0, 1,-1,0, 1,1,0, -1,1,0], [0,0,1,0,0,1,0,0,1,0,0,1], [0,1, 1,1, 1,0, 0,0], [0,1,2,0,2,3]); }
     function box(){ const P = [], N = [], UV = [], I = []; const F = [[[1,0,0],[0,0,-1],[0,1,0]],[[-1,0,0],[0,0,1],[0,1,0]],[[0,1,0],[1,0,0],[0,0,-1]],[[0,-1,0],[1,0,0],[0,0,1]],[[0,0,1],[1,0,0],[0,1,0]],[[0,0,-1],[-1,0,0],[0,1,0]]];
       F.forEach(([n, u, v], k) => { for(const [a, b] of [[-1,-1],[1,-1],[1,1],[-1,1]]){ P.push(n[0]+u[0]*a+v[0]*b, n[1]+u[1]*a+v[1]*b, n[2]+u[2]*a+v[2]*b); N.push(...n); UV.push((a+1)/2, (1-b)/2); } I.push(k*4, k*4+1, k*4+2, k*4, k*4+2, k*4+3); }); return mesh(P, N, UV, I); }
-    function dome(seg = 24){ const P = [], N = [], UV = [], I = []; for(let y = 0; y <= seg; y++){ const v = y/seg, th = v*Math.PI; for(let x = 0; x <= seg; x++){ const u = x/seg, ph = u*Math.PI*2; const n = [Math.sin(th)*Math.cos(ph), Math.cos(th), Math.sin(th)*Math.sin(ph)];
-        const yy = n[1] < 0 ? n[1]*.28 : n[1], wide = n[1] < 0 ? 1 + .06*(1 + n[1]) : 1 + .06*(1 - n[1]); P.push(n[0]*wide, yy, n[2]*wide); N.push(n[0], n[1] < 0 ? n[1]*2.5 : n[1], n[2]); UV.push(u, v); } }
+    const dv = (u, v, k) => { const th = v*Math.PI, ph = u*Math.PI*2, n = [Math.sin(th)*Math.cos(ph), Math.cos(th), Math.sin(th)*Math.sin(ph)];
+      const yy = n[1] < 0 ? n[1]*.4 : n[1], wide = (n[1] < 0 ? 1 + .05*(1 + n[1]) : 1 + .05*(1 - n[1]))*k; return [[n[0]*wide, yy*k, n[2]*wide], [n[0], n[1] < 0 ? n[1]*2 : n[1], n[2]]]; };
+    function dome(seg = 24){ const P = [], N = [], UV = [], I = []; for(let y = 0; y <= seg; y++) for(let x = 0; x <= seg; x++){ const [p, n] = dv(x/seg, y/seg, 1); P.push(...p); N.push(...n); UV.push(x/seg, y/seg); }
       for(let y = 0; y < seg; y++) for(let x = 0; x < seg; x++){ const a = y*(seg+1)+x, b = a + seg + 1; I.push(a, a+1, b, b, a+1, b+1); } return mesh(P, N, UV, I); }
-    const M = { DOME: dome(), SPH: sphere(), CYL: cyl(), CONE: cone(), TOR: torus(), QUAD: quad(), BOX: box() };
+    // 臉：貼在麻糬身體表面上的一片（跟著身體彎曲，不會陷進去）
+    function facePatch(seg = 14){ const P = [], N = [], UV = [], I = [], u0 = .25 - .17, u1 = .25 + .17, v0 = .2, v1 = .58;
+      for(let y = 0; y <= seg; y++) for(let x = 0; x <= seg; x++){ const u = u0 + (u1 - u0)*x/seg, v = v0 + (v1 - v0)*y/seg, [p, n] = dv(u, v, 1.012); P.push(...p); N.push(...n); UV.push(1 - x/seg, y/seg); }
+      for(let y = 0; y < seg; y++) for(let x = 0; x < seg; x++){ const a = y*(seg+1)+x, b = a + seg + 1; I.push(a, a+1, b, b, a+1, b+1); } return mesh(P, N, UV, I); }
+    const M = { DOME: dome(), FACE: facePatch(), SPH: sphere(), CYL: cyl(), CONE: cone(), TOR: torus(), QUAD: quad(), BOX: box() };
     const texCache = new Map();
     function texture(key, make){ if(texCache.has(key)) return texCache.get(key); const c = make(); const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); texCache.set(key, t); return t; }
@@ -91,7 +96,7 @@
   // 臉的貼紙
   function faceCanvas(o){
     const c = C2(256, 256), x = c.getContext("2d"), ink = o.ink || "#3a2424"; x.lineCap = "round"; x.lineJoin = "round";
-    const ex = (o.ex || 60)*.6, ey = 132, FS = .62;
+    const ex = (o.ex || 60)*.82, ey = 112, FS = .9;
     for(const s of [-1, 1]){ const cx = 128 + s*ex; x.save(); x.translate(cx, ey); x.scale(FS, FS); x.translate(-cx, -ey);
       if(o.ring){ x.strokeStyle = o.ring; x.lineWidth = 8; x.beginPath(); x.arc(cx, ey, 23, 0, 7); x.stroke(); }
       if(o.cheek){ x.fillStyle = o.cheek; x.beginPath(); x.ellipse(128 + s*(ex + 22), ey + 34, 25, 21, 0, 0, 7); x.fill();
@@ -108,10 +113,10 @@
       if(k === "x"){ x.strokeStyle = ink; x.lineWidth = 8; x.beginPath(); x.moveTo(cx - 11, ey - 11); x.lineTo(cx + 11, ey + 11); x.moveTo(cx + 11, ey - 11); x.lineTo(cx - 11, ey + 11); x.stroke(); }
       x.restore();
       if(o.lash){ x.strokeStyle = ink; x.lineWidth = 5; x.beginPath(); x.moveTo(cx + s*13, ey - 10); x.lineTo(cx + s*22, ey - 17); x.stroke(); }
-      if(o.blush !== false){ const bx = 128 + s*(ex + 30), by = ey + 16, g = x.createRadialGradient(bx, by, 2, bx, by, 26); g.addColorStop(0, "rgba(255,120,150,.75)"); g.addColorStop(1, "rgba(255,120,150,0)"); x.fillStyle = g; x.beginPath(); x.ellipse(bx, by, 26, 17, 0, 0, 7); x.fill(); }
+      if(o.blush !== false){ const bx = 128 + s*(ex + 32), by = ey + 26, g = x.createRadialGradient(bx, by, 2, bx, by, 26); g.addColorStop(0, "rgba(255,120,150,.75)"); g.addColorStop(1, "rgba(255,120,150,0)"); x.fillStyle = g; x.beginPath(); x.ellipse(bx, by, 26, 17, 0, 0, 7); x.fill(); }
       if(o.whisker){ x.strokeStyle = ink; x.lineWidth = 4; x.globalAlpha = .6; for(const dy of [-6, 6]){ x.beginPath(); x.moveTo(128 + s*(ex + 40), ey + 26 + dy); x.lineTo(128 + s*(ex + 62), ey + 22 + dy*1.6); x.stroke(); } x.globalAlpha = 1; }
     }
-    x.save(); x.translate(128, 136); x.scale(.55, .55); x.translate(-128, -142);
+    x.save(); x.translate(128, 140); x.scale(.8, .8); x.translate(-128, -142);
     x.strokeStyle = ink; x.lineWidth = 7;
     const m = o.mouth || "w";
     if(m === "beak"){ x.fillStyle = "#ffa53a"; x.beginPath(); x.moveTo(108, 136); x.lineTo(148, 136); x.lineTo(128, 162); x.closePath(); x.fill(); x.lineWidth = 5; x.stroke(); }
@@ -172,12 +177,12 @@
     // 尾巴
     if(!o.noTail){ for(let i = 0; i < 5; i++){ const t = i/4; L.push(PART("SPH", chain(T(.72 + .26*Math.sin(t*2.2), -.42 + t*.8, -.55 - .08*t), S(.17, .17, .17)), o.tail || c)); }
       if(o.tailTip) L.push(PART("SPH", chain(T(.72 + .26*Math.sin(2.2), .38, -.63), S(.19, .19, .19)), o.tailTip)); }
-    L.push(PART("DOME", chain(T(0, -.55, 0), S(1.08, 1.25, 1.0)), body));
+    const BM = chain(T(0, -.5, 0), S(1.06, 1.4, 1.0)); L.push(PART("DOME", BM, body));
     const ear = o.ear || c;
     if(o.ears !== false) for(const s of [-1, 1]){ L.push(PART("CONE", chain(T(s*.56, .66, 0), RZ(-s*.36), S(.3, .46, .27)), ear)); L.push(PART("CONE", chain(T(s*.57, .69, .15), RZ(-s*.36), S(.15, .27, .1)), o.earIn || "#ffb3c6", { outline: false })); }
     if(o.paws) for(const s of [-1, 1]) L.push(PART("SPH", chain(T(s*.4, -.7, .75), S(.16, .1, .12)), o.paw || c));
     if(o.wave) L.push(PART("SPH", chain(T(.92, .1, .45), RZ(-.6), S(.2, .3, .2)), o.paw || c));
-    L.push(PART("QUAD", chain(T(0, .02, .97), S(.8, .8, 1)), null, { face: o.face || {} }));
+    L.push(PART("FACE", BM, null, { face: o.face || {} }));
     return L;
   }
   // 配件
@@ -224,7 +229,7 @@
     c_sleepy: cat({ c: "#fbf1de", skin: "socks", c2: "#ffffff", face: { eye: "sleep", mouth: "o" } }),
   });
   // ---- 動物朋友 ----
-  const ball = (c, extra, o = {}) => () => [PART("DOME", chain(T(0, -.55, 0), S((o.sx || 1)*1.04, (o.sy || .92)*1.35, (o.sz || .92)*1.05)), o.skin ? { skin: [c, o.skin, o.c2, o.c3] } : c), PART("QUAD", chain(T(0, o.fy || .02, o.fz || .95), S(.8, .8, 1)), null, { face: o.face || {} }), ...extra()];
+  const ball = (c, extra, o = {}) => () => { const BM = chain(T(0, -.5, 0), S((o.sx || 1)*1.04, (o.sy || .92)*1.5, (o.sz || .92)*1.06)); return [PART("DOME", BM, o.skin ? { skin: [c, o.skin, o.c2, o.c3] } : c), PART("FACE", BM, null, { face: o.face || {} }), ...extra()]; };
   Object.assign(MODELS, {
     a_chick: ball("#ffd84d", () => [...[-1, 1].map(s => PART("SPH", chain(T(s*.95, -.1, 0), RZ(s*.5), S(.18, .38, .3)), "#ffc72c")), PART("CONE", chain(T(0, .85, 0), S(.12, .25, .12)), "#ffd84d")], { face: { mouth: "beak" }, foot: "#ffa53a" }),
     a_bear: ball("#c48a5a", () => [...[-1, 1].flatMap(s => [PART("SPH", chain(T(s*.68, .7, 0), S(.3, .3, .2)), "#c48a5a"), PART("SPH", chain(T(s*.68, .7, .12), S(.16, .16, .1)), "#f4c7a8", { outline: false })]), PART("SPH", chain(T(0, -.18, .76), S(.38, .28, .22)), "#f4dcc0", { ow: .02 })], { face: { mouth: "nose" } }),
@@ -283,18 +288,18 @@
     if(o.longTail){ L.push(PART("SPH", chain(T(0, .38, -1.1), RX(.85), S(.17, .07, .62)), o.tail || c)); if(o.tailTip) L.push(PART("SPH", chain(T(0, .84, -1.5), RX(.85), S(.15, .07, .2)), o.tailTip));
       if(o.tail3) for(const sx of [-1, 1]) L.push(PART("SPH", chain(T(sx*.38, .25, -1.1), RY(sx*.45), RX(.7), S(.12, .06, .55)), o.tail3)); }
     else L.push(PART("SPH", chain(T(0, -.3, -.88), RX(-.45), S(.32, .08, .42)), o.tail || c));
-    L.push(PART("DOME", chain(T(0, -.55, 0), S(1.04, 1.3, 1.0)), body));
+    const BM = chain(T(0, -.5, 0), S(1.04, 1.45, 1.0)); L.push(PART("DOME", BM, body));
     const wing = o.wingSkin ? { skin: o.wingSkin } : (o.wing || c);
     for(const sx of [-1, 1]) L.push(PART("SPH", chain(T(sx*.92, -.12, -.08), RY(sx*.25), RZ(sx*.45), S(.14, .3, .34)), wing));
     
-    const bw = (o.bw || .14)*.8, bl = (o.bl || .26)*.7, by = (o.by ?? -.05) - .04;
-    L.push(PART("CONE", chain(T(0, by, .88), RX(Math.PI/2 + (o.bd ?? .18)), S(bw, bl, bw*.85)), o.beak || "#f5b04a", { ow: .03 }));
-    if(o.beakTip) L.push(PART("CONE", chain(T(0, by - Math.sin(o.bd || 0)*bl*.75, .88 + Math.cos(o.bd || 0)*bl*.75), RX(Math.PI/2 + (o.bd || 0)), S(bw*.45, bl*.32, bw*.4)), o.beakTip, { outline: false }));
+    const bw = (o.bw || .14)*.85, bl = (o.bl || .26)*.75, by = (o.by ?? -.05) - .03;
+    L.push(PART("CONE", chain(T(0, by, .93), RX(Math.PI/2 + (o.bd ?? .18)), S(bw, bl, bw*.85)), o.beak || "#f5b04a", { ow: .03 }));
+    if(o.beakTip) L.push(PART("CONE", chain(T(0, by - Math.sin(o.bd || 0)*bl*.75, .93 + Math.cos(o.bd || 0)*bl*.75), RX(Math.PI/2 + (o.bd || 0)), S(bw*.45, bl*.32, bw*.4)), o.beakTip, { outline: false }));
     if(o.crest) for(let i = 0; i < 3; i++) L.push(PART("CONE", chain(T(0, .82, .32 - i*.14), RX(-.35 - i*.3), S(.09, .5 - i*.08, .08)), o.crest, { ow: .03 }));
     if(o.tuft) L.push(PART("SPH", chain(T(0, .82, -.15), RX(-.6), S(.26, .2, .4)), o.tuft));
     if(o.comb){ for(let i = 0; i < 3; i++) L.push(PART("SPH", chain(T(0, .92 - Math.abs(i - 1)*.06, .3 - i*.2), S(.1, .17, .1)), o.comb)); L.push(PART("SPH", chain(T(0, -.32, .9), S(.08, .14, .07)), o.comb, { ow: .03 })); }
     if(o.flame) for(let i = 0; i < 3; i++) L.push(PART("CONE", chain(T((i - 1)*.18, .82, .1), RZ((1 - i)*.35), RX(-.2), S(.1, .55 - Math.abs(i - 1)*.15, .1)), i === 1 ? "#ffd84d" : "#ffa53a", { glow: [.1, .06, 0] }));
-    L.push(PART("QUAD", chain(T(0, .14, .965), S(.74, .74, 1)), null, { face: Object.assign({ eye: "dot", mouth: "none", ex: 58, blush: !o.cheek, ring: o.ring, cheek: o.cheek, cheekDot: o.cheekDot, eyeC: o.eyeC }, o.face || {}) }));
+    L.push(PART("FACE", BM, null, { face: Object.assign({ eye: "dot", mouth: "none", ex: 58, blush: !o.cheek, ring: o.ring, cheek: o.cheek, cheekDot: o.cheekDot, eyeC: o.eyeC }, o.face || {}) }));
     return L;
   }
   const bird = o => () => birdParts(o);
@@ -310,7 +315,7 @@
     b_lovebird: bird({ c: "#7fd36a", skin: "mask", c2: "#ff9f7a", wing: "#5fb84f", tail: "#3a8fd1", beak: "#ff5a5a", ring: "#ffffff", bw: .2, bl: .24 }),
     b_parrotlet: bird({ c: "#9fe07a", wing: "#6fae5a", tail: "#4a9fd8", beak: "#f2c9a8", bw: .17, bl: .2 }),
     b_quaker: bird({ c: "#7fd36a", skin: "bib", c2: "#dfe4ea", wing: "#5fb84f", tail: "#4fa86a", beak: "#ffcf9a", bw: .18, bl: .22 }),
-    b_sparrow: bird({ c: "#c49a6c", skin: "sparrow", c2: "#8a5a3a", c3: "#2e2a33", wingSkin: ["#a8774e", "scallop", "#5a3b2a"], tail: "#8a5a3a", cheek: "#ffffff", cheekDot: "#2e2a33", beak: "#4a3a33", bw: .12, bl: .18, feet: "#c9a080" }),
+    b_sparrow: bird({ c: "#c49a6c", skin: "sparrow", c2: "#8a5a3a", c3: "#2e2a33", wingSkin: ["#a8774e", "scallop", "#5a3b2a"], tail: "#8a5a3a", cheek: "#efe0c8", cheekDot: "#5a4038", beak: "#4a3a33", bw: .12, bl: .18, feet: "#c9a080" }),
     b_whiteeye: bird({ c: "#b5d94a", skin: "under", c2: "#f2f0d8", wing: "#9cc23a", tail: "#8ab030", ring: "#ffffff", beak: "#4a3a33", bw: .1, bl: .24, feet: "#8a8a94" }),
     b_magpie: bird({ c: "#2f6fd1", skin: "cap", c2: "#2a2530", wing: "#2a5fb8", longTail: true, tail: "#2f6fd1", tailTip: "#ffffff", beak: "#e8484d", feet: "#e8484d", ring: "#ffd84d", bw: .15, bl: .3 }),
     b_bulbul: bird({ c: "#3e3e4a", wing: "#33333e", tail: "#33333e", tuft: "#3e3e4a", beak: "#ff4a3a", feet: "#ff4a3a", ring: "#6e6e7e", bw: .14, bl: .28 }),
@@ -328,14 +333,14 @@
   });
 
   // 把模型畫出來（所有部件都乘上 base 矩陣）
-  const PC = {}; const MOCHI = chain(T(0, -.05, 0), S(1.12, .82, 1.05));
+  const PC = {}; const MOCHI = chain(T(0, -.02, 0), S(1.08, .92, 1.04));
   function drawModel(E, key, base, o = {}){
     const parts = PC[key] || (PC[key] = (MODELS[key] || MODELS.c_orange)());
     const glow = o.glow;
     const B = mul(base, MOCHI);
     for(const p of parts){
       const mx = mul(B, p.mx);
-      if(p.o.face){ const fk = p.fk || (p.fk = "f:" + JSON.stringify(p.o.face)); E.blend(true); E.draw(E.M.QUAD, mx, null, { tex: E.texture(fk, () => faceCanvas(p.o.face)), decal: true }); E.blend(false); continue; }
+      if(p.o.face){ const fk = p.fk || (p.fk = "f:" + JSON.stringify(p.o.face)); E.blend(true); E.draw(E.M[p.m], mx, null, { tex: E.texture(fk, () => faceCanvas(p.o.face)), decal: true }); E.blend(false); continue; }
       if(p.col && p.col.skin){ const [b, pat, c2, c3] = p.col.skin; E.draw(E.M[p.m], mx, null, Object.assign({ tex: E.texture("s:" + p.col.skin.join(","), () => skinCanvas(b, pat, c2, c3)), glow: p.o.glow || glow }, p.o)); continue; }
       E.draw(E.M[p.m], mx, p.col, Object.assign({ glow: p.o.glow || glow }, p.o));
     }
