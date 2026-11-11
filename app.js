@@ -2426,7 +2426,7 @@ const App = (function(){
     clearInterval(truceTimer); truceTimer = setInterval(tickTruce, 1000);
     B.track({ name: me.name, cat: me.cat });
     // 回報「我還在」：打開、回到畫面時一次，開著的話每 2 分鐘一次（後台的上線人數、現在在線用）
-    let seenT = 0; const touchSeen = () => { if(!B.touchSeen || Date.now() - seenT < 1.1e5) return; seenT = Date.now(); B.touchSeen().catch(()=>{ seenT = 0; }); };
+    let seenT = 0; const touchSeen = () => { if(!B.touchSeen || Date.now() - seenT < 1.1e5) return; seenT = Date.now(); B.touchSeen().catch(e=>{ seenT = /touch_seen|function|404/i.test(String(e&&e.message||e)) ? Date.now() + 36e5 : 0; }); };   // 資料庫還沒更新的話，1 小時後再試
     touchSeen(); setInterval(()=>{ if(document.visibilityState==="visible") touchSeen(); }, 1.2e5);
     document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible") touchSeen(); });
     B.connect();
