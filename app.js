@@ -811,8 +811,8 @@ const App = (function(){
     const bar = (pct) => `<div class="pbBar auBar"><i class="${pct>=.85?"low":pct>=.7?"mid":""}" style="width:${Math.round(pct*100)}%"></i></div>`;
     const modeRow = (k) => { const n = M[k]||0, tot = Math.max(1, st.total); return `<div class="admMode"><span>${MODES[k].name}</span><div class="admMB"><i style="width:${Math.round(n/tot*100)}%"></i></div><b>${n}</b></div>`; };
     body.innerHTML = `<div class="admGrid">
-        ${tile(st.total, "小窩", max ? `上限 ${max}` : "")}${tile(st.people, "使用人數")}${tile(st.active1, "今天有上線")}
-        ${tile(st.active7, "這 7 天有上線")}${tile(st.new7, "這 7 天新開")}${tile(st.msgs7, "這 7 天訊息")}</div>
+        ${tile(st.total, "小窩", max ? `上限 ${max}` : "")}${tile(st.people, "使用人數")}${tile(st.active1, st.people_based ? "今天上線的人" : "今天有動靜的小窩", st.people_based ? "台灣時間 0 點起" : "")}
+        ${tile(st.active7, st.people_based ? "這 7 天上線的人" : "這 7 天有動靜的小窩")}${tile(st.new7, "這 7 天新開")}${tile(st.msgs7, "這 7 天訊息")}</div>
       <div class="box admBox"><h3>小窩模式</h3>${["couple","bestie","bro","solo"].map(modeRow).join("")}
         ${st.waiting ? `<div class="k admNote">有 ${st.waiting} 個雙人小窩還在等另一個人加入</div>` : ""}</div>
       <div class="box admBox"><h3>用量</h3>
@@ -2421,6 +2421,10 @@ const App = (function(){
     onState("pet", ()=>refreshHomeBox("petGo", petStrip, v=>{ const pg=$("petGo"); if(pg) pg.addEventListener("click", ()=>go("game-pet")); }));
     clearInterval(truceTimer); truceTimer = setInterval(tickTruce, 1000);
     B.track({ name: me.name, cat: me.cat });
+    // 記錄「最後上線時間」：打開、回到畫面時記一次，開著的話每 10 分鐘一次（後台的上線人數用）
+    let seenT = 0; const touchSeen = () => { if(!B.touchSeen || Date.now() - seenT < 6e5) return; seenT = Date.now(); B.touchSeen().catch(()=>{ seenT = 0; }); };
+    touchSeen(); setInterval(()=>{ if(document.visibilityState==="visible") touchSeen(); }, 6e5);
+    document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible") touchSeen(); });
     B.connect();
     if(justCreated) location.hash = isSolo() ? "home" : "settings"; else if(!location.hash || location.hash==="#") location.hash="home";
     render();

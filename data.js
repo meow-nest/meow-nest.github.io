@@ -79,6 +79,7 @@
     B.adminFeedbackSet = (id, done, del) => rpcOrThrow("admin_feedback_set", { p_id: id, p_done: !!done, p_delete: !!del });
     B.adminReply = (id, body) => rpcOrThrow("admin_reply", { p_id: id, p_body: body });
     B.adminUsers = () => rpcOrThrow("admin_users");
+    B.touchSeen = () => rpcOrThrow("touch_seen");   // 記錄「最後上線時間」（後台統計用）
     B.adminDeleteNest = (id) => rpcOrThrow("admin_delete_couple", { p_id: id });
     B.adminRemoveMember = (uid) => rpcOrThrow("admin_remove_member", { p_uid: uid });
     B.unsend = (id) => rpcOrThrow("unsend_message", { p_id: id });
@@ -259,6 +260,7 @@
     B.adminFeedbackSet = async (id, done, del) => call("adminFeedbackSet", { id, done, del });
     B.adminReply = async (id, body) => call("adminReply", { id, body });
     B.adminUsers = async () => call("adminUsers");
+    B.touchSeen = async () => call("touchSeen");
     B.adminDeleteNest = async (id) => call("adminDelNest", { id });
     B.adminRemoveMember = async (uid) => call("adminRmMember", { uid });
     B.unsend = async (id) => call("unsend", { id });
