@@ -195,10 +195,17 @@
       const { error } = await sb.from("push_subs").upsert({ endpoint: sub.endpoint, sub, user_id: B.uid, couple_id: B.coupleId }, { onConflict: "endpoint" });
       if (error) throw error;
     };
-    B.connect = () => {
-      if (B._ch) sb.removeChannel(B._ch);
+    // 即時頻道用「私人頻道」：只有這個小窩的人能加入（資料庫的 realtime 規則會檢查，更新 23）
+    // 資料庫還沒更新時私人頻道會失敗，就先退回一般頻道，不會斷線
+    B._rtPrivate = true;
+    B.connect = async () => {
+      if (B._ch) { sb.removeChannel(B._ch); B._ch = null; }
+      const gen = B._gen = (B._gen || 0) + 1;
+      if (B._rtPrivate) { try { const { data } = await sb.auth.getSession(); if (data && data.session) sb.realtime.setAuth(data.session.access_token); } catch (e) {} }
+      if (gen !== B._gen) return;   // 等待期間又重新連線了，用新的那次就好
+      const priv = B._rtPrivate;
       const f = `couple_id=eq.${B.coupleId}`;
-      const ch = sb.channel("couple-" + B.coupleId, { config: { presence: { key: B.uid } } });
+      const ch = sb.channel("couple-" + B.coupleId, { config: { private: priv, presence: { key: B.uid } } });
       ch.on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: f }, p => B._h.msg.forEach(h => h(p.new)));
       ch.on("postgres_changes", { event: "*", schema: "public", table: "game_state", filter: f }, p => { const r = p.new; if (r && r.game) B._h.state.forEach(h => h(r.game, r.version, r.state)); });
       ch.on("postgres_changes", { event: "*", schema: "public", table: "members", filter: f }, () => B._h.members.forEach(h => h()));
@@ -208,7 +215,12 @@
         for (const k in st) { const m = st[k][0]; if (m) list.push(Object.assign({ uid: k }, m)); }
         B._h.presence.forEach(h => h(list));
       });
-      ch.subscribe(status => { B._h.status.forEach(h => h(status)); if (status === "SUBSCRIBED" && B._meta) ch.track(B._meta); });
+      let ok = false;
+      ch.subscribe(status => {
+        if (status === "SUBSCRIBED") ok = true;
+        if (priv && !ok && (status === "CHANNEL_ERROR" || status === "TIMED_OUT") && B._ch === ch) { B._rtPrivate = false; B.connect(); return; }
+        B._h.status.forEach(h => h(status)); if (status === "SUBSCRIBED" && B._meta) ch.track(B._meta);
+      });
       B._ch = ch;
     };
     B.track = (meta) => { B._meta = meta; if (B._ch) B._ch.track(meta).catch(() => {}); };
