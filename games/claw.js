@@ -520,7 +520,9 @@ App.registerGame({
       if(!alive) return; const dt = Math.max(0, Math.min(.04, (now - last)/1000)); last = now;
       const c0 = { x: claw.x, z: claw.z, tip: claw.tip, r: claw.r }; step(dt);
       const S = 4, lerp = (a, b, t) => a + (b - a)*t, at = t => ({ x: lerp(c0.x, claw.x, t), z: lerp(c0.z, claw.z, t), tip: lerp(c0.tip, claw.tip, t), r: lerp(c0.r, claw.r, t) });
-      for(let i = 0; i < S; i++) physics(dt/S, at(i/S), at((i + 1)/S)); draw();
+      // 爪子只有在「夾」的時候才是實心的；回到出口打開 0.5 秒後就穿過去，卡在爪子上的娃娃會直接掉下去
+      const solid = ["drop", "close", "rise", "top", "back"].includes(state) || (state === "release" && seq.t < .5);
+      for(let i = 0; i < S; i++) solid ? physics(dt/S, at(i/S), at((i + 1)/S)) : physics(dt/S); draw();
       // 玩完後幾秒內滾進出口的也算；沒在玩的時候自己滾進去的不算（放回機台裡）
       if(state === "idle" && captured.length){ if(performance.now() - lastPlay < 4000) finish(); else { captured.splice(0).forEach(cap => { const sp = SPOTS[cap.spot] || [.6, .6]; const p = mk(cap.kind, sp[0], .7, sp[1]); p.spot = cap.spot; }); } }
       if(state === "idle" && now - dayChk > 5000){ dayChk = now; if(dayKey() !== curDay && !dayBusy){ dayBusy = true; loadStatus().then(() => { dayBusy = false; if(state === "idle"){ arrange(); msg("新的一天！機台換了一批新娃娃"); info(); } }); }
