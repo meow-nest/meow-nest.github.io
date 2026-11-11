@@ -153,17 +153,16 @@ const Wp = (x, y, z) => [(x - .5)*SC, y*SC, (.5 - z)*SC];
 App.registerGame({
   id: "claw3d",
   solo: true,
-  wip: true,
   name: "3D 夾娃娃機",
   desc: "立體的娃娃機！80 多種立體布偶，有自己的蒐集櫃",
   icon: () => `<img src="${thumb("c_calico")}" alt="" style="width:100%">`,
   mount(el, ctx){
     const { esc, SFX } = ctx;
-    let s = null, alive = true, raf = 0;
+    let s = null, alive = true, raf = 0, srv = null;   // srv：伺服器給的今天機台、免費次數（防作弊）
     const me = () => ctx.me.uid, partner = () => ctx.partner();
     const isAdm = () => !!(ctx.isAdmin && ctx.isAdmin());
     const myCol = () => normCol(((s && s.col) || {})[me()]);
-    const triesLeft = () => { const t = ((s && s.tries) || {})[me()]; return t && t.day === dayKey() ? Math.max(0, FREE - t.n) : FREE; };
+    const triesLeft = () => { if(srv) return srv.free_left; const t = ((s && s.tries) || {})[me()]; return t && t.day === dayKey() ? Math.max(0, FREE - t.n) : FREE; };
     const luck = () => ((s && s.luck) || {})[me()] || 0;
     const owned = c => Object.keys(c).filter(k => c[k] > 0).length;
 
@@ -231,6 +230,11 @@ App.registerGame({
     const SPOTS = []; [.13, .37, .61, .85].forEach(z => [.095, .257, .419, .581, .743, .905].forEach(x => { if(!(x < HX + .08 && z < HZ + .06)) SPOTS.push([x, z, R]); }));
     [[.581, .25], [.419, .49], [.743, .49], [.257, .73], [.581, .73], [.905, .73]].forEach(([x, z]) => SPOTS.push([x, z, R*2.6]));
     let curDay = dayKey(), seenDay = curDay, LINE = lineup(curDay, SPOTS.length);
+    // 今天的機台由伺服器決定（沒有伺服器的版本就用手機算）
+    async function loadStatus(){
+      if(ctx.rpc) try{ const r = await ctx.rpc("claw3d_status"); if(r && Array.isArray(r.lineup)){ const L = r.lineup.map(id => IDX[id]); if(L.length >= SPOTS.length && L.every(x => x != null)){ srv = r; curDay = r.day; LINE = L; return; } } }catch(e){}
+      srv = null; curDay = dayKey(); LINE = lineup(curDay, SPOTS.length);
+    }
     const takenToday = () => { const d = ((s && s.day) || {})[me()]; return d && d.d === curDay ? d.t : []; };
     function arrange(){ prizes = []; const tk = takenToday();
       SPOTS.forEach(([x, z, y], j) => { if(tk.includes(j)) return; const p = mk(LINE[j], x, y, z); p.spot = j; }); }
@@ -369,6 +373,10 @@ App.registerGame({
     }
     async function pay(){
       if(!prizes.length){ soldOut(); return false; }
+      if(srv){ let r = null; try{ r = await ctx.rpc("claw3d_pay"); }catch(e){}
+        if(!r){ ctx.toast("連不上伺服器，等一下再試試看"); return false; }
+        if(!r.ok){ ctx.toast("今天的免費次數用完了，貓幣也不夠～<br>明天再來，或玩其他遊戲賺貓幣吧", 4000); return false; }
+        srv.free_left = r.free_left; return true; }
       if(isAdm()) return true;
       if(triesLeft() > 0){ let ok = false; await ctx.update("claw3d", st => { st = st || {}; st.tries = st.tries || {}; const t = st.tries[me()];
           const cur = t && t.day === dayKey() ? t : { day: dayKey(), n: 0 }; if(cur.n >= FREE) return undefined; cur.n++; st.tries[me()] = cur; ok = true; return st; }); return ok; }
@@ -541,7 +549,7 @@ App.registerGame({
     });
     el.querySelector("#cwCol").addEventListener("click", openCol); el.querySelector("#cwBookBtn").addEventListener("click", () => openBook(0));
 
-    let last = performance.now(), dayChk = 0;
+    let last = performance.now(), dayChk = 0, dayBusy = false;
     const loop = now => {
       if(!alive) return; const dt = Math.max(0, Math.min(.04, (now - last)/1000)); last = now;
       const c0 = { x: claw.x, z: claw.z, tip: claw.tip, r: claw.r }; step(dt);
@@ -551,10 +559,10 @@ App.registerGame({
       pose(dt); draw();
       if(state === "idle" && captured.length){ if(performance.now() - lastPlay < 4000) finish(); else { captured.splice(0).forEach(cap => { const sp = SPOTS[cap.spot] || [.6, .6]; const p = mk(cap.kind, sp[0], .7, sp[1]); p.spot = cap.spot; }); } }
       // 換日：只看手機上的日期有沒有變（不會一直重排）
-      if(state === "idle" && now - dayChk > 5000){ dayChk = now; const d = dayKey(); if(d !== seenDay){ seenDay = d; curDay = d; LINE = lineup(curDay, SPOTS.length); arrange(); msg("新的一天！機台換了一批新娃娃"); info(); } }
+      if(state === "idle" && now - dayChk > 5000){ dayChk = now; const d = dayKey(); if(d !== seenDay && !dayBusy){ seenDay = d; dayBusy = true; loadStatus().then(() => { dayBusy = false; if(state === "idle"){ arrange(); msg("新的一天！機台換了一批新娃娃"); info(); } }); } }
       raf = requestAnimationFrame(loop);
     };
-    const loaded = ctx.getState("claw3d").catch(() => null).then(cur => { s = cur ? cur.state : s; });
+    const loaded = Promise.all([ctx.getState("claw3d").catch(() => null).then(cur => { s = cur ? cur.state : s; }), loadStatus()]);
     requestAnimationFrame(async () => { try{ el.querySelector(".cw").scrollIntoView({ block: "start" }); }catch(e){} sizes(); buildScene(); await loaded; if(!alive) return;
       arrange(); for(let i = 0; i < 120; i++) physics(1/60); for(const p of prizes){ p.tx = p.rx; p.tz = p.rz; } captured = []; draw(); info(); if(!prizes.length) soldOut(); last = performance.now(); raf = requestAnimationFrame(loop); });
     const onR = () => { if(alive) sizes(); }; window.addEventListener("resize", onR);
