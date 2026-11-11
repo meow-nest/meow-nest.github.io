@@ -802,7 +802,8 @@ const App = (function(){
   async function drawAdmin(quiet){
     const body = $("admBody"); if(!body) return;
     let st, fb, us = null;
-    try{ [st, fb, us] = await Promise.all([B.adminStats(), B.adminFeedback(admTab==="all"), B.adminUsers ? B.adminUsers().catch(e=>{ console.error(e); return null; }) : null]); }
+    let on = null;
+    try{ [st, fb, us, on] = await Promise.all([B.adminStats(), B.adminFeedback(admTab==="all"), B.adminUsers ? B.adminUsers().catch(e=>{ console.error(e); return null; }) : null, B.adminOnline ? B.adminOnline().catch(()=>null) : null]); }
     catch(e){ console.error(e); if(!quiet) body.innerHTML = `<div class="box k" style="text-align:center">讀不到資料 🥺<br>${/admin_|function/i.test(String(e.message||e)) ? "資料庫還沒加上站長後台的設定（更新 11）" : "請檢查網路再按更新"}</div>`; return; }
     if(!$("admBody")) return;
     const at = $("admAt"); if(at) at.textContent = "更新於 " + new Date().toLocaleTimeString("zh-TW", { hour:"2-digit", minute:"2-digit" });
@@ -818,6 +819,9 @@ const App = (function(){
       <div class="box admBox"><h3>用量</h3>
         <div class="auTop"><span>小窩 <b>${st.total}</b> / ${max||"不限"}</span><span>${Math.round(cPct*100)}%</span></div>${bar(cPct)}
         <div class="auTop" style="margin-top:8px"><span>資料庫 <b>${dbMB.toFixed(1)} MB</b> / 500 MB</span><span>${Math.round(dbPct*100)}%</span></div>${bar(dbPct)}
+        ${on && on.now != null ? `<div class="auTop" style="margin-top:8px"><span>現在在線 <b>${on.now}</b> 人 / 同時上限 ${on.limit||200}</span><span>${Math.round(on.now/(on.limit||200)*100)}%</span></div>${bar(on.now/(on.limit||200))}
+        <div class="k admNote">今天最多同時 <b>${on.peak1}</b> 人・這 7 天最多 <b>${on.peak7}</b> 人${on.peak7 >= (on.limit||200)*.75 ? `<br><span class="waitWarn">快接近同時在線上限了，可以考慮升級 Supabase 方案</span>` : ""}</div>`
+        : `<div class="k admNote" style="margin-top:8px">在線人數：資料庫還沒加上這個設定（更新 21）</div>`}
         <div class="k admNote">${st.idle60 ? `有 ${st.idle60} 個小窩超過 60 天沒人用，滿 90 天會自動刪除` : "沒有快被自動刪除的小窩"}</div></div>
       <div class="box admBox" id="admUsers"><h3>👥 使用者</h3>
         ${us ? `<input id="admQ" class="admQ" placeholder="搜尋暱稱或邀請碼" value="${esc(admQ)}" autocomplete="off">
@@ -2421,9 +2425,9 @@ const App = (function(){
     onState("pet", ()=>refreshHomeBox("petGo", petStrip, v=>{ const pg=$("petGo"); if(pg) pg.addEventListener("click", ()=>go("game-pet")); }));
     clearInterval(truceTimer); truceTimer = setInterval(tickTruce, 1000);
     B.track({ name: me.name, cat: me.cat });
-    // 記錄「最後上線時間」：打開、回到畫面時記一次，開著的話每 10 分鐘一次（後台的上線人數用）
-    let seenT = 0; const touchSeen = () => { if(!B.touchSeen || Date.now() - seenT < 6e5) return; seenT = Date.now(); B.touchSeen().catch(()=>{ seenT = 0; }); };
-    touchSeen(); setInterval(()=>{ if(document.visibilityState==="visible") touchSeen(); }, 6e5);
+    // 回報「我還在」：打開、回到畫面時一次，開著的話每 2 分鐘一次（後台的上線人數、現在在線用）
+    let seenT = 0; const touchSeen = () => { if(!B.touchSeen || Date.now() - seenT < 1.1e5) return; seenT = Date.now(); B.touchSeen().catch(()=>{ seenT = 0; }); };
+    touchSeen(); setInterval(()=>{ if(document.visibilityState==="visible") touchSeen(); }, 1.2e5);
     document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible") touchSeen(); });
     B.connect();
     if(justCreated) location.hash = isSolo() ? "home" : "settings"; else if(!location.hash || location.hash==="#") location.hash="home";
