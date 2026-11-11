@@ -219,6 +219,8 @@
       ch.subscribe(status => {
         if (status === "SUBSCRIBED") ok = true;
         if (priv && !ok && (status === "CHANNEL_ERROR" || status === "TIMED_OUT") && B._ch === ch) { B._rtPrivate = false; B.connect(); return; }
+        // 一般頻道被拒絕（站長關掉了公開頻道）：等一下改回私人頻道重新連
+        if (!priv && status === "CHANNEL_ERROR" && B._ch === ch) { B._rtPrivate = true; clearTimeout(B._rtRetry); B._rtRetry = setTimeout(() => { if (B._ch === ch) B.connect(); }, 3000); }
         B._h.status.forEach(h => h(status)); if (status === "SUBSCRIBED" && B._meta) ch.track(B._meta);
       });
       B._ch = ch;
