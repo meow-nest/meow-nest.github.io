@@ -151,7 +151,6 @@ const HOME = { x: HX/2, z: HZ/2 };
 App.registerGame({
   id: "claw",
   solo: true,
-  wip: true,   // 站長測試中：一般使用者先看不到
   name: "喵喵夾娃娃機",
   desc: "像真的娃娃機！前後左右對準，夾娃娃收集貓咪玩偶",
   icon: () => Pix.sprite("orange", "wave"),
