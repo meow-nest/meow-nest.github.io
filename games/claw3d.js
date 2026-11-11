@@ -213,6 +213,7 @@ App.registerGame({
         else { x.fillStyle = "rgba(255,255,255,.55)"; x.beginPath(); x.arc(0, 0, 8, 0, 7); x.arc(10, 2, 7, 0, 7); x.arc(-10, 2, 7, 0, 7); x.fill(); } x.restore(); }
       return c; });
     const shTex = () => tex("c3sh", () => { const c = C2(128, 128), x = c.getContext("2d"); const g = x.createRadialGradient(64, 64, 4, 64, 64, 62); g.addColorStop(0, "rgba(90,40,70,.55)"); g.addColorStop(.6, "rgba(90,40,70,.3)"); g.addColorStop(1, "rgba(90,40,70,0)"); x.fillStyle = g; x.fillRect(0, 0, 128, 128); return c; });
+    const clawShTex = () => tex("c3csh", () => { const c = C2(128, 128), x = c.getContext("2d"); const g = x.createRadialGradient(64, 64, 20, 64, 64, 60); g.addColorStop(0, "rgba(60,25,50,.62)"); g.addColorStop(.7, "rgba(60,25,50,.5)"); g.addColorStop(1, "rgba(60,25,50,0)"); x.fillStyle = g; x.fillRect(0, 0, 128, 128); return c; });
     const exitTex = () => tex("c3exit", () => { const c = C2(256, 96), x = c.getContext("2d"); x.fillStyle = "#2e2240"; x.fillRect(0, 0, 256, 96); x.strokeStyle = "#ffe08a"; x.lineWidth = 6; x.strokeRect(6, 6, 244, 84);
       x.fillStyle = "#ffe08a"; x.font = "bold 46px sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText("出口", 150, 50);
       x.beginPath(); x.moveTo(44, 30); x.lineTo(70, 30); x.lineTo(70, 50); x.lineTo(82, 50); x.lineTo(57, 76); x.lineTo(32, 50); x.lineTo(44, 50); x.closePath(); x.fill(); return c; });
@@ -329,12 +330,11 @@ App.registerGame({
         E.draw(E.M.QUAD, chain(T(w[0], .015, w[2]), RX(-Math.PI/2), S(.62*k, .62*k, 1)), null, { tex: shTex(), decal: true, alpha: a }); }
       let surf = 0, under = null; for(const p of prizes){ const d = Math.hypot(p.x - claw.x, p.z - claw.z); if(d < p.r*.92){ const top = p.y + Math.sqrt(p.r*p.r - d*d); if(top > surf && top < claw.tip + .02){ surf = top; under = p; } } }
       const aiming = state === "aim" || state === "idle" || state === "paying", pulse = .5 + .5*Math.sin(performance.now()/180);
-      if(!(surf === 0 && inHole(claw.x, claw.z))){ const gap = Math.max(0, claw.tip - surf); E.draw(E.M.QUAD, chain(T(cw[0], surf*SC + .03, cw[2]), RX(-Math.PI/2), S(.5, .5, 1)), null, { tex: shTex(), decal: true, alpha: .55 + .45*(1 - Math.min(1, gap/.8)) }); }
       E.blend(false);
       // 娃娃（被瞄準的那隻會發亮）
       const sc = R*SC*1.18;
       for(const p of prizes){ const w = Wp(p.x, p.y, p.z); p.sq *= .82; const sx = 1 + p.sq*.6, sy = 1 - p.sq;
-        const g = aiming && state === "aim" && p === under ? [.22 + .14*pulse, .1 + .08*pulse, .16 + .08*pulse] : null;
+        const g = null;
         Toy3D.drawModel(E, PRIZES[p.kind][2], chain(T(w[0], w[1], w[2]), RY(p.yaw), RX(p.tx), RZ(p.tz), S(sc*sx, sc*sy, sc*sx)), g ? { glow: g } : {}); }
       // 爪子
       const sw = claw.swing*.0025, Wc = q => { const v = Wp(q[0] - sw*(q[1] - claw.tip - .16), q[1], q[2]); return v; };
@@ -345,11 +345,10 @@ App.registerGame({
       prongs(claw).forEach(pr => { const pts = pr.pts.map(Wc);
         for(let i = 0; i < 3; i++) E.draw(E.M.CYL, seg(pts[i], pts[i + 1], i === 2 ? .06 : .075), METAL, { ow: .035 });
         for(let i = 1; i < 4; i++) E.draw(E.M.SPH, chain(T(...pts[i]), S(.09, .09, .09)), i === 3 ? "#9aa6bd" : METAL, { ow: .03 }); });
-      // 出口旁邊的透明擋板、瞄準光柱
+      // 爪子的影子、出口旁邊的透明擋板
       E.blend(true);
-      // 瞄準圈：爪子正下方（畫在最上面，才不會被娃娃蓋住）
-      if(aiming && !(surf === 0 && inHole(claw.x, claw.z))) E.draw(E.M.QUAD, chain(T(cw[0], surf*SC + .05, cw[2]), RX(-Math.PI/2), S(.55 + .05*pulse, .55 + .05*pulse, 1)), null, { tex: ringTex(), decal: true, alpha: .95 });
-      if(state === "aim"){ const y0 = surf*SC + .05, y1 = hub[1] - .3; if(y1 > y0) E.draw(E.M.CYL, chain(T(hub[0], (y0 + y1)/2, hub[2]), S(.05, (y1 - y0), .05)), "#ff7aa6", { outline: false, alpha: .45 }); }
+      // 爪子的影子（落在娃娃頭上或地板上）
+      if(!(surf === 0 && inHole(claw.x, claw.z))){ const gap = Math.max(0, claw.tip - surf); const k = 1 - Math.min(.35, gap*.4); E.draw(E.M.QUAD, chain(T(cw[0], surf*SC + .03, cw[2]), RX(-Math.PI/2), S(.55*k, .55*k, 1)), null, { tex: clawShTex(), decal: true, alpha: .8 + .2*(1 - Math.min(1, gap/.8)) }); }
       const rH = RIM*SC;
       E.draw(E.M.BOX, chain(T((-3 + hx)/2, rH/2, hz), S((hx + 3)/2, rH/2, .03)), "#bfe0ff", { outline: false, alpha: .45 });
       E.draw(E.M.BOX, chain(T(hx, rH/2, (hz + 3)/2), S(.03, rH/2, (3 - hz)/2)), "#bfe0ff", { outline: false, alpha: .45 });
@@ -389,7 +388,7 @@ App.registerGame({
       if(!E) return;
       if(state === "idle"){ state = "paying"; if(!(await pay())){ state = "idle"; return; }
         SFX.coin ? SFX.coin() : SFX.select(); state = "aim"; tLeft = TIME; timerEl.classList.remove("hidden"); goBtn.textContent = "夾！"; goBtn.classList.add("grab"); goBtn.classList.remove("paid");
-        msg("用十字鍵移動爪子，<b>粉紅色圈圈</b>對準的娃娃會發亮，對好就按「夾！」"); info(); }
+        msg("用十字鍵移動爪子，看地上的影子對準，按「夾！」"); info(); }
       else if(state === "aim") startDrop();
     });
     let seq = null, holdSet = new Set();
