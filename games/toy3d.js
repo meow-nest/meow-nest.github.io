@@ -176,8 +176,9 @@
     const L = [], c = o.c;
     const body = o.skin ? { skin: [c, o.skin, o.c2, o.c3] } : c;
     // 尾巴
-    if(!o.noTail){ for(let i = 0; i < 5; i++){ const t = i/4; L.push(PART("SPH", chain(T(.72 + .26*Math.sin(t*2.2), -.42 + t*.8, -.55 - .08*t), S(.17, .17, .17)), o.tail || c)); }
-      if(o.tailTip) L.push(PART("SPH", chain(T(.72 + .26*Math.sin(2.2), .38, -.63), S(.19, .19, .19)), o.tailTip)); }
+    // 尾巴：沿著麻糬的底部繞半圈，尾巴尖往上翹一點（很多顆重疊的小球，看起來是一條滑順的尾巴）
+    if(!o.noTail){ const N = 36; for(let i = 0; i < N; i++){ const t = i/(N - 1), a = t*Math.PI*.6, rr = 1.1, y = -.74 + Math.pow(t, 2.5)*.42, r = .16 - t*.04;
+        L.push(PART("SPH", chain(T(Math.sin(a)*rr, y, -Math.cos(a)*rr), S(r, r, r)), t > .8 && o.tailTip ? o.tailTip : (o.tail || c), { ow: i === N - 1 ? .04 : .012 })); } }
     const BM = chain(T(0, -.5, 0), S(1.06, 1.4, 1.0)); L.push(PART("DOME", BM, body));
     const ear = o.ear || c;
     if(o.ears !== false) for(const s of [-1, 1]){ L.push(PART("CONE", chain(T(s*.56, .66, 0), RZ(-s*.36), S(.3, .46, .27)), ear)); L.push(PART("CONE", chain(T(s*.57, .69, .15), RZ(-s*.36), S(.15, .27, .1)), o.earIn || "#ffb3c6", { outline: false })); }
@@ -191,7 +192,8 @@
     bow: (col = "#f2557a", y = .78, xo = -.42) => [PART("SPH", chain(T(xo - .17, y, .3), RZ(.4), S(.2, .13, .1)), col), PART("SPH", chain(T(xo + .17, y, .3), RZ(-.4), S(.2, .13, .1)), col), PART("SPH", chain(T(xo, y, .33), S(.09, .09, .08)), col)],
     crown: () => [PART("CYL", chain(T(0, .98, 0), S(.42, .22, .42)), "#ffcf3a"), ...[0, 1, 2, 3, 4].map(i => { const a = i/5*Math.PI*2; return PART("CONE", chain(T(Math.cos(a)*.34, 1.08, Math.sin(a)*.34), S(.1, .22, .1)), "#ffcf3a"); }), PART("SPH", chain(T(0, .98, .42), S(.08, .08, .05)), "#f2557a", { outline: false })],
     halo: () => [PART("TOR", chain(T(0, 1.22, 0), RX(.25), S(.5, .5, .5)), "#fff07a", { glow: [.25, .22, .05] })],
-    wings: (col = "#ffffff") => [-1, 1].map(s => PART("SPH", chain(T(s*.95, .2, -.4), RZ(s*.7), RY(s*.5), S(.42, .22, .08)), col)),
+    // 天使翅膀：背上兩邊各三片羽毛，往斜上方張開
+    wings: (col = "#ffffff") => [-1, 1].flatMap(s => [0, 1, 2].map(i => { const a = .7 + i*.4; return PART("SPH", chain(T(s*(.62 + Math.sin(a)*.5), .3 + Math.cos(a)*.45, -.6 + i*.05), RY(s*.6), RZ(-s*a), S(.16, .5 - i*.09, .07)), col, { ow: .035 }); })),
     party: (col = "#7fd3ff") => [PART("CONE", chain(T(.25, .92, 0), RZ(-.25), S(.24, .5, .24)), col), PART("SPH", chain(T(.37, 1.4, 0), S(.09, .09, .09)), "#ffe066")],
     flower: (col = "#ff8fab") => [...[0, 1, 2, 3, 4].map(i => { const a = i/5*Math.PI*2; return PART("SPH", chain(T(-.5 + Math.cos(a)*.12, .75 + Math.sin(a)*.12, .35), S(.1, .1, .06)), col); }), PART("SPH", chain(T(-.5, .75, .4), S(.07, .07, .05)), "#ffe066")],
     sprout: () => [PART("CYL", chain(T(0, 1.0, 0), S(.03, .25, .03)), "#6cbf5a"), PART("SPH", chain(T(-.12, 1.13, 0), RZ(.5), S(.14, .07, .07)), "#8fd96c"), PART("SPH", chain(T(.12, 1.13, 0), RZ(-.5), S(.14, .07, .07)), "#8fd96c")],
