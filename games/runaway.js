@@ -296,7 +296,7 @@ function play(opts){
     requestAnimationFrame(()=>{ size(); start(); raf = requestAnimationFrame(loop); });
   });
 }
-const svgOf = (rows, pal) => { let r = ""; rows.forEach((row,y)=>[...row].forEach((c,x)=>{ if(pal[c]) r += `<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${pal[c]}"/>`; })); return `<svg viewBox="0 0 ${rows[0].length} ${rows.length}" shape-rendering="crispEdges">${r}</svg>`; };
+const svgOf = (rows, pal) => { let r = ""; rows.forEach((row,y)=>[...row].forEach((c,x)=>{ if(pal[c]) r += `<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${pal[c]}"/>`; })); return `<svg viewBox="0 0 ${rows[0].length} ${rows.length}" shape-rendering="crispEdges">${pxC(r)}</svg>`; };
 const dogSvg = () => svgOf(VAC, VPAL);
 const fishSvg = () => svgOf(SP.FISH, { O, Y:"#f2a65a", H:"#fff3d6", E:"#2b1d18" });
 

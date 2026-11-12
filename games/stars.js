@@ -13,7 +13,7 @@ function pent(c, puffed){
   const R = ["....OOO....","..OOYYYOO..",".OYYYYYYYO.","OYYYYYYYYYO","OYYYYYYYYYO",".OYYYYYYYO.",".OYYYYYYYO.","..OYYYYYO..","..OOOOOOO.."];
   let r = ""; R.forEach((row,y)=>[...row].forEach((ch,x)=>{ if(ch==="O") r += `<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${O}"/>`; else if(ch==="Y") r += `<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${c}"/>`; }));
   for(let i=0;i<puffed;i++){ const pts = [[5,0],[10,3],[8,8],[2,8],[0,3]][i]; r += `<rect x="${pts[0]}" y="${pts[1]}" width="1.02" height="1.02" fill="#fff" opacity=".9"/>`; }
-  return `<svg viewBox="0 0 11 9" shape-rendering="crispEdges">${r}</svg>`;
+  return `<svg viewBox="0 0 11 9" shape-rendering="crispEdges">${pxC(r)}</svg>`;
 }
 
 App.registerGame({

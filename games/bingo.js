@@ -6,7 +6,7 @@
 const O = "#5a3b2e";
 const PX = (rows, pal) => { pal = Object.assign({ O }, pal); const w = Math.max(...rows.map(r => r.length)), h = rows.length; let r = "";
   rows.forEach((row, y) => [...row].forEach((c, x) => { if(pal[c]) r += `<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${pal[c]}"/>`; }));
-  return `<svg viewBox="0 0 ${w} ${h}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">${r}</svg>`; };
+  return `<svg viewBox="0 0 ${w} ${h}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">${pxC(r)}</svg>`; };
 const PAW = PX(["..OO..OO..",".OPPOOPPO.",".OPPOOPPO.","..OO..OO..","...OOOO...","..OPPPPO..",".OPPPPPPO.",".OPPPPPPO.","..OOOOOO.."], { O: "#ffffff", P: "#ffffff" });
 const PAWC = PX(["..OO..OO..",".OPPOOPPO.",".OPPOOPPO.","..OO..OO..","...OOOO...","..OPPPPO..",".OPPPPPPO.",".OPPPPPPO.","..OOOOOO.."], { O: "#c2405c", P: "#f0708d" });
 const DICE = PX(["OOOOOOOO","OWWWWWWO","OWDWWDWO","OWWWWWWO","OWWDDWWO","OWWWWWWO","OWDWWDWO","OOOOOOOO"], { W: "#fff8ec", D: "#f0708d" });
@@ -25,7 +25,7 @@ const LOAF = "M14 88 C8 88 6 80 8 72 C10 62 16 56 22 54 L20 34 L34 44 C40 42 46 
 const V = (body, st) => `<svg viewBox="0 0 100 100" ${st || ""}>${body}</svg>`;
 const PXC = (() => { const rows = ["..O.........O..",".OPO.......OPO.",".OPPO.....OPPO.",".OPPPOOOOOPPPO.","OPPPPPPPPPPPPPO","OPPPPPPPPPPPPPO","OPPPPPPPPPPPPPO","OPPPPPPPPPPPPPO","OPPPPPPPPPPPPPO",".OPPPPPPPPPPPO.","..OPPPPPPPPPO..","...OOOOOOOOO..."]; let r = "";
   rows.forEach((row, y) => [...row].forEach((c, x) => { if(c !== ".") r += `<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${c === "O" ? "#c2405c" : "#f0708d"}"/>`; }));
-  return `<svg viewBox="0 0 15 12" shape-rendering="crispEdges">${r}</svg>`; })();
+  return `<svg viewBox="0 0 15 12" shape-rendering="crispEdges">${pxC(r)}</svg>`; })();
 const PAST = ["#f0708d", "#7cc9a0", "#a993e6", "#f6b84f", "#6fb3ee"];
 const STAMPS = [
   ["A", "粉紅貓頭", () => V(`<path d="${HEAD}" fill="#f0708d" stroke="#c2405c" stroke-width="4"/><circle cx="34" cy="70" r="5" fill="#ffb3c6"/><circle cx="66" cy="70" r="5" fill="#ffb3c6"/>`)],

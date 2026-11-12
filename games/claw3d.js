@@ -5,7 +5,7 @@
 const O = "#5a3b2e";
 const PX = (rows, pal) => { pal = Object.assign({ O }, pal); const w = Math.max(...rows.map(r => r.length)), h = rows.length; let r = "";
   rows.forEach((row, y) => [...row].forEach((c, x) => { if(pal[c]) r += `<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${pal[c]}"/>`; }));
-  return `<svg viewBox="0 0 ${w} ${h}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">${r}</svg>`; };
+  return `<svg viewBox="0 0 ${w} ${h}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">${pxC(r)}</svg>`; };
 const CROWN = PX(["O...O...O","OYO.OYO.O","OYYOYYOYO","OYYYRYYYO","OOOOOOOOO"], { Y: "#f6c45f", R: "#e5484d" });
 const ICO = {
   cat: () => PX([".O.....O.","OYO...OYO","OYYOOOYYO","OYYYYYYYO","OYEYYYEYO","OYYYNYYYO",".OYYYYYO.","..OOOOO.."], { Y: "#f2b06a", E: "#2b1d18", N: "#f0708d" }),
@@ -183,7 +183,7 @@ App.registerGame({
     // ---- 畫面大小 ----
     let W = 300, H = 320, DPR = 1;
     function sizes(){ W = V.clientWidth; const room = window.innerHeight - 270; V.style.height = Math.round(Math.max(250, Math.min(W*1.1, room))) + "px"; H = V.clientHeight;
-      DPR = Math.min(2, window.devicePixelRatio || 1); cv.width = Math.round(W*DPR); cv.height = Math.round(H*DPR); }
+      DPR = Math.min(1.5, window.devicePixelRatio || 1); cv.width = Math.round(W*DPR); cv.height = Math.round(H*DPR); }
 
     // ---- 機台的貼圖和網格 ----
     let floorMesh = null, holeMesh = null;
@@ -237,7 +237,7 @@ App.registerGame({
       srv = null; curDay = dayKey(); LINE = lineup(curDay, SPOTS.length);
     }
     const takenToday = () => { const d = ((s && s.day) || {})[me()]; return d && d.d === curDay ? d.t : []; };
-    function arrange(){ prizes = []; const tk = takenToday();
+    function arrange(){ needDraw = true; prizes = []; const tk = takenToday();
       SPOTS.forEach(([x, z, y], j) => { if(tk.includes(j)) return; const p = mk(LINE[j], x, y, z); p.spot = j; }); }
     const leftToday = () => SPOTS.length - takenToday().length;
     // 爪子
@@ -424,7 +424,7 @@ App.registerGame({
         else { const v = Math.min(d, .26*dt); claw.vx = dx/d*.26; claw.vz = dz/d*.26; claw.x += dx/d*v; claw.z += dz/d*v; }
         watchHold(); }
       else if(state === "release"){ if(seq.t === 0){ claw.rT = OPEN; SFX.key(.9); } seq.t += dt; if(seq.t > 1.8) finish(); }
-      if(state !== "top") claw.swing += (Math.sin(performance.now()/240)*(holdSet.size ? 3 : 1) - claw.swing)*Math.min(1, dt*3);
+      if(state === "idle") claw.swing *= Math.max(0, 1 - dt*4); else if(state !== "top") claw.swing += (Math.sin(performance.now()/240)*(holdSet.size ? 3 : 1) - claw.swing)*Math.min(1, dt*3);
     }
     async function finish(){
       state = "done";
@@ -548,14 +548,19 @@ App.registerGame({
     });
     el.querySelector("#cwCol").addEventListener("click", openCol); el.querySelector("#cwBookBtn").addEventListener("click", () => openBook(0));
 
-    let last = performance.now(), dayChk = 0, dayBusy = false;
+    let last = performance.now(), dayChk = 0, dayBusy = false, lastDraw = 0, needDraw = true;
     const loop = now => {
       if(!alive) return; const dt = Math.max(0, Math.min(.04, (now - last)/1000)); last = now;
       const c0 = { x: claw.x, z: claw.z, tip: claw.tip, r: claw.r }; step(dt);
       const SS = 4, lerp = (a, b, t) => a + (b - a)*t, at = t => ({ x: lerp(c0.x, claw.x, t), z: lerp(c0.z, claw.z, t), tip: lerp(c0.tip, claw.tip, t), r: lerp(c0.r, claw.r, t) });
       const solid = ["drop", "close", "rise", "top", "back"].includes(state) || (state === "release" && seq.t < .5);
       for(let i = 0; i < SS; i++) solid ? physics(dt/SS, at(i/SS), at((i + 1)/SS)) : physics(dt/SS);
-      pose(dt); draw();
+      pose(dt);
+      // 沒有東西在動的時候就不用一直重畫（手機比較不會熱、不會卡）
+      let moving = state !== "idle" || captured.length > 0;
+      for(const p of prizes){ const d = Math.abs(p.x - (p.lx ?? 9)) + Math.abs(p.y - (p.ly ?? 9)) + Math.abs(p.z - (p.lz ?? 9)); p.lx = p.x; p.ly = p.y; p.lz = p.z;
+        if(d > .0004 || Math.abs(p.tx - p.rx) + Math.abs(p.tz - p.rz) > .002 || p.sq > .01) moving = true; }
+      if(moving || needDraw){ draw(); lastDraw = now; needDraw = false; if(window.__mock) window.__drawN = (window.__drawN||0) + 1; }
       if(state === "idle" && captured.length){ if(performance.now() - lastPlay < 4000) finish(); else { captured.splice(0).forEach(cap => { const sp = SPOTS[cap.spot] || [.6, .6]; const p = mk(cap.kind, sp[0], .7, sp[1]); p.spot = cap.spot; }); } }
       // 換日：只看手機上的日期有沒有變（不會一直重排）
       if(state === "idle" && now - dayChk > 5000){ dayChk = now; const d = dayKey(); if(d !== seenDay && !dayBusy){ seenDay = d; dayBusy = true; loadStatus().then(() => { dayBusy = false; if(state === "idle"){ arrange(); msg("新的一天！機台換了一批新娃娃"); info(); } }); } }
@@ -564,7 +569,7 @@ App.registerGame({
     const loaded = Promise.all([ctx.getState("claw3d").catch(() => null).then(cur => { s = cur ? cur.state : s; }), loadStatus()]);
     requestAnimationFrame(async () => { try{ el.querySelector(".cw").scrollIntoView({ block: "start" }); }catch(e){} sizes(); buildScene(); await loaded; if(!alive) return;
       arrange(); for(let i = 0; i < 120; i++) physics(1/60); for(const p of prizes){ p.tx = p.rx; p.tz = p.rz; } captured = []; draw(); info(); if(!prizes.length) soldOut(); last = performance.now(); raf = requestAnimationFrame(loop); });
-    const onR = () => { if(alive) sizes(); }; window.addEventListener("resize", onR);
+    const onR = () => { if(alive){ sizes(); needDraw = true; } }; window.addEventListener("resize", onR);
     this._u = ctx.onState("claw3d", st => { s = st; if(alive) info(); });
     this._stop = () => { alive = false; window.removeEventListener("resize", onR); document.body.classList.remove("cwOn"); cancelAnimationFrame(raf); document.querySelectorAll(".cwReveal,.cwCabM,.cwBookM").forEach(x => x.remove());
       try{ const lx = E && E.gl.getExtension("WEBGL_lose_context"); if(lx) lx.loseContext(); }catch(e){} };

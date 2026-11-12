@@ -6,7 +6,7 @@
 const O = "#5a3b2e";
 const PX = (rows, pal) => { pal = Object.assign({ O }, pal); const w = Math.max(...rows.map(r => r.length)), h = rows.length; let r = "";
   rows.forEach((row, y) => [...row].forEach((c, x) => { if(pal[c]) r += `<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${pal[c]}"/>`; }));
-  return `<svg viewBox="0 0 ${w} ${h}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">${r}</svg>`; };
+  return `<svg viewBox="0 0 ${w} ${h}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">${pxC(r)}</svg>`; };
 const BUBBLE = c => PX(["..OOOOOOOO..",".OWWWWWWWWO.","OWWWWWWWWWWO","OWWDWWDWWDWO","OWWWWWWWWWWO",".OWWWWWWWWO.","..OOOWOOOO..","....OWO.....","....OO......"], { W: c, D: "#5a3b2e" });
 const HEART = PX([".OO.OO.","OPPOPPO","OPPPPPO",".OPPPO.","..OPO..","...O..."], { P: "#f0708d" });
 const HEART0 = PX([".OO.OO.","OPPOPPO","OPPPPPO",".OPPPO.","..OPO..","...O..."], { P: "#e6dccf", O: "#b9a99a" });

@@ -1,3 +1,21 @@
+// 效能：把一格一格的像素方塊合併成「每個顏色一個形狀」，畫面元素少很多、手機比較不會卡（外觀完全一樣）
+const pxC = (function(){
+  const cache = new Map(), RE = /<rect x="(-?[\d.]+)" y="(-?[\d.]+)" width="1\.02" height="1\.02" fill="([^"]+)"\/>/g;
+  return function(r){
+    if(!r || r.length < 200) return r;
+    const hit = cache.get(r); if(hit) return hit;
+    const by = new Map(), seen = new Set(), order = []; let m, dup = false;
+    const rest = r.replace(RE, (_, x, y, c) => { const k = x + "," + y; if(seen.has(k)) dup = true; seen.add(k);
+      if(!by.has(c)){ by.set(c, new Map()); order.push(c); } const rows = by.get(c); (rows.get(y) || rows.set(y, []).get(y)).push(+x); return ""; });
+    if(dup) return r;   // 有重疊的就照原本的畫，保證外觀不變
+    let out = "";
+    for(const c of order){ let d = ""; for(const [y, xs] of by.get(c)){ xs.sort((a, b) => a - b); let s = xs[0], p = xs[0];
+        for(let i = 1; i <= xs.length; i++){ const x = xs[i]; if(x === p + 1){ p = x; continue; } d += `M${s} ${y}h${p - s + 1.02}v1.02h-${p - s + 1.02}z`; s = p = x; } }
+      out += `<path d="${d}" fill="${c}"/>`; }
+    out += rest;
+    if(cache.size > 600) cache.clear(); cache.set(r, out); return out;
+  };
+})();
 // Pixel art engine & sprites (shared by the app and all games)
 function pix(rows, pal, opt={}){
   const w = Math.max(...rows.map(r=>r.length)), h = rows.length;
@@ -6,7 +24,7 @@ function pix(rows, pal, opt={}){
   rows.forEach((row,y)=>[...row].forEach((c,x)=>{ const col = pal[c]; if(col) r += `<rect x="${x+pad}" y="${y+pad}" width="1.02" height="1.02" fill="${col}"/>`; }));
   const W = w+pad*2, H = h+pad*2, S = Math.max(W,H);
   const bg = opt.bg ? `<rect x="${-(S-W)/2}" y="${-(S-H)/2}" width="${S}" height="${S}" fill="${opt.bg}"/>` : '';
-  return `<svg viewBox="${-(S-W)/2} ${-(S-H)/2} ${S} ${S}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">${bg}${r}</svg>`;
+  return `<svg viewBox="${-(S-W)/2} ${-(S-H)/2} ${S} ${S}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">${bg}${pxC(r)}</svg>`;
 }
 function setEyes(rows, kind){
   rows = rows.map(r=>[...r]);

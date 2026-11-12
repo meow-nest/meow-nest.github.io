@@ -132,7 +132,7 @@ function catSVG(cat, len, vert, cry){
     1:"#f7a7b8", 2:"#ffc38a", 3:"#ffe58f", 4:"#a8e6c4", 5:"#9fd0f5", 6:"#cdb4f0" };
   let r = "";
   for(let y=0;y<H;y++) for(let x=0;x<W;x++){ const c = PAL[g[y][x]]; if(c) r += `<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${c}"/>`; }
-  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">${r}</svg>`;
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">${pxC(r)}</svg>`;
 }
 const svgCache = {};
 const catImg = (cat, len, vert, cry) => { const k = [cat.coat,cat.acc,len,vert?1:0,cry?1:0].join("|"); return svgCache[k] || (svgCache[k] = "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(catSVG(cat,len,vert,cry))); };

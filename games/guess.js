@@ -5,7 +5,7 @@
 const O = "#5a3b2e";
 const P = (rows, pal) => { pal = Object.assign({ O }, pal); const w = Math.max(...rows.map(r=>r.length)), h = rows.length; let r = "";
   rows.forEach((row,y)=>[...row].forEach((c,x)=>{ if(pal[c]) r += `<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${pal[c]}"/>`; }));
-  return `<svg viewBox="0 0 ${w} ${h}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">${r}</svg>`; };
+  return `<svg viewBox="0 0 ${w} ${h}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">${pxC(r)}</svg>`; };
 const BOMB = ["........YR..",".......Y.R..","......OOO...",".....OKKO...","...OOOOOOO..","..OBBBBBBBO.",".OBWWBBBBBBO",".OBWBBBBBBBO","OBBBBBBBBBBBO".slice(0,12),".OBBBBBBBBBO",".OBBBBBBBBBO","..OBBBBBBBO.","...OOOOOOO.."];
 const bomb = () => P(BOMB, { B: "#3a3542", W: "#8a8494", K: "#8a8494", Y: "#ffcf4a", R: "#ff7a3a" });
 const LOCK = ["...OOOO...","..O....O..",".O......O.",".O......O.","OOOOOOOOOO","OYYYYYYYYO","OYYYOOYYYO","OYYYOOYYYO","OYYYYOYYYO","OYYYYYYYYO","OOOOOOOOOO"];

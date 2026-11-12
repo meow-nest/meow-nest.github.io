@@ -12,7 +12,7 @@ const GLYPH = {
   p:["..###..","..###..","...#...","..###..",".#####.","#######","......."],
 };
 const gsvg = {};
-const glyph = (k, col) => gsvg[k+col] || (gsvg[k+col] = `<svg viewBox="0 0 7 7" shape-rendering="crispEdges">${GLYPH[k].map((row,y)=>[...row].map((ch,x)=>ch==="#"?`<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${col}"/>`:"").join("")).join("")}</svg>`);
+const glyph = (k, col) => gsvg[k+col] || (gsvg[k+col] = `<svg viewBox="0 0 7 7" shape-rendering="crispEdges">${pxC(GLYPH[k].map((row,y)=>[...row].map((ch,x)=>ch==="#"?`<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${col}"/>`:"").join("")).join(""))}</svg>`);
 const POSE = { k:"happy", q:"love", r:"normal", b:"normal", n:"surprised", p:"happy" };
 // how the pieces look (saved on each phone, so each of you can pick your own)
 const STYLES = [["cat","貓咪棋子"],["token","貓耳棋子"],["classic","經典棋子"]];

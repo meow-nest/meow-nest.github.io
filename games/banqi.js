@@ -55,7 +55,7 @@ function hiddenArt(){
   for(let y=0;y<H;y++) for(let x=0;x<W;x++){ if(g[y][x] !== ".") continue; if((x>0&&g[y][x-1]!==".")||(x<W-1&&g[y][x+1]!==".")||(y>0&&g[y-1][x]!==".")||(y<H-1&&g[y+1][x]!==".")) o[y][x] = "O"; }
   for(let x=1;x<W-1;x++) o[8][x] = o[8][x] === "." ? "." : (o[8][x] === "G" ? "O" : o[8][x]);
   let r = ""; o.forEach((row,y)=>row.forEach((c,x)=>{ if(P[c]) r += `<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${P[c]}"/>`; }));
-  return boxSvg = `<svg viewBox="0 0 ${W} ${H}" shape-rendering="crispEdges">${r}</svg>`;
+  return boxSvg = `<svg viewBox="0 0 ${W} ${H}" shape-rendering="crispEdges">${pxC(r)}</svg>`;
 }
 const POSE = ["", "happy", "angry", "normal", "surprised", "wave", "angry", "happy"];
 function pieceArt(pc, extra){

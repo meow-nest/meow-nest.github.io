@@ -68,7 +68,16 @@
     function facePatch(seg = 14){ const P = [], N = [], UV = [], I = [], u0 = .25 - .17, u1 = .25 + .17, v0 = .2, v1 = .58;
       for(let y = 0; y <= seg; y++) for(let x = 0; x <= seg; x++){ const u = u0 + (u1 - u0)*x/seg, v = v0 + (v1 - v0)*y/seg, [p, n] = dv(u, v, 1.012); P.push(...p); N.push(...n); UV.push(1 - x/seg, y/seg); }
       for(let y = 0; y < seg; y++) for(let x = 0; x < seg; x++){ const a = y*(seg+1)+x, b = a + seg + 1; I.push(a, a+1, b, b, a+1, b+1); } return mesh(P, N, UV, I); }
-    const M = { DOME: dome(), FACE: facePatch(), SPH: sphere(), CYL: cyl(), CONE: cone(), TOR: torus(), QUAD: quad(), BOX: box() };
+    // 尾巴：一整條管子（原本是 36 顆小球，改成一個形狀，畫起來快很多）
+    function tail(N = 28, sides = 10){ const P = [], Nn = [], UV = [], I = [];
+      const at = t => { const a = t*Math.PI*.5; return [Math.sin(a)*1.1, -.74 + Math.pow(t, 2.5)*.3, -Math.cos(a)*1.1]; };
+      for(let i = 0; i <= N; i++){ const t = i/N, c = at(t), d = sub(at(Math.min(1, t + .01)), at(Math.max(0, t - .01))), T0 = norm(d);
+        const X = norm(cross([0, 1, 0], T0)), Y = cross(T0, X), r = .16 - t*.05;
+        for(let j = 0; j <= sides; j++){ const a = j/sides*Math.PI*2, n = [X[0]*Math.cos(a) + Y[0]*Math.sin(a), X[1]*Math.cos(a) + Y[1]*Math.sin(a), X[2]*Math.cos(a) + Y[2]*Math.sin(a)];
+          P.push(c[0] + n[0]*r, c[1] + n[1]*r, c[2] + n[2]*r); Nn.push(...n); UV.push(t, j/sides); } }
+      for(let i = 0; i < N; i++) for(let j = 0; j < sides; j++){ const a = i*(sides+1)+j, b = a + sides + 1; I.push(a, a+1, b, b, a+1, b+1); }
+      return mesh(P, Nn, UV, I); }
+    const M = { DOME: dome(), FACE: facePatch(), TAIL: tail(), SPH: sphere(), CYL: cyl(), CONE: cone(), TOR: torus(), QUAD: quad(), BOX: box() };
     const texCache = new Map();
     function texture(key, make){ if(texCache.has(key)) return texCache.get(key); const c = make(); const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); texCache.set(key, t); return t; }
@@ -183,8 +192,9 @@
     const body = o.skin ? { skin: [c, o.skin, o.c2, o.c3, o.collar || ""] } : c;
     // 尾巴
     // 尾巴：沿著麻糬的底部繞半圈，尾巴尖往上翹一點（很多顆重疊的小球，看起來是一條滑順的尾巴）
-    if(!o.noTail){ const N = 36; for(let i = 0; i < N; i++){ const t = i/(N - 1), a = t*Math.PI*.5, rr = 1.1, y = -.74 + Math.pow(t, 2.5)*.3, r = .16 - t*.05;
-        L.push(PART("SPH", chain(T(Math.sin(a)*rr, y, -Math.cos(a)*rr), S(r, r, r)), o.tailBands ? o.tailBands[Math.min(o.tailBands.length - 1, Math.floor(t*o.tailBands.length))] : t > .8 && o.tailTip ? o.tailTip : (o.tail || c), { ow: .012 })); } }
+    if(!o.noTail){ const bands = o.tailBands || (o.tailTip ? [o.tail || c, o.tail || c, o.tail || c, o.tail || c, o.tailTip] : null);
+      L.push(PART("TAIL", I4(), bands ? { bands } : (o.tail || c), { ow: .025 }));
+      L.push(PART("SPH", chain(T(Math.sin(Math.PI*.5)*1.1, -.44, 0), S(.11, .11, .11)), bands ? bands[bands.length - 1] : (o.tail || c), { ow: .025 })); }
     const BM = chain(T(0, -.5, 0), S(1.06, 1.4, 1.0)); L.push(PART("DOME", BM, body));
     const ear = o.ear || c;
     if(o.ears !== false) for(const s of [-1, 1]){ L.push(PART("CONE", chain(T(s*.56, .66, 0), RZ(-s*.36), S(.3, .46, .27)), (s < 0 ? o.earL : o.earR) || ear)); L.push(PART("CONE", chain(T(s*.57, .69, .15), RZ(-s*.36), S(.15, .27, .1)), o.earIn || "#ffb3c6", { outline: false })); }
@@ -350,6 +360,7 @@
     for(const p of parts){
       const mx = mul(B, p.mx);
       if(p.o.face){ const fk = p.fk || (p.fk = "f:" + JSON.stringify(p.o.face)); E.blend(true); E.draw(E.M[p.m], mx, null, { tex: E.texture(fk, () => faceCanvas(p.o.face)), decal: true }); E.blend(false); continue; }
+      if(p.col && p.col.bands){ const bk = "b:" + p.col.bands.join(","); E.draw(E.M[p.m], mx, null, Object.assign({ tex: E.texture(bk, () => { const c = C2(64, 4), x = c.getContext("2d"); p.col.bands.forEach((b, i) => { x.fillStyle = b; x.fillRect(Math.floor(i*64/p.col.bands.length), 0, Math.ceil(64/p.col.bands.length) + 1, 4); }); return c; }), glow: p.o.glow || glow }, p.o)); continue; }
       if(p.col && p.col.skin){ const [b, pat, c2, c3, cl] = p.col.skin; E.draw(E.M[p.m], mx, null, Object.assign({ tex: E.texture("s:" + p.col.skin.join(","), () => skinCanvas(b, pat, c2, c3, cl)), glow: p.o.glow || glow }, p.o)); continue; }
       E.draw(E.M[p.m], mx, p.col, Object.assign({ glow: p.o.glow || glow }, p.o));
     }

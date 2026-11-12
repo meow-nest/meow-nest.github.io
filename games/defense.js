@@ -83,7 +83,7 @@ App.registerGame({
       });
     }
     function canSvg(){ const rows = [".OOOOOO.","OWWWWWWO","OOOOOOOO","OKKKKKKO","OKWKKWKO","OKKKKKKO","OKKKKKKO","OOOOOOOO"], pal = { O, W:"#d6dbe3", K:"#f0708d" };
-      let r = ""; rows.forEach((row,y)=>[...row].forEach((c,x)=>{ if(pal[c]) r += `<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${pal[c]}"/>`; })); return `<svg viewBox="0 0 8 8" shape-rendering="crispEdges">${r}</svg>`; }
+      let r = ""; rows.forEach((row,y)=>[...row].forEach((c,x)=>{ if(pal[c]) r += `<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${pal[c]}"/>`; })); return `<svg viewBox="0 0 8 8" shape-rendering="crispEdges">${pxC(r)}</svg>`; }
 
     // ---------- a game ----------
     function start(){

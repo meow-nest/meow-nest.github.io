@@ -6,7 +6,7 @@
 const O = "#5a3b2e";
 const PX = (rows, pal) => { pal = Object.assign({ O }, pal); const w = Math.max(...rows.map(r => r.length)), h = rows.length; let r = "";
   rows.forEach((row, y) => [...row].forEach((c, x) => { if(pal[c]) r += `<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${pal[c]}"/>`; }));
-  return `<svg viewBox="0 0 ${w} ${h}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">${r}</svg>`; };
+  return `<svg viewBox="0 0 ${w} ${h}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">${pxC(r)}</svg>`; };
 const CLAW_OPEN = PX(["....OOOOO....","....OGGGO....","..OOOGGGOOO..",".OGGGHGGGGGO.","OGO.......OGO","OGO.......OGO","OGO.......OGO",".OGO.....OGO.","..OO.....OO.."], { O: "#5b6b8c", G: "#c9d3e3", H: "#ffffff" });
 const CLAW_SHUT = PX(["....OOOOO....","....OGGGO....","..OOOGGGOOO..",".OGGGHGGGGGO.","..OGO...OGO..","...OGO.OGO...","....OGOGO....",".....OOO....."], { O: "#5b6b8c", G: "#c9d3e3", H: "#ffffff" });
 const MOUSE = PX([".OOO.......OOO.","OGPGO.....OGPGO","OGPGOOOOOOOGPGO",".OGGGGGGGGGGGO.","..OGEHGGGEHGO..","..OGEEGGGEEGO..","WW.OGGGNGGGO.WW","..WWOGGGGGOWW..","....OOGGGOO....","......OOO......"], { G: "#b8bfd2", P: "#f7a7b8", N: "#f0708d", E: "#2b1d18", H: "#fff", W: "#fff" });
