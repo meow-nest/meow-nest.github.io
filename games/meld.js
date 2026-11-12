@@ -23,6 +23,23 @@ const WORDS = ["夏天","海邊","貓咪","下雨","早餐","電影","生日","�
   "糖果","泡麵","宵夜","鬧鐘","早上","半夜","枕邊","貓砂","毛線","鋼琴","吉他","相機","日記","信","星座","許願","流星","雲","風","雪人"];
 const norm = w => (w || "").normalize("NFKC").toLowerCase().replace(/[\s\p{P}\p{S}]/gu, "").replace(/臺/g, "台");
 const MAXLEN = 12;
+// 安全：把共用的遊戲資料整理乾淨（避免被竄改的資料塞進奇怪的東西）
+const int = (v, lo, hi, d) => { v = Math.floor(Number(v)); return Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d; };
+const str = (v, n) => typeof v === "string" ? v.slice(0, n || MAXLEN) : (v == null ? null : String(v).slice(0, n || MAXLEN));
+function clean(st){
+  if(!st || typeof st !== "object") return null;
+  const o = { wins: int(st.wins, 0, 1e6, 0), best: int(st.best, 1, 99, 99) };
+  const g = st.cur;
+  if(g && typeof g === "object" && Array.isArray(g.rounds)){
+    o.cur = { id: str(g.id, 24) || "x", start: str(g.start, 12) || "", at: int(g.at, 0, 9e15, 0), hearts: g.hearts == null ? null : int(g.hearts, 0, 5, 5),
+      rounds: g.rounds.slice(0, 60).map(r => { const w = {}; if(r && r.w && typeof r.w === "object") for(const k of Object.keys(r.w).slice(0, 4)) w[k] = str(r.w[k]); return { w }; }),
+      done: g.done ? { at: int(g.done.at, 0, 9e15, 0), word: str(g.done.word) || "" } : null,
+      quit: g.quit ? { by: str(g.quit.by, 64), at: int(g.quit.at, 0, 9e15, 0) } : null, lost: g.lost ? { at: int(g.lost.at, 0, 9e15, 0) } : null };
+    if(!o.cur.rounds.length) o.cur.rounds = [{ w: {} }];
+  }
+  o.hist = Array.isArray(st.hist) ? st.hist.slice(-30).map(h => ({ start: str(h && h.start) || "", n: int(h && h.n, 1, 99, 1), ok: !!(h && h.ok), lost: !!(h && h.lost), word: h && h.ok ? (str(h.word) || "") : null, at: int(h && h.at, 0, 9e15, 0) })) : [];
+  return o;
+}
 
 App.registerGame({
   id: "meld",
@@ -55,7 +72,7 @@ App.registerGame({
       word = word.trim().slice(0, MAXLEN); if(!word){ ctx.toast("先寫一個詞喔"); return; }
       const p = pt(); if(!p) return;
       let result = null;
-      await ctx.update("meld", st => { st = st ? JSON.parse(JSON.stringify(st)) : {}; const g = st.cur; if(!g || g.done || g.quit || g.lost) return undefined;
+      await ctx.update("meld", st => { st = clean(st) || {}; const g = st.cur; if(!g || g.done || g.quit || g.lost) return undefined;
         const r = last(g); if(r.w[p.user_id] != null && r.w[me()] != null) return undefined;
         r.w[me()] = word; result = "wait";
         if(r.w[p.user_id] != null){
@@ -73,12 +90,12 @@ App.registerGame({
       render();
     }
     async function quit(){
-      await ctx.update("meld", st => { st = st ? JSON.parse(JSON.stringify(st)) : {}; const g = st.cur; if(!g || g.done || g.quit || g.lost) return undefined;
+      await ctx.update("meld", st => { st = clean(st) || {}; const g = st.cur; if(!g || g.done || g.quit || g.lost) return undefined;
         g.quit = { by: me(), at: Date.now() }; finish(st, false); return st; });
       SFX.tap(); render();
     }
     async function start(){
-      await ctx.update("meld", st => { st = st ? JSON.parse(JSON.stringify(st)) : {}; const g = st.cur; if(g && !g.done && !g.quit && !g.lost && g.rounds.length > 1) return undefined; return newGame(st); });
+      await ctx.update("meld", st => { st = clean(st) || {}; const g = st.cur; if(g && !g.done && !g.quit && !g.lost && g.rounds.length > 1) return undefined; return newGame(st); });
       SFX.select(); render();
     }
 
@@ -160,8 +177,8 @@ App.registerGame({
       o.querySelector("button").addEventListener("click", () => { o.remove(); SFX.tap(); });
     }
 
-    ctx.getState("meld").catch(() => null).then(c => { s = c ? c.state : null; render(); });
-    this._u = ctx.onState("meld", st => { const before = JSON.stringify(s && s.cur); s = st;
+    ctx.getState("meld").catch(() => null).then(c => { s = c ? clean(c.state) : null; render(); });
+    this._u = ctx.onState("meld", st => { const before = JSON.stringify(s && s.cur); s = clean(st);
       // 正在打字的時候不要整個重畫（只更新 ta 的狀態）
       const inp = el.querySelector("#mdW");
       if(inp && document.activeElement === inp && cur() && !cur().done && !cur().quit && JSON.stringify(st.cur) !== before){

@@ -50,6 +50,27 @@ function stampDefs(){ if(document.getElementById("bgDefs")) return; const d = do
   <linearGradient id="bgGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff2b0"/><stop offset=".45" stop-color="#f6c45f"/><stop offset=".55" stop-color="#ffe49a"/><stop offset="1" stop-color="#d99a1e"/></linearGradient><clipPath id="bgHc"><path d="${HEAD}"/></clipPath></defs></svg>`;
   document.body.appendChild(d); }
 const CPU = "__cpu";
+// 安全：把共用的遊戲資料整理乾淨（號碼一定是數字、印章一定是認得的）
+const int = (v, lo, hi, d) => { v = Math.floor(Number(v)); return Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d; };
+const sid = v => typeof v === "string" ? v.slice(0, 64) : null;
+function cleanG(g){
+  if(!g || typeof g !== "object" || !Array.isArray(g.players)) return null;
+  const players = g.players.slice(0, 2).map(sid); if(players.length !== 2 || players.some(x => !x)) return null;
+  const kind = g.kind === "gacha" ? "gacha" : "call", max = kind === "gacha" ? 75 : 25;
+  const boards = {}, ready = {}, stamps = {};
+  for(const u of players){
+    const b = g.boards && g.boards[u];
+    if(Array.isArray(b) && b.length === 25) boards[u] = b.map(n => int(n, 0, max, 0));
+    ready[u] = !!(g.ready && g.ready[u]);
+    const st = g.stamps && g.stamps[u]; if(typeof st === "string" && /^[A-Z]$/.test(st)) stamps[u] = st;
+  }
+  const seen = new Set(), calls = [], by = [];
+  (Array.isArray(g.calls) ? g.calls : []).slice(0, 80).forEach((n, i) => { n = int(n, 1, max, 0); if(n && !seen.has(n)){ seen.add(n); calls.push(n); by.push(sid(g.by && g.by[i])); } });
+  const phase = ["setup", "play", "end"].includes(g.phase) ? g.phase : "setup";
+  return { id: String(g.id || "x").slice(0, 24), kind, target: int(g.target, 1, 5, 5), phase, players, boards, ready, stamps, calls, by,
+    turn: players.includes(g.turn) ? g.turn : players[0], winner: g.winner === "tie" || players.includes(g.winner) ? g.winner : null, at: int(g.at, 0, 9e15, 0), endAt: int(g.endAt, 0, 9e15, 0) };
+}
+function cleanS(st){ if(!st || typeof st !== "object") return null; const wins = {}; if(st.wins && typeof st.wins === "object") for(const k of Object.keys(st.wins).slice(0, 4)) wins[k] = int(st.wins[k], 0, 1e6, 0); return { g: cleanG(st.g), wins }; }
 // 扭蛋模式：真的賓果卡（B 1-15、I 16-30、N 31-45、G 46-60、O 61-75），正中間是 FREE
 const COLC = ["#f0708d", "#f6a65a", "#f6c45f", "#7cc98a", "#7ab8f0"];
 const colOf = n => Math.min(4, ((n - 1)/15)|0);
@@ -96,7 +117,7 @@ App.registerGame({
     async function mutate(fn){
       if(mode === "cpu"){ const r = fn(cpuG); if(r !== undefined) cpuG = r; render(); cpuMaybe(); return true; }
       let ok = false;
-      await ctx.update("bingo", st => { st = st ? JSON.parse(JSON.stringify(st)) : {}; const r = fn(st.g || null, st); if(r === undefined) return undefined; st.g = r; ok = true; return st; });
+      await ctx.update("bingo", st => { st = cleanS(st) || {}; const r = fn(st.g || null, st); if(r === undefined) return undefined; st.g = r; ok = true; return st; });
       render(); return ok;
     }
     function newGame(target, vsCpu, kind){
@@ -309,9 +330,9 @@ App.registerGame({
       return play(g);
     }
 
-    ctx.getState("bingo").catch(() => null).then(c => { s = c ? c.state : null;
+    ctx.getState("bingo").catch(() => null).then(c => { s = c ? cleanS(c.state) : null;
       const g = s && s.g; if(g && g.phase !== "end" && pt() && g.players.includes(me())){ mode = "vs"; lastSeenCalls = g.calls.length; lastLines = doneLines(g.boards[me()], CS(g)).length; shownEnd = null; } render(); });
-    this._u = ctx.onState("bingo", st => { const prev = s && s.g; s = st;
+    this._u = ctx.onState("bingo", st => { const prev = s && s.g; s = cleanS(st) || {};
       if(mode === "vs"){ const g = s.g; if(g && prev && g.id !== prev.id) resetLocal(); render(); }
       else if(!mode){ const g = s.g; if(g && g.phase !== "end" && pt() && g.players.includes(me()) && (!prev || prev.id !== g.id)){ mode = "vs"; resetLocal(); } render(); } });
     this._stop = () => { alive = false; clearTimeout(cpuTimer); document.querySelectorAll(".bgEnd,.bgPick2").forEach(x => x.remove()); };
