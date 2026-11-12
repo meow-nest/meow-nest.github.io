@@ -738,6 +738,10 @@ const App = (function(){
     o.querySelector("#mvCopy").addEventListener("click", copyMove);
     o.querySelector("#mvOk").addEventListener("click", ()=>o.remove());
   }
+  // 站長後台：哪些區塊是打開的（記在這支手機上）
+  const admFoldGet = () => { try{ return JSON.parse(localStorage.getItem("adm_fold") || "{}"); }catch(e){ return {}; } };
+  const admOpen = (k, d) => { const v = admFoldGet()[k]; return v == null ? d : !!v; };
+  const admFoldSet = (k, v) => { try{ const o = admFoldGet(); o[k] = v; localStorage.setItem("adm_fold", JSON.stringify(o)); }catch(e){} };
   // ---- 回報問題給站長 ----
   // ---- 站長信箱（回報＋對話）----
   let fbUnread = 0;
@@ -859,19 +863,6 @@ const App = (function(){
     body.innerHTML = `<div class="admGrid">
         ${tile(st.total, "小窩", max ? `上限 ${max}` : "")}${tile(st.people, "使用人數")}${tile(st.active1, st.people_based ? "今天上線的人" : "今天有動靜的小窩", st.people_based ? "台灣時間 0 點起" : "")}
         ${tile(st.active7, st.people_based ? "這 7 天上線的人" : "這 7 天有動靜的小窩")}${tile(st.new7, "這 7 天新開")}${tile(st.msgs7, "這 7 天訊息")}</div>
-      <div class="box admBox"><h3>小窩模式</h3>${["couple","bestie","bro","solo"].map(modeRow).join("")}
-        ${st.waiting ? `<div class="k admNote">有 ${st.waiting} 個雙人小窩還在等另一個人加入</div>` : ""}</div>
-      <div class="box admBox"><h3>用量</h3>
-        <div class="auTop"><span>小窩 <b>${st.total}</b> / ${max||"不限"}</span><span>${Math.round(cPct*100)}%</span></div>${bar(cPct)}
-        <div class="auTop" style="margin-top:8px"><span>資料庫 <b>${dbMB.toFixed(1)} MB</b> / 500 MB</span><span>${Math.round(dbPct*100)}%</span></div>${bar(dbPct)}
-        ${on && on.now != null ? `<div class="auTop" style="margin-top:8px"><span>現在在線 <b>${on.now}</b> 人 / 同時上限 ${on.limit||200}</span><span>${Math.round(on.now/(on.limit||200)*100)}%</span></div>${bar(on.now/(on.limit||200))}
-        <div class="k admNote">今天最多同時 <b>${on.peak1}</b> 人・這 7 天最多 <b>${on.peak7}</b> 人${on.peak7 >= (on.limit||200)*.75 ? `<br><span class="waitWarn">快接近同時在線上限了，可以考慮升級 Supabase 方案</span>` : ""}</div>`
-        : `<div class="k admNote" style="margin-top:8px">在線人數：資料庫還沒加上這個設定（更新 21）</div>`}
-        <div class="k admNote">${st.idle60 ? `有 ${st.idle60} 個小窩超過 60 天沒人用，滿 90 天會自動刪除` : "沒有快被自動刪除的小窩"}</div></div>
-      <div class="box admBox" id="admUsers"><h3>👥 使用者</h3>
-        ${us ? `<input id="admQ" class="admQ" placeholder="搜尋暱稱或邀請碼" value="${esc(admQ)}" autocomplete="off">
-        <div class="admTabs admSort"><button data-s="recent" class="${admSort==="recent"?"on":""}">最近上線</button><button data-s="idle" class="${admSort==="idle"?"on":""}">很久沒上線</button><button data-s="new" class="${admSort==="new"?"on":""}">最新加入</button></div>
-        <div id="admUL"></div>` : `<div class="k" style="text-align:center;padding:8px">資料庫還沒加上使用者名單（更新 15）</div>`}</div>
       <div class="box admBox"><h3>📮 回報信箱 ${st.unread ? `<span class="admBadge">${st.unread}</span>` : ""}</h3>
         <div class="admTabs"><button data-t="new" class="${admTab==="new"?"on":""}">未處理</button><button data-t="all" class="${admTab==="all"?"on":""}">全部</button></div>
         <div class="admFb">${(fb||[]).length ? fb.map(f=>`<div class="admFbI ${f.done?"done":""}" data-id="${f.id}">
@@ -879,7 +870,22 @@ const App = (function(){
             ${(()=>{ const th = fbThread(f); return th.length>1 && th[th.length-1].by==="u" && th.some(t=>t.by==="a") ? `<span class="fbNew">對方又回覆了</span>` : ""; })()}${fbBubbles(f, f.name||"對方", "👑 你")}
             <div class="admReBox hidden"><textarea maxlength="500" rows="3" placeholder="${f.alive===false ? "這個小窩已經刪除了，對方收不到回覆" : "回覆給對方，對方的手機會收到通知"}"></textarea><div class="admFbA"><button data-a="cancel">取消</button><button data-a="send" class="pri">送出回覆</button></div></div>
             <div class="admFbA admActs"><button data-a="reply">💬 回覆</button><button data-a="done">${f.done ? "↩ 改回未處理" : "✓ 已處理"}</button>${isBoss() ? `<button data-a="del">🗑 刪除</button>` : ""}</div></div>`).join("")
-          : `<div class="k" style="text-align:center;padding:10px">${admTab==="new" ? "目前沒有未處理的回報 🐾" : "還沒有人傳回報"}</div>`}</div></div>`;
+          : `<div class="k" style="text-align:center;padding:10px">${admTab==="new" ? "目前沒有未處理的回報 🐾" : "還沒有人傳回報"}</div>`}</div></div>
+      <div class="box admBox admFold ${admOpen("modes", false) ? "open" : ""}" data-fold="modes"><h3 class="admFH">小窩模式<small>${st.waiting ? `${st.waiting} 個在等人` : ""}</small><i class="admArr">▾</i></h3><div class="admFB">${["couple","bestie","bro","solo"].map(modeRow).join("")}
+        ${st.waiting ? `<div class="k admNote">有 ${st.waiting} 個雙人小窩還在等另一個人加入</div>` : ""}</div></div>
+      <div class="box admBox admFold ${admOpen("usage", true) ? "open" : ""}" data-fold="usage"><h3 class="admFH">用量<small>${Math.round(cPct*100)}%</small><i class="admArr">▾</i></h3><div class="admFB">
+        <div class="auTop"><span>小窩 <b>${st.total}</b> / ${max||"不限"}</span><span>${Math.round(cPct*100)}%</span></div>${bar(cPct)}
+        <div class="auTop" style="margin-top:8px"><span>資料庫 <b>${dbMB.toFixed(1)} MB</b> / 500 MB</span><span>${Math.round(dbPct*100)}%</span></div>${bar(dbPct)}
+        ${on && on.now != null ? `<div class="auTop" style="margin-top:8px"><span>現在在線 <b>${on.now}</b> 人 / 同時上限 ${on.limit||200}</span><span>${Math.round(on.now/(on.limit||200)*100)}%</span></div>${bar(on.now/(on.limit||200))}
+        <div class="k admNote">今天最多同時 <b>${on.peak1}</b> 人・這 7 天最多 <b>${on.peak7}</b> 人${on.peak7 >= (on.limit||200)*.75 ? `<br><span class="waitWarn">快接近同時在線上限了，可以考慮升級 Supabase 方案</span>` : ""}</div>`
+        : `<div class="k admNote" style="margin-top:8px">在線人數：資料庫還沒加上這個設定（更新 21）</div>`}
+        <div class="k admNote">${st.idle60 ? `有 ${st.idle60} 個小窩超過 60 天沒人用，滿 90 天會自動刪除` : "沒有快被自動刪除的小窩"}</div></div></div>
+      <div class="box admBox admFold ${admOpen("users", false) ? "open" : ""}" data-fold="users" id="admUsers"><h3 class="admFH">👥 使用者<small>${st.people} 人</small><i class="admArr">▾</i></h3><div class="admFB">
+        ${us ? `<input id="admQ" class="admQ" placeholder="搜尋暱稱或邀請碼" value="${esc(admQ)}" autocomplete="off">
+        <div class="admTabs admSort"><button data-s="recent" class="${admSort==="recent"?"on":""}">最近上線</button><button data-s="idle" class="${admSort==="idle"?"on":""}">很久沒上線</button><button data-s="new" class="${admSort==="new"?"on":""}">最新加入</button></div>
+        <div id="admUL"></div>` : `<div class="k" style="text-align:center;padding:8px">資料庫還沒加上使用者名單（更新 15）</div>`}</div></div>`;
+    body.querySelectorAll(".admFH").forEach(h=>h.addEventListener("click", ()=>{ const box = h.closest(".admFold"), k = box.dataset.fold, open = !box.classList.contains("open");
+      box.classList.toggle("open", open); admFoldSet(k, open); SFX.tap(); }));
     admUsersData = us;
     if(us){ drawUsers();
       const q = body.querySelector("#admQ"); if(q) q.addEventListener("input", ()=>{ admQ = q.value; admShow = 20; drawUsers(); });

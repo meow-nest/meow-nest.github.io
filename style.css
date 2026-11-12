@@ -2872,3 +2872,9 @@ body[data-theme="night"] .mdBox input{color:#5a3b2e;background:#fff}
 .mdCard .b{padding:6px;box-sizing:border-box}.mdCard .b b{word-break:normal;overflow-wrap:anywhere;line-height:1.25;text-align:center;max-width:100%}.mdCard .b b.long{font-size:15px}
 .mdRow em{color:var(--muted);text-align:center}
 @keyframes mdBreak{0%{transform:scale(1)}30%{transform:scale(1.3) rotate(-10deg)}100%{transform:scale(.85);filter:grayscale(1) brightness(1.4);opacity:.45}}
+
+/* 站長後台：可以收起來的區塊 */
+.admFH{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;margin:0}
+.admFH small{margin-left:auto;font-size:14px;color:var(--pinkT,#d35d7b)}.admFH .admArr{font-style:normal;transition:transform .2s;opacity:.7}
+.admFold:not(.open) .admFB{display:none}.admFold:not(.open) .admArr{transform:rotate(-90deg)}
+.admFold.open .admFH{margin-bottom:8px}
