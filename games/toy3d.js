@@ -140,7 +140,8 @@
     const blob = (u, v, rx, ry, col) => { x.fillStyle = col; for(const du of [0, -1, 1]){ x.beginPath(); x.ellipse(U(u + du), Vv(v), rx*512, ry*256, 0, 0, 7); x.fill(); } };
     if(pat === "stripe"){ x.fillStyle = c2; for(let i = 0; i < 9; i++){ const u = .5 + (i - 4)*.055; x.beginPath(); x.ellipse(U(u), Vv(.18), 9, 34, 0, 0, 7); x.fill(); } for(const u of [.0, .08, .42, .5]) for(const v of [.45, .58]){ x.beginPath(); x.ellipse(U(u), Vv(v), 22, 6, 0, 0, 7); x.fill(); } }
     if(pat === "tabby"){ x.fillStyle = c2; for(let i = 0; i < 16; i++){ const u = i/16; x.beginPath(); x.ellipse(U(u), Vv(.3 + (i % 2)*.12), 9, 30, 0, 0, 7); x.fill(); } }
-    if(pat === "calico"){ blob(.05, .32, .1, .22, c2); blob(.44, .28, .09, .2, c3); blob(.62, .55, .1, .18, c2); blob(.9, .65, .06, .12, c3); }
+    // 三花：頭頂兩塊（避開臉）＋背上幾塊
+    if(pat === "calico"){ blob(.34, .07, .1, .13, c2); blob(.15, .06, .08, .11, c3); blob(.66, .3, .065, .13, c2); blob(.8, .5, .055, .11, c3); blob(.9, .24, .05, .1, c2); blob(.58, .6, .045, .09, c3); blob(.76, .74, .05, .08, c2); }
     if(pat === "tux"){ x.fillStyle = c2; x.beginPath(); x.ellipse(U(.25), Vv(.82), 70, 80, 0, 0, 7); x.fill(); }
     if(pat === "belly"){ x.fillStyle = c2; x.beginPath(); x.ellipse(U(.25), Vv(.78), 62, 60, 0, 0, 7); x.fill(); }
     if(pat === "cow"){ blob(.08, .3, .07, .14, c2); blob(.48, .5, .09, .2, c2); blob(.7, .25, .06, .12, c2); blob(.35, .72, .05, .1, c2); }
@@ -178,10 +179,10 @@
     // 尾巴
     // 尾巴：沿著麻糬的底部繞半圈，尾巴尖往上翹一點（很多顆重疊的小球，看起來是一條滑順的尾巴）
     if(!o.noTail){ const N = 36; for(let i = 0; i < N; i++){ const t = i/(N - 1), a = t*Math.PI*.6, rr = 1.1, y = -.74 + Math.pow(t, 2.5)*.42, r = .16 - t*.04;
-        L.push(PART("SPH", chain(T(Math.sin(a)*rr, y, -Math.cos(a)*rr), S(r, r, r)), t > .8 && o.tailTip ? o.tailTip : (o.tail || c), { ow: i === N - 1 ? .04 : .012 })); } }
+        L.push(PART("SPH", chain(T(Math.sin(a)*rr, y, -Math.cos(a)*rr), S(r, r, r)), o.tailBands ? o.tailBands[Math.min(o.tailBands.length - 1, Math.floor(t*o.tailBands.length))] : t > .8 && o.tailTip ? o.tailTip : (o.tail || c), { ow: i === N - 1 ? .04 : .012 })); } }
     const BM = chain(T(0, -.5, 0), S(1.06, 1.4, 1.0)); L.push(PART("DOME", BM, body));
     const ear = o.ear || c;
-    if(o.ears !== false) for(const s of [-1, 1]){ L.push(PART("CONE", chain(T(s*.56, .66, 0), RZ(-s*.36), S(.3, .46, .27)), ear)); L.push(PART("CONE", chain(T(s*.57, .69, .15), RZ(-s*.36), S(.15, .27, .1)), o.earIn || "#ffb3c6", { outline: false })); }
+    if(o.ears !== false) for(const s of [-1, 1]){ L.push(PART("CONE", chain(T(s*.56, .66, 0), RZ(-s*.36), S(.3, .46, .27)), (s < 0 ? o.earL : o.earR) || ear)); L.push(PART("CONE", chain(T(s*.57, .69, .15), RZ(-s*.36), S(.15, .27, .1)), o.earIn || "#ffb3c6", { outline: false })); }
     if(o.paws) for(const s of [-1, 1]) L.push(PART("SPH", chain(T(s*.4, -.7, .75), S(.16, .1, .12)), o.paw || c));
     if(o.wave) L.push(PART("SPH", chain(T(.92, .1, .45), RZ(-.6), S(.2, .3, .2)), o.paw || c));
     L.push(PART("FACE", BM, null, { face: o.face || {} }));
@@ -213,7 +214,7 @@
     c_white: cat({ c: "#fffdf8", face: { eye: "dot", lash: true } }),
     c_black: cat({ c: "#3f3846", skin: "tux", c2: "#ffffff", paw: "#ffffff", face: { eye: "cat", ink: "#1a1418" } }),
     c_gray: cat({ c: "#b8bfd0", skin: "belly", c2: "#eef1f7", face: { eye: "sleep" } }),
-    c_calico: cat({ c: "#fffaf3", skin: "calico", c2: "#f2a65a", c3: "#3f3542", ear: "#f2a65a", tail: "#3f3542", face: { eye: "happy" } }),
+    c_calico: cat({ c: "#fffaf3", skin: "calico", c2: "#f2a65a", c3: "#3f3542", earL: "#f2a65a", earR: "#3f3542", tailBands: ["#fffaf3", "#f2a65a", "#f2a65a", "#3f3542", "#3f3542", "#fffaf3"], face: { eye: "happy" } }),
     c_tabby: cat({ c: "#a9a194", skin: "tabby", c2: "#6e665c", face: { eye: "dot" } }),
     c_siamese: cat({ c: "#fbf1de", skin: "point", c2: "#6b4a3a", ear: "#6b4a3a", tail: "#6b4a3a", paw: "#6b4a3a", face: { eye: "dot", eyeC: "#3a7bd5", mask: "rgba(107,74,58,.55)" } }),
     c_cow: cat({ c: "#ffffff", skin: "cow", c2: "#3a3440", ear: "#3a3440", face: { eye: "dot" } }),
@@ -269,7 +270,7 @@
   });
   // ---- 超稀有 ----
   Object.assign(MODELS, {
-    s_lucky: cat({ c: "#fffdf8", skin: "calico", c2: "#f2a65a", c3: "#3f3542", wave: true, face: { eye: "happy", mouth: "smile" }, acc: [ACC.coin, () => [PART("TOR", chain(T(0, -.3, 0), S(1.06, 1.1, 1.0)), "#e8484d"), PART("SPH", chain(T(0, -.42, 1.0), S(.13, .13, .13)), "#ffcf3a")]] }),
+    s_lucky: cat({ c: "#fffdf8", skin: "calico", c2: "#f2a65a", c3: "#3f3542", earL: "#f2a65a", earR: "#3f3542", tailBands: ["#fffdf8", "#f2a65a", "#f2a65a", "#3f3542", "#fffdf8"], wave: true, face: { eye: "happy", mouth: "smile" }, acc: [ACC.coin, () => [PART("TOR", chain(T(0, -.3, 0), S(1.06, 1.1, 1.0)), "#e8484d"), PART("SPH", chain(T(0, -.42, 1.0), S(.13, .13, .13)), "#ffcf3a")]] }),
     s_gold: cat({ c: "#f5c242", skin: "gold", face: { eye: "star", mouth: "smile" }, glow: [.12, .09, 0], acc: [ACC.coin] }),
     s_crown: cat({ c: "#dccdff", face: { eye: "dot", lash: true }, acc: [ACC.crown] }),
     s_angel: cat({ c: "#ffffff", face: { eye: "sleep" }, acc: [ACC.halo, () => ACC.wings()] }),
