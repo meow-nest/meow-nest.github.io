@@ -2817,3 +2817,28 @@ body.dark .inAppWarn{background:#3a2028}
 @keyframes gcOpen{to{transform:translate(-8px,-20px) rotate(-28deg)}}
 @keyframes gcNum{0%{opacity:0;transform:scale(.4)}100%{opacity:1;transform:none}}
 .gcGo{font-size:22px;padding:10px 26px;animation:bgGlow 1.4s ease-in-out infinite}
+
+/* 扭蛋機（貓咪罐子） */
+.gcM{position:relative;flex:none;width:140px;height:182px}
+.gcJar{width:140px;height:auto;display:block;overflow:visible}
+.gcM.go .gcKnob2{transform-box:fill-box;transform-origin:center;animation:gcSpin .9s ease-in-out}
+.gcB{transform:rotate(var(--r))}
+.gcM.go .gcB{animation:gcShake2 .9s}
+@keyframes gcShake2{0%,100%{transform:rotate(var(--r))}25%{transform:rotate(var(--r)) translate(3px,-7px)}50%{transform:rotate(var(--r)) translate(-4px,2px)}75%{transform:rotate(var(--r)) translate(2px,-4px)}}
+.gcM .gcPeek{position:absolute;left:96px;top:160px;width:18px;height:18px;margin:0;border-radius:50%;border:2px solid #5a3b2e;background:linear-gradient(180deg,var(--c) 0 50%,#fff 50%);animation:gcPeek2 .9s .7s ease-out both}
+@keyframes gcPeek2{0%{transform:translateY(-6px) scale(.4);opacity:0}40%{opacity:1}100%{transform:translate(30px,6px) scale(.8);opacity:0}}
+.gcRes{height:140px;padding-top:10px}
+.gcCap{position:relative;width:112px;height:120px}
+.gcCap .gcTop{position:absolute;left:6px;top:30px;width:100px;height:50px;border:4px solid var(--ink);border-radius:50px 50px 0 0;background:var(--c);box-sizing:border-box;transform-origin:8% 100%;z-index:4;box-shadow:inset 0 7px 0 rgba(255,255,255,.35)}
+.gcCap .gcBot{position:absolute;left:6px;top:84px;width:100px;height:50px;border:4px solid var(--ink);border-radius:0 0 50px 50px;background:#fff;box-sizing:border-box;z-index:3}
+.gcKit{position:absolute;left:0;right:0;top:-6px;display:flex;flex-direction:column;align-items:center;z-index:2}
+.gcKit .gcCat{width:78px}
+.gcCap .gcKit{z-index:5}.gcCap .gcBot{z-index:4}.gcKit .gcCat{position:relative;z-index:1}
+.gcPlate{position:absolute;top:56px;left:50%;transform:translateX(-50%) rotate(-4deg);z-index:6;display:flex;flex-direction:column;align-items:center;background:#fff8ec;border:3px solid var(--ink);padding:2px 10px 3px;box-shadow:2px 2px 0 rgba(90,59,46,.3);line-height:1}
+.gcPlate small{font-size:12px;color:#fff;padding:1px 6px;border:2px solid var(--ink);margin:-14px 0 2px;background:#f0708d;position:relative;z-index:2}.gcPlate b{font-weight:400;font-size:28px;text-shadow:.7px 0 0 currentColor}
+.gcCap.open .gcTop{transform:translate(-26px,-34px) rotate(-34deg)}
+.gcCap.drop{animation:gcDrop .8s .9s cubic-bezier(.3,1.6,.5,1) backwards}
+.gcCap.drop .gcTop{animation:gcOpen2 .45s 1.7s forwards}
+.gcCap.drop .gcKit{animation:gcPop .5s 1.9s cubic-bezier(.3,1.7,.5,1) backwards}
+@keyframes gcOpen2{to{transform:translate(-26px,-34px) rotate(-34deg)}}
+@keyframes gcPop{0%{transform:translateY(46px);opacity:0}30%{opacity:1}100%{transform:none;opacity:1}}

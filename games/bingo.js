@@ -256,20 +256,30 @@ App.registerGame({
       if(g.phase === "end" && shownEnd !== g.id + g.calls.length) { shownEnd = g.id + g.calls.length; setTimeout(() => endModal(g), gacha ? 2600 : 900); }
     }
     // 扭蛋機
+    // 扭蛋機：整隻貓咪形狀的玻璃罐，肚子裡裝著貓耳扭蛋
+    const JAR = "M30 60 L26 14 L60 40 Q80 34 100 40 L134 14 L130 60 Q150 90 146 140 Q142 190 80 192 Q18 190 14 140 Q10 90 30 60 Z";
+    const capSvg = (x, y, r, c, rot) => `<g class="gcB" style="transform-origin:${x}px ${y}px;--r:${rot}deg"><path d="M${x - r*.75} ${y - r*.55} L${x - r*.55} ${y - r*1.25} L${x - r*.15} ${y - r*.85} Z M${x + r*.75} ${y - r*.55} L${x + r*.55} ${y - r*1.25} L${x + r*.15} ${y - r*.85} Z" fill="${c}" stroke="#5a3b2e" stroke-width="1.6" stroke-linejoin="round"/><path d="M${x - r} ${y} A${r} ${r} 0 0 1 ${x + r} ${y} Z" fill="${c}" stroke="#5a3b2e" stroke-width="1.6"/><path d="M${x - r} ${y} A${r} ${r} 0 0 0 ${x + r} ${y} Z" fill="#fff" stroke="#5a3b2e" stroke-width="1.6"/></g>`;
+    function jarSvg(left){
+      const nb = Math.max(3, Math.round(left/75*20)); let caps = "";
+      for(let i = 0, row = 0; i < nb; row++){ const k = 5 - (row % 2); for(let j = 0; j < k && i < nb; j++, i++){ const x = 34 + j*23 + (row % 2)*11.5, y = 172 - row*19; caps += capSvg(x, y, 11, COLC[(i*3) % 5], (i*37) % 60 - 30); } }
+      return `<svg viewBox="-6 0 180 232" class="gcJar"><path d="M144 150 q20 -10 10 -40" fill="none" stroke="#5a3b2e" stroke-width="12" stroke-linecap="round"/><path d="M144 150 q20 -10 10 -40" fill="none" stroke="#fff4f8" stroke-width="6" stroke-linecap="round"/>
+        <path d="${JAR}" fill="#fff4f8" stroke="#5a3b2e" stroke-width="4" stroke-linejoin="round"/><clipPath id="gcClip"><path d="${JAR}"/></clipPath><g clip-path="url(#gcClip)" class="gcPile">${caps}</g>
+        <path d="M36 30 L34 22 L46 31 Z M124 30 L126 22 L114 31 Z" fill="#ffc2d1"/>
+        <ellipse cx="60" cy="74" rx="5" ry="6" fill="#5a3b2e"/><ellipse cx="100" cy="74" rx="5" ry="6" fill="#5a3b2e"/><path d="M73 84 q3.5 4 7 0 q3.5 4 7 0" fill="none" stroke="#5a3b2e" stroke-width="3" stroke-linecap="round"/>
+        <ellipse cx="46" cy="86" rx="8" ry="4.5" fill="#ff7a9a" opacity=".6"/><ellipse cx="114" cy="86" rx="8" ry="4.5" fill="#ff7a9a" opacity=".6"/><ellipse cx="44" cy="58" rx="9" ry="5" fill="#fff" opacity=".9" transform="rotate(-40 44 58)"/>
+        <rect x="34" y="186" width="92" height="34" rx="10" fill="#f7a0b4" stroke="#5a3b2e" stroke-width="4"/>
+        <g class="gcKnob2"><circle cx="56" cy="203" r="10" fill="#fff3c4" stroke="#5a3b2e" stroke-width="3"/><rect x="53" y="195" width="6" height="16" rx="2" fill="#f6a65a" stroke="#5a3b2e" stroke-width="2"/></g>
+        <rect x="88" y="195" width="26" height="18" rx="8" fill="#5b3550" stroke="#5a3b2e" stroke-width="3"/></svg>`;
+    }
     function machine(g, fresh, myTurn, lastN, lastBy){
-      const anim = fresh && lastN && lastSeenCalls >= 0, c = lastN ? colOf(lastN) : 0;
-      // 扭蛋機裡的蛋堆在下半部（球的數量跟著剩下的號碼變少）
-      const left = 75 - g.calls.length, nb = Math.max(4, Math.round(left/75*20)); const pos = [];
-      for(let i = 0, row = 0; i < nb; row++){ const inRow = 5 - (row % 2); for(let k = 0; k < inRow && i < nb; k++, i++) pos.push([12 + k*17 + (row % 2)*8.5, 70 - row*13]); }
-      const balls = pos.map(([x, y], i) => `<i style="--c:${COLC[(i*3) % 5]};left:${x}%;top:${y}%;transform:rotate(${(i*47) % 180}deg)"></i>`).join("");
-      return `<div class="gcRow"><div class="gcM ${anim ? "go" : ""}">
-          <div class="gcDome"><div class="gcBalls">${balls}</div><div class="gcShine"></div></div>
-          <div class="gcNeck"></div>
-          <div class="gcBody"><div class="gcKnob"><span></span></div><div class="gcHole">${anim ? `<i class="gcPeek" style="--c:${COLC[c]}"></i>` : ""}</div><div class="gcLabel">喵喵扭蛋</div></div>
-          <div class="gcFeet"></div>
-        </div>
+      const anim = fresh && lastN && lastSeenCalls >= 0, c = lastN ? colOf(lastN) : 0, left = 75 - g.calls.length;
+      const who = lastBy === me() ? meObj() : oppCat(g);
+      return `<div class="gcRow"><div class="gcM ${anim ? "go" : ""}">${jarSvg(left + (anim ? 1 : 0))}${anim ? `<i class="gcPeek" style="--c:${COLC[c]}"></i>` : ""}</div>
         <div class="gcSide">
-          <div class="gcRes">${lastN ? `<div class="gcCap ${anim ? "drop" : "open"}" style="--c:${COLC[c]}"><div class="gcBot"></div><div class="gcNum"><small>${LETTERS[c]}</small><b>${lastN}</b></div><div class="gcTop"></div></div>` : `<div class="gcEmpty">還沒扭</div>`}</div>
+          <div class="gcRes">${lastN ? `<div class="gcCap ${anim ? "drop" : "open"}" style="--c:${COLC[c]}">
+              <div class="gcTop"></div>
+              <div class="gcKit">${cat(who, "happy", "gcCat")}<div class="gcPlate"><small style="background:${COLC[c]}">${LETTERS[c]}</small><b>${lastN}</b></div></div>
+              <div class="gcBot"></div></div>` : `<div class="gcEmpty">還沒扭</div>`}</div>
           ${g.phase === "end" ? "" : myTurn ? `<button class="btn gcGo" id="gcGo">扭！</button>` : `<b>等 ${esc(oppName(g))} 扭蛋…</b>`}
           <small>${lastN ? `${lastBy === me() ? "你" : esc(oppName(g))}扭出了 ${LETTERS[c]}-${lastN}` : `${g.turn === me() ? "你" : esc(oppName(g))}先扭`}・還剩 ${left} 顆</small></div></div>`;
     }
