@@ -2475,7 +2475,15 @@ const App = (function(){
     B.on("state", (game, version, state)=>{ if(!stateCache[game] || version > stateCache[game].version){ stateCache[game]={version,state}; emitState(game); } });
     // someone whose app is in the background counts as offline, so they still get notifications
     B.on("presence", list=>{ online = new Set(list.filter(x=>!x.away).map(x=>x.uid)); renderHeader(); (ctx._presence||[]).forEach(h=>h()); });
-    B.on("status", s=>{ connected = s==="SUBSCRIBED"; if(s==="SUBSCRIBED") resync(); });
+    B.on("status", s=>{ connected = s==="SUBSCRIBED"; if(connected) lastUp = Date.now(); if(s==="SUBSCRIBED") resync(); });
+    // 保險：連線斷掉太久就重新連；玩遊戲時每 10 秒偷偷確認有沒有新的一步（即時連線斷了也收得到 ta 的下一步）
+    clearInterval(watchT); watchT = setInterval(async ()=>{
+      if(!B || !B.coupleId || document.visibilityState !== "visible") return;
+      if(!connected && Date.now() - lastUp > 15000){ lastUp = Date.now(); B.reconnect(); }
+      if(route === "game" && curGame && stateSubs[curGame.id] && stateSubs[curGame.id].length){ const g = curGame.id;
+        try{ const r = await B.getState(g); if(r && (!stateCache[g] || r.version > stateCache[g].version)){ stateCache[g] = { version:r.version, state:r.state }; emitState(g); } }catch(e){} }
+    }, 10000);
+    window.addEventListener("online", ()=>{ if(B && B.coupleId) B.reconnect(); });
     members = await B.members();
     const mine = members.find(m=>m.user_id===me.uid); if(mine){ if(!me.name) me.name=mine.name; if(!me.cat) me.cat=mine.cat; }
     olderDone = false; olderLoaded = false;
@@ -2520,6 +2528,7 @@ const App = (function(){
     if(pushState()==="on") subscribePush().catch(()=>{});
     clearNotifs();
   }
+  let lastUp = Date.now(), watchT = 0;
   async function resync(){
     try{ const ms = await B.messages(); ms.forEach(addMessage); }catch(e){}
     for(const g of Object.keys(stateSubs)){ try{ const r=await B.getState(g); if(r && (!stateCache[g] || r.version>stateCache[g].version)){ stateCache[g]={version:r.version,state:r.state}; emitState(g); } }catch(e){} }

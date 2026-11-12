@@ -217,7 +217,11 @@
       });
       let ok = false;
       ch.subscribe(status => {
-        if (status === "SUBSCRIBED") ok = true;
+        if (status === "SUBSCRIBED") { ok = true; B._rtBack = 0; }
+        // 已經連上之後又斷掉（手機網路切換、登入憑證過期…）：等一下自動重新連，越等越久，最多 20 秒
+        if (ok && (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") && B._ch === ch) {
+          B._rtBack = Math.min(20000, (B._rtBack || 1000) * 2); clearTimeout(B._rtRetry);
+          B._rtRetry = setTimeout(() => { if (B._ch === ch) B.connect(); }, B._rtBack); }
         if (priv && !ok && (status === "CHANNEL_ERROR" || status === "TIMED_OUT") && B._ch === ch) { B._rtPrivate = false; B.connect(); return; }
         // 一般頻道被拒絕（站長關掉了公開頻道）：等一下改回私人頻道重新連
         if (!priv && status === "CHANNEL_ERROR" && B._ch === ch) { B._rtPrivate = true; clearTimeout(B._rtRetry); B._rtRetry = setTimeout(() => { if (B._ch === ch) B.connect(); }, 3000); }
@@ -229,6 +233,8 @@
     B.bcast = (payload) => { try { if (B._ch) B._ch.send({ type: "broadcast", event: "g", payload }); } catch (e) {} };
     B.on = (what, h) => { B._h[what].push(h); };
     B.reconnect = () => { if (B.coupleId) B.connect(); };
+    // 登入憑證更新時，即時頻道也要換新的（不然大約一小時後私人頻道會被斷掉）
+    try { sb.auth.onAuthStateChange((ev, session) => { if (session && (ev === "TOKEN_REFRESHED" || ev === "SIGNED_IN")) { try { sb.realtime.setAuth(session.access_token); } catch (e) {} } }); } catch (e) {}
     return B;
   }
 
