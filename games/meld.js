@@ -9,7 +9,9 @@ const PX = (rows, pal) => { pal = Object.assign({ O }, pal); const w = Math.max(
   return `<svg viewBox="0 0 ${w} ${h}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">${r}</svg>`; };
 const BUBBLE = c => PX(["..OOOOOOOO..",".OWWWWWWWWO.","OWWWWWWWWWWO","OWWDWWDWWDWO","OWWWWWWWWWWO",".OWWWWWWWWO.","..OOOWOOOO..","....OWO.....","....OO......"], { W: c, D: "#5a3b2e" });
 const HEART = PX([".OO.OO.","OPPOPPO","OPPPPPO",".OPPPO.","..OPO..","...O..."], { P: "#f0708d" });
-const ICO = { heart: () => HEART, bubble: () => BUBBLE("#fff6e6"), bubble2: () => BUBBLE("#ffe3ea") };
+const HEART0 = PX([".OO.OO.","OPPOPPO","OPPPPPO",".OPPPO.","..OPO..","...O..."], { P: "#e6dccf", O: "#b9a99a" });
+const HEARTS = 5;   // 每一題有 5 顆愛心，沒想到一起就少一顆，用完這題就輸了
+const ICO = { heart: () => HEART, heart0: () => HEART0, bubble: () => BUBBLE("#fff6e6"), bubble2: () => BUBBLE("#ffe3ea") };
 const I = (k, cls) => `<span class="mdI ${cls || ""}">${ICO[k]()}</span>`;
 
 const WORDS = ["夏天","海邊","貓咪","下雨","早餐","電影","生日","聖誕節","旅行","夜市","咖啡","火鍋","星星","月亮","下雪","便利商店","捷運","花","冰淇淋","遊樂園",
@@ -42,36 +44,41 @@ App.registerGame({
 
     // 一局：{ id, start, rounds: [{ w: { uid: 詞 } }], done: { at, word } | null, quit }
     function newGame(st){ const prev = st.cur && st.cur.start; let w; do { w = WORDS[(Math.random()*WORDS.length)|0]; } while(w === prev);
-      st.cur = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), start: w, rounds: [{ w: {} }], done: null, at: Date.now() }; return st; }
+      st.cur = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), start: w, rounds: [{ w: {} }], done: null, hearts: HEARTS, at: Date.now() }; return st; }
     function finish(st, ok){ const g = st.cur; st.hist = (st.hist || []).slice(-29);
-      st.hist.push({ start: g.start, n: g.rounds.length, ok, word: ok ? g.done.word : null, at: Date.now(), chain: g.rounds.map(r => Object.values(r.w)) }); }
+      st.hist.push({ start: g.start, n: g.rounds.length, ok, lost: !!g.lost, word: ok ? g.done.word : null, at: Date.now(), chain: g.rounds.map(r => Object.values(r.w)) }); }
+    const heartsOf = g => g.hearts != null ? g.hearts : Math.max(1, HEARTS - (g.rounds.length - 1));
+    const heartRow = (n, cls) => `<span class="mdHearts ${cls || ""}">${Array.from({ length: HEARTS }, (_, i) => I(i < n ? "heart" : "heart0", cls === "break" && i === n - 1 ? "brk" : "")).join("")}</span>`;
 
     // ---------- 送出 ----------
     async function submit(word){
       word = word.trim().slice(0, MAXLEN); if(!word){ ctx.toast("先寫一個詞喔"); return; }
       const p = pt(); if(!p) return;
       let result = null;
-      await ctx.update("meld", st => { st = st ? JSON.parse(JSON.stringify(st)) : {}; const g = st.cur; if(!g || g.done || g.quit) return undefined;
+      await ctx.update("meld", st => { st = st ? JSON.parse(JSON.stringify(st)) : {}; const g = st.cur; if(!g || g.done || g.quit || g.lost) return undefined;
         const r = last(g); if(r.w[p.user_id] != null && r.w[me()] != null) return undefined;
         r.w[me()] = word; result = "wait";
         if(r.w[p.user_id] != null){
           if(norm(r.w[p.user_id]) === norm(word)){ g.done = { at: Date.now(), word: r.w[p.user_id] }; result = "match"; st.wins = (st.wins || 0) + 1; st.best = Math.min(st.best || 99, g.rounds.length); finish(st, true); }
-          else { g.rounds.push({ w: {} }); result = "next"; }
+          else { g.hearts = heartsOf(g) - 1;
+            if(g.hearts <= 0){ g.hearts = 0; g.lost = { at: Date.now() }; finish(st, false); result = "lost"; }
+            else { g.rounds.push({ w: {} }); result = "next"; } }
         }
         return st; });
       editing = false; draft = "";
       if(result === "wait"){ SFX.select(); ctx.notifyPartner(`${ctx.me.name} 想好一個詞了，換你囉！（想到一起）`); }
       else if(result === "match"){ ctx.notifyPartner(`你們想到一起了！快去「想到一起」看看`); }
+      else if(result === "lost"){ ctx.notifyPartner(`愛心用完了…你們這題沒想到一起，快去「想到一起」看看`); }
       else if(result === "next"){ ctx.notifyPartner(`${ctx.me.name} 也寫好了，打開來看看你們有沒有想到一起`); }
       render();
     }
     async function quit(){
-      await ctx.update("meld", st => { st = st ? JSON.parse(JSON.stringify(st)) : {}; const g = st.cur; if(!g || g.done || g.quit) return undefined;
+      await ctx.update("meld", st => { st = st ? JSON.parse(JSON.stringify(st)) : {}; const g = st.cur; if(!g || g.done || g.quit || g.lost) return undefined;
         g.quit = { by: me(), at: Date.now() }; finish(st, false); return st; });
       SFX.tap(); render();
     }
     async function start(){
-      await ctx.update("meld", st => { st = st ? JSON.parse(JSON.stringify(st)) : {}; const g = st.cur; if(g && !g.done && !g.quit && g.rounds.length > 1) return undefined; return newGame(st); });
+      await ctx.update("meld", st => { st = st ? JSON.parse(JSON.stringify(st)) : {}; const g = st.cur; if(g && !g.done && !g.quit && !g.lost && g.rounds.length > 1) return undefined; return newGame(st); });
       SFX.select(); render();
     }
 
@@ -88,13 +95,14 @@ App.registerGame({
       const p = pt();
       if(!p){ el.innerHTML = `<div class="box mdBox"><div class="mdHead">${I("bubble2")}<b>想到一起</b></div><p class="mdHint">要兩個人才能玩喔～<br>等 ta 加入小窩之後再一起來想吧</p></div>`; return; }
       const g = cur();
-      if(!g || g.done || g.quit){ return lobby(g); }
+      if(!g || g.done || g.quit || g.lost){ return lobby(g); }
       const r = last(g), mine = r.w[me()], theirs = r.w[p.user_id], n = roundN(g);
       const prev = n > 1 ? g.rounds[n - 2] : null;
       const ask = n === 1 ? `看到「<b>${esc(g.start)}</b>」<br>你會想到什麼？` : `上一輪是「<b>${esc(prev.w[me()])}</b>」和「<b>${esc(prev.w[p.user_id])}</b>」<br>想一個跟兩個都有關的詞`;
       const writing = mine == null || editing;
       el.innerHTML = `<div class="box mdBox">
         <div class="mdHead">${I("bubble2")}<b>想到一起</b><span class="mdRound">第 ${n} 回合</span></div>
+        <div class="mdLife">${heartRow(heartsOf(g))}<small>沒想到一起會少一顆愛心</small></div>
         <div class="mdStart"><small>題目</small>${chip(g.start, "big")}</div>
         ${n > 1 ? `<div class="mdChain"><div class="mdWho"><span>${cat(meObj(), "normal")}<b>你</b></span><span>${cat(p, "normal")}<b>${esc(p.name)}</b></span></div>${chain(g, n - 1)}</div>` : ""}
         <div class="mdAsk">${ask}</div>
@@ -117,6 +125,7 @@ App.registerGame({
       const top = g && g.done ? `<div class="mdWin"><div class="mdWinCats">${cat(meObj(), "happy")}${I("heart", "big")}${cat(p, "happy")}</div>
           <h3>你們想到一起了！</h3>${chip(g.done.word, "huge")}<div class="k">從「${esc(g.start)}」開始，第 ${g.rounds.length} 回合想到同一個詞</div>
           <div class="mdChain">${chain(g, g.rounds.length)}</div></div>`
+        : g && g.lost ? `<div class="mdWin lost">${heartRow(0)}<h3>愛心用完了…</h3><div class="k">「${esc(g.start)}」這題 ${g.rounds.length} 回合都沒想到一起</div><div class="mdChain">${chain(g, g.rounds.length)}</div></div>`
         : g && g.quit ? `<div class="mdHint">上一題「${esc(g.start)}」${g.quit.by === me() ? "你" : esc(p.name)}換掉了，再來一題吧！</div>`
         : `<p class="mdHint">系統出一個題目詞，你們各自寫下想到的詞。<br>兩個人都寫好才會一起打開，<br>一樣就成功！不一樣就從這兩個詞再一起想，<br>直到想到同一個詞為止。</p>`;
       el.innerHTML = `<div class="box mdBox">
@@ -124,10 +133,10 @@ App.registerGame({
         ${top}
         <button class="btn mdNew" id="mdNew">${g ? "再來一題" : "開始！"}</button>
         <div class="mdStats"><span>想到一起 <b>${wins}</b> 次</span><span>最快 <b>${best && best < 99 ? best : "-"}</b> 回合</span></div>
-        ${H.length ? `<div class="mdHist"><div class="mdHistH">之前玩過的</div>${H.slice(0, 15).map(h => `<div class="mdH ${h.ok ? "ok" : ""}"><span>${chip(h.start)}</span><span class="mdArrow">→</span><span>${h.ok ? chip(h.word, "hit") : `<i>換掉了</i>`}</span><em>${h.n} 回合</em></div>`).join("")}</div>` : ""}
+        ${H.length ? `<div class="mdHist"><div class="mdHistH">之前玩過的</div>${H.slice(0, 15).map(h => `<div class="mdH ${h.ok ? "ok" : ""}"><span>${chip(h.start)}</span><span class="mdArrow">→</span><span>${h.ok ? chip(h.word, "hit") : `<i>${h.lost ? "愛心用完" : "換掉了"}</i>`}</span><em>${h.n} 回合</em></div>`).join("")}</div>` : ""}
       </div>`;
       el.querySelector("#mdNew").addEventListener("click", start);
-      if(g && g.done) revealCheck(g);
+      if(g && (g.done || g.lost)) revealCheck(g);
     }
     // 兩個人都寫好的那一輪，第一次看到時跳出來一起打開
     function revealCheck(g){
@@ -136,16 +145,18 @@ App.registerGame({
       const sv = seen()[g.id] || 0; if(doneRounds <= sv) return;
       markSeen(g.id, doneRounds);
       const r = g.rounds[doneRounds - 1], a = r.w[me()], b = r.w[p.user_id], hit = norm(a) === norm(b);
+      const misses = g.rounds.slice(0, doneRounds).filter(x => norm(x.w[me()]) !== norm(x.w[p.user_id])).length, left = Math.max(0, HEARTS - misses), lostNow = !hit && left <= 0;
       document.querySelectorAll(".mdReveal").forEach(x => x.remove());
       const o = document.createElement("div"); o.className = "careModal mdReveal";
       o.innerHTML = `<div class="cmBox"><div class="k">第 ${doneRounds} 回合・一起打開！</div>
         <div class="mdCards"><div class="mdCard"><div class="mdCardIn"><div class="f">${I("bubble")}</div><div class="b">${cat(meObj(), hit ? "happy" : "normal")}<b>${esc(a)}</b><small>你</small></div></div></div>
           <div class="mdCard d2"><div class="mdCardIn"><div class="f">${I("bubble2")}</div><div class="b">${cat(p, hit ? "happy" : "normal")}<b>${esc(b)}</b><small>${esc(p.name)}</small></div></div></div></div>
-        <h3 class="mdRes">${hit ? `${I("heart")} 想到一起了！` : "差一點點～"}</h3>
-        <div class="k">${hit ? `第 ${doneRounds} 回合就想到同一個詞` : `下一輪：想一個跟「${esc(a)}」和「${esc(b)}」都有關的詞`}</div>
-        <button class="btn" style="width:100%">${hit ? "好耶！" : "繼續想"}</button></div>`;
+        <h3 class="mdRes">${hit ? `${I("heart")} 想到一起了！` : lostNow ? "愛心用完了…" : "差一點點～"}</h3>
+        ${hit ? "" : `<div class="mdLose">${heartRow(left + 1, "break")}<b>愛心 -1</b></div>`}
+        <div class="k">${hit ? `第 ${doneRounds} 回合就想到同一個詞` : lostNow ? "這題沒想到一起，再來一題吧！" : `還剩 ${left} 顆愛心・下一輪：想一個跟「${esc(a)}」和「${esc(b)}」都有關的詞`}</div>
+        <button class="btn" style="width:100%">${hit ? "好耶！" : lostNow ? "嗚嗚，好吧" : "繼續想"}</button></div>`;
       document.body.appendChild(o);
-      setTimeout(() => { o.classList.add("open"); hit ? (SFX.level(), ctx.burst()) : SFX.key(1); }, 650);
+      setTimeout(() => { o.classList.add("open"); hit ? (SFX.level(), ctx.burst()) : lostNow ? SFX.miss() : SFX.key(1); }, 650);
       o.querySelector("button").addEventListener("click", () => { o.remove(); SFX.tap(); });
     }
 

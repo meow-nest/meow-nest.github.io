@@ -2657,4 +2657,10 @@ body.dark .inAppWarn{background:#3a2028}
 .mdReveal.open .mdCardIn{transform:rotateY(180deg)}.mdReveal.open .d2 .mdCardIn{transition-delay:.25s}
 .mdIn .btn{width:auto;flex:none;padding:10px 18px}.mdCat{display:inline-block;line-height:0}.mdCat svg{width:100%;height:auto}
 .mdWho .mdCat{width:28px}.mdStatus .mdCat{width:40px}.mdWinCats .mdCat{width:72px}.mdCard .b .mdCat{width:56px}
+.mdLife{display:flex;flex-direction:column;align-items:center;gap:2px}.mdLife small{color:var(--muted);font-size:12px}
+.mdHearts{display:inline-flex;gap:3px}.mdHearts .mdI{width:26px}
+.mdLose{display:flex;flex-direction:column;align-items:center;gap:4px;opacity:0;transition:opacity .3s .8s}.mdReveal.open .mdLose{opacity:1}.mdLose b{color:#d9455f}
+.mdReveal.open .mdHearts .mdI.brk{animation:mdBreak .7s 1.2s forwards}
+@keyframes mdBreak{0%{transform:scale(1)}30%{transform:scale(1.3) rotate(-10deg)}100%{transform:scale(.4) translateY(14px);opacity:0;filter:grayscale(1)}}
+.mdWin.lost h3{color:var(--muted)}
 .mdRes{opacity:0;transition:opacity .3s .7s;margin:6px 0}.mdReveal.open .mdRes{opacity:1}
