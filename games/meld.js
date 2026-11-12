@@ -48,7 +48,7 @@ App.registerGame({
   icon: () => BUBBLE("#ffe3ea"),
   mount(el, ctx){
     const { esc, SFX } = ctx;
-    let s = null, alive = true, draft = "", editing = false;
+    let s = null, alive = true, draft = "", editing = false, stale = false;
     const me = () => ctx.me.uid, pt = () => ctx.partner();
     const cur = () => s && s.cur;
     const roundN = g => g.rounds.length;
@@ -126,11 +126,12 @@ App.registerGame({
         ${writing ? `<div class="mdIn"><input id="mdW" maxlength="${MAXLEN}" autocomplete="off" enterkeyhint="send" placeholder="寫一個詞" value="${esc(draft || (editing ? mine : "") || "")}"><button class="btn" id="mdGo">送出</button></div>
             <div class="mdNote">兩個人都寫好，才會一起打開</div>`
           : `<div class="mdMine"><small>你寫的（只有你看得到）</small>${chip(mine, "big mine")}${theirs == null ? `<button class="btn sub mdEdit" id="mdEdit">改一下</button>` : ""}</div>`}
-        <div class="mdStatus">${cat(p, theirs != null ? "happy" : "normal")}<span>${theirs != null ? `${esc(p.name)} 已經想好了，${mine == null ? "換你囉！" : ""}` : `${esc(p.name)} 還在想…`}</span></div>
+        <div class="mdStatus">${cat(p, theirs != null ? "happy" : "normal")}<span class="mdStTxt">${theirs != null ? `${esc(p.name)} 已經想好了，${mine == null ? "換你囉！" : ""}` : `${esc(p.name)} 還在想…`}</span></div>
         <button class="btn sub mdQuit" id="mdQuit">這題想不到，換一題</button>
       </div>`;
       const inp = el.querySelector("#mdW");
       if(inp){ inp.addEventListener("input", () => { draft = inp.value; });
+        inp.addEventListener("blur", () => { if(stale){ stale = false; setTimeout(() => { if(alive && !el.contains(document.activeElement)) render(); }, 150); } });
         inp.addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); submit(inp.value); } });
         el.querySelector("#mdGo").addEventListener("click", () => submit(inp.value)); }
       const ed = el.querySelector("#mdEdit"); if(ed) ed.addEventListener("click", () => { editing = true; draft = mine; render(); const i2 = el.querySelector("#mdW"); if(i2){ i2.focus(); i2.select(); } });
@@ -181,9 +182,10 @@ App.registerGame({
     this._u = ctx.onState("meld", st => { const before = JSON.stringify(s && s.cur); s = clean(st);
       // 正在打字的時候不要整個重畫（只更新 ta 的狀態）
       const inp = el.querySelector("#mdW");
-      if(inp && document.activeElement === inp && cur() && !cur().done && !cur().quit && JSON.stringify(st.cur) !== before){
-        const g = cur(), p = pt(), r = last(g), m = el.querySelector(".mdStatus span");
-        if(r.w[me()] == null && m && p){ m.textContent = r.w[p.user_id] != null ? `${p.name} 已經想好了，換你囉！` : `${p.name} 還在想…`; return; } }
+      if(inp && document.activeElement === inp && cur() && !cur().done && !cur().quit && !cur().lost && JSON.stringify(st.cur) !== before){
+        const g = cur(), p = pt(), r = last(g), m = el.querySelector(".mdStTxt"), mc = el.querySelector(".mdStatus .mdCat");
+        if(r.w[me()] == null && m && p){ const ready = r.w[p.user_id] != null; m.textContent = ready ? `${p.name} 已經想好了，換你囉！` : `${p.name} 還在想…`;
+          if(mc) mc.outerHTML = cat(p, ready ? "happy" : "normal"); stale = true; return; } }
       render(); });
     this._stop = () => { alive = false; document.querySelectorAll(".mdReveal").forEach(x => x.remove()); };
   },
