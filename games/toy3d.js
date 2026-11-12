@@ -135,7 +135,7 @@
     return c;
   }
   // 身體的花紋（球的 UV：u=.25 是正面、v=0 是頭頂）
-  function skinCanvas(base, pat, c2, c3){
+  function skinCanvas(base, pat, c2, c3, collar){
     const c = C2(512, 256), x = c.getContext("2d"); x.fillStyle = base; x.fillRect(0, 0, 512, 256);
     const U = u => u*512, Vv = v => v*256;
     const blob = (u, v, rx, ry, col) => { x.fillStyle = col; for(const du of [0, -1, 1]){ x.beginPath(); x.ellipse(U(u + du), Vv(v), rx*512, ry*256, 0, 0, 7); x.fill(); } };
@@ -170,6 +170,8 @@
     if(pat === "socks"){ x.fillStyle = c2; x.fillRect(0, Vv(.86), 512, 40); }
     // 臉的地方留乾淨（花紋不要跑到臉上）
     if(["calico", "cow", "tortie", "tabby", "stripe", "spots", "rainbow"].includes(pat)){ x.save(); x.translate(U(.25), Vv(.4)); x.scale(1, .75); const g = x.createRadialGradient(0, 0, 40, 0, 0, 86); g.addColorStop(0, base); g.addColorStop(.75, base); g.addColorStop(1, base + "00"); x.fillStyle = g; x.beginPath(); x.arc(0, 0, 86, 0, 7); x.fill(); x.restore(); }
+    // 畫在身上的項圈和鈴鐺（不會凸出來）
+    if(collar){ x.fillStyle = collar; x.fillRect(0, Vv(.5), 512, Vv(.045)); x.fillStyle = "#ffcf3a"; x.strokeStyle = "#8a5a1e"; x.lineWidth = 3; x.beginPath(); x.arc(U(.25), Vv(.56), 12, 0, 7); x.fill(); x.stroke(); x.beginPath(); x.moveTo(U(.25), Vv(.56) + 2); x.lineTo(U(.25), Vv(.56) + 11); x.stroke(); }
     return c;
   }
 
@@ -178,16 +180,16 @@
   // 共用的小零件
   function catParts(o){
     const L = [], c = o.c;
-    const body = o.skin ? { skin: [c, o.skin, o.c2, o.c3] } : c;
+    const body = o.skin ? { skin: [c, o.skin, o.c2, o.c3, o.collar || ""] } : c;
     // 尾巴
     // 尾巴：沿著麻糬的底部繞半圈，尾巴尖往上翹一點（很多顆重疊的小球，看起來是一條滑順的尾巴）
-    if(!o.noTail){ const N = 36; for(let i = 0; i < N; i++){ const t = i/(N - 1), a = t*Math.PI*.6, rr = 1.1, y = -.74 + Math.pow(t, 2.5)*.42, r = .16 - t*.04;
-        L.push(PART("SPH", chain(T(Math.sin(a)*rr, y, -Math.cos(a)*rr), S(r, r, r)), o.tailBands ? o.tailBands[Math.min(o.tailBands.length - 1, Math.floor(t*o.tailBands.length))] : t > .8 && o.tailTip ? o.tailTip : (o.tail || c), { ow: i === N - 1 ? .04 : .012 })); } }
+    if(!o.noTail){ const N = 36; for(let i = 0; i < N; i++){ const t = i/(N - 1), a = t*Math.PI*.5, rr = 1.1, y = -.74 + Math.pow(t, 2.5)*.3, r = .16 - t*.05;
+        L.push(PART("SPH", chain(T(Math.sin(a)*rr, y, -Math.cos(a)*rr), S(r, r, r)), o.tailBands ? o.tailBands[Math.min(o.tailBands.length - 1, Math.floor(t*o.tailBands.length))] : t > .8 && o.tailTip ? o.tailTip : (o.tail || c), { ow: .012 })); } }
     const BM = chain(T(0, -.5, 0), S(1.06, 1.4, 1.0)); L.push(PART("DOME", BM, body));
     const ear = o.ear || c;
     if(o.ears !== false) for(const s of [-1, 1]){ L.push(PART("CONE", chain(T(s*.56, .66, 0), RZ(-s*.36), S(.3, .46, .27)), (s < 0 ? o.earL : o.earR) || ear)); L.push(PART("CONE", chain(T(s*.57, .69, .15), RZ(-s*.36), S(.15, .27, .1)), o.earIn || "#ffb3c6", { outline: false })); }
     if(o.paws) for(const s of [-1, 1]) L.push(PART("SPH", chain(T(s*.4, -.7, .75), S(.16, .1, .12)), o.paw || c));
-    if(o.wave) L.push(PART("SPH", chain(T(.92, .1, .45), RZ(-.6), S(.2, .3, .2)), o.paw || c));
+    if(o.wave) L.push(PART("SPH", chain(T(.74, .02, .62), RY(.5), RZ(-.35), S(.12, .2, .1)), o.paw || c, { ow: .03 }));
     L.push(PART("FACE", BM, null, { face: o.face || {} }));
     return L;
   }
@@ -273,8 +275,8 @@
   });
   // ---- 超稀有 ----
   Object.assign(MODELS, {
-    s_lucky: cat({ c: "#fffdf8", skin: "calico", c2: "#f2a65a", c3: "#3f3542", earL: "#f2a65a", earR: "#3f3542", tailBands: ["#fffdf8", "#f2a65a", "#f2a65a", "#3f3542", "#fffdf8"], wave: true, face: { eye: "happy", mouth: "smile" }, acc: [ACC.coin, () => [PART("TOR", chain(T(0, -.3, 0), S(1.06, 1.1, 1.0)), "#e8484d"), PART("SPH", chain(T(0, -.42, 1.0), S(.13, .13, .13)), "#ffcf3a")]] }),
-    s_gold: cat({ c: "#f5c242", skin: "gold", face: { eye: "star", mouth: "smile" }, glow: [.12, .09, 0], acc: [ACC.coin] }),
+    s_lucky: cat({ c: "#fffdf8", skin: "calico", c2: "#f2a65a", c3: "#3f3542", collar: "#e8484d", earL: "#f2a65a", earR: "#3f3542", tailBands: ["#fffdf8", "#f2a65a", "#f2a65a", "#3f3542", "#fffdf8"], wave: true, face: { eye: "happy", mouth: "smile" } }),
+    s_gold: cat({ c: "#f5c242", skin: "gold", collar: "#e8484d", face: { eye: "star", mouth: "smile" }, glow: [.12, .09, 0] }),
     s_crown: cat({ c: "#dccdff", face: { eye: "dot", lash: true }, acc: [ACC.crown] }),
     s_angel: cat({ c: "#ffffff", face: { eye: "sleep" }, acc: [ACC.halo, () => ACC.wings()] }),
     s_rainbow: cat({ c: "#ffffff", skin: "rainbow", ear: "#ff8fab", face: { eye: "star", mouth: "smile" } }),
@@ -348,7 +350,7 @@
     for(const p of parts){
       const mx = mul(B, p.mx);
       if(p.o.face){ const fk = p.fk || (p.fk = "f:" + JSON.stringify(p.o.face)); E.blend(true); E.draw(E.M[p.m], mx, null, { tex: E.texture(fk, () => faceCanvas(p.o.face)), decal: true }); E.blend(false); continue; }
-      if(p.col && p.col.skin){ const [b, pat, c2, c3] = p.col.skin; E.draw(E.M[p.m], mx, null, Object.assign({ tex: E.texture("s:" + p.col.skin.join(","), () => skinCanvas(b, pat, c2, c3)), glow: p.o.glow || glow }, p.o)); continue; }
+      if(p.col && p.col.skin){ const [b, pat, c2, c3, cl] = p.col.skin; E.draw(E.M[p.m], mx, null, Object.assign({ tex: E.texture("s:" + p.col.skin.join(","), () => skinCanvas(b, pat, c2, c3, cl)), glow: p.o.glow || glow }, p.o)); continue; }
       E.draw(E.M[p.m], mx, p.col, Object.assign({ glow: p.o.glow || glow }, p.o));
     }
   }
