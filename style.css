@@ -2626,3 +2626,35 @@ body.dark .inAppWarn{background:#3a2028}
 .cwShinyA .cwArt.c3 img,.cwShinyA .cwArt.c3 canvas{filter:drop-shadow(1.5px 0 0 #ffe27a) drop-shadow(-1.5px 0 0 #ffe27a) drop-shadow(0 1.5px 0 #ffe27a) drop-shadow(0 -1.5px 0 #ffe27a) drop-shadow(0 0 5px rgba(255,236,160,.95))}
 .cwCabM.c3 .cwOnPed{width:50px;margin-left:-25px}
 .c3spin .cwArt.c3 canvas{filter:drop-shadow(2px 0 0 #ffe27a) drop-shadow(-2px 0 0 #ffe27a) drop-shadow(0 2px 0 #ffe27a) drop-shadow(0 -2px 0 #ffe27a) drop-shadow(0 0 8px rgba(255,220,120,.95)) saturate(1.15) brightness(1.05)}
+
+/* 想到一起（情侶聯想詞） */
+.mdBox{display:flex;flex-direction:column;gap:12px;align-items:stretch}
+.mdHead{display:flex;align-items:center;gap:8px;font-size:20px}.mdHead b{text-shadow:.6px 0 0 currentColor}.mdRound{margin-left:auto;font-size:14px;background:var(--ink);color:#fff;padding:3px 10px}
+.mdI{display:inline-block;width:28px;vertical-align:middle;line-height:0}.mdI svg{width:100%;height:auto}.mdI.big{width:40px}
+.mdStart{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}.mdStart small{color:var(--muted)}
+.mdChip{display:inline-block;min-width:3em;padding:4px 10px;background:#fff8ec;border:3px solid var(--ink);box-shadow:3px 3px 0 rgba(90,59,46,.25);font-size:16px;text-align:center;word-break:keep-all}
+.mdChip.big{font-size:22px;padding:6px 16px}.mdChip.huge{font-size:30px;padding:8px 22px;background:#ffe3ea}.mdChip.hit{background:#ffe3ea}.mdChip.mine{background:#fff3c4}
+.mdChain{display:flex;flex-direction:column;gap:6px;background:rgba(255,255,255,.55);border:2px dashed rgba(90,59,46,.35);padding:8px}
+.mdWho{display:grid;grid-template-columns:1fr 1fr;text-align:center;font-size:13px}.mdWho span{display:flex;align-items:center;justify-content:center;gap:4px}.mdWho span>:first-child{width:28px}
+.mdRow{display:grid;grid-template-columns:22px 1fr 26px 1fr;align-items:center;gap:4px}.mdRow em{font-style:normal;color:var(--muted);font-size:12px}.mdRow .mdChip{font-size:15px}.mdRow.hit .mdChip{background:#ffe3ea}
+.mdVs{text-align:center;color:var(--muted)}.mdVs .mdI{width:22px}
+.mdAsk{text-align:center;font-size:17px;line-height:1.6}.mdAsk b{color:#d9455f}
+.mdIn{display:flex;gap:8px}.mdIn input{flex:1;min-width:0;font:inherit;font-size:20px;padding:10px;border:3px solid var(--ink);background:#fff;text-align:center}
+.mdNote{text-align:center}
+.mdMine{display:flex;flex-direction:column;align-items:center;gap:6px}.mdMine small{color:var(--muted)}.mdEdit{padding:4px 12px;font-size:13px}
+.mdStatus{display:flex;align-items:center;justify-content:center;gap:8px;font-size:15px}.mdStatus>:first-child{width:40px}
+.mdQuit{font-size:13px;align-self:center;padding:5px 12px}
+.mdHint{text-align:center;line-height:1.7;margin:0}
+.mdNew{font-size:20px;padding:12px}
+.mdStats{display:flex;justify-content:center;gap:18px;font-size:14px}.mdStats b{font-size:18px}
+.mdHist{display:flex;flex-direction:column;gap:6px}.mdHistH{font-size:13px;color:var(--muted);text-align:center}
+.mdH{display:grid;grid-template-columns:1fr 20px 1fr 52px;align-items:center;gap:4px;font-size:14px}.mdH .mdChip{font-size:14px;min-width:0;width:100%}.mdH i{color:var(--muted);font-style:normal;text-align:center;display:block}.mdH em{font-style:normal;font-size:12px;color:var(--muted);text-align:right}.mdArrow{text-align:center;color:var(--muted)}
+.mdWin{text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px}.mdWin h3{margin:0;font-size:22px}.mdWinCats{display:flex;align-items:center;gap:6px}.mdWinCats>span:not(.mdI){width:64px}.mdWin .mdChain{align-self:stretch}
+.mdReveal .cmBox{text-align:center}.mdCards{display:flex;gap:12px;justify-content:center;margin:10px 0;perspective:600px}
+.mdCard{width:130px;height:150px}.mdCardIn{position:relative;width:100%;height:100%;transition:transform .6s;transform-style:preserve-3d}
+.mdCard .f,.mdCard .b{position:absolute;inset:0;backface-visibility:hidden;border:3px solid var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:#fff8ec}
+.mdCard .f{background:#ffe3ea}.mdCard .f .mdI{width:64px}.mdCard .b{transform:rotateY(180deg)}.mdCard .b>span:first-child{width:48px}.mdCard .b b{font-size:20px;word-break:keep-all}.mdCard .b small{color:var(--muted)}
+.mdReveal.open .mdCardIn{transform:rotateY(180deg)}.mdReveal.open .d2 .mdCardIn{transition-delay:.25s}
+.mdIn .btn{width:auto;flex:none;padding:10px 18px}.mdCat{display:inline-block;line-height:0}.mdCat svg{width:100%;height:auto}
+.mdWho .mdCat{width:28px}.mdStatus .mdCat{width:40px}.mdWinCats .mdCat{width:72px}.mdCard .b .mdCat{width:56px}
+.mdRes{opacity:0;transition:opacity .3s .7s;margin:6px 0}.mdReveal.open .mdRes{opacity:1}
