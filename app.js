@@ -1777,7 +1777,7 @@ const App = (function(){
     }));
     setTimeout(()=>document.addEventListener("pointerdown", function h(e){ if(!t.isConnected){ document.removeEventListener("pointerdown", h, true); return; } if(!t.contains(e.target) && e.target.id!=="stkFab" && !e.target.closest("#stkFab")){ stkClose(); document.removeEventListener("pointerdown", h, true); } }, true), 0);
   }
-  let stkN = 0;
+  let stkN = 0, stkGot = [];
   function stkShow(id, cat, from, mine){
     const d = document.createElement("div"); d.className = "stkPop" + (mine ? " mine" : ""); d.style.setProperty("--x", mine ? "0px" : ((stkN++ % 3) - 1) * 40 + "px");
     d.innerHTML = mine ? `<div class="stkBig">${stickerHtml(id, cat)}</div><div class="stkFrom">傳出去了～</div>` : `<div class="stkFrom">${esc(from)} 傳來</div><div class="stkBig">${stickerHtml(id, cat)}</div><div class="stkCap">${esc((STK_BY[id]||[])[2]||"")}</div>`;
@@ -1786,7 +1786,10 @@ const App = (function(){
   ctx.onBroadcast(p=>{
     if(!p || p.g !== "stk" || !STK_BY[p.s]) return;
     if(document.body.classList.contains("locked")) return;
-    stkShow(p.s, p.cat || catOf(p.from), p.name || nameOf(p.from), false); SFX.heart();
+    const pp = partner(); if(!pp || p.from !== pp.user_id) return;                 // 只接受另一半傳來的貼圖
+    const now = Date.now(); stkGot = stkGot.filter(t => now - t < 4000);            // 4 秒內最多跳 3 張，就算對方改程式狂傳也不會洗版
+    if(stkGot.length >= 3) return; stkGot.push(now);
+    stkShow(p.s, catOf(p.from), nameOf(p.from), false); SFX.heart();
     if(navigator.vibrate) try{ navigator.vibrate(60); }catch(e){}
   });
 
