@@ -144,7 +144,7 @@ const App = (function(){
     <ellipse cx="51" cy="26" rx="7" ry="8.5" fill="#fff4f6" stroke="#5a3b2e" stroke-width="3.5"/><ellipse cx="51" cy="27" rx="3.6" ry="4.4" fill="#f7a0b4"/></svg>`;
   const PAW_SKIP = ["notes","pet","stars","petdeco","petcatch","minikit"];
   const pawCallable = g => !!(partner() && g && !PAW_SKIP.includes(g.id) && (!g.solo || g.id === "bingo"));
-  let pawLast = 0;
+  let pawLast = 0, pawGot = 0;
   async function pawCall(g){
     const p = partner(); if(!p) return;
     const wait = Math.ceil((pawLast + 20000 - Date.now())/1000);
@@ -158,6 +158,9 @@ const App = (function(){
   }
   ctx.onBroadcast(p=>{
     if(!p || p.g !== "paw" || p.from === me.uid) return;
+    if(document.body.classList.contains("locked")) return;
+    const pp = partner(); if(!pp || p.from !== pp.user_id) return;            // 只接受另一半的拍拍
+    if(Date.now() - pawGot < 15000) return; pawGot = Date.now();             // 就算對方改程式狂按，15 秒內也只會跳一次
     const g = games.find(x=>x.id === p.game); if(!g || (g.wip && !isAdmin)) return;
     document.querySelectorAll(".pawPop").forEach(x=>x.remove());
     const here = curGame && curGame.id === g.id && route === "game";
