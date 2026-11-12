@@ -117,6 +117,7 @@
       if(o.blush !== false){ const bx = 128 + s*(ex + 32), by = ey + 26, g = x.createRadialGradient(bx, by, 2, bx, by, 26); g.addColorStop(0, "rgba(255,120,150,.75)"); g.addColorStop(1, "rgba(255,120,150,0)"); x.fillStyle = g; x.beginPath(); x.ellipse(bx, by, 26, 17, 0, 0, 7); x.fill(); }
       if(o.whisker){ x.strokeStyle = ink; x.lineWidth = 4; x.globalAlpha = .6; for(const dy of [-6, 6]){ x.beginPath(); x.moveTo(128 + s*(ex + 40), ey + 26 + dy); x.lineTo(128 + s*(ex + 62), ey + 22 + dy*1.6); x.stroke(); } x.globalAlpha = 1; }
     }
+    if(o.glasses){ x.strokeStyle = "#3a2424"; x.lineWidth = 4; for(const s of [-1, 1]){ x.beginPath(); x.arc(128 + s*ex, ey + 2, 19, 0, 7); x.stroke(); } x.beginPath(); x.moveTo(128 - ex + 19, ey); x.quadraticCurveTo(128, ey - 8, 128 + ex - 19, ey); x.stroke(); }
     x.save(); x.translate(128, 140); x.scale(.8, .8); x.translate(-128, -142);
     x.strokeStyle = ink; x.lineWidth = 7;
     const m = o.mouth || "w";
@@ -167,6 +168,8 @@
     if(pat === "whitehead"){ cap(c2, .3); x.fillStyle = c3; x.beginPath(); x.ellipse(U(.75), Vv(.17), 50, 30, 0, 0, 7); x.fill(); }
     if(pat === "band"){ const g = x.createLinearGradient(0, 0, 512, 0); for(let i = 0; i <= 6; i++) g.addColorStop(i/6, i % 2 ? c3 : c2); x.fillStyle = g; x.globalAlpha = .55; x.fillRect(0, Vv(.42), 512, Vv(.07)); x.globalAlpha = 1; }
     if(pat === "socks"){ x.fillStyle = c2; x.fillRect(0, Vv(.86), 512, 40); }
+    // 臉的地方留乾淨（花紋不要跑到臉上）
+    if(["calico", "cow", "tortie", "tabby", "stripe", "spots", "rainbow"].includes(pat)){ x.save(); x.translate(U(.25), Vv(.4)); x.scale(1, .75); const g = x.createRadialGradient(0, 0, 40, 0, 0, 86); g.addColorStop(0, base); g.addColorStop(.75, base); g.addColorStop(1, base + "00"); x.fillStyle = g; x.beginPath(); x.arc(0, 0, 86, 0, 7); x.fill(); x.restore(); }
     return c;
   }
 
@@ -228,7 +231,7 @@
     c_scarf: cat({ c: "#b8bfd0", face: { eye: "dot" }, acc: [() => ACC.scarf()] }),
     c_chef: cat({ c: "#f5ae63", skin: "stripe", c2: "#d9823a", face: { eye: "happy" }, acc: [ACC.chef] }),
     c_beret: cat({ c: "#3f3846", skin: "tux", c2: "#ffffff", face: { eye: "cat", ink: "#1a1418" }, acc: [() => ACC.beret()] }),
-    c_glasses: cat({ c: "#a9a194", skin: "tabby", c2: "#6e665c", face: { eye: "dot", blush: true }, acc: [ACC.glasses] }),
+    c_glasses: cat({ c: "#a9a194", skin: "tabby", c2: "#6e665c", face: { eye: "dot", glasses: true } }),
     c_cry: cat({ c: "#ffc8d6", face: { eye: "cry", mouth: "o" } }),
     c_sleepy: cat({ c: "#fbf1de", skin: "socks", c2: "#ffffff", face: { eye: "sleep", mouth: "o" } }),
   });
