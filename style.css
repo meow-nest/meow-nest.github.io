@@ -2762,3 +2762,58 @@ body.dark .inAppWarn{background:#3a2028}
 .bgStGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
 .bgStGrid button{display:flex;flex-direction:column;align-items:center;gap:4px;font:inherit;color:var(--ink);background:#fff8ec;border:3px solid rgba(90,59,46,.25);padding:8px 4px;cursor:pointer}
 .bgStGrid button.on{border-color:var(--ink);background:#fff;box-shadow:0 0 0 3px #f0889c}.bgStGrid small{font-size:12px}
+
+/* 扭蛋賓果 */
+.bgKind{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.bgKind button{font:inherit;color:var(--ink);background:#fff8ec;border:3px solid rgba(90,59,46,.3);padding:10px 6px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
+.bgKind button b{font-weight:400;font-size:19px;text-shadow:.5px 0 0 currentColor}.bgKind button small{font-size:12px;opacity:.7;line-height:1.4}
+.bgKind button.on{background:#fff;border-color:var(--ink);box-shadow:3px 3px 0 #f0889c}.bgKind button.on b{color:#d9455f}
+.bgHd{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.bgHd i{font-style:normal;color:#fff;text-align:center;border:3px solid var(--ink);font-size:20px;padding:2px 0;text-shadow:0 0 2px rgba(90,59,46,.6)}
+.bgHd.top{padding:0 14px;margin-bottom:-8px;position:relative;z-index:2}
+.bgCell.free{background:linear-gradient(135deg,#fff2b0,#f6c45f);color:#8a5a1e}.bgCell.free span{font-size:.55em;color:#8a5a1e!important;text-shadow:none!important;margin:0!important}
+.bgCard.late .stampNow .bgSt{opacity:0;animation:bgStamp .45s 1.9s cubic-bezier(.2,1.6,.4,1) forwards}
+.bgCard.late .stampNow{animation:gcBg 1.9s step-end}.bgCard.late .stampNow span{animation:gcTxt 1.9s step-end}
+@keyframes gcBg{0%{background:#fff8ec}}@keyframes gcTxt{0%{color:#5a3b2e;text-shadow:none;margin:0;font-size:inherit;position:relative;right:auto;bottom:auto}}
+.bgLines.g line.new{animation-delay:2.3s}
+.bgCardPick{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.bgCardPick button{font:inherit;background:none;border:3px solid transparent;padding:3px;cursor:pointer}.bgCardPick button.on{border-color:#f0708d;box-shadow:0 0 0 3px #ffe3ea;transform:scale(1.03)}
+.bgCard5{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;background:#fff;border:3px solid var(--ink);padding:3px}
+.bgCard5 .bgHd{grid-column:1/-1;gap:2px}.bgCard5 .bgHd i{font-size:11px;border-width:2px;padding:0}
+.bgCard5 span{font-size:12px;text-align:center;background:#fff8ec;border:1px solid rgba(90,59,46,.3);padding:3px 0;color:var(--ink)}.bgCard5 span.free{background:#f6c45f;font-size:8px;display:flex;align-items:center;justify-content:center}
+.bgCard5.big{max-width:260px;align-self:center}.bgCard5.big span{font-size:17px;padding:6px 0}.bgCard5.big .bgHd i{font-size:16px}
+.bgCalls span.cap{border-color:var(--c);background:#fff;border-radius:10px}
+.gcRow{display:flex;align-items:center;gap:12px}
+.gcM{position:relative;flex:none;width:136px;height:206px}
+.gcDome{position:absolute;left:4px;top:0;width:128px;height:128px;border-radius:50%;border:4px solid var(--ink);background:radial-gradient(circle at 35% 28%,#ffffff,#eaf6ff 40%,#c4e0f7);overflow:hidden;z-index:2;box-sizing:border-box}
+.gcBalls i{position:absolute;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;border:2px solid var(--ink);background:linear-gradient(180deg,var(--c) 0 50%,#fff 50%);box-sizing:border-box}
+.gcShine{position:absolute;left:18%;top:10%;width:28%;height:18%;border-radius:50%;background:rgba(255,255,255,.85);transform:rotate(-30deg)}
+.gcNeck{position:absolute;left:38px;top:118px;width:60px;height:14px;background:#d9506f;border:4px solid var(--ink);z-index:1}
+.gcBody{position:absolute;left:0;top:128px;width:136px;height:66px;background:linear-gradient(180deg,#f7a0b4,#e5607e);border:4px solid var(--ink);box-sizing:border-box;border-radius:6px 6px 2px 2px;box-shadow:4px 4px 0 rgba(90,59,46,.25)}
+.gcLabel{position:absolute;left:0;right:0;top:2px;text-align:center;font-size:11px;color:#fff;letter-spacing:2px}
+.gcKnob{position:absolute;left:12px;top:18px;width:36px;height:36px;border-radius:50%;background:#fff3c4;border:3px solid var(--ink);box-sizing:border-box}
+.gcKnob span{position:absolute;left:50%;top:2px;bottom:2px;width:8px;margin-left:-4px;background:#f6a65a;border:2px solid var(--ink);border-radius:3px;box-sizing:border-box}
+.gcHole{position:absolute;right:12px;top:20px;width:46px;height:34px;background:#3a2b3e;border:3px solid var(--ink);border-radius:10px 10px 4px 4px;box-sizing:border-box;overflow:hidden}
+.gcPeek{position:absolute;left:50%;top:100%;width:24px;height:24px;margin-left:-12px;border-radius:50%;border:2px solid var(--ink);background:linear-gradient(180deg,var(--c) 0 50%,#fff 50%);animation:gcPeek 1s .7s ease-out forwards}
+@keyframes gcPeek{0%{top:100%}50%{top:20%}100%{top:20%;opacity:0}}
+.gcFeet{position:absolute;left:10px;right:10px;bottom:0;height:10px;background:var(--ink);border-radius:0 0 4px 4px}
+.gcM.go .gcKnob span{animation:gcSpin .9s ease-in-out}
+.gcM.go .gcBalls i{animation:gcShake .9s}
+@keyframes gcSpin{to{transform:rotate(540deg)}}
+@keyframes gcShake{0%,100%{translate:0 0}20%{translate:4px -8px}40%{translate:-5px 2px}60%{translate:3px -5px}80%{translate:-2px 2px}}
+.gcSide{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}.gcSide b{font-weight:400;font-size:16px;text-shadow:.5px 0 0 currentColor}.gcSide small{opacity:.7;font-size:12px}
+.gcRes{height:110px;display:flex;align-items:flex-end;justify-content:center}
+.gcEmpty{width:84px;height:84px;border-radius:50%;border:3px dashed rgba(90,59,46,.35);display:flex;align-items:center;justify-content:center;font-size:13px;opacity:.6}
+.gcCap{position:relative;width:96px;height:96px}
+.gcCap .gcTop,.gcCap .gcBot{position:absolute;left:0;width:96px;height:48px;border:4px solid var(--ink);box-sizing:border-box}
+.gcCap .gcTop{top:0;border-radius:48px 48px 0 0;background:var(--c);transform-origin:6% 100%;z-index:3;box-shadow:inset 0 6px 0 rgba(255,255,255,.35)}
+.gcCap .gcBot{top:48px;border-radius:0 0 48px 48px;background:#fff;z-index:1}
+.gcNum{position:absolute;left:0;right:0;top:30px;z-index:2;display:flex;flex-direction:column;align-items:center;line-height:1}
+.gcNum small{font-size:15px;color:#fff;background:var(--c);border:2px solid var(--ink);padding:1px 6px}.gcNum b{font-weight:400;font-size:36px;color:var(--ink);text-shadow:.8px 0 0 currentColor}
+.gcCap.open .gcTop{transform:translate(-8px,-20px) rotate(-28deg)}
+.gcCap.drop{animation:gcDrop .8s .9s cubic-bezier(.3,1.6,.5,1) backwards}
+.gcCap.drop .gcTop{animation:gcOpen .45s 1.7s forwards}
+.gcCap.drop .gcNum{animation:gcNum .45s 1.8s backwards}
+@keyframes gcDrop{0%{transform:translate(-90px,10px) scale(.25);opacity:0}25%{opacity:1}100%{transform:none;opacity:1}}
+@keyframes gcOpen{to{transform:translate(-8px,-20px) rotate(-28deg)}}
+@keyframes gcNum{0%{opacity:0;transform:scale(.4)}100%{opacity:1;transform:none}}
+.gcGo{font-size:22px;padding:10px 26px;animation:bgGlow 1.4s ease-in-out infinite}
