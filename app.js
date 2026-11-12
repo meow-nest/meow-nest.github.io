@@ -53,6 +53,9 @@ const App = (function(){
       next(){ tone(440,.12,{to:1200,vol:.16,lp:2500}); },
       level(){ [N.G5,N.C6,N.E6,N.G6].forEach((f,i)=>tone(f,.16,{vol:.28,delay:i*.12})); meow(1.15,.6); },
       heart(){ tone(N.A5,.09,{vol:.28,type:"triangle"}); tone(N.E6,.16,{vol:.25,type:"triangle",delay:.09}); },
+      // 貓爪拍拍：軟軟的「啪、啪、啪」再一聲喵（呼叫 ta 用）
+      paw(n=3){ for(let i=0;i<n;i++){ tone(320-i*20,.07,{vol:.42,type:"sine",to:150,lp:900,delay:i*.38}); tone(1600,.03,{vol:.06,type:"triangle",delay:i*.38+.005}); } meow(1.15, n*.38+.05); },
+      pawSend(){ tone(300,.07,{vol:.4,type:"sine",to:150,lp:900}); tone(N.A5,.08,{vol:.2,type:"triangle",delay:.08}); tone(N.E6,.12,{vol:.18,type:"triangle",delay:.15}); },
       msg(){ tone(N.E6,.08,{vol:.2,type:"triangle"}); tone(N.C6,.12,{vol:.2,type:"triangle",delay:.08}); },
       place(){ tone(220,.05,{vol:.35,type:"triangle"}); tone(160,.08,{vol:.25,type:"square",lp:800,delay:.02}); },
       key(p){ const base=[1046,1175,1318,1397,1568][(Math.random()*5)|0]*(p||1); tone(base,.035,{vol:.13,type:"square",lp:4000}); tone(base*2,.02,{vol:.05,type:"triangle",delay:.01}); },
@@ -133,6 +136,40 @@ const App = (function(){
   const bcSubs = [];
   ctx.broadcast = p => { if(B.bcast) B.bcast(Object.assign({ from: me.uid }, p)); };
   ctx.onBroadcast = h => { bcSubs.push(h); return ()=>{ const i = bcSubs.indexOf(h); if(i>=0) bcSubs.splice(i,1); }; };
+  // ---- 雙人遊戲的「呼叫 ta」貓爪按鈕 ----
+  const PAW_SVG = `<svg viewBox="0 0 64 64" class="pawSvg"><ellipse cx="32" cy="42" rx="17" ry="14" fill="#fff4f6" stroke="#5a3b2e" stroke-width="3.5"/><ellipse cx="32" cy="43" rx="10" ry="8" fill="#f7a0b4"/>
+    <ellipse cx="13" cy="26" rx="7" ry="8.5" fill="#fff4f6" stroke="#5a3b2e" stroke-width="3.5"/><ellipse cx="13" cy="27" rx="3.6" ry="4.4" fill="#f7a0b4"/>
+    <ellipse cx="25" cy="15" rx="7" ry="8.5" fill="#fff4f6" stroke="#5a3b2e" stroke-width="3.5"/><ellipse cx="25" cy="16" rx="3.6" ry="4.4" fill="#f7a0b4"/>
+    <ellipse cx="39" cy="15" rx="7" ry="8.5" fill="#fff4f6" stroke="#5a3b2e" stroke-width="3.5"/><ellipse cx="39" cy="16" rx="3.6" ry="4.4" fill="#f7a0b4"/>
+    <ellipse cx="51" cy="26" rx="7" ry="8.5" fill="#fff4f6" stroke="#5a3b2e" stroke-width="3.5"/><ellipse cx="51" cy="27" rx="3.6" ry="4.4" fill="#f7a0b4"/></svg>`;
+  const PAW_SKIP = ["notes","pet","stars","petdeco","petcatch","minikit"];
+  const pawCallable = g => !!(partner() && g && !PAW_SKIP.includes(g.id) && (!g.solo || g.id === "bingo"));
+  let pawLast = 0;
+  async function pawCall(g){
+    const p = partner(); if(!p) return;
+    const wait = Math.ceil((pawLast + 20000 - Date.now())/1000);
+    if(wait > 0){ toast(`剛剛拍過了，${wait} 秒後可以再拍一次`); return; }
+    pawLast = Date.now();
+    const b = $("bPaw"); if(b){ b.classList.remove("tap"); void b.offsetWidth; b.classList.add("tap"); }
+    SFX.pawSend(); if(navigator.vibrate) try{ navigator.vibrate(30); }catch(e){}
+    ctx.broadcast({ g:"paw", game: g.id });
+    if(isOnline(p.user_id)) toast(`拍拍 ${esc(p.name)} 了，叫 ta 快來玩「${esc(g.name)}」！`);
+    else { notifyPartner(`${me.name} 在「${g.name}」呼叫你，快來一起玩！`); toast(`${esc(p.name)} 現在不在線上，已經傳通知給 ta 了`); }
+  }
+  ctx.onBroadcast(p=>{
+    if(!p || p.g !== "paw" || p.from === me.uid) return;
+    const g = games.find(x=>x.id === p.game); if(!g || (g.wip && !isAdmin)) return;
+    document.querySelectorAll(".pawPop").forEach(x=>x.remove());
+    const here = curGame && curGame.id === g.id && route === "game";
+    const d = document.createElement("div"); d.className = "pawPop";
+    d.innerHTML = `<div class="pawHits">${[0,1,2].map(i=>`<span style="--i:${i}">${PAW_SVG}</span>`).join("")}</div>
+      <div class="pawCard">${sprite(catOf(p.from),"happy")}<div><b>${esc(nameOf(p.from))} 拍拍你！</b><small>${here ? "ta 在等你一起玩喔" : `在「${esc(g.name)}」等你一起玩`}</small></div>
+      ${here ? `<button class="btn sub" data-x>好！</button>` : `<button class="btn" data-go>去玩</button><button class="btn sub" data-x>等等</button>`}</div>`;
+    document.body.appendChild(d); SFX.paw(); if(navigator.vibrate) try{ navigator.vibrate([40,340,40,340,40]); }catch(e){}
+    const close = ()=>d.remove(); const tm = setTimeout(close, 9000);
+    d.querySelectorAll("[data-x]").forEach(b=>b.addEventListener("click", ()=>{ clearTimeout(tm); close(); }));
+    const gb = d.querySelector("[data-go]"); if(gb) gb.addEventListener("click", ()=>{ clearTimeout(tm); close(); go("game-" + g.id); });
+  });
   ctx.keyboard = (host, o) => IME.mount(host, Object.assign({ dictUrl:"zhuyin.txt", prefs: kbPrefs, haptic: ()=>{ if(kbVib()) haptic(); }, anim: ()=>store.get("mw_anim")||"jelly", art: kbArt(), phrases: [], kaomoji: window.KAOMOJI,
     fx: (k)=>{ if(!kbSound()) return; if(k==="del") SFX.del(); else SFX.key(); } }, o));
 
@@ -2370,8 +2407,9 @@ const App = (function(){
     else if(route==="game"){
       const g = games.find(x=>x.id===r.slice(5));
       if(!g || (g.wip && !isAdmin)){ go("home"); return; }
-      v.innerHTML = `<div class="gtop"><button class="btn sub" id="bBack">◀ 回小窩</button><span class="gname">${esc(g.id==="pet" && isSolo() ? "我的貓" : g.name)}</span></div><div id="gArea"></div>`;
+      v.innerHTML = `<div class="gtop"><button class="btn sub" id="bBack">◀ 回小窩</button><span class="gname">${esc(g.id==="pet" && isSolo() ? "我的貓" : g.name)}</span>${pawCallable(g) ? `<button class="pawCall" id="bPaw" aria-label="呼叫 ta">${PAW_SVG}<em>呼叫</em></button>` : ""}</div><div id="gArea"></div>`;
       $("bBack").addEventListener("click", ()=>go(isAdmin ? "games" : "home"));
+      if($("bPaw")) $("bPaw").addEventListener("click", ()=>pawCall(g));
       curGame = g; lastGame = r; g.mount($("gArea"), ctx);
       const fab=document.createElement("button"); fab.id="fab"; fab.className="fab"; fab.innerHTML=`${icon("chat")}<b id="fabBadge" class="hidden">0</b>`; fab.addEventListener("click", openSheet); document.body.appendChild(fab); if(!curGame || curGame.id !== "notes") stkFab();
     } else if(route==="games" && isAdmin){ lastGame = null; viewHome(v, true);
