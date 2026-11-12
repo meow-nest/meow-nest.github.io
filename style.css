@@ -2735,3 +2735,30 @@ body.dark .inAppWarn{background:#3a2028}
 .bgEndCats{display:flex;align-items:center;justify-content:center;gap:10px}.bgEndCats .bgCat{width:70px}
 .bgArt{display:grid!important;grid-template-columns:repeat(3,1fr);gap:3px;background:#fff;border:3px solid #5a3b2e;padding:4px;box-shadow:3px 3px 0 #f0889c}
 .bgArt i{font-style:normal;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:12px;background:#fff8ec;border:2px solid #5a3b2e;color:#5a3b2e}.bgArt i.on{background:#f0708d;color:#fff}
+
+/* 賓果印章 */
+.bgSt{position:absolute;inset:6%;z-index:1;line-height:0;display:block;pointer-events:none}.bgSt svg{width:100%;height:100%;display:block}
+.bgCell.mark{background:#ffe3ea}.bgCell.mark span{z-index:2}
+.bgCell.stampNow .bgSt{animation:bgStamp .45s cubic-bezier(.2,1.6,.4,1)}
+.st-A .bgSt{transform:rotate(-8deg)}.st-C .bgSt{transform:rotate(6deg);opacity:.92}.st-D .bgSt{transform:rotate(-6deg)}.st-F .bgSt{transform:rotate(7deg);filter:drop-shadow(2px 3px 0 rgba(90,59,46,.25))}
+.st-G .bgSt{transform:rotate(-6deg)}.st-H .bgSt{transform:rotate(6deg)}.st-I .bgSt{transform:rotate(-5deg)}.st-J .bgSt{transform:rotate(-10deg)}
+.st-K .bgSt{transform:rotate(5deg);filter:drop-shadow(0 0 4px rgba(246,196,95,.8))}.st-L .bgSt{opacity:.85;transform:rotate(-8deg);z-index:3}.st-O .bgSt{transform:rotate(-6deg)}
+.st-B .bgSt{z-index:3;transform:rotate(-10deg);opacity:.85}
+.bgCell.mark.st-A span,.bgCell.mark.st-C span,.bgCell.mark.st-D span,.bgCell.mark.st-E span{color:#fff;text-shadow:0 0 3px #c2405c,0 0 2px #c2405c;margin-top:12%}
+.bgCell.mark.st-D span{margin-top:14%}.bgCell.mark.st-E span{margin-top:30%}
+.bgCell.mark.st-B span{color:#5a3b2e}
+.bgCell.mark.st-F span{color:#e0557a;margin-top:12%}
+.bgCell.mark.st-G span,.bgCell.mark.st-J span,.bgCell.mark.st-K span,.bgCell.mark.st-N span{color:#fff;text-shadow:0 0 3px #5a3b2e,0 0 2px #5a3b2e}
+.bgCell.mark.st-G span{margin-top:22%}.bgCell.mark.st-J span{margin-top:30%;font-size:.85em}.bgCell.mark.st-K span{margin-top:12%;text-shadow:0 0 3px #a8721a,0 0 2px #a8721a}.bgCell.mark.st-N span{margin-top:12%}
+.bgCell.mark.st-H span{color:#5a3b2e;margin-top:16%}
+.bgCell.mark.st-I span{position:absolute;right:6%;bottom:2%;font-size:.6em;color:#fff;text-shadow:0 0 3px #c2405c,0 0 2px #c2405c}
+.bgCell.mark.st-L span{color:#5a3b2e;position:absolute;bottom:4%;font-size:.6em;z-index:4}
+.bgCell.mark.st-O span{margin-top:8%;font-size:.62em;color:#c2405c}
+.bgPrevCell{width:56px;height:56px;font-size:24px;pointer-events:none;flex:none}
+.bgMyStamp{display:flex;align-items:center;gap:12px;font:inherit;color:var(--ink);background:#fff;border:3px solid var(--ink);padding:8px 12px;box-shadow:3px 3px 0 rgba(240,136,156,.6);cursor:pointer;text-align:left}
+.bgMyStamp span{display:flex;flex-direction:column;gap:2px}.bgMyStamp b{font-weight:400;color:#d9455f}.bgMyStamp small{font-size:12px;opacity:.65}
+.bgMyStamp.small .bgPrevCell{width:44px;height:44px;font-size:19px}
+.bgPick2 .cmBox{text-align:center;max-height:86vh;overflow:auto}.bgPick2 h3{margin:4px 0}
+.bgStGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
+.bgStGrid button{display:flex;flex-direction:column;align-items:center;gap:4px;font:inherit;color:var(--ink);background:#fff8ec;border:3px solid rgba(90,59,46,.25);padding:8px 4px;cursor:pointer}
+.bgStGrid button.on{border-color:var(--ink);background:#fff;box-shadow:0 0 0 3px #f0889c}.bgStGrid small{font-size:12px}
