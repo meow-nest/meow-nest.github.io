@@ -100,7 +100,7 @@ App.registerGame({
     }
 
     // ---------- 畫面 ----------
-    const chip = (w, cls) => `<span class="mdChip ${cls || ""}">${esc(w)}</span>`;
+    const chip = (w, cls) => `<span class="mdChip ${cls || ""} ${String(w || "").length > 6 ? "long" : ""}">${esc(w)}</span>`;
     function chain(g, upto){
       const p = pt(); const rows = [];
       g.rounds.slice(0, upto).forEach((r, i) => { const a = r.w[me()], b = p && r.w[p.user_id], hit = a != null && b != null && norm(a) === norm(b);
@@ -124,7 +124,7 @@ App.registerGame({
         ${n > 1 ? `<div class="mdChain"><div class="mdWho"><span>${cat(meObj(), "normal")}<b>你</b></span><span>${cat(p, "normal")}<b>${esc(p.name)}</b></span></div>${chain(g, n - 1)}</div>` : ""}
         <div class="mdAsk">${ask}</div>
         ${writing ? `<div class="mdIn"><input id="mdW" maxlength="${MAXLEN}" autocomplete="off" enterkeyhint="send" placeholder="寫一個詞" value="${esc(draft || (editing ? mine : "") || "")}"><button class="btn" id="mdGo">送出</button></div>
-            <div class="k mdNote">ta 寫好之前看不到你的詞，你也看不到 ta 的</div>`
+            <div class="mdNote">兩個人都寫好，才會一起打開</div>`
           : `<div class="mdMine"><small>你寫的（只有你看得到）</small>${chip(mine, "big mine")}${theirs == null ? `<button class="btn sub mdEdit" id="mdEdit">改一下</button>` : ""}</div>`}
         <div class="mdStatus">${cat(p, theirs != null ? "happy" : "normal")}<span>${theirs != null ? `${esc(p.name)} 已經想好了，${mine == null ? "換你囉！" : ""}` : `${esc(p.name)} 還在想…`}</span></div>
         <button class="btn sub mdQuit" id="mdQuit">這題想不到，換一題</button>
@@ -166,10 +166,10 @@ App.registerGame({
       document.querySelectorAll(".mdReveal").forEach(x => x.remove());
       const o = document.createElement("div"); o.className = "careModal mdReveal";
       o.innerHTML = `<div class="cmBox"><div class="k">第 ${doneRounds} 回合・一起打開！</div>
-        <div class="mdCards"><div class="mdCard"><div class="mdCardIn"><div class="f">${I("bubble")}</div><div class="b">${cat(meObj(), hit ? "happy" : "normal")}<b>${esc(a)}</b><small>你</small></div></div></div>
-          <div class="mdCard d2"><div class="mdCardIn"><div class="f">${I("bubble2")}</div><div class="b">${cat(p, hit ? "happy" : "normal")}<b>${esc(b)}</b><small>${esc(p.name)}</small></div></div></div></div>
+        <div class="mdCards"><div class="mdCard"><div class="mdCardIn"><div class="f">${I("bubble")}</div><div class="b">${cat(meObj(), hit ? "happy" : "normal")}<b class="${a.length > 4 ? "long" : ""}">${esc(a)}</b><small>你</small></div></div></div>
+          <div class="mdCard d2"><div class="mdCardIn"><div class="f">${I("bubble2")}</div><div class="b">${cat(p, hit ? "happy" : "normal")}<b class="${b.length > 4 ? "long" : ""}">${esc(b)}</b><small>${esc(p.name)}</small></div></div></div></div>
         <h3 class="mdRes">${hit ? `${I("heart")} 想到一起了！` : lostNow ? "愛心用完了…" : "差一點點～"}</h3>
-        ${hit ? "" : `<div class="mdLose">${heartRow(left + 1, "break")}<b>愛心 -1</b></div>`}
+        ${hit ? "" : `<div class="mdLose">${heartRow(left + 1, "break")}${lostNow ? "" : `<b>愛心 -1</b>`}</div>`}
         <div class="k">${hit ? `第 ${doneRounds} 回合就想到同一個詞` : lostNow ? "這題沒想到一起，再來一題吧！" : `還剩 ${left} 顆愛心・下一輪：想一個跟「${esc(a)}」和「${esc(b)}」都有關的詞`}</div>
         <button class="btn" style="width:100%">${hit ? "好耶！" : lostNow ? "嗚嗚，好吧" : "繼續想"}</button></div>`;
       document.body.appendChild(o);

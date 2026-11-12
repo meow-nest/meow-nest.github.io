@@ -2860,3 +2860,15 @@ body.dark .inAppWarn{background:#3a2028}
 .pawCard>span:first-child,.pawCard>svg:first-child{width:52px;flex:none}
 .pawCard>div{display:flex;flex-direction:column;gap:2px}.pawCard b{font-weight:400;font-size:18px;text-shadow:.5px 0 0 currentColor}.pawCard small{opacity:.75}
 .pawCard .btn{padding:6px 18px;flex:1}
+
+/* 新遊戲在「星空夜貓」主題也看得清楚：遊戲畫面維持奶油色底＋咖啡色字 */
+body[data-theme="night"] :is(.mdBox,.mdReveal .cmBox,.bgBox,.bgEnd .cmBox,.bgPick2 .cmBox,.pawCard,.pawCall,.c3d,.cwCabM.c3,.cwBookM.c3,.cwReveal .cmBox){--pinkT:#d35d7b;--mintT:#3f9c76;--card:#fff;--onPink:#fff;--grid:rgba(90,59,46,.045);--bg:#f6eee3;--paper:#fffaf2;--ink:#5a3b2e;--line:#5a3b2e;--shadow:#e3cfba;--muted:#8f7365;--pink:#f08aa0;--pinkL:#ffe1e7;--mint:#7cc7a5;--mintL:#e2f5ec;--sun:#f6c45f;--sky:#eaf4f4;color:var(--ink)}
+body[data-theme="night"] :is(.mdBox,.bgBox,.c3d){background:#fffaf2}
+body[data-theme="night"] .mdBox input{color:#5a3b2e;background:#fff}
+/* 想到一起：文字排版修正 */
+.mdNote{text-align:center;font-size:13px;color:var(--muted);line-height:1.5}
+.mdStatus{flex-wrap:wrap;line-height:1.4}.mdStatus>.mdCat{flex:none;display:block}
+.mdChip{word-break:normal;overflow-wrap:anywhere;line-height:1.3}.mdChip.long{font-size:13px}.mdChip.big.long{font-size:17px}.mdChip.huge.long{font-size:22px}
+.mdCard .b{padding:6px;box-sizing:border-box}.mdCard .b b{word-break:normal;overflow-wrap:anywhere;line-height:1.25;text-align:center;max-width:100%}.mdCard .b b.long{font-size:15px}
+.mdRow em{color:var(--muted);text-align:center}
+@keyframes mdBreak{0%{transform:scale(1)}30%{transform:scale(1.3) rotate(-10deg)}100%{transform:scale(.85);filter:grayscale(1) brightness(1.4);opacity:.45}}
