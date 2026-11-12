@@ -2472,6 +2472,8 @@ const App = (function(){
     B.on("msg", addMessage);
     B.on("bc", p=>{ if(p && p.from !== me.uid) bcSubs.slice().forEach(h=>{ try{ h(p); }catch(e){} }); });
     B.on("members", async()=>{ members = await B.members(); renderHeader(); if(route==="home") render(); else if(chatVisible()) drawList(false); });
+    B.on("msg", ()=>{ lastRt = Date.now(); }); B.on("bc", ()=>{ lastRt = Date.now(); });
+    B.on("state", (game, version, state)=>{ lastRt = Date.now(); },);
     B.on("state", (game, version, state)=>{ if(!stateCache[game] || version > stateCache[game].version){ stateCache[game]={version,state}; emitState(game); } });
     // someone whose app is in the background counts as offline, so they still get notifications
     B.on("presence", list=>{ online = new Set(list.filter(x=>!x.away).map(x=>x.uid)); renderHeader(); (ctx._presence||[]).forEach(h=>h()); });
@@ -2480,7 +2482,9 @@ const App = (function(){
     clearInterval(watchT); watchT = setInterval(async ()=>{
       if(!B || !B.coupleId || document.visibilityState !== "visible") return;
       if(!connected && Date.now() - lastUp > 15000){ lastUp = Date.now(); B.reconnect(); }
-      if(route === "game" && curGame && stateSubs[curGame.id] && stateSubs[curGame.id].length){ const g = curGame.id;
+      // 省流量：即時連線正常時不用一直問，只有斷線中、或超過 30 秒都沒收到任何即時消息時才確認一次
+      const quiet = Date.now() - lastRt > 30000;
+      if(route === "game" && curGame && stateSubs[curGame.id] && stateSubs[curGame.id].length && (!connected || quiet)){ const g = curGame.id; lastRt = Date.now();
         try{ const r = await B.getState(g); if(r && (!stateCache[g] || r.version > stateCache[g].version)){ stateCache[g] = { version:r.version, state:r.state }; emitState(g); } }catch(e){} }
     }, 10000);
     window.addEventListener("online", ()=>{ if(B && B.coupleId) B.reconnect(); });
@@ -2528,7 +2532,7 @@ const App = (function(){
     if(pushState()==="on") subscribePush().catch(()=>{});
     clearNotifs();
   }
-  let lastUp = Date.now(), watchT = 0;
+  let lastUp = Date.now(), watchT = 0, lastRt = Date.now();
   async function resync(){
     try{ const ms = await B.messages(); ms.forEach(addMessage); }catch(e){}
     for(const g of Object.keys(stateSubs)){ try{ const r=await B.getState(g); if(r && (!stateCache[g] || r.version>stateCache[g].version)){ stateCache[g]={version:r.version,state:r.state}; emitState(g); } }catch(e){} }
