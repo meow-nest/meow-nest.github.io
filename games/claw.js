@@ -119,7 +119,7 @@ const IDX = {}; PRIZES.forEach((p, i) => IDX[p[4]] = i);
 const OLD = ["cat_orange","cat_white","cat_gray","cat_loaf","pillow_fish","pillow_heart","pillow_paw","mouse","cat_black","cat_calico","cat_curl","pillow_star","fish_pink","sp_gold","sp_rainbow","sp_crown","sp_angel"];
 const normCol = c => { if(!c) return {}; const r = {}; for(const k in c){ const id = /^\d+$/.test(k) ? OLD[+k] : k; if(id && IDX[id] != null) r[id] = (r[id] || 0) + (c[k] || 0); } return r; };
 const RAR = [["普通", "#9aa3bd"], ["稀有", "#5e9de6"], ["超稀有", "#e8a400"]];
-const FREE = 10, PITY = 8;
+const FREE = 10, PITY = 6;
 const today = () => new Date().toDateString();
 const pick = () => { const r = Math.random(), tier = r < .07 ? 2 : r < .32 ? 1 : 0; const L = PRIZES.map((p, i) => [p, i]).filter(([p]) => p[1] === tier); return L[(Math.random()*L.length)|0][1]; };
 const art = i => `<span class="cwArt ${PRIZES[i][3] || ""}">${PRIZES[i][2]()}</span>`;
@@ -380,7 +380,7 @@ App.registerGame({
       else if(state === "rise"){ claw.tip = Math.min(YTOP, claw.tip + .36*dt); seq.t += dt; watchHold(); if(claw.tip >= YTOP){ state = "top"; seq.t = 0; seq.loose = false; } }
       else if(state === "top"){ seq.t += dt; claw.swing = Math.sin(seq.t*28)*3*(1 - seq.t/.6);
         // 真的娃娃機：到最上面爪子會鬆一點（越稀有的娃娃越鬆）
-        if(seq.t > .15 && !lucky() && !seq.loose){ seq.loose = true; const rar = Math.max(0, ...lifted().map(p => PRIZES[p.kind][1])); claw.rT = claw.r + (Math.random() < .3 ? 0 : .003 + Math.random()*.009) + rar*.004; }
+        if(seq.t > .15 && !lucky() && !seq.loose){ seq.loose = true; const rar = Math.max(0, ...lifted().map(p => PRIZES[p.kind][1])); claw.rT = claw.r + (Math.random() < .45 ? 0 : .002 + Math.random()*.007) + rar*.003; }
         watchHold(); if(seq.t > .6){ state = "back"; seq.t = 0; } }
       else if(state === "back"){ const dx = HOME.x - claw.x, dz = HOME.z - claw.z, d = Math.hypot(dx, dz);
         if(d < .004){ claw.x = HOME.x; claw.z = HOME.z; state = "release"; seq.t = 0; }

@@ -118,7 +118,7 @@ const PRIZES = [
 const IDX = {}; PRIZES.forEach((P, i) => IDX[P[2]] = i);
 const normCol = c => { const r = {}; if(c) for(const k in c) if(IDX[k] != null && c[k] > 0) r[k] = c[k]; return r; };
 const RAR = [["普通", "#9aa3bd"], ["稀有", "#5e9de6"], ["超稀有", "#e8a400"]];
-const FREE = 10, PITY = 8, SHINY_COST = 2, SHINY_NEED = 3;
+const FREE = 10, PITY = 6, SHINY_COST = 2, SHINY_NEED = 3;
 const dayKey = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Taipei" });
 const seeded = str => { let h = 1779033703 ^ str.length; for(const ch of str){ h = Math.imul(h ^ ch.charCodeAt(0), 3432918353); h = h << 13 | h >>> 19; }
   return () => { h = Math.imul(h ^ h >>> 16, 2246822507); h = Math.imul(h ^ h >>> 13, 3266489909); h ^= h >>> 16; return (h >>> 0)/4294967296; }; };
@@ -417,7 +417,7 @@ App.registerGame({
         if(seq.t > .6){ state = "rise"; seq.t = 0; holdSet = new Set(); } }
       else if(state === "rise"){ claw.tip = Math.min(YTOP, claw.tip + .36*dt); seq.t += dt; watchHold(); if(claw.tip >= YTOP){ state = "top"; seq.t = 0; seq.loose = false; } }
       else if(state === "top"){ seq.t += dt; claw.swing = Math.sin(seq.t*28)*3*(1 - seq.t/.6);
-        if(seq.t > .15 && !lucky() && !seq.loose){ seq.loose = true; const rar = Math.max(0, ...lifted().map(p => PRIZES[p.kind][1])); claw.rT = claw.r + (Math.random() < .3 ? 0 : .003 + Math.random()*.009) + rar*.004; }
+        if(seq.t > .15 && !lucky() && !seq.loose){ seq.loose = true; const rar = Math.max(0, ...lifted().map(p => PRIZES[p.kind][1])); claw.rT = claw.r + (Math.random() < .45 ? 0 : .002 + Math.random()*.007) + rar*.003; }
         watchHold(); if(seq.t > .6){ state = "back"; seq.t = 0; } }
       else if(state === "back"){ const dx = HOME.x - claw.x, dz = HOME.z - claw.z, d = Math.hypot(dx, dz);
         if(d < .004){ claw.x = HOME.x; claw.z = HOME.z; state = "release"; seq.t = 0; }
