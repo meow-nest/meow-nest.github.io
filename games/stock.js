@@ -12,8 +12,16 @@ const CO = {
   SAND: ["貓砂科技", "所長砂砂", "gray", "研發不會飛出來的貓砂，默默賺錢"],
   NAP:  ["午睡紙箱", "店長呼嚕", "orange", "專做最好睡的紙箱，訂單忽多忽少"],
   NIP:  ["貓草生技", "博士草草", "calico", "研究新品種貓草，股價像雲霄飛車"],
+  CLAW: ["利爪半導體", "董事長尖尖", "black", "喵晶片的死對頭，晶片便宜又大碗，天天搶訂單"],
+  TREE: ["貓跳台建設", "董座高高", "white", "蓋全城最高的貓跳台大樓，一蓋就是好幾年"],
+  COIN: ["貓幣信託", "總裁金金", "calico", "新開的網路銀行，利息比肉球銀行高一點點"],
+  TUNA: ["鮪魚王食品", "老闆阿鮪", "gray", "主打高級鮪魚罐，和罐罐食品搶貓咪的胃"],
+  LASR: ["紅點點遊戲", "製作人閃閃", "orange", "只做雷射紅點遊戲，一款紅了就大賺"],
+  YARN: ["毛線球紡織", "廠長捲捲", "white", "老字號毛線球工廠，冬天生意特別好"],
+  SUN:  ["曬太陽能源", "站長暖暖", "orange", "出租窗邊曬太陽的位子，陰天就沒收入"],
+  MILK: ["奶泡咖啡", "店長拿鐵", "black", "貓咪咖啡廳連鎖店，展店超快但還在燒錢"],
 };
-const SYMS = Object.keys(CO);
+const ALL = Object.keys(CO); let SYMS = ALL.slice(0, 8);
 const GOOD = [
   (n, c) => `${n}新產品大賣，門市被貓咪擠爆`,
   (n, c) => `${c}宣布：今年每位股東加發小魚乾`,
@@ -58,6 +66,7 @@ App.registerGame({
     // 整理伺服器給的資料（只留認得的欄位、數字一定是數字）
     function clean(r){
       if(!r || typeof r !== "object" || !r.px) return null;
+      const have = ALL.filter(x => r.px[x] != null); if(have.length) SYMS = have;
       const o = { t: num(r.t), px: {}, ref: {}, cash: num(r.cash), hold: {}, assets: num(r.assets), bail: num(r.bail), can_bail: !!r.can_bail, rank: num(r.rank), players: num(r.players), open: r.open !== false, next: num(r.next) };
       for(const s of SYMS){ o.px[s] = num(r.px[s], 1); o.ref[s] = num(r.ref && r.ref[s], o.px[s]); if(r.hold && r.hold[s]) o.hold[s] = { q: num(r.hold[s].q), c: num(r.hold[s].c) }; }
       o.spark = (Array.isArray(r.spark) ? r.spark : []).slice(-40).map(x => { const m = {}; for(const s of SYMS) m[s] = num(x && x[s]); return m; });
@@ -72,7 +81,7 @@ App.registerGame({
     const recN = s => REC.counts[s] || 0;
     // ---------- 新手教學 ----------
     const TUT = [
-      ["股票是什麼？", "買一家公司的股票，就像當它的小股東。公司變值錢，你手上的股票也跟著變貴。這裡的 8 家貓咪公司都是虛構的，錢也是遊戲用的，放心玩！"],
+      ["股票是什麼？", "買一家公司的股票，就像當它的小股東。公司變值錢，你手上的股票也跟著變貴。這裡的貓咪公司都是虛構的，錢也是遊戲用的，放心玩！"],
       ["怎麼賺錢？", "口訣只有四個字：<b>低買高賣</b>。便宜的時候買進，等它漲了再賣出，中間的價差就是你賺的。反過來，買貴了又賣便宜就會虧。"],
       ["紅色、綠色是什麼？", "<b class='up'>紅色是漲</b>、<b class='dn'>綠色是跌</b>（跟台灣的股市一樣）。旁邊的百分比是跟昨天比漲跌多少。一天最多漲 10%（漲停）或跌 10%（跌停）。"],
       ["什麼時候可以玩？", "跟真的股市一樣有開盤時間（台灣時間，每天都開）：<b>早盤 9:00～13:30</b>、<b>夜盤 19:00～23:00</b>。開盤時價格每分鐘跳一次；休市時價格不會動，也不能買賣。"],
