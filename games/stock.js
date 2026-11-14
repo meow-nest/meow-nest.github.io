@@ -89,6 +89,17 @@ App.registerGame({
         o.querySelectorAll("button").forEach(b => b.addEventListener("click", () => { const a = b.dataset.a; SFX.tap(); if(a === "x" || (a === "n" && i === TUT.length - 1)){ try{ localStorage.setItem("sk_tut", "1"); }catch(e){} o.remove(); return; } i += a === "n" ? 1 : -1; draw(); })); };
       draw();
     }
+    function receipt(sym, side, q, r){
+      document.querySelectorAll(".skRcp").forEach(x => x.remove());
+      const buy = side === "buy", amt = num(r.price) * q, fee = num(r.fee), tot = buy ? amt + fee : amt - fee;
+      const o = document.createElement("div"); o.className = "careModal skTut skRcp"; document.body.appendChild(o);
+      o.innerHTML = `<div class="cmBox skBox"><div class="skTutH">${cat("gray", "happy")}<div><small>成交回報</small><b class="${buy ? "up" : "dn"}">${buy ? "買進成功！" : "賣出成功！"}</b></div></div>
+        <div class="skRcpT"><span>股票</span><b>${esc(CO[sym][0])}</b><span>股數</span><b>${f0(q)} 股</b><span>成交價</span><b>${f2(r.price)}</b><span>${buy ? "手續費" : "手續費＋交易稅"}</span><b>${f2(fee)}</b>
+        <span class="tot">${buy ? "總共花了" : "總共拿回"}</span><b class="tot">${f2(tot)}</b><span>剩下現金</span><b>${f2(r.cash)}</b><span>現在持有</span><b>${f0(r.hold && r.hold[sym] ? r.hold[sym].q : 0)} 股</b></div>
+        <button class="btn" style="width:100%">知道了</button></div>`;
+      const close = () => o.remove(); o.querySelector("button").addEventListener("click", () => { SFX.tap(); close(); });
+      o.addEventListener("click", e => { if(e.target === o) close(); });
+    }
     async function load(silent){
       try{ const [r0] = await Promise.all([ctx.rpc("stock_status"), loadRec()]); const r = clean(r0); if(!alive) return; if(!r) throw new Error("bad"); const first = !S; if(first){ let seen = false; try{ seen = !!localStorage.getItem("sk_tut"); }catch(e){} if(!seen) setTimeout(() => { if(alive) tutorial(); }, 400); } const oldNews = S && S.news[0] ? S.news[0].t : 0; S = r; err = "";
         if(!first && S.news[0] && S.news[0].t > oldNews){ const n = S.news[0], c = CO[n.sym]; ctx.toast(`快訊：${esc((n.good ? GOOD : BAD)[n.k](c[0], c[1]))}`, 3500); SFX.key(n.good ? 1.3 : .7); }
@@ -186,7 +197,7 @@ App.registerGame({
       async function trade(){
         if(busy) return; busy = true; draw();
         try{ const r = await ctx.rpc("stock_trade", { p_sym: s, p_qty: side === "buy" ? qty : -qty });
-          if(r && r.ok){ SFX.coin ? SFX.coin() : SFX.select(); ctx.toast(`成交！${side === "buy" ? "買進" : "賣出"} ${CO[s][0]} ${f0(qty)} 股 @ ${f2(r.price)}`, 3000); qty = 1; }
+          if(r && r.ok){ SFX.coin ? SFX.coin() : SFX.select(); receipt(s, side, qty, r); if(ctx.burst) ctx.burst(); qty = 1; }
           else ctx.toast(r && r.reason === "too_fast" ? "下單太快了，等 2 秒再試" : r && r.reason === "cash" ? "現金不夠（價格可能剛剛變了）" : r && r.reason === "shares" ? "持股不夠賣" : "沒有成交，再試一次"); }
         catch(e){ ctx.toast("連不上交易所，這筆沒有成交"); }
         busy = false; await load(true); draw();

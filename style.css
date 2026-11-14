@@ -2929,3 +2929,5 @@ body[data-theme="night"] .mdBox input{color:#5a3b2e;background:#fff}
 .skTutP{line-height:1.75;font-size:15px;margin:4px 0;text-align:left}.skTutP b{font-weight:400;text-shadow:.5px 0 0 currentColor}
 .skDots{display:flex;justify-content:center;gap:5px}.skDots i{width:8px;height:8px;background:#e3cfba}.skDots i.on{background:var(--ink)}
 .skTutB{display:grid;grid-template-columns:1fr 1.4fr;gap:8px}
+
+.skRcpT{display:grid;grid-template-columns:auto 1fr;gap:7px 12px;margin:12px 0 14px;padding:12px;border:3px solid var(--ink);background:#fff8ec;font-size:15px}.skRcpT span{color:var(--muted);text-align:left}.skRcpT b{font-weight:400;text-shadow:.5px 0 0 currentColor;text-align:right}.skRcpT .tot{font-size:18px;padding-top:7px;border-top:2px dashed rgba(90,59,46,.35)}.skRcpT span.tot{color:inherit}
