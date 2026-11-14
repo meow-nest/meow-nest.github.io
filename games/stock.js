@@ -39,7 +39,7 @@ App.registerGame({
   id: "stock",
   solo: true,
   name: "貓貓股市",
-  desc: "低買高賣，看誰最會賺！行情每分鐘跳一次",
+  desc: "低買高賣，看誰最會賺！早盤、夜盤每分鐘跳一次",
   icon: () => `<svg viewBox="0 0 16 16" shape-rendering="crispEdges" style="width:100%"><rect width="16" height="16" fill="#fff8ec"/><path d="M1 12h2v-3h2v2h2v-5h2v3h2v-6h2v9" fill="none" stroke="#e5484d" stroke-width="1.6"/><rect x="0" y="14" width="16" height="1.4" fill="#5a3b2e"/></svg>`,
   mount(el, ctx){
     const { esc, SFX } = ctx;
@@ -58,7 +58,7 @@ App.registerGame({
     // 整理伺服器給的資料（只留認得的欄位、數字一定是數字）
     function clean(r){
       if(!r || typeof r !== "object" || !r.px) return null;
-      const o = { t: num(r.t), px: {}, ref: {}, cash: num(r.cash), hold: {}, assets: num(r.assets), bail: num(r.bail), can_bail: !!r.can_bail, rank: num(r.rank), players: num(r.players) };
+      const o = { t: num(r.t), px: {}, ref: {}, cash: num(r.cash), hold: {}, assets: num(r.assets), bail: num(r.bail), can_bail: !!r.can_bail, rank: num(r.rank), players: num(r.players), open: r.open !== false, next: num(r.next) };
       for(const s of SYMS){ o.px[s] = num(r.px[s], 1); o.ref[s] = num(r.ref && r.ref[s], o.px[s]); if(r.hold && r.hold[s]) o.hold[s] = { q: num(r.hold[s].q), c: num(r.hold[s].c) }; }
       o.spark = (Array.isArray(r.spark) ? r.spark : []).slice(-40).map(x => { const m = {}; for(const s of SYMS) m[s] = num(x && x[s]); return m; });
       o.news = (Array.isArray(r.news) ? r.news : []).slice(0, 20).filter(n => n && CO[n.sym]).map(n => ({ t: num(n.t), sym: n.sym, good: !!n.good, k: Math.abs(Math.floor(num(n.k))) % 6, pct: num(n.pct) }));
@@ -75,6 +75,7 @@ App.registerGame({
       ["股票是什麼？", "買一家公司的股票，就像當它的小股東。公司變值錢，你手上的股票也跟著變貴。這裡的 8 家貓咪公司都是虛構的，錢也是遊戲用的，放心玩！"],
       ["怎麼賺錢？", "口訣只有四個字：<b>低買高賣</b>。便宜的時候買進，等它漲了再賣出，中間的價差就是你賺的。反過來，買貴了又賣便宜就會虧。"],
       ["紅色、綠色是什麼？", "<b class='up'>紅色是漲</b>、<b class='dn'>綠色是跌</b>（跟台灣的股市一樣）。旁邊的百分比是跟昨天比漲跌多少。一天最多漲 10%（漲停）或跌 10%（跌停）。"],
+      ["什麼時候可以玩？", "跟真的股市一樣有開盤時間（台灣時間，每天都開）：<b>早盤 9:00～13:30</b>、<b>夜盤 19:00～23:00</b>。開盤時價格每分鐘跳一次；休市時價格不會動，也不能買賣。"],
       ["怎麼買賣？", "在「行情」點一家公司，選「買進」或「賣出」，填要幾股，按下去就成交。每次買賣會收一點點手續費，所以不要買了馬上賣，會白白虧手續費喔。"],
       ["怎麼看那張圖？", "圖上一根一根的叫 K 線：<b class='up'>紅色</b>代表那段時間漲了，<b class='dn'>綠色</b>代表跌了，越長代表漲跌越多。整體往右上走就是在漲。"],
       ["新聞和推薦", "「新聞」會有好消息、壞消息，股價會跟著動。每檔股票旁邊看得到<b>全站有幾個人推薦</b>，你也可以推薦最多 3 檔給大家參考（不會顯示是誰推薦的）。"],
@@ -119,6 +120,9 @@ App.registerGame({
     const pnl = () => S.assets - START - S.bail*2000;
     const newsLine = n => { const c = CO[n.sym]; return `<div class="skNews ${n.good ? "up" : "dn"}"><em>${new Date(n.t*60000).toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit", hour12: false })}</em><div><b>${c[0]}</b> ${esc((n.good ? GOOD : BAD)[n.k](c[0], c[1]))}<span>${sign(n.pct)}%</span></div></div>`; };
 
+    const hm = t => { const d = new Date((t + 8 * 3600) * 1000); return d.getUTCHours() + ":" + String(d.getUTCMinutes()).padStart(2, "0"); };
+    const nextTxt = () => { if(!S || !S.next) return ""; const tw = t => Math.floor((t + 8 * 3600) / 86400); return (tw(S.next) > tw(Date.now() / 1000) ? "明天 " : "") + hm(S.next); };
+    const HOURS = "早盤 9:00～13:30・夜盤 19:00～23:00";
     function render(){
       if(!alive) return;
       if(!S){ el.innerHTML = `<div class="box skBox"><div class="skHead"><b>貓貓股市</b></div><p class="skMsg">${err ? esc(err) : "交易所連線中…"}</p>${err ? `<button class="btn sub" id="skRetry">再試一次</button>` : ""}</div>`;
@@ -127,7 +131,7 @@ App.registerGame({
       let body = "";
       if(tab === "mkt") body = `<div class="skList">${SYMS.map(s => { const c = CO[s], h = hold(s), d = chg(s);
           return `<button class="skRow" data-s="${s}">${cat(c[2])}<span class="skNm"><b>${c[0]}</b><small>${s}${recN(s) ? `・<u class="skRec">${f0(recN(s))} 人推薦</u>` : ""}${h.q ? `・持有 ${f0(h.q)} 股` : ""}</small></span>${spark(s)}<span class="skPx ${cls(d)}"><b>${f2(px(s))}</b><small>${d > 0.004 ? "▲" : d < -0.004 ? "▼" : ""}${Math.abs(d).toFixed(2)}%${badge(s)}</small></span></button>`; }).join("")}</div>
-        <div class="skFoot">紅色是漲、綠色是跌・每分鐘更新・漲跌停 ±10%</div>`;
+        <div class="skFoot">紅色是漲、綠色是跌・漲跌停 ±10%<br>${HOURS}（每天都開）</div>`;
       if(tab === "hold"){ const hs = SYMS.filter(s => hold(s).q > 0);
         body = `${hs.length ? `<div class="skList">${hs.map(s => { const h = hold(s), v = h.q*px(s), g = v - h.c;
             return `<button class="skRow" data-s="${s}">${cat(CO[s][2])}<span class="skNm"><b>${CO[s][0]}</b><small>${f0(h.q)} 股・均價 ${f2(h.c/h.q)}</small></span><span class="skPx ${cls(g)}"><b>${f2(v)}</b><small>${sign(g)}（${sign(h.c ? g/h.c*100 : 0)}%）</small></span></button>`; }).join("")}</div>` : `<p class="skMsg">還沒有持股，去「行情」挑一檔吧！</p>`}
@@ -139,7 +143,7 @@ App.registerGame({
           ${REC.ok ? `<div class="skSub">大家推薦（每人最多推薦 3 檔，不會顯示是誰）</div><div class="skRecs">${SYMS.slice().sort((a, b) => recN(b) - recN(a)).map(s => { const mx = Math.max(1, ...SYMS.map(recN)); return `<button class="skRow skRecRow" data-s="${s}"><b>${CO[s][0]}${REC.mine.includes(s) ? `<i>你推薦</i>` : ""}</b><span><i style="width:${Math.round(recN(s)/mx*100)}%"></i></span><em>${f0(recN(s))} 人</em></button>`; }).join("")}</div>` : ""}
           <div class="skSub">全站前 10 名（名字只顯示第一個字）</div><div class="skTop">${S.top.length ? S.top.map((x, i) => `<div class="${x.me ? "me" : ""}"><em>${i + 1}</em>${cat(x.cat)}<b>${esc(x.name)}${x.me ? "（你）" : ""}</b><span>${f0(x.assets)}</span></div>`).join("") : `<p class="skMsg small">還沒有人下單，快去當第一名！</p>`}</div>`; }
       el.innerHTML = `<div class="box skBox">
-        <div class="skHead"><b>貓貓股市</b><button class="skHelp" id="skHelp">？新手教學</button><span class="skLive"><i></i>開盤中</span></div>
+        <div class="skHead"><b>貓貓股市</b><button class="skHelp" id="skHelp">？新手教學</button><span class="skLive ${S.open ? "" : "off"}"><i></i>${S.open ? "開盤中" : "休市中"}</span></div>${S.open ? "" : `<div class="skClosed"><b>現在休市中，${nextTxt()} 開盤</b><small>${HOURS}<br>休市時價格不會動，也不能買賣，可以先研究要買哪一檔</small></div>`}
         <div class="skAcct"><div><small>總資產</small><b>${f2(S.assets)}</b></div><div><small>現金</small><b>${f2(S.cash)}</b></div><div class="${cls(p)}"><small>總損益</small><b>${sign(p)}</b></div></div>
         ${S.can_bail ? `<button class="btn skBail" id="skBail">資產不到 1,000…領今天的救濟金 2,000</button>` : ""}
         <div class="skTabs">${[["mkt", "行情"], ["hold", "持股"], ["news", "新聞"], ["rank", "排行"]].map(([k, n]) => `<button data-t="${k}" class="${tab === k ? "on" : ""}">${n}</button>`).join("")}</div>
@@ -170,7 +174,7 @@ App.registerGame({
         const amt = qty*px(s), fee = side === "buy" ? buyFee(amt) : sellFee(amt), ok = max >= 1 && qty <= max, g = h.q ? h.q*px(s) - h.c : 0;
         box.innerHTML = `<div class="skDH">${cat(c[2], d >= 0 ? "happy" : "normal")}<div><b>${c[0]} <small>${s}</small></b><small>${c[1]}・${c[3]}</small></div></div>
           <div class="skBig ${cls(d)}"><b>${f2(px(s))}</b><span>${sign(px(s) - ref(s))}（${sign(d)}%）${badge(s)}</span></div>
-          <div class="skTabs sm">${[["3h", "3 小時"], ["12h", "12 小時"], ["2d", "2 天"]].map(([k, n]) => `<button data-r="${k}" class="${range === k ? "on" : ""}">${n}</button>`).join("")}</div>
+          <div class="skTabs sm">${[["3h", "3 小時"], ["12h", "1 天"], ["2d", "3 天"]].map(([k, n]) => `<button data-r="${k}" class="${range === k ? "on" : ""}">${n}</button>`).join("")}</div>
           ${chart()}
           <div class="skStat"><span>昨收 <b>${f2(ref(s))}</b></span><span>漲停 <b class="up">${f2(Math.floor(ref(s)*110)/100)}</b></span><span>跌停 <b class="dn">${f2(Math.ceil(ref(s)*90)/100)}</b></span></div>
           ${h.q ? `<div class="skMine">你有 <b>${f0(h.q)}</b> 股・均價 ${f2(h.c/h.q)}・損益 <b class="${cls(g)}">${sign(g)}</b></div>` : ""}
@@ -179,7 +183,7 @@ App.registerGame({
           <div class="skQty"><button data-q="-10">-10</button><button data-q="-1">-1</button><input id="skQ" inputmode="numeric" value="${qty}"><button data-q="1">+1</button><button data-q="10">+10</button></div>
           <div class="skQuick"><button data-m=".25">1/4</button><button data-m=".5">一半</button><button data-m="1">${side === "buy" ? "買到滿" : "全部賣"}</button><span>${side === "buy" ? `最多可買 ${f0(mb)} 股` : `可賣 ${f0(h.q)} 股`}</span></div>
           <div class="skCalc"><span>成交金額 <b>${f2(amt)}</b></span><span>${side === "buy" ? "手續費" : "手續費＋證交稅"} <b>${f2(fee)}</b></span><span>${side === "buy" ? "總共付出" : "實際拿回"} <b>${f2(side === "buy" ? amt + fee : amt - fee)}</b></span></div>
-          <button class="btn skGo ${side}" id="skGo" ${ok && !busy ? "" : "disabled"}>${max < 1 ? (side === "buy" ? "現金不夠買 1 股" : "沒有持股可以賣") : `${side === "buy" ? "買進" : "賣出"} ${f0(qty)} 股`}</button>
+          <button class="btn skGo ${side}" id="skGo" ${ok && !busy && S.open ? "" : "disabled"}>${!S.open ? `休市中，${nextTxt()} 開盤` : max < 1 ? (side === "buy" ? "現金不夠買 1 股" : "沒有持股可以賣") : `${side === "buy" ? "買進" : "賣出"} ${f0(qty)} 股`}</button>
           <div class="skFoot">以送出當下的市價成交，價格可能和畫面上差一點點</div>
           <button class="btn sub" id="skX" style="width:100%">關閉</button>`;
         box.querySelectorAll("[data-r]").forEach(b => b.addEventListener("click", () => { range = b.dataset.r; SFX.tap(); loadH(); }));
@@ -198,7 +202,7 @@ App.registerGame({
         if(busy) return; busy = true; draw();
         try{ const r = await ctx.rpc("stock_trade", { p_sym: s, p_qty: side === "buy" ? qty : -qty });
           if(r && r.ok){ SFX.coin ? SFX.coin() : SFX.select(); receipt(s, side, qty, r); if(ctx.burst) ctx.burst(); qty = 1; }
-          else ctx.toast(r && r.reason === "too_fast" ? "下單太快了，等 2 秒再試" : r && r.reason === "cash" ? "現金不夠（價格可能剛剛變了）" : r && r.reason === "shares" ? "持股不夠賣" : "沒有成交，再試一次"); }
+          else ctx.toast(r && r.reason === "closed" ? "現在休市中，開盤後才能買賣" : r && r.reason === "too_fast" ? "下單太快了，等 2 秒再試" : r && r.reason === "cash" ? "現金不夠（價格可能剛剛變了）" : r && r.reason === "shares" ? "持股不夠賣" : "沒有成交，再試一次"); }
         catch(e){ ctx.toast("連不上交易所，這筆沒有成交"); }
         busy = false; await load(true); draw();
       }
