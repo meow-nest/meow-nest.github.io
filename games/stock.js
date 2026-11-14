@@ -270,24 +270,25 @@ App.registerGame({
     function openDetail(s){
       if(!CO[s]) return; SFX.tap();
       document.querySelectorAll(".skDet").forEach(x => x.remove());
-      const o = document.createElement("div"); o.className = "careModal skDet"; let range = "3h", candles = null, qty = 1, side = "buy";
+      const o = document.createElement("div"); o.className = "careModal skDet"; let range = "5m", candles = null, qty = 1, side = "buy";
       o.innerHTML = `<div class="cmBox skBox"><div id="skD"></div></div>`; document.body.appendChild(o);
       const box = o.querySelector("#skD");
       const maxBuy = () => { let q = Math.floor(S.cash/(px(s)*1.001425)); while(q > 0 && q*px(s) + buyFee(q*px(s)) > S.cash + 1e-6) q--; return Math.max(0, q); };
-      const chart = () => { if(!candles) return `<div class="skChart load">讀取走勢中…</div>`; if(candles.length < 2) return `<div class="skChart load">剛開盤，資料還不夠畫圖</div>`;
-        const W = 320, H = 150, lo = Math.min(...candles.map(c => c[3])), hi = Math.max(...candles.map(c => c[2])), sp = (hi - lo) || 1, y = v => (8 + (hi - v)/sp*(H - 16)).toFixed(1), w = W/candles.length;
+      const chart = () => { if(!candles) return `<div class="skChart load">讀取走勢中…</div>`; if(candles.length < 1) return `<div class="skChart load">資料還不夠畫圖，過一陣子再來看</div>`;
+        const W = 320, H = 150, lo = Math.min(...candles.map(c => c[3])), hi = Math.max(...candles.map(c => c[2])), sp = (hi - lo) || 1, y = v => (8 + (hi - v)/sp*(H - 16)).toFixed(1), w = W/Math.max(candles.length, 14);
         return `<svg class="skChart" viewBox="0 0 ${W} ${H}"><text x="2" y="10" class="ax">${f2(hi)}</text><text x="2" y="${H - 2}" class="ax">${f2(lo)}</text>${[.25, .5, .75].map(k => `<line x1="0" x2="${W}" y1="${H*k}" y2="${H*k}" class="grid"/>`).join("")}
           ${candles.map((c, i) => { const up = c[4] >= c[1], x = i*w + w/2, top = Math.min(+y(c[1]), +y(c[4])), bh = Math.max(1.2, Math.abs(+y(c[1]) - +y(c[4])));
             return `<g class="${up ? "up" : "dn"}"><line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${y(c[2])}" y2="${y(c[3])}"/><rect x="${(x - w*.32).toFixed(1)}" y="${top.toFixed(1)}" width="${(w*.64).toFixed(1)}" height="${bh.toFixed(1)}"/></g>`; }).join("")}</svg>`; };
-      async function loadH(){ candles = null; draw(); try{ const r = await ctx.rpc("stock_history", { p_sym: s, p_range: range }); candles = (Array.isArray(r) ? r : []).slice(-60).map(c => [num(c[0]), num(c[1]), num(c[2]), num(c[3]), num(c[4])]).filter(c => c[3] > 0); }catch(e){ candles = []; } draw(); }
+      async function loadH(quiet){ if(!quiet){ candles = null; draw(); } const rg = range; try{ const r = await ctx.rpc("stock_history", { p_sym: s, p_range: range }); const cs = (Array.isArray(r) ? r : []).slice(-60).map(c => [num(c[0]), num(c[1]), num(c[2]), num(c[3]), num(c[4])]).filter(c => c[3] > 0); if(rg !== range) return; if(rg === "1m") for(let i = cs.length - 1; i > 0; i--){ const o = cs[i - 1][4]; cs[i] = [cs[i][0], o, Math.max(o, cs[i][2]), Math.min(o, cs[i][3]), cs[i][4]]; }   // 一分鐘只有一個價格：開盤用上一分鐘的收盤
+        candles = rg === "1m" ? cs.slice(1) : cs; }catch(e){ if(rg !== range) return; if(!quiet) candles = []; } draw(); }
       function draw(){
         if(!o.isConnected) return; const c = CO[s], d = chg(s), h = hold(s), mb = maxBuy(), max = side === "buy" ? mb : h.q;
         qty = Math.max(1, Math.min(Math.floor(qty) || 1, Math.max(1, max)));
         const amt = qty*px(s), fee = side === "buy" ? buyFee(amt) : sellFee(amt), ok = max >= 1 && qty <= max, g = h.q ? h.q*px(s) - h.c : 0;
         box.innerHTML = `<div class="skDH">${cat(c[2], d >= 0 ? "happy" : "normal")}<div><b>${c[0]} <small>${s}</small></b><small>${c[1]}・${c[3]}</small></div></div>
           <div class="skBig ${cls(d)}"><b>${f2(px(s))}</b><span>${sign(px(s) - ref(s))}（${sign(d)}%）${badge(s)}</span></div>
-          <div class="skTabs sm">${[["3h", "3 小時"], ["12h", "1 天"], ["2d", "3 天"]].map(([k, n]) => `<button data-r="${k}" class="${range === k ? "on" : ""}">${n}</button>`).join("")}</div>
-          ${chart()}
+          <div class="skTabs sm k7">${[["1m", "分K"], ["5m", "5分K"], ["1h", "時K"], ["1d", "日K"], ["1w", "週K"], ["1M", "月K"], ["1y", "年K"]].map(([k, n]) => `<button data-r="${k}" class="${range === k ? "on" : ""}">${n}</button>`).join("")}</div>
+          ${chart()}${candles && candles.length < 5 && ["1d", "1w", "1M", "1y"].includes(range) ? `<div class="skKNote">股市剛開張，${{ "1d": "每天", "1w": "每週", "1M": "每個月", "1y": "每年" }[range]}會多一根 K 棒，過一陣子就會越來越長</div>` : ""}
           <div class="skStat"><span>昨收 <b>${f2(ref(s))}</b></span><span>漲停 <b class="up">${f2(Math.floor(ref(s)*110)/100)}</b></span><span>跌停 <b class="dn">${f2(Math.ceil(ref(s)*90)/100)}</b></span></div>
           ${h.q ? `<div class="skMine">你有 <b>${f0(h.q)}</b> 股・均價 ${f2(h.c/h.q)}・損益 <b class="${cls(g)}">${sign(g)}</b></div>` : ""}
           ${S.fun ? `<div class="skStLine">股東故事 ${stLv(s)} / 2${stLv(s) >= 2 ? "・全部解鎖了，到「成就」看" : h.q ? `・${stWait(s, stLv(s) + 1)}解鎖${stLv(s) ? "下" : "上"}篇` : "・買進市值 500 以上並抱滿 1 天，解鎖老闆的故事"}</div>` : ""}
@@ -319,7 +320,7 @@ App.registerGame({
         catch(e){ ctx.toast("連不上交易所，這筆沒有成交"); }
         busy = false; await load(true); draw();
       }
-      detail = { refresh: () => { draw(); if(candles && S.t % (range === "3h" ? 5 : 20) === 0) loadH(); } };
+      detail = { refresh: () => { draw(); if(candles && (range === "1m" || S.t % 5 === 0)) loadH(true); } };
       draw(); loadH();
     }
 
