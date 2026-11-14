@@ -2919,3 +2919,13 @@ body[data-theme="night"] .mdBox input{color:#5a3b2e;background:#fff}
 .skQuick{display:flex;gap:5px;align-items:center}.skQuick span{margin-left:auto;font-size:12px;color:var(--muted)}
 .skCalc{display:flex;flex-direction:column;gap:2px;font-size:13px;background:#fff;border:2px dashed rgba(90,59,46,.4);padding:6px 8px}.skCalc span{display:flex;justify-content:space-between}.skCalc b{font-weight:400;font-variant-numeric:tabular-nums}
 .skGo{font-size:19px;padding:11px;color:#fff}.skGo.buy{background:var(--up)}.skGo.sell{background:var(--dn)}.skGo:disabled{background:#cbbfb3}
+
+.skHelp{font:inherit;font-size:12px;color:var(--ink);background:#fff3c4;border:2px solid var(--ink);padding:2px 8px;margin-left:auto;margin-right:8px;cursor:pointer}
+.skRec{text-decoration:none;color:var(--pinkT)}
+.skRecs{display:flex;flex-direction:column;gap:4px}.skRecRow{grid-template-columns:7.5em 1fr auto;padding:4px 8px}.skRecRow b{font-weight:400;font-size:14px;white-space:nowrap}.skRecRow b i{font-style:normal;font-size:10px;background:var(--pinkT);color:#fff;padding:0 3px;margin-left:4px}
+.skRecRow span{height:10px;background:#f3e8dc;display:block}.skRecRow span i{display:block;height:100%;background:#f08aa0}.skRecRow em{font-style:normal;font-size:13px}
+.skRecB{font:inherit;font-size:15px;color:var(--ink);background:#fff;border:3px solid var(--ink);padding:6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px}.skRecB.on{background:#ffe1e7}.skRecB small{font-size:11px;color:var(--muted)}
+.skTutH{display:flex;gap:10px;align-items:center}.skTutH .skCat{width:52px;flex:none}.skTutH div{display:flex;flex-direction:column}.skTutH small{font-size:12px;color:var(--muted)}.skTutH b{font-weight:400;font-size:21px;text-shadow:.5px 0 0 currentColor}
+.skTutP{line-height:1.75;font-size:15px;margin:4px 0;text-align:left}.skTutP b{font-weight:400;text-shadow:.5px 0 0 currentColor}
+.skDots{display:flex;justify-content:center;gap:5px}.skDots i{width:8px;height:8px;background:#e3cfba}.skDots i.on{background:var(--ink)}
+.skTutB{display:grid;grid-template-columns:1fr 1.4fr;gap:8px}

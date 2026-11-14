@@ -43,7 +43,7 @@ App.registerGame({
   icon: () => `<svg viewBox="0 0 16 16" shape-rendering="crispEdges" style="width:100%"><rect width="16" height="16" fill="#fff8ec"/><path d="M1 12h2v-3h2v2h2v-5h2v3h2v-6h2v9" fill="none" stroke="#e5484d" stroke-width="1.6"/><rect x="0" y="14" width="16" height="1.4" fill="#5a3b2e"/></svg>`,
   mount(el, ctx){
     const { esc, SFX } = ctx;
-    let S = null, alive = true, tab = "mkt", timer = 0, err = "", busy = false, detail = null;
+    let S = null, REC = { counts: {}, mine: [], ok: false }, alive = true, tab = "mkt", timer = 0, err = "", busy = false, detail = null;
     const me = () => ctx.me.uid;
     const cat = (c, mood) => `<span class="skCat">${ctx.sprite(c || "orange", mood || "normal")}</span>`;
     const px = s => num(S.px[s]), ref = s => num(S.ref[s], px(s));
@@ -67,8 +67,30 @@ App.registerGame({
       o.nest = (Array.isArray(r.nest) ? r.nest : []).slice(0, 2).map(x => ({ uid: String(x && x.uid || ""), assets: num(x && x.assets) }));
       return o;
     }
+    async function loadRec(){ try{ const r = await ctx.rpc("stock_recs"); const o = { counts: {}, mine: [], ok: true };
+        for(const s of SYMS) o.counts[s] = Math.max(0, Math.floor(num(r && r.counts && r.counts[s]))); o.mine = (Array.isArray(r && r.mine) ? r.mine : []).filter(x => CO[x]).slice(0, 3); REC = o; }catch(e){} }
+    const recN = s => REC.counts[s] || 0;
+    // ---------- 新手教學 ----------
+    const TUT = [
+      ["股票是什麼？", "買一家公司的股票，就像當它的小股東。公司變值錢，你手上的股票也跟著變貴。這裡的 8 家貓咪公司都是虛構的，錢也是遊戲用的，放心玩！"],
+      ["怎麼賺錢？", "口訣只有四個字：<b>低買高賣</b>。便宜的時候買進，等它漲了再賣出，中間的價差就是你賺的。反過來，買貴了又賣便宜就會虧。"],
+      ["紅色、綠色是什麼？", "<b class='up'>紅色是漲</b>、<b class='dn'>綠色是跌</b>（跟台灣的股市一樣）。旁邊的百分比是跟昨天比漲跌多少。一天最多漲 10%（漲停）或跌 10%（跌停）。"],
+      ["怎麼買賣？", "在「行情」點一家公司，選「買進」或「賣出」，填要幾股，按下去就成交。每次買賣會收一點點手續費，所以不要買了馬上賣，會白白虧手續費喔。"],
+      ["怎麼看那張圖？", "圖上一根一根的叫 K 線：<b class='up'>紅色</b>代表那段時間漲了，<b class='dn'>綠色</b>代表跌了，越長代表漲跌越多。整體往右上走就是在漲。"],
+      ["新聞和推薦", "「新聞」會有好消息、壞消息，股價會跟著動。每檔股票旁邊看得到<b>全站有幾個人推薦</b>，你也可以推薦最多 3 檔給大家參考（不會顯示是誰推薦的）。"],
+      ["小提醒", "不要把錢全押在同一家，分散一點比較安全。萬一賠到剩不到 1,000，每天可以領一次救濟金重新來過。祝你變成股神喵！"],
+    ];
+    function tutorial(){
+      document.querySelectorAll(".skTut").forEach(x => x.remove()); let i = 0;
+      const o = document.createElement("div"); o.className = "careModal skTut"; document.body.appendChild(o);
+      const draw = () => { o.innerHTML = `<div class="cmBox skBox"><div class="skTutH">${cat("gray", "happy")}<div><small>新手教學 ${i + 1} / ${TUT.length}</small><b>${TUT[i][0]}</b></div></div><p class="skTutP">${TUT[i][1]}</p>
+          <div class="skDots">${TUT.map((_, k) => `<i class="${k === i ? "on" : ""}"></i>`).join("")}</div>
+          <div class="skTutB">${i ? `<button class="btn sub" data-a="p">上一頁</button>` : `<button class="btn sub" data-a="x">跳過</button>`}<button class="btn" data-a="n">${i === TUT.length - 1 ? "開始玩！" : "下一頁"}</button></div></div>`;
+        o.querySelectorAll("button").forEach(b => b.addEventListener("click", () => { const a = b.dataset.a; SFX.tap(); if(a === "x" || (a === "n" && i === TUT.length - 1)){ try{ localStorage.setItem("sk_tut", "1"); }catch(e){} o.remove(); return; } i += a === "n" ? 1 : -1; draw(); })); };
+      draw();
+    }
     async function load(silent){
-      try{ const r = clean(await ctx.rpc("stock_status")); if(!alive) return; if(!r) throw new Error("bad"); const first = !S; const oldNews = S && S.news[0] ? S.news[0].t : 0; S = r; err = "";
+      try{ const [r0] = await Promise.all([ctx.rpc("stock_status"), loadRec()]); const r = clean(r0); if(!alive) return; if(!r) throw new Error("bad"); const first = !S; if(first){ let seen = false; try{ seen = !!localStorage.getItem("sk_tut"); }catch(e){} if(!seen) setTimeout(() => { if(alive) tutorial(); }, 400); } const oldNews = S && S.news[0] ? S.news[0].t : 0; S = r; err = "";
         if(!first && S.news[0] && S.news[0].t > oldNews){ const n = S.news[0], c = CO[n.sym]; ctx.toast(`快訊：${esc((n.good ? GOOD : BAD)[n.k](c[0], c[1]))}`, 3500); SFX.key(n.good ? 1.3 : .7); }
         render(); if(detail) detail.refresh(); }
       catch(e){ if(!alive) return; const m = String(e && e.message || e);
@@ -93,7 +115,7 @@ App.registerGame({
       const p = pnl();
       let body = "";
       if(tab === "mkt") body = `<div class="skList">${SYMS.map(s => { const c = CO[s], h = hold(s), d = chg(s);
-          return `<button class="skRow" data-s="${s}">${cat(c[2])}<span class="skNm"><b>${c[0]}</b><small>${s}${h.q ? `・持有 ${f0(h.q)} 股` : ""}</small></span>${spark(s)}<span class="skPx ${cls(d)}"><b>${f2(px(s))}</b><small>${d > 0.004 ? "▲" : d < -0.004 ? "▼" : ""}${Math.abs(d).toFixed(2)}%${badge(s)}</small></span></button>`; }).join("")}</div>
+          return `<button class="skRow" data-s="${s}">${cat(c[2])}<span class="skNm"><b>${c[0]}</b><small>${s}${recN(s) ? `・<u class="skRec">${f0(recN(s))} 人推薦</u>` : ""}${h.q ? `・持有 ${f0(h.q)} 股` : ""}</small></span>${spark(s)}<span class="skPx ${cls(d)}"><b>${f2(px(s))}</b><small>${d > 0.004 ? "▲" : d < -0.004 ? "▼" : ""}${Math.abs(d).toFixed(2)}%${badge(s)}</small></span></button>`; }).join("")}</div>
         <div class="skFoot">紅色是漲、綠色是跌・每分鐘更新・漲跌停 ±10%</div>`;
       if(tab === "hold"){ const hs = SYMS.filter(s => hold(s).q > 0);
         body = `${hs.length ? `<div class="skList">${hs.map(s => { const h = hold(s), v = h.q*px(s), g = v - h.c;
@@ -103,15 +125,17 @@ App.registerGame({
       if(tab === "rank"){ const pt = ctx.partner(), ta = pt && S.nest.find(x => x.uid === pt.user_id);
         body = `<div class="skMe">你在全站排第 <b>${S.rank}</b> 名<small>／${Math.max(S.players, S.rank)} 位有下過單的股民</small></div>
           ${pt ? `<div class="skVs"><div>${cat(ctx.me.cat, "happy")}<b>你</b><span>${f0(S.assets)}</span></div><i>VS</i><div>${cat(pt.cat, "happy")}<b>${esc(pt.name)}</b><span>${ta ? f0(ta.assets) : "還沒開戶"}</span></div></div>` : ""}
+          ${REC.ok ? `<div class="skSub">大家推薦（每人最多推薦 3 檔，不會顯示是誰）</div><div class="skRecs">${SYMS.slice().sort((a, b) => recN(b) - recN(a)).map(s => { const mx = Math.max(1, ...SYMS.map(recN)); return `<button class="skRow skRecRow" data-s="${s}"><b>${CO[s][0]}${REC.mine.includes(s) ? `<i>你推薦</i>` : ""}</b><span><i style="width:${Math.round(recN(s)/mx*100)}%"></i></span><em>${f0(recN(s))} 人</em></button>`; }).join("")}</div>` : ""}
           <div class="skSub">全站前 10 名（名字只顯示第一個字）</div><div class="skTop">${S.top.length ? S.top.map((x, i) => `<div class="${x.me ? "me" : ""}"><em>${i + 1}</em>${cat(x.cat)}<b>${esc(x.name)}${x.me ? "（你）" : ""}</b><span>${f0(x.assets)}</span></div>`).join("") : `<p class="skMsg small">還沒有人下單，快去當第一名！</p>`}</div>`; }
       el.innerHTML = `<div class="box skBox">
-        <div class="skHead"><b>貓貓股市</b><span class="skLive"><i></i>開盤中</span></div>
+        <div class="skHead"><b>貓貓股市</b><button class="skHelp" id="skHelp">？新手教學</button><span class="skLive"><i></i>開盤中</span></div>
         <div class="skAcct"><div><small>總資產</small><b>${f2(S.assets)}</b></div><div><small>現金</small><b>${f2(S.cash)}</b></div><div class="${cls(p)}"><small>總損益</small><b>${sign(p)}</b></div></div>
         ${S.can_bail ? `<button class="btn skBail" id="skBail">資產不到 1,000…領今天的救濟金 2,000</button>` : ""}
         <div class="skTabs">${[["mkt", "行情"], ["hold", "持股"], ["news", "新聞"], ["rank", "排行"]].map(([k, n]) => `<button data-t="${k}" class="${tab === k ? "on" : ""}">${n}</button>`).join("")}</div>
         ${body}</div>`;
       el.querySelectorAll(".skTabs button").forEach(b => b.addEventListener("click", () => { tab = b.dataset.t; SFX.tap(); render(); }));
       el.querySelectorAll(".skRow").forEach(b => b.addEventListener("click", () => openDetail(b.dataset.s)));
+      el.querySelector("#skHelp").addEventListener("click", () => { SFX.tap(); tutorial(); });
       const bl = el.querySelector("#skBail"); if(bl) bl.addEventListener("click", async () => { bl.disabled = true; try{ const r = await ctx.rpc("stock_bailout"); if(r && r.ok){ SFX.coin ? SFX.coin() : SFX.select(); ctx.toast("領到救濟金 2,000，東山再起！"); } }catch(e){} load(); });
     }
 
@@ -139,6 +163,7 @@ App.registerGame({
           ${chart()}
           <div class="skStat"><span>昨收 <b>${f2(ref(s))}</b></span><span>漲停 <b class="up">${f2(Math.floor(ref(s)*110)/100)}</b></span><span>跌停 <b class="dn">${f2(Math.ceil(ref(s)*90)/100)}</b></span></div>
           ${h.q ? `<div class="skMine">你有 <b>${f0(h.q)}</b> 股・均價 ${f2(h.c/h.q)}・損益 <b class="${cls(g)}">${sign(g)}</b></div>` : ""}
+          ${REC.ok ? `<button class="skRecB ${REC.mine.includes(s) ? "on" : ""}" id="skRecB">${REC.mine.includes(s) ? `你推薦了這檔（再按一次取消）` : `推薦這檔給大家`}<small>目前 ${f0(recN(s))} 人推薦・你已推薦 ${REC.mine.length} / 3 檔</small></button>` : ""}
           <div class="skSide"><button data-sd="buy" class="${side === "buy" ? "on up" : ""}">買進</button><button data-sd="sell" class="${side === "sell" ? "on dn" : ""}">賣出</button></div>
           <div class="skQty"><button data-q="-10">-10</button><button data-q="-1">-1</button><input id="skQ" inputmode="numeric" value="${qty}"><button data-q="1">+1</button><button data-q="10">+10</button></div>
           <div class="skQuick"><button data-m=".25">1/4</button><button data-m=".5">一半</button><button data-m="1">${side === "buy" ? "買到滿" : "全部賣"}</button><span>${side === "buy" ? `最多可買 ${f0(mb)} 股` : `可賣 ${f0(h.q)} 股`}</span></div>
@@ -153,6 +178,10 @@ App.registerGame({
         const inp = box.querySelector("#skQ"); inp.addEventListener("change", () => { qty = parseInt(inp.value.replace(/\D/g, ""), 10) || 1; draw(); });
         box.querySelector("#skX").addEventListener("click", () => { o.remove(); detail = null; });
         box.querySelector("#skGo").addEventListener("click", trade);
+        const rb = box.querySelector("#skRecB"); if(rb) rb.addEventListener("click", async () => { rb.disabled = true;
+          try{ const r = await ctx.rpc("stock_recommend", { p_sym: s }); if(r && r.ok){ SFX.select(); ctx.toast(r.on ? `已推薦 ${CO[s][0]}！` : `取消推薦 ${CO[s][0]}`); }
+            else ctx.toast(r && r.reason === "max" ? "最多只能推薦 3 檔，先取消一檔再推薦" : r && r.reason === "too_fast" ? "按太快了，等 1 秒再試" : "沒有成功，再試一次"); }catch(e){ ctx.toast("連不上交易所，再試一次"); }
+          await loadRec(); render(); draw(); });
       }
       async function trade(){
         if(busy) return; busy = true; draw();
@@ -167,7 +196,7 @@ App.registerGame({
     }
 
     render(); load().then(schedule);
-    this._stop = () => { alive = false; clearTimeout(timer); document.removeEventListener("visibilitychange", onVis); document.querySelectorAll(".skDet").forEach(x => x.remove()); };
+    this._stop = () => { alive = false; clearTimeout(timer); document.removeEventListener("visibilitychange", onVis); document.querySelectorAll(".skDet,.skTut").forEach(x => x.remove()); };
   },
   unmount(){ if(this._stop) this._stop(); },
 });
