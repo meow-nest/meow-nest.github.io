@@ -107,6 +107,21 @@ App.registerGame({
     const stWait = (s, lv, short) => { const h = hold(s); if(!h.q || !h.s) return ""; if(h.q * px(s) < 500) return short ? "市值未滿 500" : `市值滿 500 後再抱 ${lv === 1 ? 1 : 3} 天`; const left = (lv === 1 ? 86400 : 259200) - (S.now - h.s); if(left <= 0) return "快解鎖了"; return left >= 86400 ? `再抱 ${Math.ceil(left / 86400)} 天` : `再抱 ${Math.max(1, Math.ceil(left / 3600))} 小時`; };
     function modal(cls, html){ const o = document.createElement("div"); o.className = "careModal skTut " + cls; o.innerHTML = `<div class="cmBox skBox">${html}<button class="btn" style="width:100%" data-x="1">知道了</button></div>`; document.body.appendChild(o);
       const close = () => o.remove(); o.querySelector("[data-x]").addEventListener("click", () => { SFX.tap(); close(); }); o.addEventListener("click", e => { if(e.target === o) close(); }); return o; }
+    function resetAsk(){ SFX.tap(); document.querySelectorAll(".skRst").forEach(x => x.remove());
+      const o = document.createElement("div"); o.className = "careModal skTut skRst"; document.body.appendChild(o);
+      o.innerHTML = `<div class="cmBox skBox"><div class="skTutH">${cat("gray", "sad")}<div><small>請先看清楚再按喔</small><b class="dn2">確定要破產重來嗎？</b></div></div>
+        <div class="skWarn"><b>按下去之後會：</b><ul><li>現金回到 <b>10,000</b></li><li>手上<b>所有股票直接清空</b>，不會換成現金（現在持股市值 ${f0(S.assets - S.cash)}）</li><li>交易紀錄全部刪除，總損益從 0 重新算</li><li>有 <b>3 天新手保護期</b>，這段時間不會出現在排行榜</li><li><b>3 天內不能再按一次</b>破產重來</li></ul>
+        <b>會保留：</b><ul class="keep"><li>拿到的成就徽章</li><li>解鎖過的股東小故事</li><li>你推薦的股票</li></ul><p>這個動作<b>不能復原</b>。</p></div>
+        <label class="skChk"><input type="checkbox" id="skRstOk"> 我看完了，確定要重來</label>
+        <div class="skTutB"><button class="btn sub" data-a="x">再想想</button><button class="btn skRstGo" id="skRstGo" disabled>破產重來</button></div></div>`;
+      const go = o.querySelector("#skRstGo"), ck = o.querySelector("#skRstOk"); ck.addEventListener("change", () => { go.disabled = !ck.checked; SFX.tap(); });
+      o.querySelector("[data-a=x]").addEventListener("click", () => { SFX.tap(); o.remove(); }); o.addEventListener("click", e => { if(e.target === o) o.remove(); });
+      go.addEventListener("click", async () => { if(!ck.checked) return; go.disabled = true; go.textContent = "處理中…";
+        try{ const r = await ctx.rpc("stock_reset"); if(r && r.ok){ o.remove(); SFX.select(); ctx.toast("重新開始了！現金 10,000，這次一定會更好", 3500); tab = "mkt"; await load(true); return; }
+          if(r && r.reason === "cooldown"){ const l = num(r.until) - Date.now() / 1000; ctx.toast(`3 天內只能破產重來一次，還要等 ${l >= 86400 ? Math.ceil(l / 86400) + " 天" : Math.max(1, Math.ceil(l / 3600)) + " 小時"}`, 3500); }
+          else ctx.toast("沒有成功，再試一次"); }
+        catch(e){ ctx.toast(/stock_reset|function|404|schema/i.test(String(e && e.message || e)) ? "破產重來還沒開放（資料庫還沒更新）" : "連不上交易所，再試一次"); }
+        o.remove(); }); }
     function badgePop(ids){ ids = (ids || []).filter(x => BADGES[x]); if(!ids.length || !alive) return; SFX.level ? SFX.level() : SFX.select(); if(ctx.burst) ctx.burst();
       modal("skBdgPop", `<div class="skTutH">${cat("gray", "happy")}<div><small>成就達成</small><b>獲得${ids.length > 1 ? ` ${ids.length} 個` : ""}徽章！</b></div></div><div class="skBdgNew">${ids.map(x => `<div>${medal(x, true)}<b>${BADGES[x][0]}</b><small>${BADGES[x][1]}</small></div>`).join("")}</div>`); }
     const storyCache = {};
@@ -217,7 +232,7 @@ App.registerGame({
       if(tab === "hold"){ const hs = SYMS.filter(s => hold(s).q > 0);
         body = `${hs.length ? `<div class="skList">${hs.map(s => { const h = hold(s), v = h.q*px(s), g = v - h.c;
             return `<button class="skRow" data-s="${s}">${cat(CO[s][2])}<span class="skNm"><b>${CO[s][0]}</b><small>${f0(h.q)} 股・均價 ${f2(h.c/h.q)}</small></span><span class="skPx ${cls(g)}"><b>${f2(v)}</b><small>${sign(g)}（${sign(h.c ? g/h.c*100 : 0)}%）</small></span></button>`; }).join("")}</div>` : `<p class="skMsg">還沒有持股，去「行情」挑一檔吧！</p>`}
-          <div class="skSub">交易紀錄</div>${S.trades.length ? `<div class="skLog">${S.trades.map(x => `<div class="${x.qty > 0 ? "up" : "dn"}"><em>${new Date(x.at*1000).toLocaleString("zh-TW", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })}</em><b>${x.qty > 0 ? "買" : "賣"}</b><span>${CO[x.sym][0]} ${f0(Math.abs(x.qty))} 股 @ ${f2(x.price)}</span><i>費 ${f2(x.fee)}</i></div>`).join("")}</div>` : `<p class="skMsg small">還沒有交易</p>`}`; }
+          <div class="skSub">交易紀錄</div>${S.trades.length ? `<div class="skLog">${S.trades.map(x => `<div class="${x.qty > 0 ? "up" : "dn"}"><em>${new Date(x.at*1000).toLocaleString("zh-TW", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })}</em><b>${x.qty > 0 ? "買" : "賣"}</b><span>${CO[x.sym][0]} ${f0(Math.abs(x.qty))} 股 @ ${f2(x.price)}</span><i>費 ${f2(x.fee)}</i></div>`).join("")}</div>` : `<p class="skMsg small">還沒有交易</p>`}<button class="skReset" id="skReset">破產重來</button>`; }
       if(tab === "news") body = S.news.length ? `<div class="skFeed">${S.news.map(newsLine).join("")}</div>` : `<p class="skMsg">目前風平浪靜，沒有新聞</p>`;
       if(tab === "rank"){ const pt = ctx.partner(), ta = pt && S.nest.find(x => x.uid === pt.user_id);
         const seg = S.fun ? `<div class="skTabs sm">${[["all", "總資產"], ["week", "本週漲幅"], ["nest", "小窩合作"]].map(([k, n]) => `<button data-rk="${k}" class="${rk === k ? "on" : ""}">${n}</button>`).join("")}</div>` : "";
@@ -244,6 +259,7 @@ App.registerGame({
         ${body}</div>`;
       el.querySelectorAll(".skTabs button[data-t]").forEach(b => b.addEventListener("click", () => { tab = b.dataset.t; SFX.tap(); render(); }));
       el.querySelectorAll(".skRow").forEach(b => b.addEventListener("click", () => openDetail(b.dataset.s)));
+      const rs = el.querySelector("#skReset"); if(rs) rs.addEventListener("click", resetAsk);
       el.querySelectorAll("[data-rk]").forEach(b => b.addEventListener("click", () => { rk = b.dataset.rk; SFX.tap(); render(); }));
       el.querySelectorAll("[data-st]").forEach(b => b.addEventListener("click", () => storyPop(b.dataset.st, +b.dataset.i)));
       el.querySelector("#skHelp").addEventListener("click", () => { SFX.tap(); tutorial(); });
