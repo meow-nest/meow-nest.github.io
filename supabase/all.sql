@@ -2004,6 +2004,20 @@ alter table public.stock_acct add column if not exists badges jsonb not null def
   add column if not exists wk date, add column if not exists wk_base numeric, add column if not exists dy date, add column if not exists dy_base numeric;
 alter table public.stock_state add column if not exists wk date, add column if not exists wref jsonb;
 
+-- （開盤時間的兩個函式也放一份在這裡，這個檔案單獨跑也可以）
+-- 這個時間有沒有開盤
+create or replace function public.stock_open(p_at timestamptz) returns boolean language sql immutable as $$
+  select m between 540 and 809 or m between 1140 and 1379
+  from (select extract(hour from p_at at time zone 'Asia/Taipei')::int * 60 + extract(minute from p_at at time zone 'Asia/Taipei')::int as m) x
+$$;
+
+-- 現在開盤中：這一場幾點收盤；休市中：下一場幾點開盤（回傳時間戳，秒）
+create or replace function public.stock_next(p_at timestamptz) returns bigint language sql immutable as $$
+  select extract(epoch from ((d + make_interval(mins => case when m < 540 then 540 when m < 810 then 810 when m < 1140 then 1140 when m < 1380 then 1380 else 1440 + 540 end)) at time zone 'Asia/Taipei'))::bigint
+  from (select date_trunc('day', p_at at time zone 'Asia/Taipei') as d,
+               extract(hour from p_at at time zone 'Asia/Taipei')::int * 60 + extract(minute from p_at at time zone 'Asia/Taipei')::int as m) x
+$$;
+
 -- 交易日（早上 9 點開盤才算新的一天）、交易週（星期一開盤起算）
 create or replace function public.stock_tday(p_at timestamptz) returns date language sql immutable as $$ select ((p_at at time zone 'Asia/Taipei') - interval '9 hours')::date $$;
 create or replace function public.stock_week(p_at timestamptz) returns date language sql immutable as $$ select date_trunc('week', stock_tday(p_at)::timestamp)::date $$;
@@ -2186,6 +2200,8 @@ begin
   return json_build_object('ok', true);
 end $$;
 
+revoke all on function public.stock_open(timestamptz) from public, anon, authenticated;
+revoke all on function public.stock_next(timestamptz) from public, anon, authenticated;
 revoke all on function public.stock_tday(timestamptz) from public, anon, authenticated;
 revoke all on function public.stock_week(timestamptz) from public, anon, authenticated;
 revoke all on function public.stock_check(text[]) from public, anon, authenticated;
