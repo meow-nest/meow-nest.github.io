@@ -2938,10 +2938,10 @@ body[data-theme="night"] .mdBox input{color:#5a3b2e;background:#fff}
 .gNote{margin:12px 4px 0;font-size:12px;line-height:1.6;text-align:center;color:var(--muted)}
 
 .skTabs.five{grid-template-columns:repeat(5,1fr)}.skTabs.five button{font-size:14px}
-.skMedal{width:46px;display:block;margin:0 auto}.skMedal.off{opacity:.75}
+.skMedal{width:52px;display:block;margin:0 auto;filter:drop-shadow(0 2px 0 rgba(90,59,46,.18))}.skMedal.off{filter:none}
 .skBdg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.skBdg>div{background:#fff;border:2px solid rgba(90,59,46,.3);padding:7px 3px 6px;text-align:center;display:flex;flex-direction:column;gap:2px}.skBdg>div.on{border-color:var(--ink);background:#fff8ec}
 .skBdg b{font-weight:400;font-size:13px;text-shadow:.4px 0 0 currentColor}.skBdg small{font-size:10.5px;color:var(--muted);line-height:1.35}.skBdg>div:not(.on) b{color:var(--muted);text-shadow:none}
-.skBdgNew{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:12px 0 14px}.skBdgNew>div{width:104px;text-align:center;display:flex;flex-direction:column;gap:2px}.skBdgNew .skMedal{width:64px}.skBdgNew b{font-weight:400;font-size:15px;text-shadow:.5px 0 0 currentColor}.skBdgNew small{font-size:11px;color:var(--muted);line-height:1.35}
+.skBdgNew{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:12px 0 14px}.skBdgNew>div{width:112px;text-align:center;display:flex;flex-direction:column;gap:2px}.skBdgNew .skMedal{width:84px}.skBdgNew b{font-weight:400;font-size:15px;text-shadow:.5px 0 0 currentColor}.skBdgNew small{font-size:11px;color:var(--muted);line-height:1.35}
 .skStories{display:flex;flex-direction:column;gap:4px}.skStories>div{display:grid;grid-template-columns:30px 1fr auto auto;gap:6px;align-items:center;background:#fff;border:2px solid rgba(90,59,46,.35);padding:4px 6px}.skStories .skCat{width:30px}
 .skStories span{display:flex;flex-direction:column;min-width:0}.skStories span b{font-weight:400;font-size:14px}.skStories span small{font-size:11px;color:var(--muted)}
 .skStories button{font:inherit;font-size:12px;padding:5px 7px;min-width:62px;border:2px solid var(--ink);background:#ffe9ee;color:var(--ink);cursor:pointer}.skStories button:disabled{border-color:rgba(90,59,46,.3);border-style:dashed;background:#f4ece2;color:var(--muted);cursor:default}

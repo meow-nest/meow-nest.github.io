@@ -49,6 +49,27 @@ const BADGES = {
   duo: ["小窩同心", "小窩兩個人都下過單", "雙", "#f0889c"], story1: ["聽故事的貓", "解鎖第一篇股東故事", "書", "#b98a5e"],
   story8: ["故事收藏家", "解鎖 8 篇股東故事", "藏", "#8a6a4a"],
 };
+// 徽章外框：銅、銀、金（[外圈, 內圈, 亮光]）
+const MTIER = [["#e2a36a", "#c47f42", "#ffd9b0"], ["#dfe5ec", "#a9b4c0", "#ffffff"], ["#f8d35e", "#d9a52b", "#fff5c2"]];
+const BTIER = { first: 0, profit: 0, a12k: 0, story1: 0, duo: 0, div5: 0, hold3: 1, limitup: 1, comeback: 1, t50: 1, w10: 1, div10: 1, a20k: 2, a50k: 2, story8: 2 };
+// 徽章中間的圖案（24×24）
+const MICON = {
+  first: `<path d="M6 3v19" fill="none"/><path d="M6 4h12l-3 4.5 3 4.5H6z" fill="{p}"/><circle cx="6" cy="22" r="1.4" fill="{f}"/>`,
+  profit: `<rect x="4" y="16" width="16" height="5" rx="2.5" fill="{a}"/><rect x="5" y="11" width="14" height="5" rx="2.5" fill="{a}"/><rect x="4" y="6" width="16" height="5" rx="2.5" fill="{a}"/><path d="M9 8.5h6" fill="none"/>`,
+  hold3: `<path d="M6 3h12M6 21h12" fill="none"/><path d="M7 3c0 5 4 7 4 9s-4 4-4 9h10c0-5-4-7-4-9s4-4 4-9z" fill="{f}"/><path d="M9.5 20.5c0-2 2.5-3 2.5-4.5 0 1.5 2.5 2.5 2.5 4.5z" fill="{a}" stroke-width="1"/>`,
+  div5: `<circle cx="12" cy="12" r="9" fill="{f}"/><path d="M12 12V3a9 9 0 0 1 8.6 6.3z" fill="{p}"/><path d="M12 12l-5.3 7.3M12 12l8.6-2.7" fill="none"/>`,
+  div10: `<rect x="3" y="3" width="18" height="18" rx="3" fill="{f}"/><rect x="6" y="13" width="3" height="5" fill="{p}" stroke-width="1.1"/><rect x="10.5" y="9" width="3" height="9" fill="{a}" stroke-width="1.1"/><rect x="15" y="6" width="3" height="12" fill="{p}" stroke-width="1.1"/>`,
+  a12k: `<path d="M7 16h10l-1.5 6h-7z" fill="{p}"/><path d="M12 16v-6" fill="none"/><path d="M12 11C11 7 7 6 4.5 7c1 3.5 4.5 5 7.5 4zM12 10c1-4 5-5.5 8-4.5-1 3.5-5 5.5-8 4.5z" fill="{f}"/>`,
+  a20k: `<path d="M12 2l7 7h-4v3H9V9H5z" fill="{f}"/><path d="M12 11l6 6h-3.5v4h-5v-4H6z" fill="{a}"/>`,
+  a50k: `<path d="M3 9l4.5 4 4.5-8 4.5 8L21 9l-2 10H5z" fill="{a}"/><rect x="5" y="19" width="14" height="3" rx="1" fill="{a}"/><circle cx="12" cy="14" r="1.6" fill="{p}" stroke-width="1"/><circle cx="3" cy="9" r="1.3" fill="{f}" stroke-width="1"/><circle cx="21" cy="9" r="1.3" fill="{f}" stroke-width="1"/><circle cx="12" cy="4.5" r="1.3" fill="{f}" stroke-width="1"/>`,
+  limitup: `<path d="M9 17c-1-6 0-11 3-15 3 4 4 9 3 15z" fill="{f}"/><path d="M9 13l-3 3v3l3-2zM15 13l3 3v3l-3-2z" fill="{p}"/><circle cx="12" cy="9" r="1.8" fill="{p}" stroke-width="1.1"/><path d="M10 18c0 2 1 3 2 4.5 1-1.5 2-2.5 2-4.5z" fill="{a}"/>`,
+  comeback: `<path d="M4 17a8 8 0 0 1 16 0z" fill="{a}"/><path d="M2 17h20M12 3v3M5 6l2 2M19 6l-2 2M2 11h2.5M19.5 11H22" fill="none"/><path d="M12 20.5v-3" fill="none"/><path d="M9.5 19.5L12 22l2.5-2.5" fill="none"/>`,
+  t50: `<path d="M13.5 2L5 13.5h6L9.5 22 19 9.5h-6z" fill="{a}"/>`,
+  w10: `<rect x="3" y="5" width="18" height="16" rx="2.5" fill="{f}"/><path d="M3 9.5h18" fill="none"/><path d="M3 7.5a2.5 2.5 0 0 1 2.5-2.5h13A2.5 2.5 0 0 1 21 7.5v2H3z" fill="{p}"/><path d="M8 3v4M16 3v4" fill="none"/><path d="M12 11.5l1.2 2.5 2.7.3-2 1.8.6 2.7-2.5-1.4-2.5 1.4.6-2.7-2-1.8 2.7-.3z" fill="{a}" stroke-width="1.1"/>`,
+  duo: `<path d="M9 20S2.5 15.5 2.5 10.5A3.6 3.6 0 0 1 9 8.4a3.6 3.6 0 0 1 6.5 2.1C15.5 15.5 9 20 9 20z" fill="{p}"/><path d="M15.5 21s-5-3.3-5-7.2a2.8 2.8 0 0 1 5-1.7 2.8 2.8 0 0 1 5 1.7c0 3.9-5 7.2-5 7.2z" fill="{f}"/>`,
+  story1: `<path d="M2.5 6c3.5-1.5 6.5-1 9.5 1.2V21c-3-2.2-6-2.7-9.5-1.2z" fill="{f}"/><path d="M21.5 6c-3.5-1.5-6.5-1-9.5 1.2V21c3-2.2 6-2.7 9.5-1.2z" fill="{f}"/><path d="M5 10c1.8-.5 3.3-.3 4.8.5M5 13.5c1.8-.5 3.3-.3 4.8.5M14.2 10.5c1.5-.8 3-1 4.8-.5" fill="none" stroke-width="1.1"/>`,
+  story8: `<rect x="3" y="17" width="18" height="4.5" rx="1" fill="{p}"/><rect x="4.5" y="12.5" width="15" height="4.5" rx="1" fill="{a}"/><rect x="3.5" y="8" width="16" height="4.5" rx="1" fill="{f}"/><path d="M7 3.5h10l-1 4.5H8z" fill="{p}" stroke-width="1.3"/><path d="M6 19.2h4M7.5 14.7h3" fill="none" stroke-width="1.1"/>`,
+};
 // 股東小故事：抱滿 1 天解鎖上篇、抱滿 3 天解鎖下篇（全部虛構）
 const STORY = {
   MEOW: ["晶晶小時候最愛拆收音機，媽媽以為牠在搗蛋，其實牠在數裡面有幾顆零件。數到第 100 顆那天，牠決定長大要做全世界最小的零件。", "第一顆喵晶片做出來的那晚，晶晶興奮得把它推下桌子（貓的本能）。現在公司大廳還擺著那顆摔出缺角的晶片，底下寫著：「好東西要經得起推。」"],
@@ -90,7 +111,17 @@ App.registerGame({
     const cls = v => v > 0.004 ? "up" : v < -0.004 ? "dn" : "";
     const sign = v => (v > 0 ? "+" : "") + v.toFixed(2);
     const hold = s => { const h = S.hold && S.hold[s]; return h ? { q: Math.max(0, Math.floor(num(h.q))), c: num(h.c), s: num(h.s) } : { q: 0, c: 0, s: 0 }; };
-    const medal = (id, on) => { const b = BADGES[id]; return `<svg class="skMedal ${on ? "" : "off"}" viewBox="0 0 40 48"><path d="M11 0h7l3 14h-6zM29 0h-7l-3 14h6z" fill="${on ? "#e0557a" : "#c9bdb2"}" stroke="#5a3b2e" stroke-width="2"/><circle cx="20" cy="29" r="16" fill="${on ? b[3] : "#e6ddd3"}" stroke="#5a3b2e" stroke-width="3"/><circle cx="20" cy="29" r="11.5" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.5"/><text x="20" y="35" text-anchor="middle" font-size="16" fill="${on ? "#fff" : "#a8978c"}" style="font-family:inherit">${on ? b[2] : "？"}</text></svg>`; };
+    const medal = (id, on) => { const b = BADGES[id], T = MTIER[BTIER[id] || 0], ink = "#5a3b2e";
+      const col = on ? b[3] : "#e3d9cf", dk = on ? "rgba(0,0,0,.16)" : "rgba(90,59,46,.08)", rim = on ? T : ["#d8cfc6", "#b9aca0", "#ece5de"];
+      const pts = Array.from({ length: 32 }, (_, k) => { const a = k / 32 * Math.PI * 2 - Math.PI / 2, r = k % 2 ? 23.2 : 25.4; return (32 + r * Math.cos(a)).toFixed(2) + "," + (48 + r * Math.sin(a)).toFixed(2); }).join(" ");
+      const icon = (MICON[id] || "").replace(/\{f\}/g, on ? "#fff" : "#cbbfb3").replace(/\{a\}/g, on ? "#ffd36b" : "#d6ccc2").replace(/\{p\}/g, on ? "#f7a8b8" : "#d6ccc2").replace(/\{s\}/g, on ? ink : "#b9aca0");
+      return `<svg class="skMedal ${on ? "" : "off"}" viewBox="0 0 64 78"><path d="M17 2h12l7 22H24z" fill="${on ? "#f08aa0" : "#d8cfc6"}" stroke="${ink}" stroke-width="2.2" stroke-linejoin="round"/><path d="M47 2H35l-7 22h12z" fill="${on ? "#e0557a" : "#c9bdb2"}" stroke="${ink}" stroke-width="2.2" stroke-linejoin="round"/><path d="M21.5 2l6 20M42.5 2l-6 20" stroke="${on ? "#fff" : "#ece5de"}" stroke-width="2" opacity=".7"/>
+        <polygon points="${pts}" fill="${rim[0]}" stroke="${ink}" stroke-width="2.4" stroke-linejoin="round"/><circle cx="32" cy="48" r="20.5" fill="${rim[1]}"/><circle cx="32" cy="48" r="18.5" fill="${col}" stroke="${ink}" stroke-width="1.6"/>
+        <path d="M13.6 50a18.5 18.5 0 0 0 36.8 0z" fill="${dk}"/><circle cx="32" cy="48" r="15" fill="none" stroke="#fff" stroke-width="1.1" stroke-dasharray="2 2.4" opacity="${on ? .6 : .5}"/>
+        ${on ? `<path d="M19 40a15 15 0 0 1 9-8" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" opacity=".75"/><path d="M10.5 37.5a23 23 0 0 1 5-7" fill="none" stroke="${rim[2]}" stroke-width="2" stroke-linecap="round"/>` : ""}
+        <g transform="translate(17.6 33.6) scale(1.2)" stroke="${on ? ink : "#b9aca0"}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round">${icon}</g>
+        ${on && BTIER[id] === 2 ? `<path d="M55 30l1.4 3.6L60 35l-3.6 1.4L55 40l-1.4-3.6L50 35l3.6-1.4z M9 58l1 2.6 2.6 1-2.6 1L9 65l-1-2.4-2.6-1 2.6-1z" fill="#fff6c9" stroke="${ink}" stroke-width="1.1"/>` : ""}
+        ${on ? "" : `<g transform="translate(43 59)"><rect x="0" y="5" width="12" height="9" rx="1.5" fill="#cbbfb3" stroke="${ink}" stroke-width="1.6"/><path d="M2.5 5V3.5a3.5 3.5 0 0 1 7 0V5" fill="none" stroke="${ink}" stroke-width="1.6"/></g>`}</svg>`; };
     const stLv = s => Math.min(2, Math.max(0, Math.floor(num(S.stories && S.stories[s]))));
     const stWait = (s, lv) => { const h = hold(s); if(!h.q || !h.s) return ""; const left = (lv === 1 ? 86400 : 259200) - (S.now - h.s); if(left <= 0) return "快解鎖了"; return left >= 86400 ? `再抱 ${Math.ceil(left / 86400)} 天` : `再抱 ${Math.max(1, Math.ceil(left / 3600))} 小時`; };
     function modal(cls, html){ const o = document.createElement("div"); o.className = "careModal skTut " + cls; o.innerHTML = `<div class="cmBox skBox">${html}<button class="btn" style="width:100%" data-x="1">知道了</button></div>`; document.body.appendChild(o);
