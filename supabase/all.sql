@@ -2599,42 +2599,15 @@ begin
     'mine', coalesce((select json_agg(sym) from stock_rec where user_id = auth.uid()), '[]'::json));
 end $$;
 
-create or replace function public.stock_story(p_sym text, p_i int) returns text
-language plpgsql security definer set search_path = public as $$
-declare lv int; txt text;
-begin
-  if auth.uid() is null then raise exception 'not_signed_in'; end if;
-  select coalesce((stories->>p_sym)::int, 0) into lv from stock_acct where user_id = auth.uid();
-  if coalesce(lv, 0) <= p_i or p_i not in (0, 1) then return null; end if;   -- 還沒解鎖就不給看
-  select case when p_i = 0 then a else b end into txt from (values
-    ('MEOW', '晶晶小時候最愛拆收音機，媽媽以為牠在搗蛋，其實牠在數裡面有幾顆零件。數到第 100 顆那天，牠決定長大要做全世界最小的零件。', '第一顆喵晶片做出來的那晚，晶晶興奮得把它推下桌子（貓的本能）。現在公司大廳還擺著那顆摔出缺角的晶片，底下寫著：「好東西要經得起推。」'),
-    ('PAW', '元寶從小就把小魚乾分成三堆：今天吃的、明天吃的、不能吃的。鄰居的貓都把吃不完的寄放在牠那裡，肉球銀行就這樣開張了。', '有一年冬天鬧魚荒，大家都來領小魚乾。元寶一隻都沒少給，自己餓了三天。從此貓咪們說：「放在元寶那裡，比放在自己肚子裡還安心。」'),
-    ('TOY', '跳跳追自己的尾巴追了一整個下午，突然想通一件事：「會動的東西最好玩！」隔天牠把羽毛綁在竹竿上，做出第一支逗貓棒。', '公司做過最失敗的產品是「不會動的逗貓棒」。跳跳沒有罵誰，只是把它掛在辦公室牆上提醒大家：好玩，比省錢重要。'),
-    ('CAN', '阿肥以前是流浪貓，最懂餓肚子的感覺。牠在巷口撿到第一個空罐頭的時候就發誓：以後要讓每隻貓都有罐罐可以開。', '工廠每天做出來的第一個罐罐不賣，阿肥會親自送去巷口給流浪貓。牠說那不是做公益，是「回老家吃飯」。'),
-    ('FISH', '浪浪其實很怕水。牠當船長的理由很簡單：只有自己開船，才能確定船不會翻。牠的船上到處都貼著「請勿搖晃」。', '有一次遇到大風浪，整船小魚乾差點泡湯。浪浪閉著眼睛把船開回港口，下船後腿軟了一小時，隔天照樣準時出航。'),
-    ('SAND', '砂砂有潔癖，最受不了貓砂被踢得滿地都是。牠把自己關在實驗室三個月，出來的時候全身都是砂，手上拿著第一包「不會飛的貓砂」。', '有貓問砂砂為什麼公司這麼低調。牠說：「貓砂做得好，就是沒有貓會注意到它。」然後默默把對方腳上的一粒砂撿走。'),
-    ('NAP', '呼嚕試睡過一千個紙箱，筆記本上寫滿評語：「太大，沒安全感」「太小，屁股露出來」。第一千零一個，牠睡了整整兩天。', '午睡紙箱的員工每天下午都要睡午覺，這是規定。呼嚕說：「自己都沒睡飽，怎麼做得出讓別的貓好睡的箱子？」'),
-    ('NIP', '草草第一次聞到貓草時，在地上滾了三圈，然後立刻拿出筆記本記錄：「滾三圈，持續十分鐘。」從此牠的研究停不下來。', '草草的實驗常常失敗，有一次整間實驗室的貓都睡了一整天。但牠從不氣餒，總說下一株一定最香。這句話牠已經說了十年。'),
-    ('CLAW', '尖尖以前在喵晶片上班，提了一百個點子，九十九個被退回。牠把那疊退件帶走，在車庫裡開了利爪半導體。', '尖尖的辦公桌上放著晶晶送的開業花籃，卡片寫著：「放馬過來。」兩隻貓白天搶訂單，晚上還是會一起去吃宵夜。'),
-    ('TREE', '高高小時候個子最小，什麼都看不到。牠疊了三個箱子爬上去，第一次看見整條街的屋頂，就決定這輩子都要往高處蓋。', '每棟貓跳台大樓的頂樓，高高都會留一個小平台不賣。那是給個子小的貓看風景用的，免費，而且永遠有位子。'),
-    ('COIN', '金金是元寶的徒弟，覺得師父的銀行排隊排太久。牠想出一個不用出門就能存小魚乾的方法，貓幣信託就這樣上線了。', '開幕那天，第一位客人是元寶。牠存了一隻小魚乾，說：「我來看看徒弟的店。」金金把那隻小魚乾裱起來，到現在還掛在牆上。'),
-    ('TUNA', '阿鮪是個挑嘴的美食家，普通罐罐聞一下就走。牠花了兩年吃遍各地的鮪魚，才找到願意放進自己罐頭的那一種。', '鮪魚王的罐罐不便宜，有貓抱怨。阿鮪於是每個月辦一次試吃日，請大家免費吃。牠說：「可以嫌貴，不可以沒吃過。」'),
-    ('LASR', '閃閃追紅點追了一輩子，從來沒抓到過。有一天牠想：「既然抓不到，不如我來當那個紅點。」公司的第一款遊戲就叫《抓不到》。', '公司有一條規定：每款遊戲都要讓玩家「差一點點」就抓到。閃閃說，那種差一點點的感覺，才是貓生最大的樂趣。'),
-    ('YARN', '毛線球紡織已經傳了五代。捲捲小時候最常做的事，就是被毛線纏住，等爺爺來救。牠說這門手藝就是這樣學會的。', '每年冬天的第一顆毛線球，捲捲都會親手捲好，送給街上最老的那隻貓。牠說毛線球會舊，但被惦記的感覺不會。'),
-    ('SUN', '暖暖發現全城最暖的窗台，每天只有下午兩點到四點曬得到太陽。牠在那裡放了一塊墊子，掛上牌子：「一次十分鐘，請排隊。」', '陰天沒有生意的時候，暖暖也照常開門。牠會泡一壺熱茶，陪上門的貓一起等太陽。牠說：「等的時候有伴，就不算白等。」'),
-    ('MILK', '拿鐵有一次不小心把鬍鬚沾到奶泡，照鏡子時笑了好久。牠想讓每隻貓都有這樣的一天，於是開了第一家奶泡咖啡。', '奶泡咖啡還沒開始賺錢，朋友都勸牠少開幾家。拿鐵說：「每條街都該有一個可以坐下來發呆的地方。」然後又簽了一間店面。')
-  ) s(sym, a, b) where sym = p_sym;
-  return txt;
-end $$;
+-- stock_story（股東小故事的內容）不放在公開的程式庫裡，避免故事被提前看到。
+-- 完整的 SQL 由站長另外保存、直接貼到 Supabase 執行。
 
 revoke all on function public.stock_check(text[]) from public, anon, authenticated;
 revoke all on function public.stock_status() from public, anon;
 revoke all on function public.stock_trade(text, int) from public, anon;
 revoke all on function public.stock_recs() from public, anon;
-revoke all on function public.stock_story(text, int) from public, anon;
 grant execute on function public.stock_status() to authenticated;
 grant execute on function public.stock_trade(text, int) to authenticated;
 grant execute on function public.stock_recs() to authenticated;
-grant execute on function public.stock_story(text, int) to authenticated;
 
 select '股市防作弊完成' as result;
