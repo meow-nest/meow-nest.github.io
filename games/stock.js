@@ -98,7 +98,7 @@ App.registerGame({
   id: "stock",
   solo: true,
   name: "貓貓股市",
-  desc: "低買高賣，看誰最會賺！早盤、夜盤每分鐘跳一次",
+  desc: "低買高賣，看誰最會賺！24 小時開盤，每分鐘跳一次",
   icon: () => `<svg viewBox="0 0 16 16" shape-rendering="crispEdges" style="width:100%"><rect width="16" height="16" fill="#fff8ec"/><path d="M1 12h2v-3h2v2h2v-5h2v3h2v-6h2v9" fill="none" stroke="#e5484d" stroke-width="1.6"/><rect x="0" y="14" width="16" height="1.4" fill="#5a3b2e"/></svg>`,
   mount(el, ctx){
     const { esc, SFX } = ctx;
@@ -131,12 +131,14 @@ App.registerGame({
     function storyPop(s, i){ if(stLv(s) <= i) return; SFX.tap(); const c = CO[s];
       modal("skStoryPop", `<div class="skTutH">${cat(c[2], "happy")}<div><small>${c[0]}・股東小故事</small><b>${c[1]}（${i ? "下" : "上"}篇）</b></div></div><p class="skTutP">${esc(STORY[s][i])}</p>`); }
     const dayMove = () => { let hi = SYMS[0], lo = SYMS[0]; for(const s of SYMS){ if(chg(s) > chg(hi)) hi = s; if(chg(s) < chg(lo)) lo = s; } return { hi, lo }; };
-    const repTitle = () => { const d = new Date((S.next + 8 * 3600) * 1000); return d.getUTCHours() >= 12 ? "午盤小報" : "收盤日報"; };
-    const repBody = () => { const m = dayMove(), g = S.dy_base ? S.assets - S.dy_base : null;
-      return `<div class="skRep"><div><small>今天漲最多</small><b>${CO[m.hi][0]}</b><span class="${cls(chg(m.hi))}">${sign(chg(m.hi))}%</span></div><div><small>今天跌最多</small><b>${CO[m.lo][0]}</b><span class="${cls(chg(m.lo))}">${sign(chg(m.lo))}%</span></div>${g === null ? "" : `<div class="you"><small>你今天</small><b>${g > 0.004 ? "賺了" : g < -0.004 ? "賠了" : "不賺不賠"}</b><span class="${cls(g)}">${sign(g)}（${sign(g / S.dy_base * 100)}%）</span></div>`}</div>`; };
-    function reportPop(){ if(!S.fun || S.open || !S.next || document.querySelector(".skTut")) return; let seen = ""; try{ seen = localStorage.getItem("sk_rep") || ""; }catch(e){} if(seen === String(S.next)) return; try{ localStorage.setItem("sk_rep", String(S.next)); }catch(e){}
-      const g = S.dy_base ? S.assets - S.dy_base : 0;
-      modal("skRepPop", `<div class="skTutH">${cat("gray", g < -0.004 ? "sad" : "happy")}<div><small>${nextTxt()} 再開盤</small><b>${repTitle()}</b></div></div>${repBody()}<p class="skMsg small">${g > 0.004 ? "今天表現不錯，休息一下吧！" : g < -0.004 ? "有賺有賠很正常，明天再接再厲。" : "休市了，去陪陪貓咪吧。"}</p>`); }
+    const twDate = off => { const d = new Date(Date.now() + 8 * 3600000 - (off || 0) * 86400000); return d.toISOString().slice(0, 10); };
+    const moveOf = (base) => { let hi = null, lo = null; for(const s of SYMS){ const b = num(base[s]); if(!b) continue; const c = (num(base === S.ref ? px(s) : S.ref[s]) - b) / b * 100; if(!hi || c > hi[1]) hi = [s, c]; if(!lo || c < lo[1]) lo = [s, c]; } return { hi, lo }; };
+    const repCard = (m, g, base, who) => `<div class="skRep">${m.hi ? `<div><small>${who}漲最多</small><b>${CO[m.hi[0]][0]}</b><span class="${cls(m.hi[1])}">${sign(m.hi[1])}%</span></div><div><small>${who}跌最多</small><b>${CO[m.lo[0]][0]}</b><span class="${cls(m.lo[1])}">${sign(m.lo[1])}%</span></div>` : ""}${g === null ? "" : `<div class="you"><small>你${who}</small><b>${g > 0.004 ? "賺了" : g < -0.004 ? "賠了" : "不賺不賠"}</b><span class="${cls(g)}">${sign(g)}（${sign(base ? g / base * 100 : 0)}%）</span></div>`}</div>`;
+    const repBody = () => repCard(moveOf(S.ref), S.dy_base ? S.assets - S.dy_base : null, S.dy_base, "今天");
+    function reportPop(){ if(!S.fun || !S.ydy || S.ydy !== twDate(1) || !S.ybase || document.querySelector(".skTut")) return;
+      let seen = ""; try{ seen = localStorage.getItem("sk_rep") || ""; }catch(e){} if(seen === S.ydy) return; try{ localStorage.setItem("sk_rep", S.ydy); }catch(e){}
+      const g = S.ydiff, d = S.ydy.split("-");
+      modal("skRepPop", `<div class="skTutH">${cat("gray", g < -0.004 ? "sad" : "happy")}<div><small>${+d[1]}/${+d[2]} 的成績單</small><b>昨日日報</b></div></div>${repCard(S.yref ? moveOf(S.yref) : {}, g, S.ybase, "昨天")}<p class="skMsg small">${g > 0.004 ? "昨天表現不錯，今天繼續加油！" : g < -0.004 ? "有賺有賠很正常，今天再接再厲。" : "新的一天開始了，看看今天買哪一檔吧！"}</p>`); }
     const buyFee = amt => Math.max(Math.ceil(amt*0.1425 - 1e-9)/100, 0.01);
     const sellFee = amt => buyFee(amt) + Math.ceil(amt*0.3 - 1e-9)/100;
 
@@ -145,7 +147,8 @@ App.registerGame({
       if(!r || typeof r !== "object" || !r.px) return null;
       const have = ALL.filter(x => r.px[x] != null); if(have.length) SYMS = have;
       const o = { t: num(r.t), px: {}, ref: {}, cash: num(r.cash), hold: {}, assets: num(r.assets), bail: num(r.bail), can_bail: !!r.can_bail, rank: num(r.rank), players: num(r.players), open: r.open !== false, next: num(r.next), fun: !!r.badges, now: num(r.now, Date.now() / 1000), badges: {}, stories: {}, new_badges: [],
-        dy_base: num(r.dy_base), wk_base: num(r.wk_base), wpct: num(r.wpct), wrank: num(r.wrank, 1), wplayers: num(r.wplayers), nprofit: r.nprofit == null ? null : num(r.nprofit), ntotal: num(r.ntotal), nrank: num(r.nrank, 1), nests: num(r.nests), nsolo: !!r.nsolo };
+        dy_base: num(r.dy_base), wk_base: num(r.wk_base), wpct: num(r.wpct), wrank: num(r.wrank, 1), wplayers: num(r.wplayers), nprofit: r.nprofit == null ? null : num(r.nprofit), ntotal: num(r.ntotal), nrank: num(r.nrank, 1), nests: num(r.nests), nsolo: !!r.nsolo, ydy: String(r.ydy || "").replace(/[^0-9-]/g, "").slice(0, 10), ybase: num(r.ybase), ydiff: num(r.ydiff), yref: null };
+      if(r.yref && typeof r.yref === "object"){ o.yref = {}; for(const s of SYMS) o.yref[s] = num(r.yref[s]); }
       if(r.badges && typeof r.badges === "object") for(const k of Object.keys(BADGES)) if(r.badges[k]) o.badges[k] = num(r.badges[k]);
       o.new_badges = (Array.isArray(r.new_badges) ? r.new_badges : []).filter(x => typeof x === "string" && BADGES[x]).slice(0, 15);
       const who = x => ({ name: String(x && x.name || "").slice(0, 3), cat: String(x && x.cat || "orange").replace(/[^a-z]/g, "").slice(0, 12) });
@@ -167,7 +170,7 @@ App.registerGame({
       ["股票是什麼？", "買一家公司的股票，就像當它的小股東。公司變值錢，你手上的股票也跟著變貴。<br><b>這只是遊戲，不是賭博</b>：公司是虛構的，錢是遊戲裡的虛擬資金，不能儲值、也不能換成現金或獎品，放心玩！"],
       ["怎麼賺錢？", "口訣只有四個字：<b>低買高賣</b>。便宜的時候買進，等它漲了再賣出，中間的價差就是你賺的。反過來，買貴了又賣便宜就會虧。"],
       ["紅色、綠色是什麼？", "<b class='up'>紅色是漲</b>、<b class='dn'>綠色是跌</b>（跟台灣的股市一樣）。旁邊的百分比是跟昨天比漲跌多少。一天最多漲 10%（漲停）或跌 10%（跌停）。"],
-      ["什麼時候可以玩？", "跟真的股市一樣有開盤時間（台灣時間，每天都開）：<b>早盤 9:00～13:30</b>、<b>夜盤 19:00～23:00</b>。開盤時價格每分鐘跳一次；休市時價格不會動，也不能買賣。"],
+      ["什麼時候可以玩？", "<b>24 小時都能買賣</b>，價格每分鐘跳一次。每天半夜 12 點（台灣時間）換日，漲停跌停會用前一天最後的價格重新計算。"],
       ["怎麼買賣？", "在「行情」點一家公司，選「買進」或「賣出」，填要幾股，按下去就成交。每次買賣會收一點點手續費，所以不要買了馬上賣，會白白虧手續費喔。"],
       ["怎麼看那張圖？", "圖上一根一根的叫 K 線：<b class='up'>紅色</b>代表那段時間漲了，<b class='dn'>綠色</b>代表跌了，越長代表漲跌越多。整體往右上走就是在漲。"],
       ["新聞和推薦", "「新聞」會有好消息、壞消息，股價會跟著動。每檔股票旁邊看得到<b>全站有幾個人推薦</b>，你也可以推薦最多 3 檔給大家參考（不會顯示是誰推薦的）。"],
@@ -215,16 +218,16 @@ App.registerGame({
 
     const hm = t => { const d = new Date((t + 8 * 3600) * 1000); return d.getUTCHours() + ":" + String(d.getUTCMinutes()).padStart(2, "0"); };
     const nextTxt = () => { if(!S || !S.next) return ""; const tw = t => Math.floor((t + 8 * 3600) / 86400); return (tw(S.next) > tw(Date.now() / 1000) ? "明天 " : "") + hm(S.next); };
-    const HOURS = "早盤 9:00～13:30・夜盤 19:00～23:00";
+    const HOURS = "24 小時開盤・每天 0:00 換日";
     function render(){
       if(!alive) return;
       if(!S){ el.innerHTML = `<div class="box skBox"><div class="skHead"><b>貓貓股市</b></div><p class="skMsg">${err ? esc(err) : "交易所連線中…"}</p>${err ? `<button class="btn sub" id="skRetry">再試一次</button>` : ""}</div>`;
         const r = el.querySelector("#skRetry"); if(r) r.addEventListener("click", () => { err = ""; render(); load(); }); return; }
       const p = pnl();
       let body = "";
-      if(tab === "mkt") body = `${S.fun && !S.open ? `<div class="skSub">${repTitle()}</div>${repBody()}` : ""}<div class="skList">${SYMS.map(s => { const c = CO[s], h = hold(s), d = chg(s);
+      if(tab === "mkt") body = `${S.fun ? `<div class="skSub">今日小報（每天 0:00 換日）</div>${repBody()}` : ""}<div class="skList">${SYMS.map(s => { const c = CO[s], h = hold(s), d = chg(s);
           return `<button class="skRow" data-s="${s}">${cat(c[2])}<span class="skNm"><b>${c[0]}</b><small>${s}${recN(s) ? `・<u class="skRec">${f0(recN(s))} 人推薦</u>` : ""}${h.q ? `・持有 ${f0(h.q)} 股` : ""}</small></span>${spark(s)}<span class="skPx ${cls(d)}"><b>${f2(px(s))}</b><small>${d > 0.004 ? "▲" : d < -0.004 ? "▼" : ""}${Math.abs(d).toFixed(2)}%${badge(s)}</small></span></button>`; }).join("")}</div>
-        <div class="skFoot">紅色是漲、綠色是跌・漲跌停 ±10%<br>${HOURS}（每天都開）</div><div class="skNote">這只是遊戲，不是賭博也不是投資。資金是虛擬的，不能儲值、不能換成現金或獎品；公司和新聞都是虛構的。</div>`;
+        <div class="skFoot">紅色是漲、綠色是跌・漲跌停 ±10%<br>${HOURS}</div><div class="skNote">這只是遊戲，不是賭博也不是投資。資金是虛擬的，不能儲值、不能換成現金或獎品；公司和新聞都是虛構的。</div>`;
       if(tab === "hold"){ const hs = SYMS.filter(s => hold(s).q > 0);
         body = `${hs.length ? `<div class="skList">${hs.map(s => { const h = hold(s), v = h.q*px(s), g = v - h.c;
             return `<button class="skRow" data-s="${s}">${cat(CO[s][2])}<span class="skNm"><b>${CO[s][0]}</b><small>${f0(h.q)} 股・均價 ${f2(h.c/h.q)}</small></span><span class="skPx ${cls(g)}"><b>${f2(v)}</b><small>${sign(g)}（${sign(h.c ? g/h.c*100 : 0)}%）</small></span></button>`; }).join("")}</div>` : `<p class="skMsg">還沒有持股，去「行情」挑一檔吧！</p>`}
@@ -234,7 +237,7 @@ App.registerGame({
         const seg = S.fun ? `<div class="skTabs sm">${[["all", "總資產"], ["week", "本週漲幅"], ["nest", "小窩合作"]].map(([k, n]) => `<button data-rk="${k}" class="${rk === k ? "on" : ""}">${n}</button>`).join("")}</div>` : "";
         if(S.fun && rk === "week") body = `${seg}<div class="skMe">你這週 <b class="${cls(S.wpct)}">${sign(S.wpct)}%</b><small>${S.trades.length || S.wplayers ? `第 ${S.wrank} 名／${Math.max(S.wplayers, S.wrank)} 位這週有上線的股民` : "下單之後就會進榜"}</small></div>
           <div class="skSub">本週漲幅前 10 名</div><div class="skTop">${S.wtop.length ? S.wtop.map((x, i) => `<div class="${x.me ? "me" : ""}"><em>${i + 1}</em>${cat(x.cat)}<b>${esc(x.name)}${x.me ? "（你）" : ""}</b><span class="${cls(x.pct)}">${sign(x.pct)}%</span></div>`).join("") : `<p class="skMsg small">這週還沒有人上榜，快去搶第一！</p>`}</div>
-          <div class="skFoot">比的是這一週資產成長幾 %，不是比誰錢多，新手也能上榜<br>每週一早上 9:00 開盤重新起算・救濟金不算漲幅</div>`;
+          <div class="skFoot">比的是這一週資產成長幾 %，不是比誰錢多，新手也能上榜<br>每週一 0:00 重新起算・救濟金不算漲幅</div>`;
         else if(S.fun && rk === "nest") body = `${seg}<div class="skMe">${S.nprofit === null ? `你們小窩還沒上榜<small>下過一次單就會進榜</small>` : `小窩合計獲利 <b class="${cls(S.nprofit)}">${sign(S.nprofit)}</b><small>${S.nsolo ? "單人" : "雙人"}小窩組第 ${S.nrank} 名／${Math.max(S.nests, S.nrank)} 個小窩・合計資產 ${f0(S.ntotal)}</small>`}</div>
           ${pt && !ta ? `<p class="skMsg small">${esc(pt.name)} 還沒開戶，叫 ta 一起來幫小窩賺錢吧！</p>` : ""}
           <div class="skSub">${S.nsolo ? "單人" : "雙人"}小窩組・前 10 名</div><div class="skTop nest">${S.ntop.length ? S.ntop.map((x, i) => `<div class="${x.me ? "me" : ""}"><em>${i + 1}</em><i>${x.who.map(w => cat(w.cat)).join("")}</i><b>${x.who.map(w => esc(w.name)).join(" & ")}${x.me ? "（你們）" : ""}</b><span class="${cls(x.profit)}">${x.profit > 0 ? "+" : ""}${f0(x.profit)}</span></div>`).join("") : `<p class="skMsg small">還沒有小窩上榜</p>`}</div>
