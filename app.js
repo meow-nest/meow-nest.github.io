@@ -223,7 +223,7 @@ const App = (function(){
     const gl = games.filter(g=>!g.hidden && (!isSolo() || g.solo));
     if(waitingTa) gl.sort((a,b)=>(canAlone(b)?1:0)-(canAlone(a)?1:0));
     html += `<div class="games">` + gl.map(g=>g.wip && !isAdmin ? `<div class="gcard soon wip" data-wip="1"><span class="gi">${window.GameArt && GameArt[g.id] ? `<span class="ga">${GameArt[g.id]()}</span>` : g.icon()}</span><span class="gn">${esc(g.name)}</span><span class="gd">🚧 待開發中</span></div>` : `<button class="gcard${waitingTa && !canAlone(g) ? " needTa" : ""}" data-g="${g.id}"><span class="gi">${window.GameArt && GameArt[g.id] ? `<span class="ga">${GameArt[g.id]()}</span>` : g.icon()}</span><span class="gn">${esc(g.name)}</span><span class="gd">${esc(g.desc)}</span>${waitingTa && !canAlone(g) ? `<span class="gb gWait">等 ta 加入</span>` : g.wip?`<span class="gb">🚧 測試中</span>`:g.badge&&g.badge()?`<span class="gb">${esc(g.badge())}</span>`:""}</button>`).join("")
-      + `<div class="gcard soon"><span class="gi">${sprite("gray","sleep",{soft:true})}</span><span class="gn">新遊戲</span><span class="gd">敬請期待…</span></div></div>`;
+      + `<div class="gcard soon"><span class="gi">${sprite("gray","sleep",{soft:true})}</span><span class="gn">新遊戲</span><span class="gd">敬請期待…</span></div></div><p class="gNote">本站遊戲純屬娛樂，不是賭博。貓幣、股市資金等都是虛擬的，不能儲值、不能換成現金或獎品。</p>`;
     if(fbUnread > 0) html = html.replace('<div id="truceHome">', `<div class="box banner fbBan" id="fbBan"><span class="bi">📮</span><div style="flex:1">站長回覆你的回報了！</div><button class="btn" id="bFbH">看看</button></div><div id="truceHome">`);
     v.innerHTML = html;
     renderMeter();

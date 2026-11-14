@@ -81,7 +81,7 @@ App.registerGame({
     const recN = s => REC.counts[s] || 0;
     // ---------- 新手教學 ----------
     const TUT = [
-      ["股票是什麼？", "買一家公司的股票，就像當它的小股東。公司變值錢，你手上的股票也跟著變貴。這裡的貓咪公司都是虛構的，錢也是遊戲用的，放心玩！"],
+      ["股票是什麼？", "買一家公司的股票，就像當它的小股東。公司變值錢，你手上的股票也跟著變貴。<br><b>這只是遊戲，不是賭博</b>：公司是虛構的，錢是遊戲裡的虛擬資金，不能儲值、也不能換成現金或獎品，放心玩！"],
       ["怎麼賺錢？", "口訣只有四個字：<b>低買高賣</b>。便宜的時候買進，等它漲了再賣出，中間的價差就是你賺的。反過來，買貴了又賣便宜就會虧。"],
       ["紅色、綠色是什麼？", "<b class='up'>紅色是漲</b>、<b class='dn'>綠色是跌</b>（跟台灣的股市一樣）。旁邊的百分比是跟昨天比漲跌多少。一天最多漲 10%（漲停）或跌 10%（跌停）。"],
       ["什麼時候可以玩？", "跟真的股市一樣有開盤時間（台灣時間，每天都開）：<b>早盤 9:00～13:30</b>、<b>夜盤 19:00～23:00</b>。開盤時價格每分鐘跳一次；休市時價格不會動，也不能買賣。"],
@@ -140,7 +140,7 @@ App.registerGame({
       let body = "";
       if(tab === "mkt") body = `<div class="skList">${SYMS.map(s => { const c = CO[s], h = hold(s), d = chg(s);
           return `<button class="skRow" data-s="${s}">${cat(c[2])}<span class="skNm"><b>${c[0]}</b><small>${s}${recN(s) ? `・<u class="skRec">${f0(recN(s))} 人推薦</u>` : ""}${h.q ? `・持有 ${f0(h.q)} 股` : ""}</small></span>${spark(s)}<span class="skPx ${cls(d)}"><b>${f2(px(s))}</b><small>${d > 0.004 ? "▲" : d < -0.004 ? "▼" : ""}${Math.abs(d).toFixed(2)}%${badge(s)}</small></span></button>`; }).join("")}</div>
-        <div class="skFoot">紅色是漲、綠色是跌・漲跌停 ±10%<br>${HOURS}（每天都開）</div>`;
+        <div class="skFoot">紅色是漲、綠色是跌・漲跌停 ±10%<br>${HOURS}（每天都開）</div><div class="skNote">這只是遊戲，不是賭博也不是投資。資金是虛擬的，不能儲值、不能換成現金或獎品；公司和新聞都是虛構的。</div>`;
       if(tab === "hold"){ const hs = SYMS.filter(s => hold(s).q > 0);
         body = `${hs.length ? `<div class="skList">${hs.map(s => { const h = hold(s), v = h.q*px(s), g = v - h.c;
             return `<button class="skRow" data-s="${s}">${cat(CO[s][2])}<span class="skNm"><b>${CO[s][0]}</b><small>${f0(h.q)} 股・均價 ${f2(h.c/h.q)}</small></span><span class="skPx ${cls(g)}"><b>${f2(v)}</b><small>${sign(g)}（${sign(h.c ? g/h.c*100 : 0)}%）</small></span></button>`; }).join("")}</div>` : `<p class="skMsg">還沒有持股，去「行情」挑一檔吧！</p>`}
