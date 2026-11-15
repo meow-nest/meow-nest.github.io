@@ -1048,9 +1048,9 @@ const App = (function(){
   }
   function svThanks(preview){
     SFX.level(); burst && burst();
-    const o = modal(`<div class="svTop big">${sprite("star","wave")}</div><h3>收到了！謝謝你 💕</h3>
+    const o = modal(`<div class="svTop big">${sprite("star","wave")}</div><h3>${preview ? "預覽結束" : "收到了！謝謝你 💕"}</h3>
       <p class="svP">每一則意見我們都會認真看，<br>一起讓小窩越來越好～</p>
-      <div class="svGift">${sprite("star","happy")}<div><b>你得到了「博士貓」！</b><small>隨時可以到「設定」換成牠</small></div></div>
+      ${preview ? `<div class="svGift">${sprite("star","happy")}<div><b>預覽模式：不會送出，也不會拿到博士貓</b><small>正式填寫要先在後台按「開始問卷」</small></div></div>` : `<div class="svGift">${sprite("star","happy")}<div><b>你得到了「博士貓」！</b><small>隨時可以到「設定」換成牠</small></div></div>`}
       ${preview || me.cat==="star" ? "" : `<button class="btn" id="svUse" style="width:100%">現在就換成博士貓</button>`}
       <button class="btn sub" id="svOk" style="width:100%;margin-top:8px">${preview ? "關閉（預覽不會送出）" : "好的"}</button>`, "svModal");
     o.querySelector("#svOk").addEventListener("click", ()=>o.remove());
