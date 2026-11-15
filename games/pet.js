@@ -288,7 +288,7 @@ App.registerGame({
         const keep = ov.querySelector(".pdBox") ? ov.querySelector(".pdBox").scrollTop : 0;
         ov.innerHTML = `<div class="pdBox">
           <div class="pdHd"><b>🛋️ 佈置・裝扮</b><span class="pdBal">${D.coin}<b>${coins()}</b></span><button class="pdX" data-x>✕</button></div>
-          <button class="btn pdGame" data-game>🎮 玩「接小魚乾」賺貓幣</button>
+          <button class="btn pdGame" data-game>🎮 玩「接小魚乾」賺貓幣</button><p class="pdCap">每人每天最多可以賺 1,000 個貓幣，半夜 12 點重新計算</p>
           <div class="pdTabs">${TABS.map(([k,n])=>`<button data-tab="${k}" class="${tab===k?"on":""}">${n}</button>`).join("")}</div>
           ${tab==="a" ? `<div class="pdWho">${cats().map((c,i)=>`<button data-who="${i}" class="${i===who?"on":""}">${sprite(c.color,"normal")}${esc(c.name)}</button>`).join("")}</div>` : ""}
           ${tab==="f" ? `<button class="btn mint pdMove" data-move>✋ 到房間裡自己擺位置</button>` : ""}
