@@ -146,7 +146,31 @@ App.registerGame({
     const deco = () => normDeco(s && s.deco);
     const posOf = (d, id) => d.pos[id] || defPos(D.BY[id]);
     const coins = () => (s && s.coins) || 0;
-    let editing = false, dragging = false;
+    let editing = false, dragging = false, lastTap = 0;
+    const tvCh = {}, fxOn = { party:false, night:false };
+    // ---------- 會動、可以互動的家具 ----------
+    const FORTUNE = [["大吉","今天做什麼都順利，適合跟喜歡的人撒嬌"],["大吉","會有小驚喜找上門，記得抬頭看看天空"],["中吉","吃到好吃的東西，心情會變得很好"],["中吉","今天的你特別可愛，貓咪都想靠近"],["中吉","適合把想說的話說出口"],["小吉","慢慢來比較快，喝杯水休息一下"],["小吉","會遇到一件讓你偷笑的小事"],["小吉","今天適合整理房間，會找到不見的東西"],["吉","平平安安就是最好的一天"],["吉","早點睡，明天會有好事發生"],["吉","摸摸貓咪，運氣會變好"],["末吉","今天容易發呆，過馬路要小心"],["末吉","有點小迷糊，出門前檢查一下鑰匙"]];
+    const NOTE = [523,587,659,784,880,1047,1175,1319];
+    function puff(it, cls, txt, n, spread){ const room = $("#ptRoom"); if(!room) return; const R = room.getBoundingClientRect(), I = it.getBoundingClientRect();
+      for(let i=0;i<n;i++) setTimeout(()=>{ if(!room.isConnected) return; const s = document.createElement("span"); s.className = "pfP "+cls; if(txt) s.textContent = txt[i % txt.length];
+        s.style.left = (I.left - R.left + I.width*(.5 + (Math.random()-.5)*spread)) + "px"; s.style.bottom = (R.bottom - I.top - 4) + "px"; s.style.setProperty("--dx", Math.round((Math.random()-.5)*36)+"px"); if(cls==="bub"){ const z = 6 + Math.round(Math.random()*9); s.style.width = s.style.height = z+"px"; }
+        room.appendChild(s); setTimeout(()=>s.remove(), 1700); }, i*130); }
+    function showFr(it, i){ it.querySelectorAll(".pfS u").forEach((u,k)=>u.classList.toggle("on", k===i)); }
+    function pfTap(it){
+      const id = it.dataset.pf, x = D.BY[id]; if(!x || !x.tap || editing) return; const now = Date.now(); if(now - lastTap < 350) return; lastTap = now;
+      const T = (f,d,o) => { if(SFX.tone) SFX.tone(f,d,o); };
+      if(x.tap==="notes"){ [0,2,4,2,5,4,2,7].forEach((k,i)=>T(NOTE[k],.22,{type:"triangle",vol:.26,delay:i*.2})); puff(it,"note",["♪","♫","♪","♬","♪","♫"],6,.7); }
+      else if(x.tap==="piano"){ const k = Math.floor(Math.random()*NOTE.length); T(NOTE[k],.5,{type:"triangle",vol:.3}); T(NOTE[k]*2,.3,{type:"sine",vol:.08}); puff(it,"note",["♪","♫","♬"][k%3],1,.5); }
+      else if(x.tap==="snow"){ T(1400,.05,{type:"sine",vol:.12}); T(1700,.05,{type:"sine",vol:.1,delay:.08}); it.classList.add("shake"); [1,2,1,2,1,2,1,0].forEach((f,i)=>setTimeout(()=>{ if(it.isConnected) showFr(it,f); if(f===0) it.classList.remove("shake"); }, i*230)); }
+      else if(x.tap==="cuckoo"){ [0,.55].forEach(d0=>{ T(784,.16,{type:"triangle",vol:.3,delay:d0}); T(659,.22,{type:"triangle",vol:.3,delay:d0+.18}); }); showFr(it,1); setTimeout(()=>{ if(it.isConnected) showFr(it,0); }, 1500); }
+      else if(x.tap==="chime"){ [1568,2093,1760,2349].forEach((f,i)=>T(f,.5,{type:"sine",vol:.14,delay:i*.11})); it.classList.add("ring"); setTimeout(()=>it.classList.remove("ring"), 1600); }
+      else if(x.tap==="bubbles"){ T(500,.08,{type:"sine",vol:.16,to:900}); puff(it,"bub",null,9,.9); }
+      else if(x.tap==="tv"){ SFX.tap(); const n = it.querySelectorAll(".pfS u").length || 1; tvCh[id] = ((tvCh[id]||0) + 1) % n; showFr(it, tvCh[id]); }
+      else if(x.tap==="party" || x.tap==="night"){ const k = x.tap; fxOn[k] = !fxOn[k]; if(fxOn[k]) fxOn[k==="party" ? "night" : "party"] = false; SFX.select(); const fxEl = el.querySelector(".prFx"); if(fxEl) fxEl.className = "prFx" + (fxOn.party ? " party" : "") + (fxOn.night ? " night" : ""); }
+      else if(x.tap==="fortune"){ const d0 = new Date(Date.now() + 8*3600000).toISOString().slice(0,10), key = d0 + (ctx.me && (ctx.me.uid || ctx.me.user_id) || ""); let h = 7; for(const c of key) h = (h*31 + c.charCodeAt(0)) >>> 0;
+        const f = FORTUNE[h % FORTUNE.length]; SFX.select(); it.classList.add("shake"); setTimeout(()=>it.classList.remove("shake"), 500); ctx.toast(`今日運勢：<b>${f[0]}</b><br>${f[1]}`, 5000); }
+    }
+    el.addEventListener("click", e => { const it = e.target.closest && e.target.closest(".pf.tap"); if(it) pfTap(it); });
     function metrics(){
       const cs = cats(), now = Date.now();
       const dex = new Set(); const fd = (src.fishing && src.fishing.dex) || {}; for(const u in fd) for(const id in fd[u]) if(fd[u][id]) dex.add(id);
@@ -186,8 +210,14 @@ App.registerGame({
     function drawDeco(){
       const d = deco();
       const layer = $("#ptDeco"); if(!layer) return;
-      if(!dragging) layer.innerHTML = d.items.map(id=>{ const [x,b] = posOf(d, id), it = D.BY[id];
-        return `<i class="pf" data-pf="${id}" style="left:${x}%;bottom:${b}%;width:${Math.round(D.cols(id)*(it.u||4.8))}px;z-index:${200-Math.round(b)}">${D.art(id)}</i>`; }).join("");
+      const sig = JSON.stringify([d.items, d.items.map(id=>posOf(d, id))]);
+      if(!dragging && layer.dataset.sig !== sig){ layer.dataset.sig = sig; layer.innerHTML = d.items.map(id=>{ const [x,b] = posOf(d, id), it = D.BY[id], w = Math.round(D.cols(id)*(it.u||4.8));
+        const fr = it.fx || it.tap ? D.frames(id) : [D.art(id)], auto = it.fx==="frames" && fr.length > 1;
+        return `<i class="pf${it.fx ? " fx-"+it.fx : ""}${auto ? " fr"+fr.length : ""}${it.tap ? " tap" : ""}" data-pf="${id}" style="left:${x}%;bottom:${b}%;width:${w}px;z-index:${200-Math.round(b)}${it.fx==="spin" ? `;padding-bottom:${Math.round(w*.9)}px` : ""}"><b class="pfS">${fr.length > 1 ? fr.map((f,i)=>`<u class="${i===(tvCh[id]||0)%fr.length && !auto ? "on" : ""}">${f}</u>`).join("") : fr[0]}</b></i>`; }).join(""); }
+      // 派對燈、星空：家具被收起來就關掉
+      const room0 = $("#ptRoom"); if(room0){ let fxEl = room0.querySelector(".prFx"); if(!fxEl){ fxEl = document.createElement("div"); fxEl.className = "prFx"; room0.appendChild(fxEl); }
+        if(!d.items.includes("disco")) fxOn.party = false; if(!d.items.includes("projector")) fxOn.night = false;
+        fxEl.className = "prFx" + (fxOn.party ? " party" : "") + (fxOn.night ? " night" : ""); }
       const bg = id => D.BY[id] && D.BY[id].bg || "";
       $("#ptRoom").style.background = bg(d.wall) || "";
       el.querySelector(".prFloor").style.background = bg(d.floor) || "";
@@ -278,7 +308,7 @@ App.registerGame({
         else sub = pending===x.id ? "再點一下買！" : `${D.coin}${x.price}`;
         return `<button class="pdIt ${ok?"":isAch(x)?"lock":"shop"} ${afford?"afford":""} ${using?"on":""} ${pending===x.id?"pend":""}" data-it="${x.id}">
           ${ok && isAch(x) && hadSeen && !sn.has(x.id) ? `<em class="pdNew">NEW</em>` : ""}
-          ${pic}<b>${esc(x.n)}</b><small>${sub}</small>
+          ${pic}${x.tag ? `<em class="pdTag ${x.tag}">${x.tag==="i" ? "可互動" : "會動"}</em>` : ""}<b>${esc(x.n)}</b><small>${sub}</small>${x.d ? `<small class="pdD">${esc(x.d)}</small>` : ""}
           ${!ok && isAch(x) ? `<span class="pdBar"><i style="width:${Math.round(pc*100)}%"></i></span>` : ""}</button>`;
       }
       function draw(){
