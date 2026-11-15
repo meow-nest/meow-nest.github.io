@@ -985,6 +985,7 @@ const App = (function(){
   function svForm(preview){
     const A = {}, O = {}; let pg = 0;
     const o = modal(`<div id="svB"></div>`, "svModal svForm");
+    o.addEventListener("click", e=>{ if(e.target===o) kbOff(); });
     const box = o.querySelector("#svB");
     const ansd = k => A[k] != null && A[k] !== "skip" && !(Array.isArray(A[k]) && !A[k].length);
     const cnt = () => SV_PAGES.flatMap(p=>p.q).filter(q=>q[1]!=="text" && ansd(q[0])).length;
@@ -999,7 +1000,12 @@ const App = (function(){
           ${sel("other") ? `<input class="svOther" data-o="${k}" maxlength="60" placeholder="寫下你的想法（最多 60 字）" value="${esc(O[k]||"")}">` : ""}`; }
       return `<div class="svQ" data-q="${k}"><div class="svQH"><b>${esc(label).replace(/\n/g,"<br>")}</b>${type==="text" ? "" : skipBtn(k)}</div>${body}${max && type==="many" ? `<div class="svCnt">${Array.isArray(A[k]) ? A[k].length : 0} / ${max}</div>` : ""}</div>`;
     }
+    const kbOff = () => { if(dock && dock.host && dock.fld && o.contains(dock.fld.el)) dock.close(); };
+    // 跟聊天一樣用喵喵鍵盤（設定成手機鍵盤的人就用手機鍵盤）
+    const meowKb = (el, max, onIn) => { const f = caretField(el, max); el.addEventListener("input", ()=>onIn(el.value)); const d = dockKeyboard(f, { enterLabel:"完成" });
+      el.addEventListener("click", ()=>setTimeout(()=>{ try{ el.scrollIntoView({ block:"center", behavior:"smooth" }); }catch(e){} }, 120)); return d; };
     function draw(){
+      kbOff();
       const P = SV_PAGES[pg], last = pg === SV_PAGES.length - 1, n = cnt();
       box.innerHTML = `<div class="svHd"><span>${preview ? "預覽模式・" : ""}${pg+1} / ${SV_PAGES.length}</span><b>${P.t}</b><button class="svX" id="svClose" aria-label="關閉">✕</button></div>
         <div class="svBar"><i style="width:${Math.round((pg+1)/SV_PAGES.length*100)}%"></i></div>
@@ -1016,11 +1022,11 @@ const App = (function(){
           A[k] = a; }
         draw(); }));
       box.querySelectorAll("[data-skip]").forEach(b=>b.addEventListener("click", ()=>{ const k = b.dataset.skip; SFX.tap(); A[k] = A[k]==="skip" ? undefined : "skip"; draw(); }));
-      box.querySelectorAll("[data-o]").forEach(i=>i.addEventListener("input", ()=>{ O[i.dataset.o] = i.value; }));
-      const tx = box.querySelector("#svTxt"); if(tx) tx.addEventListener("input", ()=>{ A.txt = tx.value; const c = box.querySelector("#svTN"); if(c) c.textContent = tx.value.length; });
+      box.querySelectorAll("[data-o]").forEach(i=>meowKb(i, 60, v=>{ O[i.dataset.o] = v; }));
+      const tx = box.querySelector("#svTxt"); if(tx) meowKb(tx, 300, v=>{ A.txt = v; const c = box.querySelector("#svTN"); if(c) c.textContent = [...v].length; });
       const pv = box.querySelector("#svPrev"); if(pv) pv.addEventListener("click", ()=>{ SFX.tap(); pg--; draw(); box.scrollIntoView({block:"start"}); });
       const nx = box.querySelector("#svNext"); if(nx) nx.addEventListener("click", ()=>{ SFX.tap(); pg++; draw(); o.querySelector(".cmBox").scrollTop = 0; });
-      box.querySelector("#svClose").addEventListener("click", ()=>{ if(!preview && cnt() && !confirm("還沒送出，確定要關掉嗎？填的內容不會保存喔")) return; o.remove(); });
+      box.querySelector("#svClose").addEventListener("click", ()=>{ if(!preview && cnt() && !confirm("還沒送出，確定要關掉嗎？填的內容不會保存喔")) return; kbOff(); o.remove(); });
       const sd = box.querySelector("#svSend"); if(sd) sd.addEventListener("click", send);
     }
     async function send(){
@@ -1028,6 +1034,7 @@ const App = (function(){
       const ans = {};
       SV_PAGES.flatMap(p=>p.q).forEach(([k,type])=>{ if(type==="text"){ const t = (A.txt||"").trim(); if(t) ans.txt = t.slice(0,300); return; }
         ans[k] = ansd(k) ? A[k] : "skip"; const oth = (O[k]||"").trim(); if(oth && (A[k]==="other" || (Array.isArray(A[k]) && A[k].includes("other")))) ans[k+"o"] = oth.slice(0,60); });
+      kbOff();
       if(preview){ o.remove(); svThanks(true); return; }
       try{ const r = await B.rpc("survey_submit", { p_ans: ans });
         if(r && r.ok){ SV.done = true; o.remove(); svThanks(false); return; }
