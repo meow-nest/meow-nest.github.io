@@ -81,12 +81,12 @@ const soft = p => Object.assign({}, p, {O: p.D});      // no-outline soft versio
 const gb = {O:'#0f380f',Y:'#8bac0f',S:'#306230',D:'#306230',P:'#9bbc0f',E:'#0f380f',H:'#9bbc0f',B:'#306230',N:'#0f380f',M:'#0f380f',W:'#9bbc0f',K:'#0f380f',T:'#7fc4ff'};
 
 // calico patches: recolor some Y as S/D in head & body
-// 博士貓（id 還是 star）：大大的黑框眼鏡
+// 博士貓（id 還是 star）：大大的黑色圓框眼鏡
 function starMark(rows){
   rows = rows.map(r=>[...r]);
   const at=(x,y)=>rows[y] && rows[y][x];
   const put=(x,y,c)=>{ if(at(x,y)!==undefined && at(x,y)!=='.' && at(x,y)!=='O') rows[y][x]=c; };
-  for(const L of [3,13]){ for(let x=L;x<=L+5;x++){ put(x,5,'G'); put(x,9,'G'); } for(let y=6;y<=8;y++){ put(L,y,'G'); put(L+5,y,'G'); }
+  for(const L of [3,13]){ for(let x=L+1;x<=L+4;x++){ put(x,5,'G'); put(x,9,'G'); } /* 圓框：四個角不畫 */ for(let y=6;y<=8;y++){ put(L,y,'G'); put(L+5,y,'G'); }
     for(let y=6;y<=8;y++) for(let x=L+1;x<=L+4;x++) if(at(x,y)==='Y'||at(x,y)==='B') rows[y][x]='L'; }
   for(let x=9;x<=12;x++) put(x,6,'G');
   put(2,6,'G'); put(19,6,'G');
