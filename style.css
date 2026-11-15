@@ -3025,7 +3025,7 @@ body[data-theme="night"] .mdBox input{color:#5a3b2e;background:#fff}
 .svTop{width:96px;margin:0 auto 4px}.svTop.big{width:120px}.svTop svg{width:100%;display:block}
 .svModal h3{text-align:center;margin:4px 0 6px}
 .svP{text-align:center;line-height:1.7;font-size:15px;margin:0 0 10px}
-.svGift{display:flex;align-items:center;gap:10px;background:#f3ecff;border:3px solid #8a6cc8;padding:8px 10px;margin:8px 0 12px;text-align:left}
+.svGift{display:flex;align-items:center;gap:10px;background:#fff3e0;border:3px solid #b98d62;padding:8px 10px;margin:8px 0 12px;text-align:left}
 .svGift svg{width:52px;flex:none;display:block}.svGift b{font-weight:400;font-size:16px;display:block;text-shadow:.5px 0 0 currentColor}.svGift small{font-size:12px;color:var(--muted);line-height:1.5}
 .svK{text-align:center;font-size:12px;margin-top:8px}
 .svHd{display:flex;align-items:center;gap:8px;margin-bottom:6px}.svHd span{font-size:12px;color:var(--muted)}.svHd b{flex:1;font-weight:400;font-size:18px;text-shadow:.5px 0 0 currentColor}
@@ -3040,11 +3040,11 @@ body[data-theme="night"] .mdBox input{color:#5a3b2e;background:#fff}
 .svOther,.svQ textarea{font:inherit;font-size:15px;width:100%;box-sizing:border-box;margin-top:8px;padding:8px;border:2px solid var(--line);background:#fffdf8;color:var(--ink);border-radius:0}
 .svQ textarea{margin-top:0;resize:vertical}
 .svCnt{font-size:11px;color:var(--muted);text-align:right;margin-top:4px}
-.svNeed{display:flex;align-items:center;gap:8px;justify-content:center;text-align:center;font-size:14px;line-height:1.5;padding:8px;border:2px dashed rgba(90,59,46,.4);margin-bottom:10px;color:var(--muted)}.svNeed.ok{border-color:#8a6cc8;background:#f3ecff;color:var(--ink)}.svNeed svg{width:36px;flex:none}.svNeed small{font-size:11px}
+.svNeed{display:flex;align-items:center;gap:8px;justify-content:center;text-align:center;font-size:14px;line-height:1.5;padding:8px;border:2px dashed rgba(90,59,46,.4);margin-bottom:10px;color:var(--muted)}.svNeed.ok{border-color:#b98d62;background:#fff3e0;color:var(--ink)}.svNeed svg{width:36px;flex:none}.svNeed small{font-size:11px}
 .svNav{display:grid;grid-template-columns:1fr 1.4fr;gap:8px}.svNav .btn:disabled{opacity:.45}
-.picks .svPk{position:relative}.picks .svPk i{position:absolute;left:50%;bottom:-2px;transform:translateX(-50%);font-style:normal;font-size:10px;white-space:nowrap;background:#8a6cc8;color:#fff;padding:0 4px;border:1.5px solid #5a3f78}
+.picks .svPk{position:relative}.picks .svPk i{position:absolute;left:50%;bottom:-2px;transform:translateX(-50%);font-style:normal;font-size:10px;white-space:nowrap;background:#8a5a2e;color:#fff;padding:0 4px;border:1.5px solid #5a3b2e}
 .picks .svPk.lock svg{filter:grayscale(1) opacity(.55)}.picks .svPk.lock i{background:#a8978c;border-color:#7a6a60}
-.svSetBox{background:#f9f4ff}
+.svSetBox{background:#fff8ee}
 .svAdmTop{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .svAvg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}.svAvg>div{background:#fff;border:2px solid var(--line);padding:6px 4px;text-align:center;display:flex;flex-direction:column;align-items:center}
 .svAvg small{font-size:11px;color:var(--muted);line-height:1.3;min-height:28px}.svAvg b{font-weight:400;font-size:22px;color:#c9820f}.svAvg i{width:16px;display:block}

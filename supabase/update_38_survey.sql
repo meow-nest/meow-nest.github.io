@@ -1,7 +1,7 @@
 -- ======================== update_38_survey.sql ========================
--- 喵喵小窩 更新 38：意見問卷＋填完送「星願貓」
+-- 喵喵小窩 更新 38：意見問卷＋填完送「博士貓（黑框眼鏡）」
 --   問卷要站長在後台按「開始問卷」才會跳出來；每個人只能填一次，結果不會顯示是誰填的
---   星願貓只有填過問卷的人能選（伺服器檢查，改程式也拿不到）
+--   博士貓（黑框眼鏡）只有填過問卷的人能選（伺服器檢查，改程式也拿不到）
 
 create table if not exists public.survey_resp (user_id uuid not null, sid text not null, ans jsonb not null, at timestamptz not null default now(), primary key (user_id, sid));
 alter table public.survey_resp enable row level security;
@@ -71,7 +71,7 @@ begin
   -- 想說的話（可以不填，最多 300 字）
   t := left(btrim(coalesce(p_ans->>'txt', '')), 300);
   if t <> '' then a := a || jsonb_build_object('txt', t); end if;
-  -- 至少要回答 5 題（不算「不想回答」），才能拿到星願貓
+  -- 至少要回答 5 題（不算「不想回答」），才能拿到博士貓（黑框眼鏡）
   if (select count(*) from jsonb_each(a) e where e.key ~ '^(r[1-3]|q[0-9]+)$' and e.value <> '"skip"'::jsonb) < 5 then return json_build_object('ok', false, 'reason', 'few'); end if;
   insert into survey_resp(user_id, sid, ans) values (auth.uid(), 's1', a) on conflict do nothing;
   return json_build_object('ok', true);
@@ -108,7 +108,7 @@ begin
     'txt', coalesce((select json_agg(json_build_object('t', ans->>'txt', 'at', extract(epoch from at)::bigint) order by at desc) from (select * from survey_resp where sid = 's1' and ans ? 'txt' order by at desc limit 300) x), '[]'::json));
 end $$;
 
--- 星願貓：沒填過問卷的人選了也會被改回原本的貓
+-- 博士貓（黑框眼鏡）：沒填過問卷的人選了也會被改回原本的貓
 create or replace function public.member_cat_guard() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin

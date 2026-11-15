@@ -955,7 +955,7 @@ const App = (function(){
     });
   }
   ctx.onBroadcast(p=>{ if(p && p.g === "nest" && p.k === "gone" && p.from !== me.uid) nestGone(); });
-  // ---- 意見問卷（填完送星願貓） ----
+  // ---- 意見問卷（填完送博士貓） ----
   const SV = { on:false, done:false, ok:false };
   const SV_O = (s) => s.split("|").map(x=>x.split(":"));
   const SV_PAGES = [
@@ -976,7 +976,7 @@ const App = (function(){
     const o = modal(`<div class="svTop">${sprite("star","wave")}</div>
       <h3>嗨嗨～打擾一下下！</h3>
       <p class="svP">喵喵小窩開張一段時間了，謝謝你一直來陪貓咪玩 💕<br>想聽聽你的想法，讓小窩變得更好。<br>只要點一點，大約 1～2 分鐘就好～</p>
-      <div class="svGift">${sprite("star","happy")}<div><b>填完送你一隻「星願貓」</b><small>額頭有小星星的限定貓咪，只有填問卷才拿得到喔！</small></div></div>
+      <div class="svGift">${sprite("star","happy")}<div><b>填完送你一隻「博士貓」</b><small>戴著黑框眼鏡、博學多聞的限定小貓，只有填問卷才拿得到喔！</small></div></div>
       <button class="btn" id="svGo" style="width:100%">好呀，幫忙填一下</button><button class="btn sub" id="svLater" style="width:100%;margin-top:8px">下次再說</button>
       <div class="k svK">想填的時候，可以到「設定」找到問卷</div>`, "svModal");
     o.querySelector("#svGo").addEventListener("click", ()=>{ SFX.select(); o.remove(); svForm(false); });
@@ -1010,7 +1010,7 @@ const App = (function(){
       box.innerHTML = `<div class="svHd"><span>${preview ? "預覽模式・" : ""}${pg+1} / ${SV_PAGES.length}</span><b>${P.t}</b><button class="svX" id="svClose" aria-label="關閉">✕</button></div>
         <div class="svBar"><i style="width:${Math.round((pg+1)/SV_PAGES.length*100)}%"></i></div>
         ${P.q.map(qHtml).join("")}
-        ${last ? `<div class="svNeed ${n>=SV_NEED?"ok":""}">${n>=SV_NEED ? `${sprite("star","happy")}已經回答 ${n} 題，可以送出拿星願貓囉！` : `已經回答 ${n} 題，至少回答 ${SV_NEED} 題才能送出喔<br><small>（選「不想回答」的不算）</small>`}</div>` : ""}
+        ${last ? `<div class="svNeed ${n>=SV_NEED?"ok":""}">${n>=SV_NEED ? `${sprite("star","happy")}已經回答 ${n} 題，可以送出拿博士貓囉！` : `已經回答 ${n} 題，至少回答 ${SV_NEED} 題才能送出喔<br><small>（選「不想回答」的不算）</small>`}</div>` : ""}
         <div class="svNav">${pg ? `<button class="btn sub" id="svPrev">上一頁</button>` : `<span></span>`}${last ? `<button class="btn" id="svSend" ${n>=SV_NEED?"":"disabled"}>送出 💌</button>` : `<button class="btn" id="svNext">下一頁</button>`}</div>`;
       box.querySelectorAll("[data-v]").forEach(b=>b.addEventListener("click", ()=>{
         const k = b.dataset.k, v = b.dataset.v, q = P.q.find(x=>x[0]===k); SFX.tap();
@@ -1049,12 +1049,12 @@ const App = (function(){
     SFX.level(); burst && burst();
     const o = modal(`<div class="svTop big">${sprite("star","wave")}</div><h3>收到了！謝謝你 💕</h3>
       <p class="svP">每一則意見我們都會認真看，<br>一起讓小窩越來越好～</p>
-      <div class="svGift">${sprite("star","happy")}<div><b>你得到了「星願貓」！</b><small>隨時可以到「設定」換成牠</small></div></div>
-      ${preview || me.cat==="star" ? "" : `<button class="btn" id="svUse" style="width:100%">現在就換成星願貓</button>`}
+      <div class="svGift">${sprite("star","happy")}<div><b>你得到了「博士貓」！</b><small>隨時可以到「設定」換成牠</small></div></div>
+      ${preview || me.cat==="star" ? "" : `<button class="btn" id="svUse" style="width:100%">現在就換成博士貓</button>`}
       <button class="btn sub" id="svOk" style="width:100%;margin-top:8px">${preview ? "關閉（預覽不會送出）" : "好的"}</button>`, "svModal");
     o.querySelector("#svOk").addEventListener("click", ()=>o.remove());
     const u = o.querySelector("#svUse"); if(u) u.addEventListener("click", async ()=>{ u.disabled = true; me.cat = "star"; store.set("mw_cat","star");
-      try{ await B.updateMe({ cat:"star" }); }catch(e){} B.track({ name:me.name, cat:"star" }); lastHdr = ""; renderHeader(); o.remove(); toast(`${sprite("star","wave")} 換好了，星願貓來囉！`); if(view==="settings") render(); });
+      try{ await B.updateMe({ cat:"star" }); }catch(e){} B.track({ name:me.name, cat:"star" }); lastHdr = ""; renderHeader(); o.remove(); toast(`${sprite("star","wave")} 換好了，博士貓來囉！`); if(view==="settings") render(); });
   }
   async function admSurvey(){
     const box = $("admSv"); if(!box) return; let r;
@@ -2299,7 +2299,7 @@ const App = (function(){
   const privacyBox = () => `<div class="box set"><h2>隱私說明</h2>${privacyList()}</div>`;
   function viewSettings(v){
     const ps=pushState();
-    v.innerHTML = `${appBox()}<div class="box set svSetBox ${SV.on && !SV.done ? "" : "hidden"}" id="svSet"><div class="svGift">${sprite("star","happy")}<div><b>填問卷，拿限定「星願貓」</b><small>大約 1～2 分鐘，幫小窩變得更好～</small></div></div><button class="btn" id="svOpen">去填問卷</button></div><div class="box set"><h2>我的貓</h2><div class="picks" id="pk"></div><input id="nm" maxlength="10" value="${esc(me.name)}" style="font-size:17px;padding:8px;border:3px solid var(--line);text-align:center;border-radius:0"><button class="btn" id="bSave">儲存</button></div>
+    v.innerHTML = `${appBox()}<div class="box set svSetBox ${SV.on && !SV.done ? "" : "hidden"}" id="svSet"><div class="svGift">${sprite("star","happy")}<div><b>填問卷，拿限定「博士貓」</b><small>大約 1～2 分鐘，幫小窩變得更好～</small></div></div><button class="btn" id="svOpen">去填問卷</button></div><div class="box set"><h2>我的貓</h2><div class="picks" id="pk"></div><input id="nm" maxlength="10" value="${esc(me.name)}" style="font-size:17px;padding:8px;border:3px solid var(--line);text-align:center;border-radius:0"><button class="btn" id="bSave">儲存</button></div>
       <div class="box set"><h2>小窩模式</h2><div class="modePick" id="mSet">${Object.keys(MODES).map(m=>`<button data-m="${m}" class="${roomMode===m?"on":""}">${modeArt(m)}<b>${MODES[m].name}</b></button>`).join("")}</div><div class="k">兩個人會一起切換。閨蜜／兄弟模式會換掉情侶向的題目和用語</div></div>
       <div class="box set"><h2>整體風格</h2><div class="sthemes" id="sthm">${SITE_THEMES.map(([id,n,bg,pa,ln,ac,sh])=>`<button data-st="${id}" class="${(store.get("mw_theme")||"cream")===id?"on":""}"><span class="stPrev" style="background-color:${bg};background-image:linear-gradient(${ln}14 1px,transparent 1px),linear-gradient(90deg,${ln}14 1px,transparent 1px)"><b style="background:${pa};border-color:${ln};box-shadow:2px 2px 0 ${sh}"></b><i style="background:${ac};border-color:${ln}"></i><s>${icon("heart",{K:ac,W:pa,O:ln})}</s></span>${n}</button>`).join("")}</div></div>
       <div class="box set"><h2>字體</h2><div class="fontPick" id="fPick"><button data-f="pixel" class="${store.get("mw_font")==="sys"?"":"on"}" style="font-family:Cubic11">像素字 喵喵小窩</button><button data-f="sys" class="${store.get("mw_font")==="sys"?"on":""}" style="font-family:-apple-system,'PingFang TC','Noto Sans TC',sans-serif">一般字 喵喵小窩</button></div></div>
