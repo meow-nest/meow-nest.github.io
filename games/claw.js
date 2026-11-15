@@ -517,18 +517,25 @@ App.registerGame({
     let last = performance.now();
     const loop = now => {
       if(!alive) return; const dt = Math.max(0, Math.min(.04, (now - last)/1000)); last = now;
+      // 沒有東西在動的時候讓機台休息，不用每一格都重算重畫（手機比較不會熱、不會卡）
+      const sig = () => { let v = prizes.length*7 + W; for(const p of prizes) v += p.x + p.y*3 + p.z*5; return v; };
+      if(asleep){ if(state === "idle" && !captured.length && !dir.x && !dir.z && Math.abs(sig() - sleepSig) < 1e-9){ if(now - dayChk <= 5000){ setTimeout(() => { if(alive) raf = requestAnimationFrame(loop); }, 120); return; } still = 38; } else still = 0; asleep = false; }
+      const s0 = sig(), k0 = claw.x + claw.z*3 + claw.tip*5 + claw.r*7;
       const c0 = { x: claw.x, z: claw.z, tip: claw.tip, r: claw.r }; step(dt);
       const S = 4, lerp = (a, b, t) => a + (b - a)*t, at = t => ({ x: lerp(c0.x, claw.x, t), z: lerp(c0.z, claw.z, t), tip: lerp(c0.tip, claw.tip, t), r: lerp(c0.r, claw.r, t) });
       // 爪子只有在「夾」的時候才是實心的；回到出口打開 0.5 秒後就穿過去，卡在爪子上的娃娃會直接掉下去
       const solid = ["drop", "close", "rise", "top", "back"].includes(state) || (state === "release" && seq.t < .5);
-      for(let i = 0; i < S; i++) solid ? physics(dt/S, at(i/S), at((i + 1)/S)) : physics(dt/S); draw();
+      for(let i = 0; i < S; i++) solid ? physics(dt/S, at(i/S), at((i + 1)/S)) : physics(dt/S); draw(); if(window.__mock) window.__drawN = (window.__drawN||0) + 1;
+      let sqm = 0; for(const p of prizes) sqm = Math.max(sqm, Math.abs(p.sq));
+      if(state === "idle" && !captured.length && Math.abs(sig() - s0) < 2e-5 && Math.abs(claw.x + claw.z*3 + claw.tip*5 + claw.r*7 - k0) < 1e-6 && sqm < .004) still++; else still = 0;
+      if(still > 40){ asleep = true; sleepSig = sig(); }
       // 玩完後幾秒內滾進出口的也算；沒在玩的時候自己滾進去的不算（放回機台裡）
       if(state === "idle" && captured.length){ if(performance.now() - lastPlay < 4000) finish(); else { captured.splice(0).forEach(cap => { const sp = SPOTS[cap.spot] || [.6, .6]; const p = mk(cap.kind, sp[0], .7, sp[1]); p.spot = cap.spot; }); } }
       if(state === "idle" && now - dayChk > 5000){ dayChk = now; if(dayKey() !== curDay && !dayBusy){ dayBusy = true; loadStatus().then(() => { dayBusy = false; if(state === "idle"){ arrange(); msg("新的一天！機台換了一批新娃娃"); info(); } }); }
         if(false){ msg("新的一天！機台換了一批新娃娃"); info(); } }
       raf = requestAnimationFrame(loop);
     };
-    let dayChk = 0, dayBusy = false;
+    let dayChk = 0, dayBusy = false, asleep = false, still = 0, sleepSig = 0;
     const loaded = Promise.all([ctx.getState("claw").catch(() => null).then(cur => { s = cur ? cur.state : s; }), loadStatus()]);
     requestAnimationFrame(async () => { try{ el.querySelector(".cw").scrollIntoView({ block: "start" }); }catch(e){} sizes(); await loaded; if(!alive) return;
       arrange(); for(let i = 0; i < 90; i++) physics(1/60); captured = []; draw(); info(); if(!prizes.length) soldOut(); last = performance.now(); raf = requestAnimationFrame(loop); });

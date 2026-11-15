@@ -31,26 +31,31 @@ const IME = (function(){
     loading.catch(()=>{ loading = null; });
     return loading;
   }
-  const parsed = new Map();
+  const parsed = new Map(), NONE = [];
+  function lookupKey(key){
+    const raw = dict && dict.get(key); if(!raw) return NONE;
+    if(typeof raw !== "string") return raw;   // 已經整理過的直接用
+    const out = raw.split(" ").map(x=>{ const k = x.lastIndexOf(":"); return k>0 ? { w:x.slice(0,k), f:+x.slice(k+1) } : { w:x, f:0 }; });
+    dict.set(key, out); return out;
+  }
   function lookup(syls){
     let key = "";
     for(const s of syls){ const c = sylCode[s]; if(!c) return []; key += c; }
-    if(parsed.has(key)) return parsed.get(key);
-    const raw = dict && dict.get(key); if(!raw){ parsed.set(key, []); return []; }
-    const out = raw.split(" ").map(x=>{ const k = x.lastIndexOf(":"); return k>0 ? { w:x.slice(0,k), f:+x.slice(k+1) } : { w:x, f:0 }; });
-    parsed.set(key, out); return out;
+    return lookupKey(key);
   }
   // a syllable typed without a tone is stored as "ㄋㄧ*" and matches every tone
   function expand(s){ if(!s.endsWith("*")) return sylCode[s] ? [s] : []; const b = s.slice(0,-1); return [b, b+"ˊ", b+"ˇ", b+"ˋ", b+"˙"].filter(v=>sylCode[v]); }
-  const anyCache = new Map();
+  const anyCache = new Map(), expCache = new Map();
+  function expCodes(x){ let v = expCache.get(x); if(!v){ v = expand(x).map(y=>sylCode[y]); expCache.set(x, v); } return v; }
   function lookupAny(syls){
     if(!syls.some(x=>x.endsWith("*"))) return lookup(syls);
     const key = syls.join("|"); if(anyCache.has(key)) return anyCache.get(key);
-    let combos = [[]];
-    for(const x of syls){ const v = expand(x); if(!v.length){ anyCache.set(key, []); return []; } const nx = []; outer: for(const c of combos) for(const y of v){ nx.push(c.concat([y])); if(nx.length >= 400) break outer; } combos = nx; }
+    // 直接把每種聲調組合接成查字典用的代碼（打字時每按一下要查上萬次，這樣快很多）
+    let combos = [""];
+    for(const x of syls){ const v = expCodes(x); if(!v.length){ anyCache.set(key, []); return []; } const nx = []; outer: for(const c of combos) for(const y of v){ nx.push(c + y); if(nx.length >= 400) break outer; } combos = nx; }
     const best = new Map();
-    for(const c of combos) for(const r of lookup(c)){ const o = best.get(r.w); if(!o || r.f > o.f) best.set(r.w, r); }
-    const out = [...best.values()].sort((a,b)=>b.f-a.f); anyCache.set(key, out); return out;
+    for(const c of combos){ const rs = lookupKey(c); for(let i = 0; i < rs.length; i++){ const r = rs[i], o = best.get(r.w); if(!o || r.f > o.f) best.set(r.w, r); } }
+    const out = [...best.values()].sort((a,b)=>b.f-a.f); if(anyCache.size > 4000) anyCache.clear(); anyCache.set(key, out); return out;
   }
   function partialSyls(cur){
     // all known syllables matching what has been typed so far (any tone)

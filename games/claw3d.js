@@ -548,7 +548,7 @@ App.registerGame({
     });
     el.querySelector("#cwCol").addEventListener("click", openCol); el.querySelector("#cwBookBtn").addEventListener("click", () => openBook(0));
 
-    let last = performance.now(), dayChk = 0, dayBusy = false, lastDraw = 0, needDraw = true;
+    let last = performance.now(), dayChk = 0, dayBusy = false, lastDraw = 0, needDraw = true, idleN = 0;
     const loop = now => {
       if(!alive) return; const dt = Math.max(0, Math.min(.04, (now - last)/1000)); last = now;
       const c0 = { x: claw.x, z: claw.z, tip: claw.tip, r: claw.r }; step(dt);
@@ -561,9 +561,12 @@ App.registerGame({
       for(const p of prizes){ const d = Math.abs(p.x - (p.lx ?? 9)) + Math.abs(p.y - (p.ly ?? 9)) + Math.abs(p.z - (p.lz ?? 9)); p.lx = p.x; p.ly = p.y; p.lz = p.z;
         if(d > .0004 || Math.abs(p.tx - p.rx) + Math.abs(p.tz - p.rz) > .002 || p.sq > .01) moving = true; }
       if(moving || needDraw){ draw(); lastDraw = now; needDraw = false; if(window.__mock) window.__drawN = (window.__drawN||0) + 1; }
+      idleN = moving ? 0 : idleN + 1;
       if(state === "idle" && captured.length){ if(performance.now() - lastPlay < 4000) finish(); else { captured.splice(0).forEach(cap => { const sp = SPOTS[cap.spot] || [.6, .6]; const p = mk(cap.kind, sp[0], .7, sp[1]); p.spot = cap.spot; }); } }
       // 換日：只看手機上的日期有沒有變（不會一直重排）
       if(state === "idle" && now - dayChk > 5000){ dayChk = now; const d = dayKey(); if(d !== seenDay && !dayBusy){ seenDay = d; dayBusy = true; loadStatus().then(() => { dayBusy = false; if(state === "idle"){ arrange(); msg("新的一天！機台換了一批新娃娃"); info(); } }); } }
+      // 完全靜止時不用每一格都跑，隔一下再看一次就好
+      if(idleN > 45 && state === "idle"){ setTimeout(() => { if(alive){ last = performance.now(); raf = requestAnimationFrame(loop); } }, 120); return; }
       raf = requestAnimationFrame(loop);
     };
     const loaded = Promise.all([ctx.getState("claw3d").catch(() => null).then(cur => { s = cur ? cur.state : s; }), loadStatus()]);

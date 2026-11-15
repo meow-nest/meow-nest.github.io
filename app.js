@@ -368,7 +368,7 @@ const App = (function(){
   function viewChat(v){
     { let tt = $("topTools"); if(!tt){ tt = document.createElement("div"); tt.id = "topTools"; $("top").appendChild(tt); }
       tt.innerHTML = v.id==="view" ? `<div class="tl"><button class="ctB find" id="bSearch" title="搜尋訊息">${icon("search")}<span>搜尋</span></button></div><div class="tr"><button class="ctB voice" id="bCallA" title="語音通話">${icon("phone")}<span>語音</span></button><button class="ctB video" id="bCallV" title="視訊通話">${icon("vcam")}<span>視訊</span></button></div>` : ""; }
-    v.innerHTML = `<div class="box chat"><div class="chatTruce">${truceBar()}${busyBar()}</div><div class="pinBar hidden"></div><div class="list" id="list"></div>
+    v.innerHTML = `<div class="box chat"><div class="chatTruce">${truceBar()}${busyBar()}</div><div class="pinBar hidden"></div><div class="lw"><div class="list" id="list"></div></div>
       <div class="stickers hidden" id="stk"><button data-s="poke" class="pokeBtn" title="戳一下">${icon("paw")}<b>戳一下</b></button>${STICKERS.map(x=>`<button data-s="${x[0]}">${stickerHtml(x[0], me.cat||"orange")}</button>`).join("")}</div>
       <div class="combo hidden" id="combo"></div>
       <div class="replyBar hidden" id="replyBar"></div>
@@ -609,11 +609,30 @@ const App = (function(){
     try{ const row = await B.send(body, kind, me.name, me.cat, rp); addMessage(row); }
     catch(e){ toast("傳送失敗，請檢查網路"); }
   }
+  // 新訊息只加在最下面，不用每次把整個聊天室重畫一遍（訊息多的時候才不會卡）
+  function appendMsg(m){
+    const L = $("list"), n = messages.length; if(!L || n < 2 || messages[n-1] !== m || !L.querySelector("[data-mid]")) return false;
+    const h = msgHtml(m); if(!h) return true;
+    const atBottom = L.scrollHeight - L.scrollTop - L.clientHeight < 80;
+    const d = dayStr(m.created_at), pd = dayStr(messages[n-2].created_at);
+    L.insertAdjacentHTML("beforeend", (d !== pd ? `<div class="day">${d}</div>` : "") + h.replace(/^<div class="msg/, `<div data-mid="${m.id}" class="msg`));
+    const first = messages[0].id;
+    for(;;){ const f = L.querySelector("[data-mid]"); if(!f || !(+f.dataset.mid < first)) break; const pv = f.previousElementSibling, nx = f.nextElementSibling;
+      if(pv && pv.classList.contains("day") && !pv.classList.contains("older-end") && (!nx || nx.classList.contains("day"))) pv.remove(); f.remove(); }
+    const el = L.lastElementChild, im = el && el.querySelector(".pic img"); if(im){ im.addEventListener("load", ()=>{ if(atBottom) L.scrollTop = L.scrollHeight; }); fillImages(); }
+    if(atBottom) L.scrollTop = L.scrollHeight;
+    return true;
+  }
+  // 對方已讀：只補上「已讀」兩個字
+  function markReadDom(){
+    const L = $("list"), p = partner(); if(!L || !p) return; const lr = p.last_read || 0;
+    const all = L.querySelectorAll(".msg.me[data-mid]"); for(let i = all.length - 1; i >= 0; i--){ const e = all[i]; if(+e.dataset.mid > lr || e.querySelector(".letterBub,.makeupBub,.gone")) continue; const tm = e.querySelector(".tm"); if(!tm) continue; if(tm.querySelector(".rd")) break; tm.insertAdjacentHTML("afterbegin", `<span class="rd">已讀</span>`); }
+  }
   function addMessage(m){
     if(!m || messages.some(x=>x.id===m.id)) return;
     if(m.kind==="memo" && String(m.body||"").startsWith("📮 站長回覆")) setTimeout(checkFb, 300);
     messages.push(m); messages.sort((a,b)=>a.id-b.id); if(messages.length>300 && !olderLoaded) messages=messages.slice(-300);
-    if(chatVisible()){ drawList(false); markSeen(); if(isLove(m)) queueLove(m.sender); }
+    if(chatVisible()){ if(!appendMsg(m)) drawList(false); markSeen(); if(isLove(m)) queueLove(m.sender); }
     else renderBadge();
     if(m.sender!==me.uid){
       if(m.kind==="poke"){ SFX.meow(1.12); haptic(); floatSvg(sprite(m.cat||"white","wave")); }
@@ -2635,7 +2654,7 @@ const App = (function(){
     $("top").classList.remove("hidden"); $("nav").classList.remove("hidden");
     B.on("msg", addMessage);
     B.on("bc", p=>{ if(p && p.from !== me.uid) bcSubs.slice().forEach(h=>{ try{ h(p); }catch(e){} }); });
-    B.on("members", async()=>{ members = await B.members(); renderHeader(); if(route==="home") render(); else if(chatVisible()) drawList(false); });
+    B.on("members", async()=>{ const sig = () => members.map(x=>[x.user_id,x.name,x.cat].join("|")).join(","); const s0 = sig(); members = await B.members(); renderHeader(); if(route==="home") render(); else if(chatVisible()){ if(sig() === s0) markReadDom(); else drawList(false); } });
     B.on("msg", ()=>{ lastRt = Date.now(); }); B.on("bc", ()=>{ lastRt = Date.now(); });
     B.on("state", (game, version, state)=>{ lastRt = Date.now(); },);
     B.on("state", (game, version, state)=>{ if(!stateCache[game] || version > stateCache[game].version){ stateCache[game]={version,state}; emitState(game); } });
