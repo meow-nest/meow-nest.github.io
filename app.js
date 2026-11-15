@@ -887,9 +887,11 @@ const App = (function(){
       <div class="box admBox admFold ${admOpen("users", false) ? "open" : ""}" data-fold="users" id="admUsers"><h3 class="admFH">👥 使用者<small>${st.people} 人</small><i class="admArr">▾</i></h3><div class="admFB">
         ${us ? `<input id="admQ" class="admQ" placeholder="搜尋暱稱或邀請碼" value="${esc(admQ)}" autocomplete="off">
         <div class="admTabs admSort"><button data-s="recent" class="${admSort==="recent"?"on":""}">最近上線</button><button data-s="idle" class="${admSort==="idle"?"on":""}">很久沒上線</button><button data-s="new" class="${admSort==="new"?"on":""}">最新加入</button></div>
-        <div id="admUL"></div>` : `<div class="k" style="text-align:center;padding:8px">資料庫還沒加上使用者名單（更新 15）</div>`}</div></div>`;
+        <div id="admUL"></div>` : `<div class="k" style="text-align:center;padding:8px">資料庫還沒加上使用者名單（更新 15）</div>`}</div></div>
+      <div class="box admBox admFold ${admOpen("survey", true) ? "open" : ""}" data-fold="survey"><h3 class="admFH">📋 意見問卷<small id="admSvN"></small><i class="admArr">▾</i></h3><div class="admFB" id="admSv"><div class="k">讀取中…</div></div></div>`;
     body.querySelectorAll(".admFH").forEach(h=>h.addEventListener("click", ()=>{ const box = h.closest(".admFold"), k = box.dataset.fold, open = !box.classList.contains("open");
       box.classList.toggle("open", open); admFoldSet(k, open); SFX.tap(); }));
+    admSurvey();
     admUsersData = us;
     if(us){ drawUsers();
       const q = body.querySelector("#admQ"); if(q) q.addEventListener("input", ()=>{ admQ = q.value; admShow = 20; drawUsers(); });
@@ -953,6 +955,131 @@ const App = (function(){
     });
   }
   ctx.onBroadcast(p=>{ if(p && p.g === "nest" && p.k === "gone" && p.from !== me.uid) nestGone(); });
+  // ---- 意見問卷（填完送星願貓） ----
+  const SV = { on:false, done:false, ok:false };
+  const SV_O = (s) => s.split("|").map(x=>x.split(":"));
+  const SV_PAGES = [
+    { t:"整體感覺", q:[["r1","star","整體來說，你喜歡喵喵小窩嗎？"],["r2","star","畫面好不好看、可不可愛？"],["r3","star","用起來順不順、會不會卡卡的？"]] },
+    { t:"平常怎麼用", q:[["q4","one","你通常跟誰一起用？",SV_O("couple:情侶|bestie:閨蜜|bro:兄弟|solo:自己一個人")],
+      ["q5","many","你最常用哪些功能？（最多選 3 個）",SV_O("chat:聊天|sticker:傳貼圖|pet:養貓咪|deco:佈置房間|games:小遊戲|claw:夾娃娃|stock:貓貓股市|album:相簿|daily:早安晚安|notes:記事本"),3],
+      ["q6","one","你多久來一次？",SV_O("many:每天好幾次|daily:每天一次|week:一週幾次|rare:偶爾想到才來")]] },
+    { t:"遊戲", q:[["q7","many","你最喜歡哪幾個遊戲？（最多選 3 個）",SV_O("moqi:默契大考驗|meld:想到一起|draw:你畫我猜|bingo:喵喵賓果|fishing:釣魚大賽|claw:喵喵夾娃娃機|claw3d:3D 夾娃娃機|stock:貓貓股市|match3:喵喵消消樂|tetris:喵喵方塊|catstack:疊貓貓|runner:跳跳貓|whack:打老鼠|memory:貓貓翻牌配對|defense:守護罐罐大作戰|boat:喵喵划龍舟|runaway:喵喵大逃亡|fight:貓咪格鬥|quickdraw:西部快槍手|pool:喵喵撞球|gomoku:五子棋|chess:喵喵西洋棋|banqi:喵喵暗棋|battleship:喵喵海戰|guess:終極密碼|sashimi:喵喵廚房|stars:等你的星星罐"),3],
+      ["q8","one","遊戲的難度你覺得？",SV_O("easy:太簡單|ok:剛剛好|hard:有點難|toohard:太難了")]] },
+    { t:"希望小窩多什麼", q:[["q9","many","你最希望小窩多出什麼？（最多選 3 個）",SV_O("duo:更多雙人遊戲|deco:更多家具和裝飾|gift:送禮物給另一半|sticker:更多貼圖|breed:更多貓咪品種|room2:第二個房間|holiday:節日活動|spend:更多可以花貓幣的地方"),3],
+      ["q10","many","有沒有遇到讓你不開心的地方？（可以複選）",SV_O("lag:會卡卡的|howto:看不懂怎麼玩|small:字太小|coins:貓幣太難賺|none:沒有遇到，都很好"),5]] },
+    { t:"想說的話", q:[["txt","text","有什麼想對小窩說的嗎？\n想要的功能、遇到的問題，或是單純打聲招呼都可以喔～（可以不填）"]] },
+  ];
+  const SV_NEED = 5;
+  async function svLoad(){ try{ const r = await B.rpc("survey_me"); SV.on = !!(r && r.on); SV.done = !!(r && r.done); SV.ok = true; }catch(e){ SV.ok = false; } return SV; }
+  const svStar = on => `<svg viewBox="0 0 11 11" shape-rendering="crispEdges"><path d="M5 0h1v2h1v2h4v1h-1v1h-1v1h1v4h-1v-1h-1v-1h-1v-1h-3v1h-1v1h-1v1h-1v-4h1v-1h-1v-1h-1v-1h4v-2h1z" fill="${on?"#ffcf4a":"#ece3d8"}" stroke="${on?"#5a3b2e":"#cbbdb0"}" stroke-width=".6" paint-order="stroke"/></svg>`;
+  function svIntro(){
+    const o = modal(`<div class="svTop">${sprite("star","wave")}</div>
+      <h3>嗨嗨～打擾一下下！</h3>
+      <p class="svP">喵喵小窩開張一段時間了，謝謝你一直來陪貓咪玩 💕<br>想聽聽你的想法，讓小窩變得更好。<br>只要點一點，大約 1～2 分鐘就好～</p>
+      <div class="svGift">${sprite("star","happy")}<div><b>填完送你一隻「星願貓」</b><small>額頭有小星星的限定貓咪，只有填問卷才拿得到喔！</small></div></div>
+      <button class="btn" id="svGo" style="width:100%">好呀，幫忙填一下</button><button class="btn sub" id="svLater" style="width:100%;margin-top:8px">下次再說</button>
+      <div class="k svK">想填的時候，可以到「設定」找到問卷</div>`, "svModal");
+    o.querySelector("#svGo").addEventListener("click", ()=>{ SFX.select(); o.remove(); svForm(false); });
+    o.querySelector("#svLater").addEventListener("click", ()=>{ SFX.tap(); o.remove(); });
+  }
+  function svForm(preview){
+    const A = {}, O = {}; let pg = 0;
+    const o = modal(`<div id="svB"></div>`, "svModal svForm");
+    const box = o.querySelector("#svB");
+    const ansd = k => A[k] != null && A[k] !== "skip" && !(Array.isArray(A[k]) && !A[k].length);
+    const cnt = () => SV_PAGES.flatMap(p=>p.q).filter(q=>q[1]!=="text" && ansd(q[0])).length;
+    const skipBtn = k => `<button class="svSkip ${A[k]==="skip"?"on":""}" data-skip="${k}">不想回答</button>`;
+    function qHtml(q){
+      const [k, type, label, opts, max] = q;
+      let body = "";
+      if(type==="star") body = `<div class="svStars">${[1,2,3,4,5].map(n=>`<button data-k="${k}" data-v="${n}" aria-label="${n} 顆星">${svStar(typeof A[k]==="number" && A[k]>=n)}</button>`).join("")}<span>${typeof A[k]==="number" ? ["","不太喜歡","普通","還不錯","喜歡","超喜歡！"][A[k]] : ""}</span></div>`;
+      else if(type==="text") body = `<textarea id="svTxt" maxlength="300" rows="4" placeholder="寫在這裡～">${esc(A.txt||"")}</textarea><div class="svCnt"><span id="svTN">${(A.txt||"").length}</span> / 300</div>`;
+      else { const sel = v => type==="one" ? A[k]===v : Array.isArray(A[k]) && A[k].includes(v);
+        body = `<div class="svOpts ${opts.length>8?"many":""}">${opts.map(([v,n])=>`<button class="${sel(v)?"on":""}" data-k="${k}" data-v="${v}">${esc(n)}</button>`).join("")}<button class="${sel("other")?"on":""}" data-k="${k}" data-v="other">其他（自己寫）</button></div>
+          ${sel("other") ? `<input class="svOther" data-o="${k}" maxlength="60" placeholder="寫下你的想法（最多 60 字）" value="${esc(O[k]||"")}">` : ""}`; }
+      return `<div class="svQ" data-q="${k}"><div class="svQH"><b>${esc(label).replace(/\n/g,"<br>")}</b>${type==="text" ? "" : skipBtn(k)}</div>${body}${max && type==="many" ? `<div class="svCnt">${Array.isArray(A[k]) ? A[k].length : 0} / ${max}</div>` : ""}</div>`;
+    }
+    function draw(){
+      const P = SV_PAGES[pg], last = pg === SV_PAGES.length - 1, n = cnt();
+      box.innerHTML = `<div class="svHd"><span>${preview ? "預覽模式・" : ""}${pg+1} / ${SV_PAGES.length}</span><b>${P.t}</b><button class="svX" id="svClose" aria-label="關閉">✕</button></div>
+        <div class="svBar"><i style="width:${Math.round((pg+1)/SV_PAGES.length*100)}%"></i></div>
+        ${P.q.map(qHtml).join("")}
+        ${last ? `<div class="svNeed ${n>=SV_NEED?"ok":""}">${n>=SV_NEED ? `${sprite("star","happy")}已經回答 ${n} 題，可以送出拿星願貓囉！` : `已經回答 ${n} 題，至少回答 ${SV_NEED} 題才能送出喔<br><small>（選「不想回答」的不算）</small>`}</div>` : ""}
+        <div class="svNav">${pg ? `<button class="btn sub" id="svPrev">上一頁</button>` : `<span></span>`}${last ? `<button class="btn" id="svSend" ${n>=SV_NEED?"":"disabled"}>送出 💌</button>` : `<button class="btn" id="svNext">下一頁</button>`}</div>`;
+      box.querySelectorAll("[data-v]").forEach(b=>b.addEventListener("click", ()=>{
+        const k = b.dataset.k, v = b.dataset.v, q = P.q.find(x=>x[0]===k); SFX.tap();
+        if(q[1]==="star") A[k] = +v;
+        else if(q[1]==="one") A[k] = A[k]===v ? undefined : v;
+        else { let a = Array.isArray(A[k]) ? A[k].slice() : [];
+          if(a.includes(v)) a = a.filter(x=>x!==v);
+          else { if(v==="none") a = []; else a = a.filter(x=>x!=="none"); if(a.length >= (q[4]||3)){ toast(`最多只能選 ${q[4]||3} 個喔`); return; } a.push(v); }
+          A[k] = a; }
+        draw(); }));
+      box.querySelectorAll("[data-skip]").forEach(b=>b.addEventListener("click", ()=>{ const k = b.dataset.skip; SFX.tap(); A[k] = A[k]==="skip" ? undefined : "skip"; draw(); }));
+      box.querySelectorAll("[data-o]").forEach(i=>i.addEventListener("input", ()=>{ O[i.dataset.o] = i.value; }));
+      const tx = box.querySelector("#svTxt"); if(tx) tx.addEventListener("input", ()=>{ A.txt = tx.value; const c = box.querySelector("#svTN"); if(c) c.textContent = tx.value.length; });
+      const pv = box.querySelector("#svPrev"); if(pv) pv.addEventListener("click", ()=>{ SFX.tap(); pg--; draw(); box.scrollIntoView({block:"start"}); });
+      const nx = box.querySelector("#svNext"); if(nx) nx.addEventListener("click", ()=>{ SFX.tap(); pg++; draw(); o.querySelector(".cmBox").scrollTop = 0; });
+      box.querySelector("#svClose").addEventListener("click", ()=>{ if(!preview && cnt() && !confirm("還沒送出，確定要關掉嗎？填的內容不會保存喔")) return; o.remove(); });
+      const sd = box.querySelector("#svSend"); if(sd) sd.addEventListener("click", send);
+    }
+    async function send(){
+      const sd = box.querySelector("#svSend"); sd.disabled = true; sd.textContent = "送出中…";
+      const ans = {};
+      SV_PAGES.flatMap(p=>p.q).forEach(([k,type])=>{ if(type==="text"){ const t = (A.txt||"").trim(); if(t) ans.txt = t.slice(0,300); return; }
+        ans[k] = ansd(k) ? A[k] : "skip"; const oth = (O[k]||"").trim(); if(oth && (A[k]==="other" || (Array.isArray(A[k]) && A[k].includes("other")))) ans[k+"o"] = oth.slice(0,60); });
+      if(preview){ o.remove(); svThanks(true); return; }
+      try{ const r = await B.rpc("survey_submit", { p_ans: ans });
+        if(r && r.ok){ SV.done = true; o.remove(); svThanks(false); return; }
+        toast(r && r.reason==="done" ? "你已經填過囉，謝謝你！" : r && r.reason==="off" ? "問卷已經結束了，謝謝你～" : r && r.reason==="few" ? `至少要回答 ${SV_NEED} 題喔` : "沒有送出成功，再試一次");
+        if(r && (r.reason==="done" || r.reason==="off")){ o.remove(); SV.done = r.reason==="done"; return; } }
+      catch(e){ toast("連不上網路，再試一次"); }
+      sd.disabled = false; sd.textContent = "送出 💌";
+    }
+    draw();
+  }
+  function svThanks(preview){
+    SFX.level(); burst && burst();
+    const o = modal(`<div class="svTop big">${sprite("star","wave")}</div><h3>收到了！謝謝你 💕</h3>
+      <p class="svP">每一則意見我們都會認真看，<br>一起讓小窩越來越好～</p>
+      <div class="svGift">${sprite("star","happy")}<div><b>你得到了「星願貓」！</b><small>隨時可以到「設定」換成牠</small></div></div>
+      ${preview || me.cat==="star" ? "" : `<button class="btn" id="svUse" style="width:100%">現在就換成星願貓</button>`}
+      <button class="btn sub" id="svOk" style="width:100%;margin-top:8px">${preview ? "關閉（預覽不會送出）" : "好的"}</button>`, "svModal");
+    o.querySelector("#svOk").addEventListener("click", ()=>o.remove());
+    const u = o.querySelector("#svUse"); if(u) u.addEventListener("click", async ()=>{ u.disabled = true; me.cat = "star"; store.set("mw_cat","star");
+      try{ await B.updateMe({ cat:"star" }); }catch(e){} B.track({ name:me.name, cat:"star" }); lastHdr = ""; renderHeader(); o.remove(); toast(`${sprite("star","wave")} 換好了，星願貓來囉！`); if(view==="settings") render(); });
+  }
+  async function admSurvey(){
+    const box = $("admSv"); if(!box) return; let r;
+    try{ r = await B.rpc("survey_results"); }catch(e){ box.innerHTML = `<div class="k">資料庫還沒加上問卷的設定（更新 38）</div>`; return; }
+    if(!$("admSv")) return;
+    const n = Math.max(0, +r.n || 0), C = r.cnt || {}, nEl = $("admSvN"); if(nEl) nEl.textContent = `${r.on ? "進行中・" : ""}${n} 人填了`;
+    const LAB = {}; SV_PAGES.flatMap(p=>p.q).forEach(q=>{ LAB[q[0]] = q[2].replace(/（.*）/,"").split("\n")[0]; });
+    const avg = k => { const c = C[k] || {}; let t = 0, m = 0; for(const v in c){ if(/^[1-5]$/.test(v)){ t += +v * c[v]; m += c[v]; } } return m ? (t/m).toFixed(1) : "—"; };
+    const bars = q => { const c = C[q[0]] || {}, opts = (q[3] || []).concat([["other","其他"],["skip","不想回答"]]), mx = Math.max(1, ...opts.map(o=>c[o[0]]||0));
+      return opts.map(o=>({ o, v:c[o[0]]||0 })).sort((a,b)=>(a.o[0]==="skip")-(b.o[0]==="skip") || b.v-a.v).filter(x=>x.v || (x.o[0]!=="skip" && opts.length <= 12)).map(x=>`<div class="admMode"><span>${esc(x.o[1])}</span><div class="admMB"><i style="width:${Math.round(x.v/mx*100)}%"></i></div><b>${x.v}</b></div>`).join(""); };
+    const others = (r.other || []).slice(0, 100), txts = (r.txt || []).slice(0, 200);
+    box.innerHTML = `<div class="svAdmTop"><button class="btn ${r.on ? "sub" : ""}" id="svTog">${r.on ? "結束問卷" : "開始問卷"}</button><button class="btn sub" id="svPrev">預覽問卷</button></div>
+      <div class="k admNote">${r.on ? "問卷進行中：每個人打開小窩時會跳出一次，設定裡也找得到" : "問卷還沒開始（或已經結束），使用者看不到"}・結果是匿名的，看不到是誰填的</div>
+      ${n ? `<div class="svAvg">${["r1","r2","r3"].map(k=>`<div><small>${esc(LAB[k])}</small><b>${avg(k)}</b><i>${svStar(true)}</i></div>`).join("")}</div>
+        ${SV_PAGES.flatMap(p=>p.q).filter(q=>q[1]==="one"||q[1]==="many").map(q=>`<div class="svAdmQ"><b>${esc(LAB[q[0]])}</b>${bars(q)}</div>`).join("")}
+        ${others.length ? `<div class="svAdmQ"><b>「其他」寫了什麼</b>${others.map(o=>`<div class="svAdmT"><i>${esc(LAB[o.q]||"")}</i>${esc(o.t)}</div>`).join("")}</div>` : ""}
+        <div class="svAdmQ"><b>想說的話（${txts.length}）</b>${txts.length ? txts.map(t=>`<div class="svAdmT">${esc(t.t)}<i>${agoTxt(new Date(t.at*1000).toISOString())}</i></div>`).join("") : `<div class="k">還沒有人留言</div>`}</div>`
+      : `<div class="k" style="text-align:center;padding:8px">還沒有人填</div>`}`;
+    box.querySelector("#svPrev").addEventListener("click", ()=>{ SFX.tap(); svForm(true); });
+    const tg = box.querySelector("#svTog"); tg.addEventListener("click", async ()=>{
+      if(!tg.dataset.ok){ tg.dataset.ok = 1; tg.textContent = r.on ? "確定要結束？再按一次" : "確定開始？大家會看到，再按一次"; return; }
+      tg.disabled = true; try{ await B.rpc("survey_toggle", { p_on: !r.on }); toast(r.on ? "問卷結束了" : "問卷開始了！大家打開小窩就會看到"); }catch(e){ toast("沒有成功，再試一次"); } admSurvey(); });
+  }
+  async function maybeSurvey(){
+    if(isAdmin) return;
+    await svLoad(); if(!SV.on || SV.done) return;
+    let seen = ""; try{ seen = localStorage.getItem("mw_sv_s1") || ""; }catch(e){}
+    if(seen) return;
+    const tryShow = (n) => { if(document.querySelector(".careModal")){ if(n < 40) setTimeout(()=>tryShow(n+1), 1500); return; }
+      try{ localStorage.setItem("mw_sv_s1", "1"); }catch(e){} svIntro(); };
+    tryShow(0);
+  }
   // ---- 更新通知 (changelog.js) ----
   const NEWS_K = "mw_newsSeen";
   const newsSeen = () => { try{ return JSON.parse(localStorage.getItem(NEWS_K)||"null"); }catch(e){ return null; } };
@@ -2165,7 +2292,7 @@ const App = (function(){
   const privacyBox = () => `<div class="box set"><h2>隱私說明</h2>${privacyList()}</div>`;
   function viewSettings(v){
     const ps=pushState();
-    v.innerHTML = `${appBox()}<div class="box set"><h2>我的貓</h2><div class="picks" id="pk"></div><input id="nm" maxlength="10" value="${esc(me.name)}" style="font-size:17px;padding:8px;border:3px solid var(--line);text-align:center;border-radius:0"><button class="btn" id="bSave">儲存</button></div>
+    v.innerHTML = `${appBox()}<div class="box set svSetBox ${SV.on && !SV.done ? "" : "hidden"}" id="svSet"><div class="svGift">${sprite("star","happy")}<div><b>填問卷，拿限定「星願貓」</b><small>大約 1～2 分鐘，幫小窩變得更好～</small></div></div><button class="btn" id="svOpen">去填問卷</button></div><div class="box set"><h2>我的貓</h2><div class="picks" id="pk"></div><input id="nm" maxlength="10" value="${esc(me.name)}" style="font-size:17px;padding:8px;border:3px solid var(--line);text-align:center;border-radius:0"><button class="btn" id="bSave">儲存</button></div>
       <div class="box set"><h2>小窩模式</h2><div class="modePick" id="mSet">${Object.keys(MODES).map(m=>`<button data-m="${m}" class="${roomMode===m?"on":""}">${modeArt(m)}<b>${MODES[m].name}</b></button>`).join("")}</div><div class="k">兩個人會一起切換。閨蜜／兄弟模式會換掉情侶向的題目和用語</div></div>
       <div class="box set"><h2>整體風格</h2><div class="sthemes" id="sthm">${SITE_THEMES.map(([id,n,bg,pa,ln,ac,sh])=>`<button data-st="${id}" class="${(store.get("mw_theme")||"cream")===id?"on":""}"><span class="stPrev" style="background-color:${bg};background-image:linear-gradient(${ln}14 1px,transparent 1px),linear-gradient(90deg,${ln}14 1px,transparent 1px)"><b style="background:${pa};border-color:${ln};box-shadow:2px 2px 0 ${sh}"></b><i style="background:${ac};border-color:${ln}"></i><s>${icon("heart",{K:ac,W:pa,O:ln})}</s></span>${n}</button>`).join("")}</div></div>
       <div class="box set"><h2>字體</h2><div class="fontPick" id="fPick"><button data-f="pixel" class="${store.get("mw_font")==="sys"?"":"on"}" style="font-family:Cubic11">像素字 喵喵小窩</button><button data-f="sys" class="${store.get("mw_font")==="sys"?"on":""}" style="font-family:-apple-system,'PingFang TC','Noto Sans TC',sans-serif">一般字 喵喵小窩</button></div></div>
@@ -2190,9 +2317,14 @@ const App = (function(){
         <div class="delNest"><button class="btn sub" id="bDelNest">🗑 刪除小窩</button><div class="k">把這個小窩的聊天、遊戲紀錄、記事本全部刪掉，兩個人都會看不到，刪了就救不回來。</div></div>
         </div>`;
     let pick = me.cat||"orange";
-    const drawPk=()=>{ $("pk").innerHTML=COLORS.map(c=>`<button class="${c===pick?"on":""}" data-c="${c}">${sprite(c,"normal")}</button>`).join(""); $("pk").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{pick=b.dataset.c;drawPk();})); };
-    drawPk();
+    const drawPk=()=>{ const pk=$("pk"); if(!pk) return; const star = SV.done || me.cat==="star";
+      pk.innerHTML=COLORS.map(c=>`<button class="${c===pick?"on":""}" data-c="${c}">${sprite(c,"normal")}</button>`).join("")
+        + (star ? `<button class="${pick==="star"?"on":""} svPk" data-c="star">${sprite("star","normal")}<i>限定</i></button>` : SV.on ? `<button class="svPk lock" data-sv="1">${sprite("star","normal")}<i>填問卷</i></button>` : "");
+      pk.querySelectorAll("[data-c]").forEach(b=>b.addEventListener("click",()=>{pick=b.dataset.c;drawPk();}));
+      const lk=pk.querySelector("[data-sv]"); if(lk) lk.addEventListener("click", ()=>{ SFX.tap(); svIntro(); }); };
+    drawPk(); svLoad().then(()=>{ if($("pk")) drawPk(); const sb=$("svSet"); if(sb) sb.classList.toggle("hidden", !(SV.on && !SV.done)); });
     $("bSave").addEventListener("click", async()=>{ const n=$("nm").value.trim().slice(0,10); if(!n) return; me.name=n; me.cat=pick; store.set("mw_name",n); store.set("mw_cat",pick); try{ await B.updateMe({name:n,cat:pick}); }catch(e){} B.track({name:n,cat:pick}); lastHdr=""; renderHeader(); toast(`${sprite(pick,"wave")} 已儲存！`); });
+    const svo=$("svOpen"); if(svo) svo.addEventListener("click", ()=>{ SFX.select(); svForm(false); });
     const b2=$("bPush2"); if(b2) b2.addEventListener("click", ()=>enablePush().then(()=>render()));
     const bst=$("bSelfTest"); if(bst) bst.addEventListener("click", async ()=>{
       SFX.tap(); bst.disabled = true;
@@ -2522,6 +2654,7 @@ const App = (function(){
     await getState("pins").catch(()=>{});
     onState("pins", ()=>drawPinBar());
     setTimeout(()=>maybeNews(justCreated), 1600);
+    setTimeout(()=>maybeSurvey().catch(()=>{}), 4500);
     setTimeout(checkFb, 2400);
     setInterval(refreshTiles, 60000);
     if(!NO_MEDIA){ setTimeout(cleanupVoices, 8000); setInterval(cleanupVoices, 3*3600e3); }
@@ -2587,5 +2720,5 @@ const App = (function(){
 
   function clearNotifs(){ try{ if(navigator.serviceWorker) navigator.serviceWorker.ready.then(r=>r.getNotifications()).then(ns=>ns.forEach(n=>n.close())).catch(()=>{}); }catch(e){} }
   function registerGame(g){ games.push(g); }
-  return { start, registerGame, ctx };
+  return { start, registerGame, ctx, svCheck: () => maybeSurvey() };
 })();

@@ -74,12 +74,20 @@ const PAL = {
   white:  {O:'#5b5566',Y:'#fbf8f4',S:'#a9a4b6',D:'#e3ddd6',P:'#f2a1ae',E:'#2b2630',H:'#ffffff',B:'#f7b0bb',N:'#e8798a',M:'#5b5566',W:'#ffffff',K:'#ec5f7e',T:'#7fc4ff'},
   black:  {O:'#1d1a22',Y:'#3a3542',S:'#2c2833',D:'#2f2a36',P:'#e89aa8',E:'#f5d36b',H:'#fff6c8',B:'#c9707f',N:'#e8798a',M:'#9a92a8',W:'#5a5363',K:'#ec5f7e',T:'#7fc4ff'},
   calico: {O:'#5a3b2e',Y:'#fffaf2',S:'#e59a4f',D:'#3e3434',P:'#f2a1ae',E:'#2b1d18',H:'#ffffff',B:'#f59aa6',N:'#e8798a',M:'#5a3b2e',W:'#ffffff',K:'#ec5f7e',T:'#7fc4ff'},
+  star:   {O:'#5a3f78',Y:'#e6d9fb',S:'#f5a9cf',D:'#cdb9f1',P:'#f6a6c4',E:'#3b2a5c',H:'#ffffff',B:'#f7a1c4',N:'#e86f9c',M:'#5a3f78',W:'#fffafd',K:'#ec5f7e',T:'#7fc4ff',G:'#ffd36b'},
   gray:   {O:'#4a4f60',Y:'#a7aec2',S:'#868da3',D:'#9097ab',P:'#f2b1bc',E:'#232631',H:'#ffffff',B:'#f0a5b2',N:'#e8798a',M:'#4a4f60',W:'#e9ecf3',K:'#ec5f7e',T:'#7fc4ff'},
 };
 const soft = p => Object.assign({}, p, {O: p.D});      // no-outline soft version
 const gb = {O:'#0f380f',Y:'#8bac0f',S:'#306230',D:'#306230',P:'#9bbc0f',E:'#0f380f',H:'#9bbc0f',B:'#306230',N:'#0f380f',M:'#0f380f',W:'#9bbc0f',K:'#0f380f',T:'#7fc4ff'};
 
 // calico patches: recolor some Y as S/D in head & body
+// 星願貓：額頭一顆小星星、尾巴尖端粉紅
+function starMark(rows){
+  rows = rows.map(r=>[...r]);
+  const put=(x,y,c)=>{ if(rows[y] && rows[y][x] && rows[y][x]!=='.' && rows[y][x]!=='O') rows[y][x]=c; };
+  [[8,4],[11,4]].forEach(([x,y])=>put(x,y,'Y')); [[9,4],[10,4],[8,5],[9,5],[10,5],[11,5],[9,6],[10,6]].forEach(([x,y])=>put(x,y,'G'));
+  return rows.map(r=>r.join(''));
+}
 function calicoize(rows){
   return rows.map((r,y)=>[...r].map((c,x)=>{
     if(c!=='Y') return c;
@@ -138,16 +146,18 @@ function wave(rows){
 
 
 const COLORS = ["orange","white","calico","black","gray"];
-const CNAME = {orange:"橘貓",white:"白灰斑貓",calico:"三花貓",black:"黑貓",gray:"灰貓"};
+const CNAME = {orange:"橘貓",white:"白灰斑貓",calico:"三花貓",black:"黑貓",gray:"灰貓",star:"星願貓"};
+const SPECIAL = ["star"];   // 特別的貓：要完成條件才能選（例如填問卷）
 const palOf = c => c==="white" ? Object.assign({},PAL.white,{S:'#a9a4b6',D:'#a9a4b6'}) : PAL[c];
 function baseSit(c, face){
   let r = setEyes(c==="black"||c==="calico" ? plain(sit) : sit, face);
   if(c==="white"||c==="calico") r = calicoize(r);
+  if(c==="star") r = starMark(r);
   return r;
 }
 const cache = {};
 function sprite(c, kind, opts){
-  c = COLORS.includes(c) ? c : "orange";
+  c = COLORS.includes(c) || SPECIAL.includes(c) ? c : "orange";
   const key = c+kind+(opts&&opts.soft?'s':'');
   if(cache[key]) return cache[key];
   let pal = palOf(c);
@@ -224,4 +234,4 @@ ICON.search = ["..OOOO.....",".OBBBBO....","OBWWBBBO...","OBWBBBBO...","OBBBBBBO
 ICON.lock = ["...OOOO...","..OO..OO..",".OO....OO.",".O......O.","OOOOOOOOOO","OYYYYYYYYO","OYYYOOYYYO","OYYYOOYYYO","OYYYYOYYYO","OYYYYYYYYO","OOOOOOOOOO"];
 ICON.memo = ["..O....O..",".OOOOOOOO.",".OKKKKKKO.",".OWWWWWWO.",".OWBBBBWO.",".OWWWWWWO.",".OWBBBWWO.",".OWWWWWWO.",".OWBBBBWO.",".OWWWWWWO.",".OOOOOOOO."];
 ICON.mic = ["...OOO...","..OKKKO..","..OKWKO..","..OKKKO..","..OKWKO..","..OKKKO..","O.OKKKO.O","O..OOO..O",".O.....O.","..OOOOO..","....O....","..OOOOO.."];
-const Pix = { COLORS, CNAME, sprite, icon, palOf };
+const Pix = { COLORS, CNAME, SPECIAL, sprite, icon, palOf };
