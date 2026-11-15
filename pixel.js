@@ -90,6 +90,8 @@ function starMark(rows){
     for(let y=6;y<=8;y++) for(let x=L+1;x<=L+4;x++) if(at(x,y)==='Y'||at(x,y)==='B') rows[y][x]='L'; }
   for(let x=9;x<=12;x++) put(x,6,'G');
   put(2,6,'G'); put(19,6,'G');
+  // 哭的時候眼淚從眼鏡下面流出來
+  for(let x=0;x<rows[8].length;x++) if(rows[8][x]==='T'){ rows[8][x]='L'; put(x,10,'T'); put(x,11,'T'); }
   return rows.map(r=>r.join(''));
 }
 function calicoize(rows){

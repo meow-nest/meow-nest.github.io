@@ -956,7 +956,7 @@ const App = (function(){
   }
   ctx.onBroadcast(p=>{ if(p && p.g === "nest" && p.k === "gone" && p.from !== me.uid) nestGone(); });
   // ---- 意見問卷（填完送博士貓） ----
-  const SV = { on:false, done:false, ok:false };
+  const SV = { on:false, done:false, ok:false, declines:0, today:false, shown:false };
   const SV_O = (s) => s.split("|").map(x=>x.split(":"));
   const SV_PAGES = [
     { t:"整體感覺", q:[["r1","star","整體來說，你喜歡喵喵小窩嗎？"],["r2","star","畫面好不好看、可不可愛？"],["r3","star","用起來順不順、會不會卡卡的？"]] },
@@ -970,7 +970,7 @@ const App = (function(){
     { t:"想說的話", q:[["txt","text","有什麼想對小窩說的嗎？\n想要的功能、遇到的問題，或是單純打聲招呼都可以喔～（可以不填）"]] },
   ];
   const SV_NEED = 5;
-  async function svLoad(){ try{ const r = await B.rpc("survey_me"); SV.on = !!(r && r.on); SV.done = !!(r && r.done); SV.ok = true; }catch(e){ SV.ok = false; } return SV; }
+  async function svLoad(){ try{ const r = await B.rpc("survey_me"); SV.on = !!(r && r.on); SV.done = !!(r && r.done); SV.declines = +(r && r.declines) || 0; SV.today = !!(r && r.declined_today); SV.ok = true; }catch(e){ SV.ok = false; } return SV; }
   const svStar = on => `<svg viewBox="0 0 11 11" shape-rendering="crispEdges"><path d="M5 0h1v2h1v2h4v1h-1v1h-1v1h1v4h-1v-1h-1v-1h-1v-1h-3v1h-1v1h-1v1h-1v-4h1v-1h-1v-1h-1v-1h4v-2h1z" fill="${on?"#ffcf4a":"#ece3d8"}" stroke="${on?"#5a3b2e":"#cbbdb0"}" stroke-width=".6" paint-order="stroke"/></svg>`;
   function svIntro(){
     const o = modal(`<div class="svTop">${sprite("star","wave")}</div>
@@ -978,14 +978,15 @@ const App = (function(){
       <p class="svP">喵喵小窩開張一段時間了，謝謝你一直來陪貓咪玩 💕<br>想聽聽你的想法，讓小窩變得更好。<br>只要點一點，大約 1～2 分鐘就好～</p>
       <div class="svGift">${sprite("star","happy")}<div><b>填完送你一隻「博士貓」</b><small>戴著黑框眼鏡、博學多聞的限定小貓，只有填問卷才拿得到喔！</small></div></div>
       <button class="btn" id="svGo" style="width:100%">好呀，幫忙填一下</button><button class="btn sub" id="svLater" style="width:100%;margin-top:8px">下次再說</button>
-      <div class="k svK">想填的時候，可以到「設定」找到問卷</div>`, "svModal");
+      <div class="k svK">想填的時候，可以到「設定」最上面找到問卷</div>`, "svModal");
     o.querySelector("#svGo").addEventListener("click", ()=>{ SFX.select(); o.remove(); svForm(false); });
-    o.querySelector("#svLater").addEventListener("click", ()=>{ SFX.tap(); o.remove(); });
+    o.querySelector("#svLater").addEventListener("click", ()=>{ SFX.tap(); o.remove(); svDecline(); });
+    o.addEventListener("click", e=>{ if(e.target===o) svDecline(); });
   }
   function svForm(preview){
     const A = {}, O = {}; let pg = 0;
     const o = modal(`<div id="svB"></div>`, "svModal svForm");
-    o.addEventListener("click", e=>{ if(e.target===o) kbOff(); });
+    o.addEventListener("click", e=>{ if(e.target===o){ kbOff(); if(!preview) svDecline(); } });
     const box = o.querySelector("#svB");
     const ansd = k => A[k] != null && A[k] !== "skip" && !(Array.isArray(A[k]) && !A[k].length);
     const cnt = () => SV_PAGES.flatMap(p=>p.q).filter(q=>q[1]!=="text" && ansd(q[0])).length;
@@ -1026,7 +1027,7 @@ const App = (function(){
       const tx = box.querySelector("#svTxt"); if(tx) meowKb(tx, 300, v=>{ A.txt = v; const c = box.querySelector("#svTN"); if(c) c.textContent = [...v].length; });
       const pv = box.querySelector("#svPrev"); if(pv) pv.addEventListener("click", ()=>{ SFX.tap(); pg--; draw(); box.scrollIntoView({block:"start"}); });
       const nx = box.querySelector("#svNext"); if(nx) nx.addEventListener("click", ()=>{ SFX.tap(); pg++; draw(); o.querySelector(".cmBox").scrollTop = 0; });
-      box.querySelector("#svClose").addEventListener("click", ()=>{ if(!preview && cnt() && !confirm("還沒送出，確定要關掉嗎？填的內容不會保存喔")) return; kbOff(); o.remove(); });
+      box.querySelector("#svClose").addEventListener("click", ()=>{ if(!preview && cnt() && !confirm("還沒送出，確定要關掉嗎？填的內容不會保存喔")) return; kbOff(); o.remove(); if(!preview) svDecline(); });
       const sd = box.querySelector("#svSend"); if(sd) sd.addEventListener("click", send);
     }
     async function send(){
@@ -1078,15 +1079,29 @@ const App = (function(){
       if(!tg.dataset.ok){ tg.dataset.ok = 1; tg.textContent = r.on ? "確定要結束？再按一次" : "確定開始？大家會看到，再按一次"; return; }
       tg.disabled = true; try{ await B.rpc("survey_toggle", { p_on: !r.on }); toast(r.on ? "問卷結束了" : "問卷開始了！大家打開小窩就會看到"); }catch(e){ toast("沒有成功，再試一次"); } admSurvey(); });
   }
+  // 拒絕：每個帳號記在伺服器，拒絕兩次就不再自動跳出
+  let svDeclined = false;
+  async function svDecline(){
+    if(svDeclined || SV.done) return; svDeclined = true;
+    let n = SV.declines + 1; try{ const r = await B.rpc("survey_decline"); n = +(r && r.declines) || n; }catch(e){}
+    SV.declines = n; SV.today = true;
+    if(n >= 2) setTimeout(svCry, 350);
+  }
+  function svCry(){
+    SFX.miss && SFX.miss();
+    const o = modal(`<div class="svTop">${sprite("star","cry")}</div><h3>嗚嗚…好吧～</h3>
+      <p class="svP">博士貓之後不會再來打擾你了。<br>如果哪天回心轉意，<br>可以到「<b>設定</b>」最上面的<br>「填問卷，拿限定博士貓」找到問卷喔！</p>
+      <button class="btn" id="svOk" style="width:100%">知道了</button>`, "svModal");
+    o.querySelector("#svOk").addEventListener("click", ()=>o.remove());
+  }
   async function maybeSurvey(){
-    if(isAdmin) return;
-    await svLoad(); if(!SV.on || SV.done) return;
-    let seen = ""; try{ seen = localStorage.getItem("mw_sv_s1") || ""; }catch(e){}
-    if(seen) return;
-    const tryShow = (n) => { if(document.querySelector(".careModal")){ if(n < 40) setTimeout(()=>tryShow(n+1), 1500); return; }
-      try{ localStorage.setItem("mw_sv_s1", "1"); }catch(e){} svIntro(); };
+    if(isAdmin || SV.shown) return;
+    await svLoad(); if(!SV.on || SV.done || SV.declines >= 2 || SV.today) return;
+    const tryShow = (n) => { if(SV.shown || SV.done) return; if(document.querySelector(".careModal")){ if(n < 40) setTimeout(()=>tryShow(n+1), 1500); return; }
+      SV.shown = true; svDeclined = false; svIntro(); };
     tryShow(0);
   }
+
   // ---- 更新通知 (changelog.js) ----
   const NEWS_K = "mw_newsSeen";
   const newsSeen = () => { try{ return JSON.parse(localStorage.getItem(NEWS_K)||"null"); }catch(e){ return null; } };
@@ -2328,10 +2343,10 @@ const App = (function(){
       pk.innerHTML=COLORS.map(c=>`<button class="${c===pick?"on":""}" data-c="${c}">${sprite(c,"normal")}</button>`).join("")
         + (star ? `<button class="${pick==="star"?"on":""} svPk" data-c="star">${sprite("star","normal")}<i>限定</i></button>` : SV.on ? `<button class="svPk lock" data-sv="1">${sprite("star","normal")}<i>填問卷</i></button>` : "");
       pk.querySelectorAll("[data-c]").forEach(b=>b.addEventListener("click",()=>{pick=b.dataset.c;drawPk();}));
-      const lk=pk.querySelector("[data-sv]"); if(lk) lk.addEventListener("click", ()=>{ SFX.tap(); svIntro(); }); };
+      const lk=pk.querySelector("[data-sv]"); if(lk) lk.addEventListener("click", ()=>{ SFX.tap(); svDeclined = true; svForm(false); }); };
     drawPk(); svLoad().then(()=>{ if($("pk")) drawPk(); const sb=$("svSet"); if(sb) sb.classList.toggle("hidden", !(SV.on && !SV.done)); });
     $("bSave").addEventListener("click", async()=>{ const n=$("nm").value.trim().slice(0,10); if(!n) return; me.name=n; me.cat=pick; store.set("mw_name",n); store.set("mw_cat",pick); try{ await B.updateMe({name:n,cat:pick}); }catch(e){} B.track({name:n,cat:pick}); lastHdr=""; renderHeader(); toast(`${sprite(pick,"wave")} 已儲存！`); });
-    const svo=$("svOpen"); if(svo) svo.addEventListener("click", ()=>{ SFX.select(); svForm(false); });
+    const svo=$("svOpen"); if(svo) svo.addEventListener("click", ()=>{ SFX.select(); svDeclined = true; svForm(false); });
     const b2=$("bPush2"); if(b2) b2.addEventListener("click", ()=>enablePush().then(()=>render()));
     const bst=$("bSelfTest"); if(bst) bst.addEventListener("click", async ()=>{
       SFX.tap(); bst.disabled = true;
