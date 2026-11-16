@@ -3110,3 +3110,47 @@ body[data-wall="sakura"] .chat .lw::before{content:"";inset:-110px 0 0 -40px;bac
 .callDim b{display:block;font-weight:400;font-size:20px;color:#8a766d}.callDim span{display:block;font-size:28px;margin:6px 0 14px;color:#8a766d}.callDim small{font-size:13px;line-height:1.7}
 .callTip{margin-top:6px;font-size:12px;line-height:1.6;opacity:.75;text-align:center}
 .callBtns{flex-wrap:wrap}
+/* ---- 我們的貓：房間切換、院子 ---- */
+.ptRooms{display:flex;gap:6px;margin:0 0 6px}
+.ptRooms button{flex:1;font:inherit;font-size:14px;color:inherit;background:var(--card);border:2px solid var(--line);padding:4px 6px;display:flex;align-items:center;justify-content:center;gap:4px}
+.ptRooms button.on{background:var(--pinkL);border-color:var(--pink)}
+.ptRooms button.lock{color:var(--muted);border-style:dashed}
+.ptRooms button small{display:inline-flex;align-items:center;font-size:12px}.ptRooms .pdCoin svg{width:12px;height:12px}
+.prSky{position:absolute;inset:0;pointer-events:none;z-index:0;display:none}
+.petRoom.yard .prSky{display:block}
+.petRoom.yard .prWin{display:none}
+.petRoom.yard{background:linear-gradient(#8fd0ff,#d9f1ff 70%)!important}
+.petRoom.yard.dusk{background:linear-gradient(#ff9f7a,#ffd6a5 55%,#ffe9c9)!important}
+.petRoom.yard.night{background:linear-gradient(#1c2350,#3b3f7a 75%)!important}
+.petRoom.yard .prFloor{background:radial-gradient(circle,#fff 0 1.5px,transparent 2px) 6px 10px/46px 30px,radial-gradient(circle,#ffd36b 0 1.5px,transparent 2px) 28px 22px/52px 34px,repeating-linear-gradient(90deg,#86cf6c 0 18px,#7cc663 18px 36px)!important;border-top-color:#4f9a45}
+.petRoom.yard.night .prFloor{filter:brightness(.62) saturate(.8)}
+.petRoom.yard.dusk .prFloor{filter:brightness(.92) sepia(.15)}
+.yHill{position:absolute;bottom:72px;left:-10%;width:60%;height:60px;border-radius:50% 50% 0 0;background:#a6dd8a;border:3px solid #6fb35a;border-bottom:0}
+.yHill.r{left:auto;right:-14%;width:70%;height:46px;background:#b9e79c}
+.petRoom.yard.night .yHill{filter:brightness(.55)}
+.ySun{position:absolute;right:14%;top:12%;width:34px;height:34px;background:#ffd36b;border:3px solid #e8a920;box-shadow:0 0 0 6px #ffe9a866}
+.ySun.dusk{top:46%;background:#ff8a5c;border-color:#e5486a;box-shadow:0 0 0 8px #ffb08a55}
+.yMoon{position:absolute;right:16%;top:10%;width:28px;height:28px;background:#fff6c8;border:3px solid #e8d48a;box-shadow:-8px 0 0 0 #1c2350 inset}
+.yStar{position:absolute;width:4px;height:4px;background:#fff;animation:yTw 2.4s steps(2) infinite}
+@keyframes yTw{50%{opacity:.25}}
+.yCloud{position:absolute;left:-30%;width:64px;height:16px;background:#fff;border:3px solid #cfe3f3;box-shadow:14px -10px 0 -2px #fff;animation:yDrift linear infinite;will-change:transform}
+.yCloud.s{width:44px;height:12px}
+.petRoom.yard.dusk .yCloud{background:#ffe2cc;border-color:#f5bf9a}
+@keyframes yDrift{to{transform:translate3d(560px,0,0)}}
+.yBfly,.yFly{position:absolute;pointer-events:auto;cursor:pointer;z-index:5;will-change:transform}
+.yBfly{width:20px;height:20px;padding:8px;left:-10%;top:var(--y);animation:yBf 14s linear infinite}
+.yBfly svg{width:20px;height:20px;display:block;animation:yFlap .35s steps(2) infinite}
+.yBfly.b{animation-duration:17s}
+@keyframes yBf{0%{transform:translate3d(0,0,0)}25%{transform:translate3d(120px,-18px,0)}50%{transform:translate3d(240px,12px,0)}75%{transform:translate3d(330px,-14px,0)}100%{transform:translate3d(460px,6px,0)}}
+@keyframes yFlap{50%{transform:scaleX(.45)}}
+.yFly{width:7px;height:7px;background:#fff59a;box-shadow:0 0 6px 3px #fff59a99;padding:0;border:8px solid transparent;background-clip:padding-box;animation:yFf 4s ease-in-out infinite}
+@keyframes yFf{0%,100%{transform:translate3d(0,0,0);opacity:.3}50%{transform:translate3d(14px,-16px,0);opacity:1}}
+@media (prefers-reduced-motion:reduce){.yCloud,.yBfly,.yFly,.yStar{animation:none!important}}
+.pdUnlock p{text-align:center;line-height:1.7;font-size:14px;margin:8px 0}
+.pdUnP{display:flex;align-items:center;justify-content:center;gap:4px}.pdUnP b{font-weight:400;font-size:20px;color:var(--pinkT)}
+.pdUnArt{position:relative;height:110px;border:3px solid var(--line);display:flex;align-items:flex-end;justify-content:center;overflow:hidden;background:repeating-linear-gradient(90deg,#fde9d6 0 24px,#fbe0c8 24px 48px)}
+.pdUnArt.yard{background:linear-gradient(#8fd0ff,#d9f1ff)}
+.pdUnArt.yard .grass{position:absolute;left:0;right:0;bottom:0;height:30px;background:repeating-linear-gradient(90deg,#86cf6c 0 18px,#7cc663 18px 36px);border-top:3px solid #4f9a45}
+.pdUnArt .sun{position:absolute;right:18px;top:12px;width:24px;height:24px;background:#ffd36b;border:3px solid #e8a920}
+.pdUnArt .bed{position:absolute;left:0;right:0;bottom:0;height:30px;background:repeating-linear-gradient(90deg,#d9a877 0 40px,#cf9b69 40px 80px);border-top:3px solid var(--line)}
+.pdUnArt>svg{position:relative;width:76px;height:76px;margin-bottom:8px}

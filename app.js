@@ -122,7 +122,7 @@ const App = (function(){
         if(game==="pet"){ const real = await B.getState(game).catch(()=>null); if(real && real.version===v){ stateCache[game] = { version:v, state:real.state }; emitState(game);
             // 伺服器有每日上限：沒有全部入帳就要老實告訴玩家，不然會以為壞掉
             const c0 = Math.floor(+(cur && cur.state && cur.state.coins) || 0), want = Math.floor(+(ns && ns.coins) || 0) - c0, got = Math.floor(+(real.state && real.state.coins) || 0) - c0;
-            if(want > 0 && got < want) setTimeout(() => toast(got <= 0 ? "今天的貓幣已經賺滿 1,000 個囉！<br>這次沒有入帳，半夜 12 點後就能繼續賺" : want > 100 && got === 100 ? "一場遊戲最多入帳 100 個貓幣，<br>這次入帳 100 個" : `今天的貓幣快賺滿了（每天最多 1,000 個）<br>這次只入帳 ${got} 個，半夜 12 點後重新計算`, 5200), 600);
+            if(want > 0 && got < want) setTimeout(() => toast(got <= 0 ? "今天的貓幣已經賺滿 1,500 個囉！<br>這次沒有入帳，半夜 12 點後就能繼續賺" : want > 100 && got === 100 ? "一場遊戲最多入帳 100 個貓幣，<br>這次入帳 100 個" : `今天的貓幣快賺滿了（每天最多 1,500 個）<br>這次只入帳 ${got} 個，半夜 12 點後重新計算`, 5200), 600);
             return real.state; } }
         if(!stateCache[game] || v > stateCache[game].version){ stateCache[game] = { version:v, state:ns }; emitState(game); } return ns; }
       const fresh = await B.getState(game);

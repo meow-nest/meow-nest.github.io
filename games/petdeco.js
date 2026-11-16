@@ -191,6 +191,20 @@ one("monocle","a","face","單片眼鏡",100,["..........OOO..",".........OSWSO."
 one("blush","a","face","腮紅貼紙",25,["KK.............KK","KK.............KK"],{ K:"#ff8fa8" },{ fy:44 });
 one("star_eye","a","face","臉頰星星",30,["..............Y..",".............YYY.","..............Y.."],{},{ fy:42 });
 
+/* ======================= 院子：戶外家具（也可以放在房間裡） ======================= */
+const OUT = { yard:true };
+one("swing","f","floorL","木頭鞦韆",450,["OOOOOOOOOOOOOO","ONNNNNNNNNNNNO","OOOOOOOOOOOOOO",".ON........NO.",".ON..O..O..NO.",".ON..O..O..NO.",".ON..O..O..NO.",".ON..O..O..NO.",".ON.OOOOOO.NO.",".ON.OKKKKO.NO.",".ON.OOOOOO.NO.",".ON........NO.","OONO......ONOO"],{ K:"#f7a7b8" },Object.assign({ d:"院子必備，盪呀盪" },OUT));
+one("hammock","f","floorR","吊床",420,["ON..............NO","ON..............NO","ONOO..........OONO","ON.KOO......OOK.NO","ON..KKOOOOOOKK..NO","ON...KWKWKWKK...NO","ON....OOOOOO....NO","ON..............NO","OO..............OO"],{ K:"#6fb7e8" },Object.assign({ d:"午後躺著發呆最舒服" },OUT));
+one("tent","f","floorR","露營帳篷",500,["......OO......",".....OAAO.....","....OAABAO....","...OAABBBAO...","..OAABBDBBAO..",".OAABBDDDBBAO.","OAABBDDDDDBBAO","OOOOOOOOOOOOOO"],{ A:"#ffd36b", B:"#e8a920", D:"#3a2a28" },Object.assign({ d:"貓咪最愛鑽進去" },OUT));
+one("flowerbed","f","floorM","小花圃",220,[".K..Y..K..V..Y.","KYK.YKY.KYK.VYV",".K..Y..K..V..Y.",".G.GG.G.GG.G.G.","..G.G..G.G..G..","OOOOOOOOOOOOOOO","ONNNNNNNNNNNNNO","OOOOOOOOOOOOOOO"],{},Object.assign({ d:"種滿了小花" },OUT));
+one("fence","f","floorL","白色木柵欄",160,[".O...O...O...O..","OWO.OWO.OWO.OWO.","OWOOOWOOOWOOOWOO","OWWWWWWWWWWWWWWO","OWOOOWOOOWOOOWOO","OWO.OWO.OWO.OWO.","OWWWWWWWWWWWWWWO","OWOOOWOOOWOOOWOO","OWO.OWO.OWO.OWO.","OOO.OOO.OOO.OOO."],{},Object.assign({ u:6 },OUT));
+one("birdhouse","f","floorR","小鳥屋",300,["....OOO....","...ORRRO...","..ORRRRRO..",".ORRRRRRRO.","OOOOOOOOOOO",".ONNNNNNNO.",".ONNOOONNO.",".ONNODONNO.",".ONNOOONNO.",".ONNNNNNNO.",".OOOOOOOOO.","....ONO....","....ONO....","....ONO....","...OOOOO..."],{},Object.assign({ tag:"i", d:"點一下小鳥會探出頭", tap:"cuckoo", fr:[["....OOO....","...ORRRO...","..ORRRRRO..",".ORRRRRRRO.","OOOOOOOOOOO",".ONNNNNNNO.",".ONOYYYONO.",".ONOYEYPNO.",".ONOYYYONO.",".ONNNNNNNO.",".OOOOOOOOO.","....ONO....","....ONO....","....ONO....","...OOOOO..."]] },OUT));
+one("bbq","f","floorM","烤肉架",380,["..W...W...W..","...W...W...W.","OOOOOOOOOOOOO","ODDDDDDDDDDDO","OPYPYPYPYPYPO",".ODDDDDDDDDO.","..ODDDDDDDO..","...OOOOOOO...","....O...O....","...O.....O...","..O.......O.."],{},Object.assign({ tag:"a", d:"炭火會一閃一閃", fx:"frames", fr:[[".W...W...W...","..W...W...W..","OOOOOOOOOOOOO","ODDDDDDDDDDDO","OYPYPYPYPYPYO",".ODDDDDDDDDO.","..ODDDDDDDO..","...OOOOOOO...","....O...O....","...O.....O...","..O.......O.."]] },OUT));
+one("mailbox","f","floorL","紅色信箱",200,["..OOOOOOO..",".ORRRRRRRO.","ORRRRRRRRRO","ORRRRRRRRRO","ORROOOOORRO","ORRRRRRRRRO","OOOOOOOOOOO","....ONO.OKO","....ONO.OKK","....ONO.O..","....ONO....","...OOOOO..."],{},Object.assign({ tag:"i", d:"點一下收到一封小信", tap:"mail" },OUT));
+one("scarecrow","f","floorL","稻草人",260,["...OOOOOO...","..OYYYYYYO..",".OOOOOOOOOO.","...OQQQQO...","...OQEQEO...","...OQQKQO...","OOOOOOOOOOOO","OBBBBNBBBBBO","OOOOBNBOOOOO","...OBNBO....","...OBBBO....","....ONO.....","....ONO.....","....ONO....."],{ Y:"#f0cf7a", Q:"#f3d9b5", B:"#6fb7e8" },OUT);
+one("pond","f","floorM","小池塘",520,["...OOOOOOOO...",".OOUUUUUUUUOO.","OUUUSUUUUUUUUO","OUUUUUUUGGUUUO","OUUUUUUGGGGUUO",".OOUUUUUUUUOO.","...OOOOOOOO..."],{},Object.assign({ tag:"a", d:"水面會有小漣漪", fx:"frames", u:6.4, fr:[["...OOOOOOOO...",".OOUUUUUUUUOO.","OUUUUUUUUSUUUO","OUSUUUUUGGUUUO","OUUUUUUGGGGUUO",".OOUUUUUUUUOO.","...OOOOOOOO..."]] },OUT));
+bgItem("rugPicnic","r","野餐墊",150,"repeating-conic-gradient(#e5486a 0 25%,#fff 0 50%) 0 0/16px 16px");
+
 const BY = Object.fromEntries(ITEMS.map(x=>[x.id,x]));
 const art = id => A[id] ? px(A[id][0], A[id][1]) : "";
 const cols = id => A[id] ? Math.max(...A[id][0].map(r=>r.length)) : 10;

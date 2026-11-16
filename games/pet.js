@@ -94,8 +94,9 @@ App.registerGame({
     function shell(){
       el.innerHTML = `<div class="box petBox">
         <div class="petTabs" id="ptTabs"></div>
+        <div class="ptRooms" id="ptRooms"></div>
         <div class="petRoom" id="ptRoom">
-          <div class="prWin"></div><div class="prFloor"></div><div class="prRug" id="ptRug"></div><div id="ptDeco"></div>
+          <div class="prWin"></div><div class="prSky" id="ptSky"></div><div class="prFloor"></div><div class="prRug" id="ptRug"></div><div id="ptDeco"></div>
           <div class="prBowl" id="ptBowl">🥣</div>
           <div id="ptCats"></div><div class="prSay" id="ptSay"></div>
         </div>
@@ -143,7 +144,15 @@ App.registerGame({
       d = d ? clone(d) : { items:["scratch","box"], wear:{} };
       if(!d.items){ const r = d.room || {}; d.items = Object.entries(r).filter(([k])=>k!=="rug").map(([,v])=>v); d.rug = r.rug || null; }
       delete d.room; d.pos = d.pos || {}; d.wear = d.wear || {}; d.items = d.items.filter(id=>D.BY[id]); return d; };
-    const deco = () => normDeco(s && s.deco);
+    // ---------- 房間：客廳（原本的）、臥室、院子；後兩間用貓幣解鎖 ----------
+    const ROOMS = [["main","客廳",0],["r2","臥室",1800],["yard","院子",1200]];
+    const roomOpen = r => r==="main" || ((s && s.owned)||[]).includes("room_"+r);
+    let curRoom = (()=>{ try{ return localStorage.getItem("mw_petRoom") || "main"; }catch(e){ return "main"; } })();
+    const roomDeco = (st, r) => { const main = normDeco(st && st.deco); if(r==="main") return main;
+      const x = st && st.rooms && st.rooms[r]; const d = normDeco(Object.assign({ items:[] }, x||{})); d.wear = main.wear; return d; };
+    const deco = () => roomDeco(s, curRoom);
+    const roomName = r => (ROOMS.find(x=>x[0]===r)||[])[1] || "";
+    const whereIs = (st, id) => ROOMS.map(x=>x[0]).find(r => r!==curRoom && roomDeco(st, r).items.includes(id));
     const posOf = (d, id) => d.pos[id] || defPos(D.BY[id]);
     const coins = () => (s && s.coins) || 0;
     let editing = false, dragging = false, lastTap = 0;
@@ -167,6 +176,9 @@ App.registerGame({
       else if(x.tap==="bubbles"){ T(500,.08,{type:"sine",vol:.16,to:900}); puff(it,"bub",null,9,.9); }
       else if(x.tap==="tv"){ SFX.tap(); const n = it.querySelectorAll(".pfS u").length || 1; tvCh[id] = ((tvCh[id]||0) + 1) % n; showFr(it, tvCh[id]); }
       else if(x.tap==="party" || x.tap==="night"){ const k = x.tap; fxOn[k] = !fxOn[k]; if(fxOn[k]) fxOn[k==="party" ? "night" : "party"] = false; SFX.select(); const fxEl = el.querySelector(".prFx"); if(fxEl) fxEl.className = "prFx" + (fxOn.party ? " party" : "") + (fxOn.night ? " night" : ""); }
+      else if(x.tap==="mail"){ const L = ["今天也辛苦了，記得多喝水喔","有人偷偷在想你","晚餐吃點好吃的吧","你笑起來很好看","明天會是很棒的一天","抱一下再出門吧","貓咪說：罐罐呢？","謝謝你一直都在","今天的天空很適合散步","記得早點睡喔"];
+        T(988,.12,{type:"triangle",vol:.25}); T(1319,.18,{type:"triangle",vol:.25,delay:.12}); it.classList.add("shake"); setTimeout(()=>it.classList.remove("shake"), 500);
+        ctx.toast(`收到一封小信：<br><b>${L[Math.floor(Math.random()*L.length)]}</b>`, 4500); }
       else if(x.tap==="fortune"){ const d0 = new Date(Date.now() + 8*3600000).toISOString().slice(0,10), key = d0 + (ctx.me && (ctx.me.uid || ctx.me.user_id) || ""); let h = 7; for(const c of key) h = (h*31 + c.charCodeAt(0)) >>> 0;
         const f = FORTUNE[h % FORTUNE.length]; SFX.select(); it.classList.add("shake"); setTimeout(()=>it.classList.remove("shake"), 500); ctx.toast(`今日運勢：<b>${f[0]}</b><br>${f[1]}`, 5000); }
     }
@@ -207,6 +219,66 @@ App.registerGame({
         if(sl==="face") st.push(`top:${x.fy||30}%`);
         return `<i class="pw ${sl}" style="${st.join(";")}">${D.art(id)}</i>`; }).join("");
     }
+    // ---------- 房間切換 ----------
+    function drawRooms(){
+      const bar = $("#ptRooms"); if(!bar) return;
+      if(!roomOpen(curRoom)) curRoom = "main";
+      bar.innerHTML = ROOMS.map(([r,n,price])=>{ const open = roomOpen(r);
+        return `<button data-room="${r}" class="${r===curRoom?"on":""} ${open?"":"lock"}">${esc(n)}${open ? "" : `<small>${D.coin}${price}</small>`}</button>`; }).join("");
+      bar.querySelectorAll("[data-room]").forEach(b=>b.addEventListener("click", ()=>pickRoom(b.dataset.room)));
+      const room = $("#ptRoom"); if(room){ room.classList.toggle("yard", curRoom==="yard"); room.dataset.room = curRoom; }
+      yardScene();
+    }
+    function pickRoom(r){
+      if(editing) return;
+      if(!roomOpen(r)){ unlockRoom(r); return; }
+      if(r===curRoom) return;
+      SFX.tap(); curRoom = r; try{ localStorage.setItem("mw_petRoom", r); }catch(e){}
+      const layer = $("#ptDeco"); if(layer) layer.dataset.sig = "";
+      render();
+    }
+    function unlockRoom(r){
+      const [, n, price] = ROOMS.find(x=>x[0]===r); SFX.tap();
+      const ov = document.createElement("div"); ov.className = "pdModal";
+      const enough = coins() >= price;
+      ov.innerHTML = `<div class="pdBox pdUnlock"><div class="pdHd"><b>解鎖${esc(n)}</b><button class="pdX" data-x>✕</button></div>
+        <div class="pdUnArt ${r}">${r==="yard" ? `<i class="sun"></i><i class="grass"></i>` : `<i class="bed"></i>`}${sprite((cats()[sel]||{}).color||"orange","happy")}</div>
+        <p>${r==="yard" ? "有藍天、草地和蝴蝶的院子！<br>貓咪可以在外面曬太陽、追蝴蝶，晚上還有螢火蟲。<br>還能放鞦韆、帳篷、小池塘這些戶外家具。" : "多一間可以佈置的房間！<br>家具不夠放的話，可以把一些搬到臥室，<br>牆壁、地板也能換成不一樣的風格。"}</p>
+        <p class="pdUnP">${D.coin}<b>${price}</b>　你們現在有 ${coins()} 個貓幣</p>
+        <button class="btn" data-buy ${enough?"":"disabled"} style="width:100%">${enough ? `花 ${price} 貓幣解鎖` : `還差 ${price - coins()} 個貓幣`}</button>
+        <button class="btn sub" data-x style="width:100%;margin-top:8px">${enough ? "先不要" : "知道了"}</button></div>`;
+      document.body.appendChild(ov);
+      ov.addEventListener("click", async e=>{
+        if(e.target===ov || e.target.closest("[data-x]")){ SFX.tap(); ov.remove(); return; }
+        if(!e.target.closest("[data-buy]")) return;
+        const ns = await ctx.update("pet", st=>{ st = P.norm(st ? clone(st) : null); if(!st) return undefined; st.owned = st.owned || [];
+          if(st.owned.includes("room_"+r) || (st.coins||0) < price) return undefined;
+          st.coins -= price; st.owned.push("room_"+r); st.log = (st.log||[]).concat([{ by:me(), a:"buy", t:n, at:Date.now() }]).slice(-24); return st; });
+        ov.remove();
+        if(ns){ s = P.norm(clone(ns)); lastLog = logKey(s); SFX.level(); ctx.burst(); ctx.toast(`解鎖了${esc(n)}！快去佈置吧`); ctx.notifyPartner(`${ctx.me.name} 用貓幣幫我們的貓解鎖了「${n}」🏡`);
+          curRoom = r; try{ localStorage.setItem("mw_petRoom", r); }catch(e){} render(); }
+        else ctx.toast("沒有成功，可能貓幣不夠，或資料庫還沒更新");
+      });
+    }
+    // ---------- 院子：天空會跟著時間變、白天有蝴蝶、晚上有螢火蟲 ----------
+    const BFLY = D.px(["O...O","KO.OK","KKOKK",".KOK.","K.O.K"], { K:"#f7a7b8" }), BFLY2 = D.px(["O...O","UO.OU","UUOUU",".UOU.","U.O.U"], { U:"#9fd0f5" });
+    function yardScene(){
+      const room = $("#ptRoom"), sky = $("#ptSky"); if(!room || !sky) return;
+      if(curRoom!=="yard"){ if(sky.dataset.on){ sky.innerHTML = ""; sky.dataset.on = ""; } room.classList.remove("day","dusk","night"); return; }
+      const h = new Date(Date.now() + 8*3600e3).getUTCHours(), tm = h>=6 && h<17 ? "day" : h>=17 && h<19 ? "dusk" : "night";
+      room.classList.toggle("day", tm==="day"); room.classList.toggle("dusk", tm==="dusk"); room.classList.toggle("night", tm==="night");
+      if(sky.dataset.on === tm) return; sky.dataset.on = tm;
+      const cl = `<i class="yCloud" style="top:10%;animation-duration:70s"></i><i class="yCloud s" style="top:24%;animation-duration:95s;animation-delay:-40s"></i>`;
+      sky.innerHTML = (tm==="night" ? `<i class="yMoon"></i>` + [8,22,35,61,74,88,15,52].map((x,i)=>`<i class="yStar" style="left:${x}%;top:${6+(i*13)%30}%;animation-delay:${i*.4}s"></i>`).join("")
+          + [12,30,48,66,84].map((x,i)=>`<b class="yFly" data-bf style="left:${x}%;bottom:${18+(i*11)%26}%;animation-delay:${-i*1.3}s"></b>`).join("")
+        : `<i class="ySun ${tm}"></i>` + cl + (tm==="day" ? `<b class="yBfly" data-bf style="--y:30%;animation-delay:0s">${BFLY}</b><b class="yBfly b" data-bf style="--y:44%;animation-delay:-7s">${BFLY2}</b>` : ""))
+        + `<i class="yHill"></i><i class="yHill r"></i>`;
+    }
+    // 點蝴蝶／螢火蟲：貓咪跑過去追（等於陪玩一次）
+    el.addEventListener("click", e => { const b = e.target.closest && e.target.closest("[data-bf]"); if(!b || editing || playing) return;
+      const room = $("#ptRoom"); if(!room) return; const R = room.getBoundingClientRect(), I = b.getBoundingClientRect();
+      const x = Math.max(4, Math.min(86, (I.left + I.width/2 - R.left)/R.width*100 - 6));
+      SFX.tap(); (async()=>{ playing = true; await move(sel, x, 700); hop(sel, 34, 420); bub(sel, b.classList.contains("yFly") ? "好亮喔！" : "抓到了嗎？", 1500); playing = false; care("play"); })(); });
     function drawDeco(){
       const d = deco();
       const layer = $("#ptDeco"); if(!layer) return;
@@ -219,16 +291,23 @@ App.registerGame({
         if(!d.items.includes("disco")) fxOn.party = false; if(!d.items.includes("projector")) fxOn.night = false;
         fxEl.className = "prFx" + (fxOn.party ? " party" : "") + (fxOn.night ? " night" : ""); }
       const bg = id => D.BY[id] && D.BY[id].bg || "";
-      $("#ptRoom").style.background = bg(d.wall) || "";
-      el.querySelector(".prFloor").style.background = bg(d.floor) || "";
+      $("#ptRoom").style.background = curRoom==="yard" ? "" : (bg(d.wall) || "");
+      el.querySelector(".prFloor").style.background = curRoom==="yard" ? "" : (bg(d.floor) || "");
       $("#ptRug").style.background = bg(d.rug) || "";
       cats().forEach((x,i)=>{ const w = catEl(i); const h = w && w.querySelector(".pcWear"); if(h) h.innerHTML = wearHtml(i);
         const cr = w && w.querySelector(".crown"); if(cr) cr.style.visibility = (d.wear[i]||{}).hat ? "hidden" : ""; });
     }
     async function setDeco(fn){
+      const r = curRoom;
       const ns = await ctx.update("pet", st=>{ st = P.norm(st ? clone(st) : null); if(!st) return undefined;
-        const d = normDeco(st.deco);
-        if(fn(d, st)===false) return undefined; st.deco = d; return st; });
+        const main = normDeco(st.deco), d = roomDeco(st, r);
+        if(fn(d, st)===false) return undefined;
+        if(r==="main") st.deco = d;
+        else { main.wear = d.wear; st.deco = main; st.rooms = st.rooms || {}; st.rooms[r] = { items:d.items, wall:d.wall||null, floor:d.floor||null, rug:d.rug||null, pos:d.pos }; }
+        // 同一件家具只能放在一個房間：放到這裡，就從別的房間收起來
+        for(const [o] of ROOMS){ if(o===r) continue; const od = o==="main" ? st.deco : (st.rooms||{})[o]; if(!od || !Array.isArray(od.items)) continue;
+          const keep = od.items.filter(i=>!d.items.includes(i)); if(keep.length !== od.items.length){ od.items = keep; if(od.pos) for(const i of d.items) delete od.pos[i]; } }
+        return st; });
       if(ns){ s = P.norm(clone(ns)); render(); }
       return ns;
     }
@@ -289,8 +368,8 @@ App.registerGame({
       const ov = document.createElement("div"); ov.className = "pdModal";
       document.body.appendChild(ov);
       const SLN = { rug:"地毯", w:"牆壁", fl:"地板", hat:"頭上", neck:"脖子", face:"臉上" };
-      const TABS = [["f","家具"],["a","飾品"],["room","牆壁地板"]];
-      const inTab = x => tab==="room" ? (x.k==="w"||x.k==="fl"||x.k==="r") : x.k===tab;
+      const TABS = [["f","家具"],["a","飾品"],["room", curRoom==="yard" ? "野餐墊" : "牆壁地板"]];
+      const inTab = x => tab==="room" ? (curRoom==="yard" ? x.k==="r" : (x.k==="w"||x.k==="fl"||x.k==="r")) : x.k===tab;
       const close = () => { shopTab = tab; shopFilter = filter; ov.remove(); render(); };
       function on(x, d){
         if(x.k==="f") return d.items.includes(x.id);
@@ -303,7 +382,8 @@ App.registerGame({
         const ok = owns(x, m), using = ok && on(x, d), afford = !ok && x.price && coins() >= x.price, pc = !ok && x.p ? Math.max(0, Math.min(1, x.p(m))) : 0;
         const pic = x.bg ? `<span class="pdArt bg" style="background:${x.bg}"></span>` : `<span class="pdArt">${D.art(x.id)}</span>`;
         let sub;
-        if(ok) sub = using ? (x.k==="f" ? "✔ 在房間裡" : "✔ 使用中") : (SLN[x.slot] || "放進房間");
+        const elsewhere = ok && !using && x.k==="f" && whereIs(s, x.id);
+        if(ok) sub = using ? (x.k==="f" ? `✔ 在${roomName(curRoom)}` : "✔ 使用中") : elsewhere ? `在${roomName(elsewhere)}・點一下搬過來` : (SLN[x.slot] || `放進${roomName(curRoom)}`);
         else if(isAch(x)) sub = "🔒 " + esc(x.need);
         else sub = pending===x.id ? "再點一下買！" : `${D.coin}${x.price}`;
         return `<button class="pdIt ${ok?"":isAch(x)?"lock":"shop"} ${afford?"afford":""} ${using?"on":""} ${pending===x.id?"pend":""}" data-it="${x.id}">
@@ -317,8 +397,8 @@ App.registerGame({
         const nOwn = all.filter(x=>owns(x,m)).length;
         const keep = ov.querySelector(".pdBox") ? ov.querySelector(".pdBox").scrollTop : 0;
         ov.innerHTML = `<div class="pdBox">
-          <div class="pdHd"><b>🛋️ 佈置・裝扮</b><span class="pdBal">${D.coin}<b>${coins()}</b></span><button class="pdX" data-x>✕</button></div>
-          <button class="btn pdGame" data-game>🎮 玩「接小魚乾」賺貓幣</button><p class="pdCap">每人每天最多可以賺 1,000 個貓幣，半夜 12 點重新計算</p>
+          <div class="pdHd"><b>🛋️ 佈置${esc(roomName(curRoom))}</b><span class="pdBal">${D.coin}<b>${coins()}</b></span><button class="pdX" data-x>✕</button></div>
+          <button class="btn pdGame" data-game>🎮 玩「接小魚乾」賺貓幣</button><p class="pdCap">每人每天最多可以賺 1,500 個貓幣，半夜 12 點重新計算</p>
           <div class="pdTabs">${TABS.map(([k,n])=>`<button data-tab="${k}" class="${tab===k?"on":""}">${n}</button>`).join("")}</div>
           ${tab==="a" ? `<div class="pdWho">${cats().map((c,i)=>`<button data-who="${i}" class="${i===who?"on":""}">${sprite(c.color,"normal")}${esc(c.name)}</button>`).join("")}</div>` : ""}
           ${tab==="f" ? `<button class="btn mint pdMove" data-move>✋ 到房間裡自己擺位置</button>` : ""}
@@ -402,6 +482,7 @@ App.registerGame({
       const nNew = newCount();
       $("#ptMore").innerHTML = `<div class="ptMoreRow">${cats().length>1 ? `<button class="btn mint" id="ptTogether">🐾 一起玩</button>` : ""}<button class="btn" id="ptGameB">🎮 賺貓幣</button><button class="btn sub" id="ptDecoB">🛋️ 佈置${nNew?`<em class="pdNew">${nNew}</em>`:""}</button></div><div class="ptCoins">${D.coin} 貓幣 <b>${coins()}</b>・玩「接小魚乾」賺，兩個人共用，可以買家具和飾品</div>`;
       $("#ptGameB").addEventListener("click", ()=>{ SFX.tap(); playCatch(); });
+      drawRooms();
       $("#ptDecoB").addEventListener("click", ()=>openDeco());
       drawDeco(); checkUnlocks();
       if($("#ptTogether")) $("#ptTogether").addEventListener("click", ()=>interact());
