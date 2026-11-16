@@ -3324,3 +3324,13 @@ body[data-theme="night"] .lrRow,body[data-theme="night"] .lrRow.me,body[data-the
 .wingPick button{font:inherit;color:var(--ink);background:var(--card);border:3px solid var(--shadow);border-radius:10px;padding:14px 4px 8px;cursor:pointer}
 .wingPick button.on{border-color:#ff6f91;background:#fff0f4}
 .wingPick .wpPrev{display:block;margin-bottom:6px;overflow:hidden;padding:4px 0}.wingPick b{font-weight:400}
+
+/* 稱號圖鑑 */
+.lbList{max-height:60vh;overflow-y:auto;margin-top:10px;display:flex;flex-direction:column;gap:8px;padding:4px 2px}
+.lbRow{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--card);border:3px solid var(--shadow);border-radius:12px;padding:16px 6px 8px}
+.lbRow small{font-size:12px;color:var(--muted);text-align:center;line-height:1.5}.lbRow small b{font-weight:400;color:#ff6f91}
+.lbRow.got{background:#fffaf2}.lbRow.cur{border-color:#ff6f91;background:#fff0f4;box-shadow:0 0 0 3px #ffd0dd}
+.lbRow:not(.got) .lbT{opacity:.85}
+.lbOpen{display:flex;align-items:center;gap:4px;margin:6px auto 0;font:inherit;font-size:13px;color:var(--ink);background:#fff6d6;border:2px solid #e8b93a;border-radius:8px;padding:3px 10px;cursor:pointer}.lbOpen svg{width:15px;height:auto}
+.mqBtns{display:flex;gap:6px}
+body[data-theme="night"] .lbRow,body[data-theme="night"] .lbRow.got,body[data-theme="night"] .lbRow.cur{background:var(--paper)}

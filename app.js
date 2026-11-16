@@ -1200,13 +1200,28 @@ const App = (function(){
     tryShow(0);
   }
 
+  // ---------- 稱號圖鑑：從 Lv1 到最高級的樣子 ----------
+  function lvBook(){
+    const s = stateCache.moqi && stateCache.moqi.state, h = s ? (s.hearts || 0) : 0, cur = lvOf(h);
+    const rows = Array.from({ length: 12 }, (_, i) => i + 1).map(n => {
+      const need = lvNeed(n), got = h >= need;
+      return `<div class="lbRow ${n === cur ? "cur" : ""} ${got ? "got" : ""}"><div class="lbT">${ttlHtml(need, roomWing)}</div>
+        <small>${n === cur ? `<b>你們在這裡！</b>` : got ? "已經解鎖" : `需要 ${need} 條小魚乾・還差 ${need - h} 條`}${n === 12 ? "<br>之後每一級都是傳說喵，一直升下去" : ""}</small></div>`; }).join("");
+    const o = modal(`<div class="lrHd">${icon("star")}<h3>稱號圖鑑</h3></div><div class="k" style="text-align:center">默契大考驗答得一樣就會得到小魚乾，慢慢升級～<br>Lv7 開始會長出小翅膀（到設定選小天使或小惡魔）</div>
+      <div class="lbList">${rows}</div><button class="btn sub" id="lbOk" style="width:100%;margin-top:8px">關閉</button>`, "svModal lbModal");
+    o.querySelector("#lbOk").addEventListener("click", ()=>o.remove());
+    const c = o.querySelector(".lbRow.cur"); if(c) setTimeout(()=>c.scrollIntoView({ block:"center" }), 60);
+  }
+  ctx.lvBook = () => lvBook();
+
   // ---------- 全站親密等級排行榜（更新 47）：只跟同一種模式比（情侶／閨蜜／兄弟） ----------
   async function lvRank(){
     const who = roomMode==="bro" ? "兄弟" : roomMode==="bestie" ? "閨蜜" : "情侶";
-    const o = modal(`<div class="lrHd">${icon("crown")}<h3>${who}貓貓等級排行榜</h3></div><div class="lrList" id="lrL"><div class="k" style="text-align:center;padding:20px">讀取中…</div></div>
+    const o = modal(`<div class="lrHd">${icon("crown")}<h3>${who}貓貓等級排行榜</h3></div><button class="lbOpen" id="lrBook">${icon("star")}看所有稱號</button><div class="lrList" id="lrL"><div class="k" style="text-align:center;padding:20px">讀取中…</div></div>
       <div class="k lrNote">默契大考驗答得一樣就會得到小魚乾、升等級。名字只會顯示第一個字。</div>
       <button class="btn sub" id="lrOk" style="width:100%;margin-top:8px">關閉</button>`, "svModal lrModal");
     o.querySelector("#lrOk").addEventListener("click", ()=>o.remove());
+    o.querySelector("#lrBook").addEventListener("click", ()=>{ SFX.tap(); lvBook(); });
     let r; try{ r = await B.rpc("lv_rank"); }catch(e){ o.querySelector("#lrL").innerHTML = `<div class="k" style="text-align:center;padding:20px">${/lv_rank|function|schema/.test(String(e && e.message || e)) ? "排行榜還沒開放喔（更新 47）" : "網路好像不太穩，等等再試～"}</div>`; return; }
     if(!o.isConnected) return;
     const mine = members.map(m=>m.name), myCats = members.map(m=>m.cat);
@@ -2736,7 +2751,7 @@ const App = (function(){
     const ps=pushState();
     v.innerHTML = `${appBox()}<div class="box set svSetBox ${SV.on && !SV.done ? "" : "hidden"}" id="svSet"><div class="svGift">${sprite("star","happy")}<div><b>填問卷，拿限定「博士貓」</b><small>大約 1～2 分鐘，幫小窩變得更好～</small></div></div><button class="btn" id="svOpen">去填問卷</button></div><div class="box set bdSetBox ${BD.ok ? "" : "hidden"}" id="bdSet"><h2>我的生日</h2><div id="bdIn"></div></div><div class="box set"><h2>我的貓</h2><div class="picks" id="pk"></div><input id="nm" maxlength="10" value="${esc(me.name)}" style="font-size:17px;padding:8px;border:3px solid var(--line);text-align:center;border-radius:0"><button class="btn" id="bSave">儲存</button></div>
       <div class="box set"><h2>小窩模式</h2><div class="modePick" id="mSet">${Object.keys(MODES).map(m=>`<button data-m="${m}" class="${roomMode===m?"on":""}">${modeArt(m)}<b>${MODES[m].name}</b></button>`).join("")}</div><div class="k">兩個人會一起切換。閨蜜／兄弟模式會換掉情侶向的題目和用語</div></div>
-      <div class="box set"><h2>稱號翅膀</h2><div class="wingPick" id="wPick">${["angel","devil"].map(w=>`<button data-w="${w}" class="${roomWing===w?"on":""}"><span class="wpPrev">${ttlHtml(lvNeed(7), w, true)}</span><b>${w==="angel"?"小天使":"小惡魔"}</b></button>`).join("")}</div><div class="k">親密等級到 Lv7 就會長出小翅膀，兩個人會一起換。更高級的翅膀開發中～</div></div>
+      <div class="box set"><h2>稱號翅膀</h2><div class="wingPick" id="wPick">${["angel","devil"].map(w=>`<button data-w="${w}" class="${roomWing===w?"on":""}"><span class="wpPrev">${ttlHtml(lvNeed(7), w, true)}</span><b>${w==="angel"?"小天使":"小惡魔"}</b></button>`).join("")}</div><div class="k">親密等級到 Lv7 就會長出小翅膀，兩個人會一起換。更高級的翅膀開發中～</div><button class="btn sub" id="wBook" style="margin-top:8px">${icon("star")} 看所有稱號</button></div>
       <div class="box set"><h2>整體風格</h2><div class="sthemes" id="sthm">${SITE_THEMES.map(([id,n,bg,pa,ln,ac,sh])=>`<button data-st="${id}" class="${(store.get("mw_theme")||"cream")===id?"on":""}"><span class="stPrev" style="background-color:${bg};background-image:linear-gradient(${ln}14 1px,transparent 1px),linear-gradient(90deg,${ln}14 1px,transparent 1px)"><b style="background:${pa};border-color:${ln};box-shadow:2px 2px 0 ${sh}"></b><i style="background:${ac};border-color:${ln}"></i><s>${icon("heart",{K:ac,W:pa,O:ln})}</s></span>${n}</button>`).join("")}</div></div>
       <div class="box set"><h2>字體</h2><div class="fontPick" id="fPick"><button data-f="pixel" class="${store.get("mw_font")==="sys"?"":"on"}" style="font-family:Cubic11">像素字 喵喵小窩</button><button data-f="sys" class="${store.get("mw_font")==="sys"?"on":""}" style="font-family:-apple-system,'PingFang TC','Noto Sans TC',sans-serif">一般字 喵喵小窩</button></div></div>
       <div class="box set"><h2>鍵盤設定</h2>
@@ -2805,6 +2820,7 @@ const App = (function(){
     setTimeout(()=>collapseSettings(v), 0);
     $("mSet").querySelectorAll("[data-m]").forEach(b=>b.addEventListener("click", async ()=>{ const m=b.dataset.m; if(m===roomMode) return; SFX.select();
       await update("room", st=>Object.assign(st||{}, { mode:m })); roomMode = m; $("mSet").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); toast(`換成${MODES[m].name}了`); }));
+    $("wBook") && $("wBook").addEventListener("click", ()=>{ SFX.tap(); lvBook(); });
     $("wPick") && $("wPick").querySelectorAll("[data-w]").forEach(b=>b.addEventListener("click", async ()=>{ const w = b.dataset.w; if(w===roomWing) return; SFX.select();
       roomWing = w; $("wPick").querySelectorAll("[data-w]").forEach(x=>x.classList.toggle("on", x===b)); lastHdr = ""; renderHeader();
       try{ await update("room", st=>Object.assign(st||{}, { wing:w })); }catch(e){} toast(`換成${w==="angel"?"小天使":"小惡魔"}翅膀了`); }));

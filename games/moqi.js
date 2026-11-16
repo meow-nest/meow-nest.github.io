@@ -791,7 +791,7 @@ App.registerGame({
       const qtext = Qn.type==="t" ? Qn.text.replace("{T}", tName) : Qn.text;
       const byTag = Qn.by ? `<div class="muted" style="font-size:12px;margin-top:6px">✏️ ${esc(ctx.nameOf(Qn.by))} 出的題</div>` : "";
       const sub = Qn.type==="t" ? (Qn.target===me ? "照實回答你自己的答案" : `猜猜看 ${tName} 會選哪個？`) : "選你心中的答案，看看是不是想到一起！";
-      let html = `${ctx.lvRank ? `<div class="mqLv"><span>${ctx.ttlHtml ? ctx.ttlHtml(s.hearts||0, true) : esc(ctx.lvInfo(s.hearts||0).name)}</span><button class="mqRk">${Pix.icon("crown")}排行榜</button></div>` : ""}${tag}${byTag}<div style="font-size:20px;margin:12px 0 4px;line-height:1.5">${esc(qtext)}</div><div class="muted" style="font-size:13px;margin-bottom:14px">${esc(sub)}</div>
+      let html = `${ctx.lvRank ? `<div class="mqLv"><span>${ctx.ttlHtml ? ctx.ttlHtml(s.hearts||0, true) : esc(ctx.lvInfo(s.hearts||0).name)}</span><span class="mqBtns">${ctx.lvBook ? `<button class="mqRk mqBk">${Pix.icon("star")}稱號</button>` : ""}<button class="mqRk">${Pix.icon("crown")}排行榜</button></span></div>` : ""}${tag}${byTag}<div style="font-size:20px;margin:12px 0 4px;line-height:1.5">${esc(qtext)}</div><div class="muted" style="font-size:13px;margin-bottom:14px">${esc(sub)}</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">` +
         Qn.opts.map((o,i)=>{
           const bg = done && i===mi && i===ti ? "var(--mintL)" : i===mi ? "var(--pinkL)" : "var(--card)";
@@ -818,7 +818,7 @@ App.registerGame({
       box.querySelectorAll("[data-i]").forEach(b=>b.addEventListener("click", ()=>answer(+b.dataset.i)));
       const nx = box.querySelector("#mqNext"); if(nx) nx.addEventListener("click", ()=>next(false));
       const sk = box.querySelector("#mqSkip"); if(sk) sk.addEventListener("click", ()=>next(true));
-      const rk = box.querySelector(".mqRk"); if(rk) rk.addEventListener("click", ()=>{ SFX.tap(); ctx.lvRank(); });
+      box.querySelectorAll(".mqRk").forEach(b=>b.addEventListener("click", ()=>{ SFX.tap(); b.classList.contains("mqBk") ? ctx.lvBook() : ctx.lvRank(); }));
     }
 
     async function answer(c){
