@@ -45,10 +45,12 @@ App.registerGame({
         <div class="srJars">${jar(mine(), "mine", `給 ${esc(pp ? pp.name : "ta")}<b>${mine().length}</b>顆`)}${pp ? jar(t, "theirs", `${esc(pp.name)} 給你<b>${t.length}</b>顆`) : ""}</div>
         ${unread ? `<button class="btn srOpen" id="srOpen">💌 拆一顆 ${esc(pp.name)} 的星星（還有 ${unread} 顆沒拆）</button>` : t.length ? `<button class="btn sub" id="srRead" style="width:100%">📖 看 ${esc(pp.name)} 摺給你的星星</button>` : ""}
         <button class="btn" id="srGo">⭐ 摺一顆星星</button>
+        ${mine().length ? `<button class="btn sub" id="srMine" style="width:100%">📝 看我摺給 ${esc(pp ? pp.name : "ta")} 的星星</button>` : ""}
         <div class="k" style="text-align:center">今天摺了 ${todayN} 顆・每天前 10 顆各送 1 個貓幣 🪙</div></div>`;
       el.querySelector("#srGo").addEventListener("click", () => { SFX.tap(); step = 1; paper = null; wraps = 0; puff = 0; fold(); });
       const op = el.querySelector("#srOpen"); if(op) op.addEventListener("click", openOne);
       const rd = el.querySelector("#srRead"); if(rd) rd.addEventListener("click", readAll);
+      const mn = el.querySelector("#srMine"); if(mn) mn.addEventListener("click", () => { SFX.tap(); readMine(); });
     }
     // ---------- folding ----------
     function fold(){
@@ -118,6 +120,18 @@ App.registerGame({
       const t = theirs().slice().reverse();
       const o = document.createElement("div"); o.className = "srModal";
       o.innerHTML = `<div class="srCard list"><h3>${esc(p().name)} 摺給你的星星</h3><div class="srList">${t.map(x => `<div>${star(x.c)}<span>${x.m ? esc(x.m) : "⭐"}</span><i>${new Date(x.at).getMonth()+1}/${new Date(x.at).getDate()}</i></div>`).join("")}</div><button class="btn" id="srOk">關掉</button></div>`;
+      document.body.appendChild(o);
+      o.querySelector("#srOk").addEventListener("click", () => o.remove());
+      o.addEventListener("click", e => { if(e.target === o) o.remove(); });
+    }
+    // 自己摺過的星星：寫了什麼、哪天摺的、ta 拆了沒
+    function readMine(){
+      const m = mine().slice().reverse(), pp = p(), opened = m.filter(x => x.seen).length;
+      const o = document.createElement("div"); o.className = "srModal";
+      o.innerHTML = `<div class="srCard list"><h3>我摺給 ${esc(pp ? pp.name : "ta")} 的星星</h3>
+        <div class="k" style="text-align:center">共 ${m.length} 顆・${pp ? `${esc(pp.name)} 拆了 ${opened} 顆` : "還沒有人可以拆"}</div>
+        <div class="srList">${m.map(x => `<div>${star(x.c)}<span>${x.m ? esc(x.m) : `<span class="srNo">（沒寫字）</span>`}</span><i>${new Date(x.at).getMonth()+1}/${new Date(x.at).getDate()}<br><b class="srSeen ${x.seen ? "y" : ""}">${x.seen ? "已拆" : "還沒拆"}</b></i></div>`).join("")}</div>
+        <button class="btn" id="srOk">關掉</button></div>`;
       document.body.appendChild(o);
       o.querySelector("#srOk").addEventListener("click", () => o.remove());
       o.addEventListener("click", e => { if(e.target === o) o.remove(); });

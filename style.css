@@ -3076,3 +3076,4 @@ body[data-wall="sakura"] .chat .lw::before{content:"";inset:-110px 0 0 -40px;bac
 @keyframes wmR200{to{transform:translate3d(200px,0,0)}}
 @keyframes wmFall{to{transform:translate3d(40px,110px,0)}}
 @media (prefers-reduced-motion:reduce){.chat .lw::before,.chat .lw::after{animation:none!important}}
+.srList i{text-align:right;flex:none}.srSeen{font-weight:400;font-size:11px;color:var(--muted)}.srSeen.y{color:#3a9a6a}
