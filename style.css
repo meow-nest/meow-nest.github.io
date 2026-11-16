@@ -3154,3 +3154,41 @@ body[data-wall="sakura"] .chat .lw::before{content:"";inset:-110px 0 0 -40px;bac
 .pdUnArt .sun{position:absolute;right:18px;top:12px;width:24px;height:24px;background:#ffd36b;border:3px solid #e8a920}
 .pdUnArt .bed{position:absolute;left:0;right:0;bottom:0;height:30px;background:repeating-linear-gradient(90deg,#d9a877 0 40px,#cf9b69 40px 80px);border-top:3px solid var(--line)}
 .pdUnArt>svg{position:relative;width:76px;height:76px;margin-bottom:8px}
+/* ---- 我們的貓：全螢幕、擺家具、移動貓咪 ---- */
+.ptStage{position:relative}
+.ptStage.fs{position:fixed;left:0;top:0;z-index:9001;transform-origin:0 0;background:var(--card);padding:6px;border:3px solid var(--line);display:grid;grid-template-columns:auto 132px;grid-template-rows:auto 1fr;grid-template-areas:"room tabs" "room strip";column-gap:8px;align-items:start}
+.ptStage.fs .petRoom{grid-area:room}
+.ptStage.fs .ptRooms{grid-area:tabs;flex-direction:column;margin:0;gap:4px}
+.ptStage.fs .ptRooms button{font-size:13px;padding:3px 4px}
+.ptStage.fs .ptStrip{grid-area:strip;margin-top:6px}
+.ptStage.fs .ptSRow{flex-direction:column;align-items:stretch;gap:4px}
+.ptStage.fs .ptSRow .btn{width:100%;font-size:13px;padding:5px 4px}
+.ptStage.fs .ptSSel{white-space:normal;font-size:12px;text-align:center}
+.ptStage.fs .ptSTip{display:none}
+.ptStage.fs .ptTray{flex-wrap:wrap}
+.ptStage.fs .ptTList{order:-1;flex:1 0 100%;display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.ptStage.fs .ptTArr{flex:1;height:22px;width:auto}
+.ptStage.fs .ptTI span{height:26px}.ptStage.fs .ptTI span svg{height:26px;width:34px}
+.ptFsBg{position:fixed;inset:0;z-index:9000;background:rgba(40,28,24,.82)}
+body.ptFsOn{overflow:hidden}
+body.ptFsOn .fab,body.ptFsOn #nav{visibility:hidden}
+.ptStrip{margin-top:6px}
+.ptSRow{display:flex;align-items:center;gap:6px}
+.ptSRow .btn{width:auto;flex:0 0 auto;padding:6px 12px;font-size:14px;margin:0;white-space:nowrap}
+.ptSRow .btn:first-child{margin-left:0}
+.ptSSel{flex:1;min-width:0;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ptSRow:not(:has(.ptSSel)) .btn{flex:1}
+.ptSTip{font-size:12px;color:var(--muted);text-align:center;margin-top:4px}
+.ptTray{display:flex;align-items:stretch;gap:4px;margin-top:6px}
+.ptTArr{flex:none;width:30px;font:inherit;border:2px solid var(--line);background:var(--card);color:var(--ink)}.ptTArr:disabled{opacity:.3}
+.ptTList{flex:1;display:flex;gap:4px;min-width:0}
+.ptTI{flex:1;min-width:0;font:inherit;color:inherit;border:2px solid var(--line);background:#fff;padding:4px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;position:relative}
+.ptTI span{height:34px;display:flex;align-items:flex-end;justify-content:center}.ptTI span svg{width:40px;height:34px;image-rendering:pixelated}
+.ptTI small{font-size:10px;line-height:1.2;text-align:center;overflow:hidden;max-height:24px}
+.ptTI em{position:absolute;top:-6px;right:-4px;font-style:normal;font-size:9px;background:var(--pinkL);border:1px solid var(--pink);padding:0 3px}
+.ptTEmpty{flex:1;text-align:center;font-size:12px;color:var(--muted);margin:10px 0}
+.pdEditing .pf.sel{outline:3px solid #f2a20f;outline-offset:3px;animation:none}
+.pc.drag{z-index:400;filter:drop-shadow(0 8px 0 rgba(0,0,0,.18));cursor:grabbing}
+.pc{touch-action:pan-y}
+.ptStage.edit .ptRooms{display:none}
+.ptStage.fs .ptTI small{font-size:9px;max-height:12px}

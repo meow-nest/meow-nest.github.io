@@ -52,7 +52,11 @@ App.registerGame({
     const $ = q => el.querySelector(q);
     const cats = () => (s && s.cats) || [];
     const clone = o => JSON.parse(JSON.stringify(o));
-    const HOME = () => cats().length > 1 ? [30, 70] : [50];
+    // 貓咪平常站的位置：可以按住拖到旁邊（每個房間分開記，只記在這支手機）
+    const catPosAll = () => { try{ return JSON.parse(localStorage.getItem("mw_catX") || "{}"); }catch(e){ return {}; } };
+    const HOME = () => { const base = cats().length > 1 ? [30, 70] : [50], sv = catPosAll()[typeof curRoom === "string" ? curRoom : "main"] || {};
+      return base.map((x,i) => typeof sv[i] === "number" ? sv[i] : x); };
+    const saveCatX = (i, x) => { const a = catPosAll(), r = curRoom || "main"; a[r] = a[r] || {}; a[r][i] = Math.round(x*10)/10; try{ localStorage.setItem("mw_catX", JSON.stringify(a)); }catch(e){} };
 
     // ---------- adoption ----------
     function adopt(second){
@@ -94,12 +98,12 @@ App.registerGame({
     function shell(){
       el.innerHTML = `<div class="box petBox">
         <div class="petTabs" id="ptTabs"></div>
-        <div class="ptRooms" id="ptRooms"></div>
+        <div class="ptStage" id="ptStage"><div class="ptRooms" id="ptRooms"></div>
         <div class="petRoom" id="ptRoom">
           <div class="prWin"></div><div class="prSky" id="ptSky"></div><div class="prFloor"></div><div class="prRug" id="ptRug"></div><div id="ptDeco"></div>
           <div class="prBowl" id="ptBowl">🥣</div>
           <div id="ptCats"></div><div class="prSay" id="ptSay"></div>
-        </div>
+        </div><div class="ptStrip" id="ptStrip"></div></div>
         <div class="petBars">
           <div class="pb"><span>🍗 飽足</span><div class="pbBar"><i id="ptFull"></i></div><b id="ptFullN"></b></div>
           <div class="pb"><span>⭐ 長大</span><div class="pbBar exp"><i id="ptExp"></i></div><b id="ptExpN"></b></div>
@@ -120,11 +124,50 @@ App.registerGame({
     function drawCats(){
       const H = HOME();
       $("#ptCats").innerHTML = cats().map((c,i)=>`<div class="pc" data-i="${i}" style="left:${H[i]}%"><div class="pcHop"><div class="pcIn" style="--sc:${P.stage(c).scale};--fl:${i===0?1:-1}"><span class="crown hidden">👑</span><div class="pcSp"></div><div class="pcWear"></div></div></div><div class="pcTag"><b>${esc(c.name)}</b></div></div>`).join("");
-      el.querySelectorAll(".pc").forEach(w=>w.addEventListener("click", ()=>{
-        const i = +w.dataset.i; if(i!==sel){ sel = i; SFX.tap(); render(); } else care("pet");
-      }));
+      el.querySelectorAll(".pc").forEach(w=>{
+        w.addEventListener("click", ()=>{ if(w.__dragged){ w.__dragged = false; return; }
+          const i = +w.dataset.i; if(i!==sel){ sel = i; SFX.tap(); render(); } else care("pet"); });
+        w.addEventListener("pointerdown", e=>catDrag(e, w));
+      });
     }
     const catEl = i => el.querySelector(`.pc[data-i="${i}"]`);
+    // ---------- 座標：全螢幕時房間會放大、直拿手機時還會轉成橫的，所以手指位置要換算回房間裡的位置 ----------
+    const FS = { on:false, rot:false, s:1, tx:0, ty:0, bg:null };
+    function toLocal(cx, cy){
+      const room = $("#ptRoom"); if(!room) return { x:0, y:0 };
+      if(!FS.on){ const R = room.getBoundingClientRect(); return { x:cx - R.left, y:cy - R.top }; }
+      return FS.rot ? { x:(cy - FS.ty)/FS.s, y:(FS.tx - cx)/FS.s } : { x:(cx - FS.tx)/FS.s, y:(cy - FS.ty)/FS.s };
+    }
+    const centerLocal = node => { const r = node.getBoundingClientRect(); return toLocal(r.left + r.width/2, r.top + r.height/2); };
+    function catDrag(e, w){
+      if(editing || playing || e.button > 0) return;
+      const room = $("#ptRoom"), i = +w.dataset.i, sx = e.clientX, sy = e.clientY; let on = false;
+      const mv = ev => { if(!on){ if(Math.abs(ev.clientX-sx) + Math.abs(ev.clientY-sy) < 10) return; on = true; stopIdle(); w.classList.add("drag"); SFX.tap(); try{ w.setPointerCapture(ev.pointerId); }catch(_){} }
+        ev.preventDefault(); const L = toLocal(ev.clientX, ev.clientY), W = room.offsetWidth; w.style.left = Math.max(8, Math.min(92, L.x/W*100)) + "%"; };
+      const up = () => { w.removeEventListener("pointermove", mv); w.removeEventListener("pointerup", up); w.removeEventListener("pointercancel", up);
+        if(!on) return; w.classList.remove("drag"); w.__dragged = true; setTimeout(()=>{ w.__dragged = false; }, 400);
+        saveCatX(i, parseFloat(w.style.left)); SFX.select(); if(cats().length > 1) startIdle(); };
+      w.addEventListener("pointermove", mv); w.addEventListener("pointerup", up); w.addEventListener("pointercancel", up);
+    }
+    // ---------- 全螢幕 ----------
+    function fsLayout(){
+      const st = $("#ptStage"); if(!st || !FS.on) return;
+      const vw = window.innerWidth, vh = window.innerHeight, W = st.offsetWidth, H = st.offsetHeight, m = 10;
+      FS.rot = vh > vw * 1.15;
+      if(FS.rot){ FS.s = Math.min((vh - m*2)/W, (vw - m*2)/H); FS.tx = vw - (vw - H*FS.s)/2; FS.ty = (vh - W*FS.s)/2; st.style.transform = `translate(${FS.tx}px,${FS.ty}px) rotate(90deg) scale(${FS.s})`; }
+      else { FS.s = Math.min((vw - m*2)/W, (vh - m*2)/H); FS.tx = (vw - W*FS.s)/2; FS.ty = (vh - H*FS.s)/2; st.style.transform = `translate(${FS.tx}px,${FS.ty}px) scale(${FS.s})`; }
+    }
+    function fsOn(){
+      const st = $("#ptStage"), room = $("#ptRoom"); if(!st || !room || FS.on) return;
+      room.style.width = room.offsetWidth + "px"; FS.on = true; st.classList.add("fs"); document.body.classList.add("ptFsOn");
+      FS.bg = document.createElement("div"); FS.bg.className = "ptFsBg"; st.parentNode.insertBefore(FS.bg, st); FS.bg.addEventListener("click", fsOff);
+      fsLayout(); window.addEventListener("resize", fsLayout); drawStrip(); SFX.select();
+    }
+    function fsOff(){
+      const st = $("#ptStage"); FS.on = false; window.removeEventListener("resize", fsLayout);
+      if(FS.bg){ FS.bg.remove(); FS.bg = null; } document.body.classList.remove("ptFsOn");
+      if(st){ st.classList.remove("fs"); st.style.transform = ""; } const room = $("#ptRoom"); if(room) room.style.width = ""; drawStrip();
+    }
     function face(i, f){ const w = catEl(i); if(w){ w.querySelector(".pcSp").innerHTML = sprite(cats()[i].color, f); w.classList.toggle("curl", f==="curl"); } }
     function look(i, dir){ const w = catEl(i); if(w) w.querySelector(".pcIn").style.setProperty("--fl", dir<0?-1:1); }
 
@@ -160,7 +203,8 @@ App.registerGame({
     // ---------- 會動、可以互動的家具 ----------
     const FORTUNE = [["大吉","今天做什麼都順利，適合跟喜歡的人撒嬌"],["大吉","會有小驚喜找上門，記得抬頭看看天空"],["中吉","吃到好吃的東西，心情會變得很好"],["中吉","今天的你特別可愛，貓咪都想靠近"],["中吉","適合把想說的話說出口"],["小吉","慢慢來比較快，喝杯水休息一下"],["小吉","會遇到一件讓你偷笑的小事"],["小吉","今天適合整理房間，會找到不見的東西"],["吉","平平安安就是最好的一天"],["吉","早點睡，明天會有好事發生"],["吉","摸摸貓咪，運氣會變好"],["末吉","今天容易發呆，過馬路要小心"],["末吉","有點小迷糊，出門前檢查一下鑰匙"]];
     const NOTE = [523,587,659,784,880,1047,1175,1319];
-    function puff(it, cls, txt, n, spread){ const room = $("#ptRoom"); if(!room) return; const R = room.getBoundingClientRect(), I = it.getBoundingClientRect();
+    function puff(it, cls, txt, n, spread){ const room = $("#ptRoom"); if(!room) return; const C = centerLocal(it), iw = it.offsetWidth, ih = it.offsetHeight, RH = room.offsetHeight;
+      const R = { left:0, bottom:RH }, I = { left:C.x - iw/2, top:C.y - ih/2, width:iw };
       for(let i=0;i<n;i++) setTimeout(()=>{ if(!room.isConnected) return; const s = document.createElement("span"); s.className = "pfP "+cls; if(txt) s.textContent = txt[i % txt.length];
         s.style.left = (I.left - R.left + I.width*(.5 + (Math.random()-.5)*spread)) + "px"; s.style.bottom = (R.bottom - I.top - 4) + "px"; s.style.setProperty("--dx", Math.round((Math.random()-.5)*36)+"px"); if(cls==="bub"){ const z = 6 + Math.round(Math.random()*9); s.style.width = s.style.height = z+"px"; }
         room.appendChild(s); setTimeout(()=>s.remove(), 1700); }, i*130); }
@@ -236,7 +280,7 @@ App.registerGame({
       if(r===curRoom) return;
       SFX.tap(); curRoom = r; try{ localStorage.setItem("mw_petRoom", r); }catch(e){}
       const layer = $("#ptDeco"); if(layer) layer.dataset.sig = "";
-      render();
+      if(editing){ selPf = null; } drawCats(); render();
     }
     function unlockRoom(r){
       const [, n, price] = ROOMS.find(x=>x[0]===r); SFX.tap();
@@ -277,8 +321,8 @@ App.registerGame({
     }
     // 點蝴蝶／螢火蟲：貓咪跑過去追（等於陪玩一次）
     el.addEventListener("click", e => { const b = e.target.closest && e.target.closest("[data-bf]"); if(!b || editing || playing) return;
-      const room = $("#ptRoom"); if(!room) return; const R = room.getBoundingClientRect(), I = b.getBoundingClientRect();
-      const x = Math.max(4, Math.min(86, (I.left + I.width/2 - R.left)/R.width*100 - 6));
+      const room = $("#ptRoom"); if(!room) return; const C = centerLocal(b);
+      const x = Math.max(4, Math.min(86, C.x/room.offsetWidth*100 - 6));
       SFX.tap(); (async()=>{ playing = true; await move(sel, x, 700); hop(sel, 34, 420); bub(sel, b.classList.contains("yFly") ? "好亮喔！" : "抓到了嗎？", 1500); playing = false; care("play"); })(); });
     function drawDeco(){
       const d = deco();
@@ -312,41 +356,76 @@ App.registerGame({
       if(ns){ s = P.norm(clone(ns)); render(); }
       return ns;
     }
+    // ---------- 擺家具模式：房間下面有「還沒擺的家具」，點一下放進來；拖曳移動；點一下選取可以收起來 ----------
+    let selPf = null, trayPage = 0;
     function startEdit(){
-      editing = true; stopIdle(); render();
+      editing = true; selPf = null; trayPage = 0; stopIdle(); render();
       const box = $(".petBox"), room = $("#ptRoom"); if(!box || !room) return;
-      box.classList.add("pdEditing");
-      const bar = document.createElement("div"); bar.className = "pdEditBar";
-      bar.innerHTML = `<span>✋ 按住家具拖到喜歡的位置</span><button class="btn sub" data-reset>還原</button><button class="btn" data-done>完成</button>`;
-      room.parentNode.insertBefore(bar, room);
-      bar.querySelector("[data-done]").addEventListener("click", ()=>{ SFX.select(); endEdit(); });
-      bar.querySelector("[data-reset]").addEventListener("click", async ()=>{ SFX.tap(); await setDeco(dd=>{ dd.pos = {}; }); });
-      room.addEventListener("pointerdown", onDragStart);
+      box.classList.add("pdEditing"); room.addEventListener("pointerdown", onDragStart); drawStrip();
     }
     function endEdit(){
-      editing = false; const box = $(".petBox"); if(box) box.classList.remove("pdEditing");
-      const bar = el.querySelector(".pdEditBar"); if(bar) bar.remove();
+      editing = false; selPf = null; const box = $(".petBox"); if(box) box.classList.remove("pdEditing");
       const room = $("#ptRoom"); if(room) room.removeEventListener("pointerdown", onDragStart);
-      render();
+      el.querySelectorAll(".pf.sel").forEach(x=>x.classList.remove("sel"));
+      render(); drawStrip();
+    }
+    function markSel(){ el.querySelectorAll("#ptDeco .pf").forEach(x=>x.classList.toggle("sel", x.dataset.pf===selPf)); }
+    function freeSpot(dd){
+      const busy = (cx, cb) => dd.items.some(i=>{ const q = posOf(dd, i); return Math.abs(q[0]-cx) < 13 && Math.abs(q[1]-cb) < 12; });
+      for(const cb of [8, 14, 22, 4]) for(const cx of [44, 30, 58, 16, 72, 4, 84]) if(!busy(cx, cb)) return [cx, cb];
+      return [40 + Math.round(Math.random()*10), 10];
+    }
+    function drawStrip(){
+      const bar = $("#ptStrip"); if(!bar) return; { const st = $("#ptStage"); if(st) st.classList.toggle("edit", editing); }
+      const fsBtn = FS.on ? `<button class="btn sub" data-s="fsoff">✕ 離開全螢幕</button>` : `<button class="btn sub" data-s="fs">全螢幕（橫的）</button>`;
+      if(!editing){
+        bar.innerHTML = `<div class="ptSRow">${fsBtn}<button class="btn sub" data-s="edit">擺家具</button></div><div class="ptSTip">按住貓咪可以拖到旁邊，別擋住家具</div>`;
+      } else {
+        const d = deco(), m = metrics();
+        const pool = D.ITEMS.filter(x=>x.k==="f" && owns(x, m) && !d.items.includes(x.id));
+        const per = FS.on ? 4 : 5, pages = Math.max(1, Math.ceil(pool.length/per)); if(trayPage >= pages) trayPage = pages-1;
+        const pg = pool.slice(trayPage*per, trayPage*per + per);
+        const x = selPf && D.BY[selPf];
+        bar.innerHTML = `<div class="ptSRow">${x ? `<span class="ptSSel">選了「${esc(x.n)}」</span><button class="btn sub" data-s="put">收起來</button><button class="btn sub" data-s="unsel">取消選取</button>`
+            : `<span class="ptSSel">拖家具移動・點一下選取</span>${fsBtn}`}<button class="btn" data-s="done">完成</button></div>
+          <div class="ptTray"><button class="ptTArr" data-s="prev" ${trayPage>0?"":"disabled"}>◀</button>
+            <div class="ptTList">${pg.length ? pg.map(y=>{ const w = whereIs(s, y.id); return `<button class="ptTI" data-add="${y.id}"><span>${D.art(y.id)}</span><small>${esc(y.n)}</small>${w ? `<em>在${esc(roomName(w))}</em>` : ""}</button>`; }).join("") : `<p class="ptTEmpty">${pool.length ? "" : "家具都擺出來了～想要更多可以去「佈置」買"}</p>`}</div>
+            <button class="ptTArr" data-s="next" ${trayPage<pages-1?"":"disabled"}>▶</button></div>`;
+      }
+      bar.querySelectorAll("[data-s]").forEach(b=>b.addEventListener("click", async ()=>{
+        const k = b.dataset.s; SFX.tap();
+        if(k==="fs") fsOn(); else if(k==="fsoff") fsOff();
+        else if(k==="edit") startEdit(); else if(k==="done"){ SFX.select(); endEdit(); }
+        else if(k==="prev"){ trayPage--; drawStrip(); } else if(k==="next"){ trayPage++; drawStrip(); }
+        else if(k==="unsel"){ selPf = null; markSel(); drawStrip(); }
+        else if(k==="put" && selPf){ const id = selPf; selPf = null; await setDeco(dd=>{ if(!dd.items.includes(id)) return false; dd.items = dd.items.filter(i=>i!==id); delete dd.pos[id]; }); drawStrip(); }
+      }));
+      if(FS.on) fsLayout();
+      bar.querySelectorAll("[data-add]").forEach(b=>b.addEventListener("click", async ()=>{
+        const id = b.dataset.add; SFX.select();
+        await setDeco(dd=>{ if(dd.items.includes(id)) return false; const sp = freeSpot(dd); dd.items.push(id); dd.pos[id] = sp; });
+        selPf = id; markSel(); drawStrip();
+      }));
     }
     function onDragStart(e){
       const it = e.target.closest(".pf"); if(!editing || !it) return;
-      e.preventDefault(); const room = $("#ptRoom"), R = room.getBoundingClientRect(), I = it.getBoundingClientRect();
-      const id = it.dataset.pf, ox = e.clientX - I.left, oy = I.bottom - e.clientY;
-      dragging = true; it.classList.add("drag"); SFX.tap();
+      e.preventDefault(); const room = $("#ptRoom"), RW = room.offsetWidth, RH = room.offsetHeight, IW = it.offsetWidth, IH = it.offsetHeight;
+      const id = it.dataset.pf, L0 = toLocal(e.clientX, e.clientY), sx = parseFloat(it.style.left)/100*RW, sb = parseFloat(it.style.bottom)/100*RH;
+      let moved = false;
       try{ it.setPointerCapture(e.pointerId); }catch(_){}
       const move = ev => {
-        const nx = ev.clientX - ox - R.left, nb = R.bottom - (ev.clientY + oy);
-        const x = Math.max(-I.width*.2, Math.min(R.width - I.width*.8, nx)), b = Math.max(0, Math.min(R.height - I.height*.5, nb));
-        it.style.left = x/R.width*100+"%"; it.style.bottom = b/R.height*100+"%"; it.style.zIndex = 300;
+        const L = toLocal(ev.clientX, ev.clientY), dx = L.x - L0.x, dy = L.y - L0.y;
+        if(!moved){ if(Math.abs(dx) + Math.abs(dy) < 6) return; moved = true; dragging = true; it.classList.add("drag"); SFX.tap(); }
+        const x = Math.max(-IW*.2, Math.min(RW - IW*.8, sx + dx)), b = Math.max(0, Math.min(RH - IH*.5, sb - dy));
+        it.style.left = x/RW*100+"%"; it.style.bottom = b/RH*100+"%"; it.style.zIndex = 300;
       };
       const up = async () => {
         it.removeEventListener("pointermove", move); it.removeEventListener("pointerup", up); it.removeEventListener("pointercancel", up);
-        it.classList.remove("drag"); dragging = false;
+        if(!moved){ selPf = selPf===id ? null : id; SFX.tap(); markSel(); drawStrip(); return; }
+        it.classList.remove("drag"); dragging = false; selPf = id;
         const nx = Math.round(parseFloat(it.style.left)*10)/10, nb = Math.round(parseFloat(it.style.bottom)*10)/10;
-        SFX.select(); await setDeco(dd=>{ if(!dd.items.includes(id)) return false; dd.pos[id] = [nx, nb]; });
+        SFX.select(); await setDeco(dd=>{ if(!dd.items.includes(id)) return false; dd.pos[id] = [nx, nb]; }); markSel(); drawStrip();
       };
-      move(e);
       it.addEventListener("pointermove", move); it.addEventListener("pointerup", up); it.addEventListener("pointercancel", up);
     }
     // ---------- mini game: 接小魚乾 ----------
@@ -483,9 +562,9 @@ App.registerGame({
       const nNew = newCount();
       $("#ptMore").innerHTML = `<div class="ptMoreRow">${cats().length>1 ? `<button class="btn mint" id="ptTogether">🐾 一起玩</button>` : ""}<button class="btn" id="ptGameB">🎮 賺貓幣</button><button class="btn sub" id="ptDecoB">🛋️ 佈置${nNew?`<em class="pdNew">${nNew}</em>`:""}</button></div><div class="ptCoins">${D.coin} 貓幣 <b>${coins()}</b>・玩「接小魚乾」賺，兩個人共用，可以買家具和飾品</div>`;
       $("#ptGameB").addEventListener("click", ()=>{ SFX.tap(); playCatch(); });
-      drawRooms();
+      drawRooms(); drawStrip();
       $("#ptDecoB").addEventListener("click", ()=>openDeco());
-      drawDeco(); checkUnlocks();
+      drawDeco(); if(editing) markSel(); checkUnlocks();
       if($("#ptTogether")) $("#ptTogether").addEventListener("click", ()=>interact());
       $("#ptLog").innerHTML = (s.log||[]).slice(-6).reverse().map(l=>{ const cn = esc((cats()[l.c||0]||{}).name||"");
         return `<li><b>${esc(l.by===me()?"你":ctx.nameOf(l.by))}</b> ${l.a==="catch"?`玩接小魚乾賺了 ${l.n} 個貓幣 🪙`:l.a==="run"?`玩喵喵大逃亡賺了 ${l.n} 個貓幣 🪙`:l.a==="boat"?`划龍舟賺了 ${l.n} 個貓幣 🪙`:l.a==="td"?`守護罐罐賺了 ${l.n} 個貓幣 🪙`:l.a==="tetris"?`玩喵喵方塊賺了 ${l.n} 個貓幣 🪙`:l.a==="cattris"?`玩落方塊賺了 ${l.n} 個貓幣 🪙`:l.a==="catstack"?`玩疊貓貓賺了 ${l.n} 個貓幣 🪙`:l.a==="pool"?`撞球贏了 ${l.n} 個貓幣 🪙`:l.a==="buy"?`買了「${esc(l.t||"")}」🛍️`:l.a==="grow"?`看到 ${cn} 長大成「${esc(l.t||"")}」🎉`:(LOGT[l.a]||"")+" "+cn+(LOGE[l.a]||"")}<i>${ago(l.at)}</i></li>`; }).join("");
@@ -654,7 +733,7 @@ App.registerGame({
       if(s && s.cats.length===2) setTimeout(()=>interact(), 1200);
       timer = setInterval(()=>{ if(s && !playing) render(); }, 30000);
     })();
-    this._cleanup = () => { alive = false; subs.forEach(u=>u&&u()); clearInterval(timer); stopIdle(); };
+    this._cleanup = () => { alive = false; subs.forEach(u=>u&&u()); clearInterval(timer); stopIdle(); if(FS.on) fsOff(); };
   },
   unmount(){ if(this._cleanup) this._cleanup(); },
 });
