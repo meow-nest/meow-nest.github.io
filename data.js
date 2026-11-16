@@ -76,6 +76,7 @@
     B.adminRole = async () => { try { return (await rpcOrThrow("my_admin_role")) || "boss"; } catch (e) { return "boss"; } };
     B.adminStats = () => rpcOrThrow("admin_stats");
     B.adminFeedback = (all) => rpcOrThrow("admin_feedback", { p_all: !!all });
+    B.adminFeedbackWip = (id, on) => rpcOrThrow("admin_feedback_wip", { p_id: id, p_on: !!on });
     B.adminFeedbackSet = (id, done, del) => rpcOrThrow("admin_feedback_set", { p_id: id, p_done: !!done, p_delete: !!del });
     B.adminReply = (id, body) => rpcOrThrow("admin_reply", { p_id: id, p_body: body });
     B.adminUsers = () => rpcOrThrow("admin_users");
@@ -297,6 +298,7 @@
     B.adminRole = async () => window.__adminRole || "boss";
     B.adminStats = async () => call("adminStats");
     B.adminFeedback = async (all) => call("adminFeedback", { all });
+    B.adminFeedbackWip = async (id, on) => call("adminFeedbackWip", { id, on });
     B.adminFeedbackSet = async (id, done, del) => call("adminFeedbackSet", { id, done, del });
     B.adminReply = async (id, body) => call("adminReply", { id, body });
     B.adminUsers = async () => call("adminUsers");

@@ -796,7 +796,7 @@ const App = (function(){
       if(!list || !list.length){ el.innerHTML = ""; return; }
       el.innerHTML = `<h4 class="fbMH" style="margin-top:4px">💬 我和站長的對話</h4>` + list.map(f=>{ const th = fbThread(f), hasA = th.some(t=>t.by==="a"), last = th[th.length-1];
         return `<div class="fbMI ${f.user_seen===false?"new":""}" data-id="${f.id}">${f.user_seen===false ? `<span class="fbNew">新回覆</span>` : ""}${fbBubbles(f, "你", "👑 站長")}
-          ${last.by==="u" ? `<div class="fbMW">${hasA ? "站長看到會再回覆你 🐾" : "站長還沒回覆，看到會盡快處理 🐾"}</div>` : ""}
+          ${f.wip && !f.done ? `<div class="fbMW fbWipU">🔧 站長正在處理中，好了會再告訴你</div>` : last.by==="u" ? `<div class="fbMW">${hasA ? "站長看到會再回覆你 🐾" : "站長還沒回覆，看到會盡快處理 🐾"}</div>` : ""}
           <div class="fbRe hidden"><textarea maxlength="500" rows="2" placeholder="${hasA ? "回覆站長…" : "想補充什麼？"}"></textarea><div class="admFbA"><button data-a="cancel">取消</button><button data-a="send" class="pri">送出</button></div></div>
           <div class="admFbA fbActs"><button data-a="reply">${hasA ? "💬 回覆站長" : "✏️ 補充"}</button></div></div>`; }).join("");
       el.querySelectorAll(".fbMI").forEach(it=>{ const id = +it.dataset.id, rb = it.querySelector(".fbRe"), acts = it.querySelector(".fbActs"), ta2 = rb.querySelector("textarea");
@@ -880,6 +880,7 @@ const App = (function(){
     try{ [st, fb, us, on] = await Promise.all([B.adminStats(), B.adminFeedback(admTab==="all"), B.adminUsers ? B.adminUsers().catch(e=>{ console.error(e); return null; }) : null, B.adminOnline ? B.adminOnline().catch(()=>null) : null]); }
     catch(e){ console.error(e); if(!quiet) body.innerHTML = `<div class="box k" style="text-align:center">讀不到資料 🥺<br>${/admin_|function/i.test(String(e.message||e)) ? "資料庫還沒加上站長後台的設定（更新 11）" : "請檢查網路再按更新"}</div>`; return; }
     if(!$("admBody")) return;
+    const fbAll = fb || []; fb = admTab==="new" ? fbAll.filter(f=>!f.done && !f.wip) : admTab==="wip" ? fbAll.filter(f=>!f.done && f.wip) : fbAll;
     const at = $("admAt"); if(at) at.textContent = "更新於 " + new Date().toLocaleTimeString("zh-TW", { hour:"2-digit", minute:"2-digit" });
     const M = st.modes || {}, max = st.max || 0, dbMB = (st.db||0)/1048576, dbPct = Math.min(1, dbMB/500), cPct = max ? Math.min(1, st.total/max) : 0;
     const tile = (n, label, sub) => `<div class="admTile"><b>${n}</b><span>${label}</span>${sub ? `<i>${sub}</i>` : ""}</div>`;
@@ -889,13 +890,13 @@ const App = (function(){
         ${tile(st.total, "小窩", max ? `上限 ${max}` : "")}${tile(st.people, "使用人數")}${tile(st.active1, st.people_based ? "今天上線的人" : "今天有動靜的小窩", st.people_based ? "台灣時間 0 點起" : "")}
         ${tile(st.active7, st.people_based ? "這 7 天上線的人" : "這 7 天有動靜的小窩")}${tile(st.new7, "這 7 天新開")}${tile(st.msgs7, "這 7 天訊息")}</div>
       <div class="box admBox"><h3>📮 回報信箱 ${st.unread ? `<span class="admBadge">${st.unread}</span>` : ""}</h3>
-        <div class="admTabs"><button data-t="new" class="${admTab==="new"?"on":""}">未處理</button><button data-t="all" class="${admTab==="all"?"on":""}">全部</button></div>
-        <div class="admFb">${(fb||[]).length ? fb.map(f=>`<div class="admFbI ${f.done?"done":""}" data-id="${f.id}">
-            <div class="admFbH"><b>${esc(f.name||"（沒有暱稱）")}</b><span>${esc(f.code||"")}</span><i>${agoTxt(f.last_at||f.created_at)}</i></div>
+        <div class="admTabs"><button data-t="new" class="${admTab==="new"?"on":""}">未處理${fbAll.filter(f=>!f.done&&!f.wip).length ? ` ${fbAll.filter(f=>!f.done&&!f.wip).length}` : ""}</button><button data-t="wip" class="${admTab==="wip"?"on":""}">處理中${fbAll.filter(f=>!f.done&&f.wip).length ? ` ${fbAll.filter(f=>!f.done&&f.wip).length}` : ""}</button><button data-t="all" class="${admTab==="all"?"on":""}">全部</button></div>
+        <div class="admFb">${(fb||[]).length ? fb.map(f=>`<div class="admFbI ${f.done?"done":""} ${f.wip&&!f.done?"wip":""}" data-id="${f.id}">
+            <div class="admFbH"><b>${esc(f.name||"（沒有暱稱）")}</b><span>${esc(f.code||"")}</span>${f.wip&&!f.done ? `<em class="fbWipT">🔧 處理中</em>` : f.done ? `<em class="fbDoneT">✓ 已處理</em>` : ""}<i>${agoTxt(f.last_at||f.created_at)}</i></div>
             ${(()=>{ const th = fbThread(f); return th.length>1 && th[th.length-1].by==="u" && th.some(t=>t.by==="a") ? `<span class="fbNew">對方又回覆了</span>` : ""; })()}${fbBubbles(f, f.name||"對方", "👑 你")}
             <div class="admReBox hidden"><textarea maxlength="500" rows="3" placeholder="${f.alive===false ? "這個小窩已經刪除了，對方收不到回覆" : "回覆給對方，對方的手機會收到通知"}"></textarea><div class="admFbA"><button data-a="cancel">取消</button><button data-a="send" class="pri">送出回覆</button></div></div>
-            <div class="admFbA admActs"><button data-a="reply">💬 回覆</button><button data-a="done">${f.done ? "↩ 改回未處理" : "✓ 已處理"}</button>${isBoss() ? `<button data-a="del">🗑 刪除</button>` : ""}</div></div>`).join("")
-          : `<div class="k" style="text-align:center;padding:10px">${admTab==="new" ? "目前沒有未處理的回報 🐾" : "還沒有人傳回報"}</div>`}</div></div>
+            <div class="admFbA admActs"><button data-a="reply">💬 回覆</button>${f.done ? "" : `<button data-a="wip">${f.wip ? "↩ 取消處理中" : "🔧 處理中"}</button>`}<button data-a="done">${f.done ? "↩ 改回未處理" : "✓ 已處理"}</button>${isBoss() ? `<button data-a="del">🗑 刪除</button>` : ""}</div></div>`).join("")
+          : `<div class="k" style="text-align:center;padding:10px">${admTab==="new" ? "目前沒有未處理的回報 🐾" : admTab==="wip" ? "目前沒有處理中的回報" : "還沒有人傳回報"}</div>`}</div></div>
       <div class="box admBox admFold ${admOpen("modes", false) ? "open" : ""}" data-fold="modes"><h3 class="admFH">小窩模式<small>${st.waiting ? `${st.waiting} 個在等人` : ""}</small><i class="admArr">▾</i></h3><div class="admFB">${["couple","bestie","bro","solo"].map(modeRow).join("")}
         ${st.waiting ? `<div class="k admNote">有 ${st.waiting} 個雙人小窩還在等另一個人加入</div>` : ""}</div></div>
       <div class="box admBox admFold ${admOpen("usage", true) ? "open" : ""}" data-fold="usage"><h3 class="admFH">用量<small>${Math.round(cPct*100)}%</small><i class="admArr">▾</i></h3><div class="admFB">
@@ -927,6 +928,7 @@ const App = (function(){
         const b = e.currentTarget; b.disabled = true; b.textContent = "送出中…";
         try{ await B.adminReply(id, t); if(!f.done) await B.adminFeedbackSet(id, false, false).catch(()=>{}); SFX.select(); toast("回覆送出了 🐾"); drawAdmin(); }
         catch(err){ console.error(err); b.disabled = false; b.textContent = "送出回覆"; toast(/admin_reply|function/i.test(String(err.message||err)) ? "資料庫還沒加上回覆功能（更新 12）" : "沒有成功，再試一次", 4000); } });
+      const wipB = it.querySelector('[data-a="wip"]'); if(wipB) wipB.addEventListener("click", async ()=>{ try{ await B.adminFeedbackWip(id, !f.wip); SFX.select(); toast(f.wip ? "改回未處理了" : "標成處理中了，對方也看得到 🔧"); drawAdmin(); }catch(e){ toast(/admin_feedback_wip|function/i.test(String(e.message||e)) ? "資料庫還沒加上處理中（更新 41）" : "沒有成功，再試一次", 4000); } });
       it.querySelector('[data-a="done"]').addEventListener("click", async ()=>{ try{ await B.adminFeedbackSet(id, !f.done, false); SFX.select(); drawAdmin(); }catch(e){ toast("沒有成功，再試一次"); } });
       const delB = it.querySelector('[data-a="del"]'); if(delB) delB.addEventListener("click", async e=>{ const b = e.currentTarget; if(b.dataset.arm !== "1"){ b.dataset.arm = "1"; b.textContent = "再按一次刪除"; setTimeout(()=>{ if(b.isConnected){ b.dataset.arm = ""; b.textContent = "🗑 刪除"; } }, 2500); return; }
         try{ await B.adminFeedbackSet(id, false, true); SFX.tap(); drawAdmin(); }catch(err){ toast("沒有成功，再試一次"); } });

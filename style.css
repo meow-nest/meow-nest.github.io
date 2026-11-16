@@ -3091,3 +3091,5 @@ body[data-wall="sakura"] .chat .lw::before{content:"";inset:-110px 0 0 -40px;bac
 .ptBar{display:flex;align-items:center;gap:8px;padding:8px 10px}.ptBar .btn{width:auto;flex:none;padding:6px 12px;font-size:14px;margin:0}
 .ptWho{display:flex;align-items:center;gap:8px;flex:1;min-width:0}.ptWho>svg,.ptWho .sp{width:40px;height:40px;flex:none}.ptWho b{display:block;font-weight:400}.ptWho small{display:block;font-size:12px;color:var(--muted)}
 .ptBox{padding:12px}
+.admFbH em{font-style:normal;font-size:11px;padding:0 6px;border:2px solid var(--line);margin-left:4px}.fbWipT{background:#fff3c4;color:#8a5a00}.fbDoneT{background:#d8f3e3;color:#2f7a52}.admFbI.wip{border-left:6px solid #f2c94c}.fbWipU{color:#8a5a00!important}
+.admActs{flex-wrap:wrap}.admActs button{white-space:nowrap}
