@@ -226,6 +226,7 @@ const App = (function(){
     const canAlone = g => g.solo || ALONE.includes(g.id);
     const gl = games.filter(g=>!g.hidden && (!isSolo() || g.solo));
     if(waitingTa) gl.sort((a,b)=>(canAlone(b)?1:0)-(canAlone(a)?1:0));
+    if(PT.ok) html += ptEntryHtml();
     html += `<div class="games">` + gl.map(g=>g.wip && !isAdmin ? `<div class="gcard soon wip" data-wip="1"><span class="gi">${window.GameArt && GameArt[g.id] ? `<span class="ga">${GameArt[g.id]()}</span>` : g.icon()}</span><span class="gn">${esc(g.name)}</span><span class="gd">🚧 待開發中</span></div>` : `<button class="gcard${waitingTa && !canAlone(g) ? " needTa" : ""}" data-g="${g.id}"><span class="gi">${window.GameArt && GameArt[g.id] ? `<span class="ga">${GameArt[g.id]()}</span>` : g.icon()}</span><span class="gn">${esc(g.name)}</span><span class="gd">${esc(g.desc)}</span>${waitingTa && !canAlone(g) ? `<span class="gb gWait">等 ta 加入</span>` : g.wip?`<span class="gb">🚧 測試中</span>`:g.badge&&g.badge()?`<span class="gb">${esc(g.badge())}</span>`:""}</button>`).join("")
       + `<div class="gcard soon"><span class="gi">${sprite("gray","sleep",{soft:true})}</span><span class="gn">新遊戲</span><span class="gd">敬請期待…</span></div></div><p class="gNote">本站遊戲純屬娛樂，不是賭博。貓幣、股市資金等都是虛擬的，不能儲值、不能換成現金或獎品。</p>`;
     if(fbUnread > 0) html = html.replace('<div id="truceHome">', `<div class="box banner fbBan" id="fbBan"><span class="bi">📮</span><div style="flex:1">站長回覆你的回報了！</div><button class="btn" id="bFbH">看看</button></div><div id="truceHome">`);
@@ -233,6 +234,7 @@ const App = (function(){
     renderMeter();
     const bfh=$("bFbH"); if(bfh) bfh.addEventListener("click", ()=>askFeedback());
     v.querySelectorAll("[data-g]").forEach(b=>b.addEventListener("click",()=>go("game-"+b.dataset.g)));
+    ptEntryBind();
     v.querySelectorAll("[data-wip]").forEach(b=>b.addEventListener("click",()=>{ SFX.tap(); toast("🚧 這個遊戲還在開發中，敬請期待～"); }));
     bindTiles();
     const bi=$("bInv"); if(bi) bi.addEventListener("click", shareInvite);
@@ -1120,6 +1122,168 @@ const App = (function(){
       SV.shown = true; svDeclined = false; svIntro(); };
     tryShow(0);
   }
+
+  // ---------- 跟其他小窩的朋友開房間一起玩（更新 40）----------
+  const PARTY_GAMES = ["draw","pool"];
+  const PT = { room:null, online:new Set(), subs:[], bcs:[], rs:{}, view:false, conn:null, mounted:null, loaded:false, busy:false, leaveArm:0 };
+  const ptErr = e => /party_|function|schema cache|404/i.test(String(e && e.message || e)) ? "資料庫還沒加上開房間的功能（更新 40）" : /not_member/.test(String(e && e.message || e)) ? "要先有自己的小窩才能開房間喔" : "連不上，檢查一下網路再試一次";
+  const ptMembers = () => (PT.room && PT.room.members) || [];
+  const ptOther = () => ptMembers().find(m => m.user_id !== me.uid) || null;
+  function ptSetState(v, st){
+    if(!PT.room || !(v > PT.room.version)) return;
+    PT.room.version = v; PT.room.state = st;
+    PT.subs.slice().forEach(h => { try{ h(clone(st)); }catch(e){ console.error(e); } });
+  }
+  async function ptRefresh(){
+    let r; try{ r = await B.rpc("party_mine"); }catch(e){ if(!PT.loaded){ PT.loaded = true; PT.err = ptErr(e); ptPaint(); } return; }
+    PT.loaded = true; PT.err = ""; if(!PT.ok){ PT.ok = true; const gs = document.querySelector("#view .games"); if(gs && !$("bParty")){ gs.insertAdjacentHTML("beforebegin", ptEntryHtml()); ptEntryBind(); } }
+    const old = PT.room;
+    if(!r){ if(old && PT.view) toast("房間已經關掉了"); PT.room = null; }
+    else if(old && old.id === r.id){
+      const had = (old.members||[]).length; old.members = r.members; old.code = r.code; old.host = r.host;
+      if(r.version > old.version) ptSetState(r.version, r.state);
+      if(PT.view && had === 2 && r.members.length < 2) toast("朋友離開房間了");
+      if(PT.view && had === 1 && r.members.length === 2){ SFX.match(); toast(`${esc((ptOther()||{}).name||"朋友")} 進房間了！`); }
+    } else PT.room = r;
+    ptPaint();
+  }
+  // 房間裡的遊戲用的 ctx：遊戲本身的存檔改存在房間裡，其他（貓幣、貓咪）照舊存在自己的小窩
+  function ptCtx(){
+    const c = Object.create(ctx), G = () => PT.room && PT.room.game;
+    c.party = true;
+    c.partner = () => { const m = ptOther(); return m ? { user_id:m.user_id, name:m.name, cat:m.cat } : null; };
+    c.players = () => ptMembers().map(m => m.user_id).sort();
+    c.nameOf = uid => uid === me.uid ? (me.name || "我") : ((ptMembers().find(m => m.user_id === uid) || {}).name || "朋友");
+    c.catOf = uid => uid === me.uid ? (me.cat || "orange") : ((ptMembers().find(m => m.user_id === uid) || {}).cat || "white");
+    c.isOnline = uid => uid === me.uid || PT.online.has(uid);
+    c.isBusy = () => false; c.mode = () => "bestie"; c.pw = () => "朋友";
+    c.getState = async g => g !== G() ? getState(g) : (PT.room && PT.room.version > 0 && PT.room.state != null ? { version: PT.room.version, state: clone(PT.room.state) } : null);
+    c.update = async (g, fn) => {
+      if(g !== G()) return update(g, fn);
+      for(let i = 0; i < 6; i++){
+        const R = PT.room; if(!R) return null;
+        const ns = fn(clone(R.state)); if(ns === undefined) return null;
+        let v; try{ v = await B.rpc("party_cas", { p_room: R.id, p_version: R.version, p_state: ns }); }catch(e){ toast(/too_big/.test(String(e.message||e)) ? "這局的資料太多了，重新開一局吧" : ptErr(e)); return null; }
+        if(v){ ptSetState(v, ns); return ns; }
+        let f; try{ f = await B.rpc("party_mine"); }catch(e){ f = null; }
+        if(!f || f.id !== R.id){ ptRefresh(); return null; }
+        if(PT.room === R){ R.members = f.members; if(f.version > R.version) ptSetState(f.version, f.state); }
+      }
+      toast("同步失敗，請再試一次"); return null;
+    };
+    c.onState = (g, h) => { if(g !== G()) return onState(g, h); PT.subs.push(h); return () => { PT.subs = PT.subs.filter(x => x !== h); }; };
+    c.broadcast = p => { if(B.partyBcast) B.partyBcast(Object.assign({ from: me.uid }, p)); };
+    c.onBroadcast = h => { PT.bcs.push(h); return () => { PT.bcs = PT.bcs.filter(x => x !== h); }; };
+    c.notifyPartner = async () => {};
+    c.restartable = (id, o) => { PT.rs[id] = o; return () => { if(PT.rs[id] === o) delete PT.rs[id]; }; };
+    c.askRestart = async id => { const o = PT.rs[id]; if(!o) return;
+      if(o.done()){ await o.run(); return; }
+      const m = modal(`<h3>要重新開一局嗎？</h3><p>這局還沒打完，${esc((ptOther()||{}).name||"朋友")} 那邊也會一起重新開始喔</p><button class="btn" id="ptRY" style="width:100%">重新開一局</button><button class="btn sub" id="ptRN" style="width:100%;margin-top:8px">先不要</button>`);
+      m.querySelector("#ptRN").addEventListener("click", () => m.remove());
+      m.querySelector("#ptRY").addEventListener("click", async () => { m.remove(); await o.run(); }); };
+    return c;
+  }
+  const ptHandlers = {
+    state: (v, st) => ptSetState(v, st),
+    members: () => ptRefresh(),
+    bc: p => { if(p && p.from !== me.uid) PT.bcs.slice().forEach(h => { try{ h(p); }catch(e){ console.error(e); } }); },
+    presence: list => { PT.online = new Set(list); ptPaintBar(); },
+    status: ok => { if(ok) ptRefresh(); },
+  };
+  const ptEntryHtml = () => `<button class="box ptEntry" id="bParty"><span class="ptEI">${icon("star")}</span><span><b>跟其他小窩的朋友一起玩</b><small>${PT.room ? `你在房間裡・房間碼 ${esc(PT.room.code)}` : "你畫我猜、喵喵撞球・開房間就能一起玩"}</small></span><em>▶</em></button>`;
+  function ptEntryBind(){ const bp = $("bParty"); if(bp) bp.addEventListener("click", ()=>{ SFX.tap(); go("party"); }); }
+  function ptConnect(){ const id = PT.room && PT.view ? PT.room.id : null; if(id === PT.conn) return; PT.conn = id; PT.online = new Set();
+    if(id){ if(B.partyConnect) B.partyConnect(id, ptHandlers); } else if(B.partyClose) B.partyClose(); }
+  function ptUnmount(){ const m = PT.mounted; if(!m) return; PT.mounted = null; try{ m.g.unmount && m.g.unmount(); }catch(e){ console.error(e); } PT.subs = []; PT.bcs = []; PT.rs = {}; document.querySelectorAll(".rqBar").forEach(x => x.remove()); }
+  function ptLeaveView(){ if(!PT.view) return; PT.view = false; ptUnmount(); ptConnect(); }
+  const ptGame = id => games.find(g => g.id === id);
+  async function ptShare(){
+    const R = PT.room; if(!R) return; const g = ptGame(R.game);
+    const url = location.origin + location.pathname + "?room=" + encodeURIComponent(R.code);
+    const text = `來喵喵小窩跟我一起玩「${g ? g.name : "遊戲"}」🎲 房間碼：${R.code}\n${url}`;
+    try{ if(navigator.share){ await navigator.share({ title:"喵喵小窩", text, url }); return; } }catch(e){ if(e && e.name === "AbortError") return; }
+    try{ await navigator.clipboard.writeText(text); toast("房間連結已複製，貼給朋友吧！"); }catch(e){ toast("房間碼：" + esc(R.code), 6000); }
+  }
+  async function ptCreate(game){
+    if(PT.busy) return; PT.busy = true; SFX.tap();
+    try{ const r = await B.rpc("party_create", { p_game: game });
+      if(r && r.error) toast(r.error === "too_many" ? "今天開太多房間了，明天再來吧" : "沒有成功，再試一次");
+      else if(r){ PT.room = r; try{ localStorage.removeItem("mw_ptJoin"); }catch(e){} }
+    }catch(e){ toast(ptErr(e), 4000); }
+    PT.busy = false; ptPaint();
+  }
+  async function ptJoin(code){
+    code = String(code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if(code.length !== 6){ toast("房間碼是 6 個英文或數字喔"); return; }
+    if(PT.busy) return; PT.busy = true; SFX.tap();
+    try{ const r = await B.rpc("party_join", { p_code: code });
+      if(r && r.error) toast(r.error === "full" ? "這個房間已經滿了（一間最多 2 個人）" : r.error === "too_many" ? "試太多次了，等一下再試" : "找不到這個房間<br>可能是房間碼打錯，或房間已經關掉了", 3500);
+      else if(r){ PT.room = r; SFX.match(); }
+    }catch(e){ toast(ptErr(e), 4000); }
+    try{ localStorage.removeItem("mw_ptJoin"); }catch(e){}
+    PT.busy = false; ptPaint();
+  }
+  async function ptLeave(){
+    const t = Date.now();
+    if(ptMembers().length > 1 && t - PT.leaveArm > 2500){ PT.leaveArm = t; toast("再按一次離開房間"); return; }
+    PT.leaveArm = 0; SFX.tap(); ptUnmount();
+    try{ await B.rpc("party_leave"); }catch(e){ toast(ptErr(e)); return; }
+    PT.room = null; ptConnect(); ptPaint();
+  }
+  function ptPaintBar(){
+    const b = $("ptBar"), R = PT.room; if(!b || !R) return;
+    const o = ptOther(), g = ptGame(R.game);
+    b.innerHTML = o ? `<span class="ptWho">${sprite(o.cat || "white", PT.online.has(o.user_id) ? "happy" : "sleep")}<span><b>${esc(o.name)}</b><small>${PT.online.has(o.user_id) ? "在房間裡" : "暫時離開了"}・房間碼 ${esc(R.code)}</small></span></span><button class="btn sub" id="ptOut">離開房間</button>`
+      : `<span class="ptWho">${g ? (window.GameArt && GameArt[g.id] ? "" : g.icon()) : ""}<span><b>${esc(g ? g.name : "")}</b><small>房間碼 ${esc(R.code)}</small></span></span><button class="btn sub" id="ptOut">離開房間</button>`;
+    b.querySelector("#ptOut").addEventListener("click", ptLeave);
+  }
+  function ptPaint(){
+    const a = $("ptArea"); if(!a || !PT.view) return;
+    const R = PT.room;
+    ptConnect();
+    if(!PT.loaded){ a.innerHTML = `<div class="box ptBox"><div class="k" style="text-align:center">載入中…</div></div>`; return; }
+    if(!R){
+      ptUnmount();
+      const pend = (()=>{ try{ return localStorage.getItem("mw_ptJoin") || ""; }catch(e){ return ""; } })();
+      a.innerHTML = `<div class="box ptBox"><div class="ptHead">${sprite(me.cat || "orange", "wave")}<p>開一間房間，把<b>房間碼</b>傳給其他小窩的朋友，<br>就能一起玩了！</p></div>
+        ${PT.err ? `<div class="k ptErrT">${esc(PT.err)}</div>` : ""}
+        <h3 class="ptH">開房間</h3><div class="ptGames">${PARTY_GAMES.map(id => { const g = ptGame(id); if(!g) return ""; return `<button class="gcard" data-pc="${id}"><span class="gi">${window.GameArt && GameArt[id] ? `<span class="ga">${GameArt[id]()}</span>` : g.icon()}</span><span class="gn">${esc(g.name)}</span><span class="gd">開一間房間</span></button>`; }).join("")}</div>
+        <h3 class="ptH">有朋友的房間碼？</h3><div class="ptJoin"><input id="ptCode" maxlength="6" placeholder="6 碼房間碼" autocomplete="off" autocapitalize="characters" spellcheck="false" value="${esc(pend)}"><button class="btn" id="ptGo">加入</button></div>
+        <div class="k ptNote">一間房間最多 2 個人・房間碼只給想一起玩的朋友・一天沒玩房間會自動關掉</div></div>`;
+      a.querySelectorAll("[data-pc]").forEach(b => b.addEventListener("click", () => ptCreate(b.dataset.pc)));
+      const inp = a.querySelector("#ptCode");
+      inp.addEventListener("input", () => { const v = inp.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6); if(v !== inp.value) inp.value = v; });
+      inp.addEventListener("keydown", e => { if(e.key === "Enter") ptJoin(inp.value); });
+      a.querySelector("#ptGo").addEventListener("click", () => ptJoin(inp.value));
+      if(pend && !PT.busy && !PT.autoTried){ PT.autoTried = true; ptJoin(pend); }
+      return;
+    }
+    const g = ptGame(R.game), two = ptMembers().length >= 2;
+    if(!two){
+      ptUnmount();
+      a.innerHTML = `<div class="box ptBox ptWait"><div class="ptHead">${sprite(me.cat || "orange", "happy")}<p>房間開好了！<br>把房間碼傳給朋友，等 ta 進來就能開始玩「${esc(g ? g.name : "")}」</p></div>
+        <div class="ptCode">${esc(R.code).split("").map(ch => `<b>${ch}</b>`).join("")}</div>
+        <button class="btn" id="ptShare" style="width:100%">📤 把房間傳給朋友</button>
+        <div class="k ptNote">朋友打開連結，或在「跟朋友一起玩」輸入房間碼就能進來<br>等的時候可以先去別的地方逛，房間會一直開著</div>
+        <button class="btn sub" id="ptOut" style="width:100%">離開房間</button></div>`;
+      a.querySelector("#ptShare").addEventListener("click", ptShare);
+      a.querySelector("#ptOut").addEventListener("click", ptLeave);
+      return;
+    }
+    if(PT.mounted && PT.mounted.id === R.id && $("ptGame")){ ptPaintBar(); return; }
+    ptUnmount();
+    a.innerHTML = `<div class="box ptBar" id="ptBar"></div><div id="ptGame"></div>`;
+    ptPaintBar();
+    if(!g){ $("ptGame").innerHTML = `<div class="box"><div class="k">這個遊戲不見了，離開房間再開一間吧</div></div>`; return; }
+    PT.mounted = { g, id: R.id };
+    try{ g.mount($("ptGame"), ptCtx()); }catch(e){ console.error(e); }
+  }
+  function viewParty(v){
+    v.innerHTML = `<div class="gtop"><button class="btn sub" id="bBack">◀ 回小窩</button><span class="gname">跟朋友一起玩</span></div><div id="ptArea"></div>`;
+    $("bBack").addEventListener("click", () => go("home"));
+    PT.view = true; ptPaint(); ptRefresh();
+  }
+  document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible" && PT.view) ptRefresh(); });
 
   // ---- 更新通知 (changelog.js) ----
   const NEWS_K = "mw_newsSeen";
@@ -2582,6 +2746,7 @@ const App = (function(){
     const r = (location.hash||"#home").slice(1) || "home";
     document.querySelectorAll(".hSheet").forEach(x=>x.remove()); { const tt = $("topTools"); if(tt) tt.innerHTML = ""; }
     { const ab=$("alBar"); if(ab) ab.remove(); const vr=$("vrec"); if(vr){ const c=vr.querySelector("#vrX"); if(c) c.click(); else vr.remove(); } }
+    ptLeaveView();
     if(curGame && curGame.unmount){ try{ curGame.unmount(); }catch(e){} } curGame=null; closeSheet(); kb=null; document.body.classList.remove("kbd"); const ofab=$("fab"); if(ofab) ofab.remove(); stkClose(true); Object.keys(RS).forEach(k=>{ RS[k].un && RS[k].un(); delete RS[k]; }); rqBar(null);
     route = r.startsWith("game-") ? "game" : r;
     document.body.classList.toggle("admsolo", isAdmin && isSolo());
@@ -2592,6 +2757,7 @@ const App = (function(){
     if(route==="chat" && isSolo()){ route = "home"; viewHome(v); }
     else if(route==="chat") viewChat(v);
     else if(route==="settings") viewSettings(v);
+    else if(route==="party") viewParty(v);
     else if(route==="album"){ if(NO_MEDIA) viewHome(v); else viewAlbum(v); }
     else if(route==="game"){
       const g = games.find(x=>x.id===r.slice(5));
@@ -2710,6 +2876,11 @@ const App = (function(){
     document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible") touchSeen(); });
     B.connect();
     if(justCreated) location.hash = isSolo() ? "home" : "settings"; else if(!location.hash || location.hash==="#") location.hash="home";
+    ptRefresh();
+    { const rc = new URLSearchParams(location.search).get("room");
+      if(rc){ try{ localStorage.setItem("mw_ptJoin", rc.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6)); }catch(e){}
+        try{ const u = new URL(location.href); u.searchParams.delete("room"); history.replaceState(null, "", u.pathname + u.search + "#party"); }catch(e){}
+        location.hash = "party"; } }
     render();
     if(justCreated && isSolo()) setTimeout(showMoveTip, 900);
     if(justCreated) setTimeout(()=>toast(isSolo() ? `${sprite(me.cat,"wave")} 小窩建好了！挑一個遊戲開始玩吧` : `${sprite(me.cat,"wave")} 小窩建好了！把邀請碼傳給${pw()}吧`, 5000), 300);

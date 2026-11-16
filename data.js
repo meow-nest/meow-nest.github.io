@@ -229,6 +229,25 @@
       });
       B._ch = ch;
     };
+    // 跟其他小窩的朋友開房間：另外一條只有房間裡的人能進的即時頻道（更新 40）
+    B.partyConnect = async (id, h) => {
+      B.partyClose();
+      try { const { data } = await sb.auth.getSession(); if (data && data.session) sb.realtime.setAuth(data.session.access_token); } catch (e) {}
+      const ch = sb.channel("party-" + id, { config: { private: true, presence: { key: B.uid } } });
+      ch.on("postgres_changes", { event: "UPDATE", schema: "public", table: "party_rooms", filter: `id=eq.${id}` }, p => { const r = p.new; if (r) h.state(r.version, r.state); });
+      ch.on("postgres_changes", { event: "*", schema: "public", table: "party_members", filter: `room_id=eq.${id}` }, () => h.members());
+      ch.on("broadcast", { event: "g" }, m => { if (m && m.payload) h.bc(m.payload); });
+      ch.on("presence", { event: "sync" }, () => { const st = ch.presenceState(); h.presence(Object.keys(st)); });
+      let back = 0;
+      ch.subscribe(status => {
+        if (B._pch !== ch) return;
+        if (status === "SUBSCRIBED") { back = 0; ch.track({ at: Date.now() }).catch(() => {}); h.status(true); }
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") { h.status(false); back = Math.min(20000, (back || 1000) * 2); setTimeout(() => { if (B._pch === ch) B.partyConnect(id, h); }, back); }
+      });
+      B._pch = ch;
+    };
+    B.partyClose = () => { if (B._pch) { const c = B._pch; B._pch = null; try { sb.removeChannel(c); } catch (e) {} } };
+    B.partyBcast = (payload) => { try { if (B._pch) B._pch.send({ type: "broadcast", event: "g", payload }); } catch (e) {} };
     B.track = (meta) => { B._meta = meta; if (B._ch) B._ch.track(meta).catch(() => {}); };
     B.bcast = (payload) => { try { if (B._ch) B._ch.send({ type: "broadcast", event: "g", payload }); } catch (e) {} };
     B.on = (what, h) => { B._h[what].push(h); };
@@ -301,6 +320,12 @@
     B.track = (meta) => { B._meta = meta; if (B.coupleId) call("track", { cid: B.coupleId, uid: B.uid, meta }); };
     B.on = (what, h) => { B._h[what].push(h); };
     B.reconnect = () => B.connect();
+    // 房間（測試用）：事件由測試程式轉送
+    B.partyConnect = (id, h) => { B._party = { id, h }; call("pconn", { id, uid: B.uid }); setTimeout(() => h.status(true), 0); };
+    B.partyClose = () => { if (B._party) call("pclose", { id: B._party.id, uid: B.uid }); B._party = null; };
+    B.partyBcast = (payload) => { if (B._party) call("pbc", { id: B._party.id, uid: B.uid, payload }); };
+    window.__partyEvent = (ev) => { const P = B._party; if (!P || ev.id !== P.id) return;
+      if (ev.t === "state") P.h.state(ev.version, ev.state); if (ev.t === "members") P.h.members(); if (ev.t === "presence") P.h.presence(ev.list); if (ev.t === "bc" && ev.from !== B.uid) P.h.bc(ev.payload); };
     return B;
   }
 

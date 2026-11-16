@@ -311,7 +311,7 @@ App.registerGame({
       box.dataset.mode = "";
       box.innerHTML = `<div class="drRes ${r.ok?"ok":""}"><div class="drResHd">${head}</div><div class="drAns">答案是「<b>${esc(s.word||"")}</b>」</div>
         <canvas class="drCv" id="drCv"></canvas>
-        <div class="drCats">${sprite(ctx.catOf(s.drawer), r.ok?"love":"cry")}<span>${r.ok?`${esc(ctx.nameOf(s.drawer))} 畫、${esc(ctx.nameOf(other()===s.drawer?me():other()))} 猜，默契滿分 💗${r.ok?"<br>我們的貓 +1 小魚乾 🐟":""}`:"沒關係，下一題一定可以！"}</span>${sprite(ctx.catOf(s.drawer===me()?other():me()), r.ok?"love":"cry")}</div>
+        <div class="drCats">${sprite(ctx.catOf(s.drawer), r.ok?"love":"cry")}<span>${r.ok?`${esc(ctx.nameOf(s.drawer))} 畫、${esc(ctx.nameOf(other()===s.drawer?me():other()))} 猜，默契滿分 💗${r.ok && !ctx.party?"<br>我們的貓 +1 小魚乾 🐟":""}`:"沒關係，下一題一定可以！"}</span>${sprite(ctx.catOf(s.drawer===me()?other():me()), r.ok?"love":"cry")}</div>
         <button class="btn" id="drNext" style="width:100%">${s.drawer===me() ? `換 ${esc(pName)} 畫 ▶` : "換我畫 ▶"}</button></div>${stats}
         ${(s.hist||[]).length ? `<div class="drHist"><b>最近的題目</b>${s.hist.slice(-6).reverse().map(h=>`<span class="${h.ok?"ok":""}">${h.ok?"✔":"✘"} ${esc(h.w)}</span>`).join("")}</div>` : ""}`;
       setupCanvas();
