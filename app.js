@@ -923,7 +923,7 @@ const App = (function(){
       rb.querySelector('[data-a="cancel"]').addEventListener("click", ()=>{ rb.classList.add("hidden"); acts.classList.remove("hidden"); });
       rb.querySelector('[data-a="send"]').addEventListener("click", async e=>{ const t = rb.querySelector("textarea").value.trim(); if(!t){ toast("先寫一點回覆喔"); return; }
         const b = e.currentTarget; b.disabled = true; b.textContent = "送出中…";
-        try{ await B.adminReply(id, t); SFX.select(); toast("回覆送出了 🐾"); drawAdmin(); }
+        try{ await B.adminReply(id, t); if(!f.done) await B.adminFeedbackSet(id, false, false).catch(()=>{}); SFX.select(); toast("回覆送出了 🐾"); drawAdmin(); }
         catch(err){ console.error(err); b.disabled = false; b.textContent = "送出回覆"; toast(/admin_reply|function/i.test(String(err.message||err)) ? "資料庫還沒加上回覆功能（更新 12）" : "沒有成功，再試一次", 4000); } });
       it.querySelector('[data-a="done"]').addEventListener("click", async ()=>{ try{ await B.adminFeedbackSet(id, !f.done, false); SFX.select(); drawAdmin(); }catch(e){ toast("沒有成功，再試一次"); } });
       const delB = it.querySelector('[data-a="del"]'); if(delB) delB.addEventListener("click", async e=>{ const b = e.currentTarget; if(b.dataset.arm !== "1"){ b.dataset.arm = "1"; b.textContent = "再按一次刪除"; setTimeout(()=>{ if(b.isConnected){ b.dataset.arm = ""; b.textContent = "🗑 刪除"; } }, 2500); return; }
@@ -980,7 +980,7 @@ const App = (function(){
   const SV_PAGES = [
     { t:"整體感覺", q:[["r1","star","整體來說，你喜歡喵喵小窩嗎？"],["r2","star","畫面好不好看、可不可愛？"],["r3","star","用起來順不順、會不會卡卡的？"]] },
     { t:"平常怎麼用", q:[["q4","one","你通常跟誰一起用？",SV_O("couple:情侶|bestie:閨蜜|bro:兄弟|solo:自己一個人")],
-      ["q5","many","你最常用哪些功能？（最多選 3 個）",SV_O("chat:聊天|sticker:傳貼圖|pet:養貓咪|deco:佈置房間|games:小遊戲|claw:夾娃娃|stock:貓貓股市|album:相簿|daily:早安晚安|notes:記事本"),3],
+      ["q5","many","你最常用哪些功能？（最多選 3 個）",SV_O("chat:聊天|sticker:傳貼圖|pet:養貓咪|deco:佈置房間|games:小遊戲|claw:夾娃娃|stock:貓貓股市|"+(NO_MEDIA?"":"album:相簿|")+"daily:早安晚安|notes:記事本"),3],
       ["q6","one","你多久來一次？",SV_O("many:每天好幾次|daily:每天一次|week:一週幾次|rare:偶爾想到才來")]] },
     { t:"遊戲", q:[["q7","many","你最喜歡哪幾個遊戲？（最多選 3 個）",SV_O("moqi:默契大考驗|meld:想到一起|draw:你畫我猜|bingo:喵喵賓果|fishing:釣魚大賽|claw:喵喵夾娃娃機|claw3d:3D 夾娃娃機|stock:貓貓股市|match3:喵喵消消樂|tetris:喵喵方塊|catstack:疊貓貓|runner:跳跳貓|whack:打老鼠|memory:貓貓翻牌配對|defense:守護罐罐大作戰|boat:喵喵划龍舟|runaway:喵喵大逃亡|fight:貓咪格鬥|quickdraw:西部快槍手|pool:喵喵撞球|gomoku:五子棋|chess:喵喵西洋棋|banqi:喵喵暗棋|battleship:喵喵海戰|guess:終極密碼|sashimi:喵喵廚房|stars:等你的星星罐"),3],
       ["q8","one","遊戲的難度你覺得？",SV_O("easy:太簡單|ok:剛剛好|hard:有點難|toohard:太難了")]] },
