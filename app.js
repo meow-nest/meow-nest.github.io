@@ -204,14 +204,24 @@ const App = (function(){
   const LV_C=[[0,"Lv1 陌生小貓"],[3,"Lv2 開始蹭蹭"],[8,"Lv3 心有靈喵"],[15,"Lv4 默契滿喵"],[25,"Lv5 靈魂貓伴"],[40,"Lv6 宇宙第一喵情侶"]];
   const LV_B=[[0,"Lv1 剛認識的貓"],[3,"Lv2 一起喝珍奶"],[8,"Lv3 心有靈喵"],[15,"Lv4 默契滿喵"],[25,"Lv5 靈魂姊妹喵"],[40,"Lv6 宇宙第一喵閨蜜"]];
   const LV_M=[[0,"Lv1 點頭之交喵"],[3,"Lv2 一起打電動"],[8,"Lv3 心有靈喵"],[15,"Lv4 默契滿喵"],[25,"Lv5 換帖兄弟喵"],[40,"Lv6 宇宙第一喵兄弟"]];
-  function lvInfo(h){ const LV = roomMode==="bro" ? LV_M : roomMode==="bestie" ? LV_B : LV_C; let i=0; while(i+1<LV.length&&h>=LV[i+1][0]) i++; const n=LV[i+1]; return {name:LV[i][1],cur:LV[i][0],next:n?n[0]:null,nextName:n?n[1]:null}; }
-  ctx.lvInfo = lvInfo;
+  // 親密等級沒有上限：Lv6 之後每升一級要多 5 條小魚乾（Lv7 60、Lv8 85、Lv9 115、Lv10 150…）
+  const lvNeed = n => n <= 6 ? LV_C[n-1][0] : lvNeed(n-1) + 15 + 5*(n-6);
+  function lvName(n){
+    const LV = roomMode==="bro" ? LV_M : roomMode==="bestie" ? LV_B : LV_C;
+    if(n <= 6) return LV[n-1][1];
+    const who = roomMode==="bro" ? "兄弟" : roomMode==="bestie" ? "閨蜜" : "情侶";
+    return `Lv${n} ${(["銀河","流星","彩虹","永恆"][n-7] || "傳說")}喵${who}`;
+  }
+  function lvOf(h){ let n = 1; while(h >= lvNeed(n+1) && n < 9999) n++; return n; }
+  function lvInfo(h){ const n = lvOf(h); return { n, name:lvName(n), cur:lvNeed(n), next:lvNeed(n+1), nextName:lvName(n+1) }; }
+  ctx.lvInfo = lvInfo; ctx.lvRank = () => lvRank();
   function renderMeter(){
     const el=$("meter"); if(!el) return;
     const s = stateCache.moqi && stateCache.moqi.state; const h = s ? (s.hearts||0) : 0; const L=lvInfo(h);
     const frac = L.next ? (h-L.cur)/(L.next-L.cur) : 1;
     el.innerHTML = `<span class="lv">${L.name}</span><span class="segs">${[...Array(8)].map((_,i)=>`<i class="${i<Math.round(frac*8)?'f':''}"></i>`).join("")}</span><span class="fish">${icon("fish")}${h}</span>`;
-    el.title = L.next?`再收集 ${L.next-h} 條小魚乾 → ${L.nextName}`:"已經是最高等級啦";
+    el.title = `再收集 ${L.next-h} 條小魚乾 → ${L.nextName}・點一下看排行榜`;
+    if(!el.dataset.rk){ el.dataset.rk = "1"; el.style.cursor = "pointer"; el.addEventListener("click", ()=>{ SFX.tap(); lvRank(); }); }
   }
   function viewHome(v, force){
     if(isAdmin && !force) return viewAdmin(v);
@@ -1171,6 +1181,27 @@ const App = (function(){
     const tryShow = (n) => { if(SV.shown || SV.done) return; if(document.querySelector(".careModal")){ if(n < 40) setTimeout(()=>tryShow(n+1), 1500); return; }
       SV.shown = true; svDeclined = false; svIntro(); };
     tryShow(0);
+  }
+
+  // ---------- 全站親密等級排行榜（更新 47）：只跟同一種模式比（情侶／閨蜜／兄弟） ----------
+  async function lvRank(){
+    const who = roomMode==="bro" ? "兄弟" : roomMode==="bestie" ? "閨蜜" : "情侶";
+    const o = modal(`<div class="lrHd">${icon("crown")}<h3>${who}貓貓等級排行榜</h3></div><div class="lrList" id="lrL"><div class="k" style="text-align:center;padding:20px">讀取中…</div></div>
+      <div class="k lrNote">默契大考驗答得一樣就會得到小魚乾、升等級。名字只會顯示第一個字。</div>
+      <button class="btn sub" id="lrOk" style="width:100%;margin-top:8px">關閉</button>`, "svModal lrModal");
+    o.querySelector("#lrOk").addEventListener("click", ()=>o.remove());
+    let r; try{ r = await B.rpc("lv_rank"); }catch(e){ o.querySelector("#lrL").innerHTML = `<div class="k" style="text-align:center;padding:20px">${/lv_rank|function|schema/.test(String(e && e.message || e)) ? "排行榜還沒開放喔（更新 47）" : "網路好像不太穩，等等再試～"}</div>`; return; }
+    if(!o.isConnected) return;
+    const mine = members.map(m=>m.name), myCats = members.map(m=>m.cat);
+    const row = (x, me) => { const L = lvInfo(x.h), w = x.who || [];
+      const names = me ? mine.map(esc).join(" ♥ ") : w.map(m=>esc(m.name)).join(" ♥ ");
+      const cats = (me ? myCats : w.map(m=>m.cat)).map(c=>`<span>${sprite(c||"orange","love",{plain:true})}</span>`).join("");
+      return `<div class="lrRow ${me?"me":""} ${x.rk<=3?"top"+x.rk:""}"><b class="lrRk">${x.rk<=3 ? icon("crown") : ""}<i>${x.rk}</i></b><span class="lrCats">${cats}</span><span class="lrWho"><b>${names}</b><small>${esc(L.name)}</small></span><span class="lrH">${icon("fish")}${x.h}</span></div>`; };
+    const top = (r && r.top) || [], me = r && r.mine;
+    o.querySelector("#lrL").innerHTML = (top.length ? top.map(x=>row(x, x.me)).join("") : `<div class="k" style="text-align:center;padding:20px">還沒有人上榜，快去玩默契大考驗！</div>`)
+      + (me && !top.some(x=>x.me) ? `<div class="lrGap">⋯</div>${row(me, true)}` : "")
+      + (!me ? `<div class="k" style="text-align:center;margin-top:8px">你們還沒上榜，默契大考驗答對一題就上榜囉！</div>` : "")
+      + `<div class="k" style="text-align:center;margin-top:6px">一共 ${(r && r.total) || 0} 對${who}</div>`;
   }
 
   // ---------- 生日限定「壽星貓」（更新 46）：生日前後 7 天挑一隻，每年都能再挑一隻 ----------
