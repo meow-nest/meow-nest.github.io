@@ -93,7 +93,7 @@ begin
   select * into r from party_rooms where code = upper(trim(coalesce(p_code, ''))) and last_at > now() - interval '1 day' for update;
   if r.id is null then insert into party_log(user_id, kind) values (auth.uid(), 'miss'); return json_build_object('error', 'no_room'); end if;
   if exists (select 1 from party_members where room_id = r.id and user_id = auth.uid()) then return party_info(r.id); end if;
-  if (select count(*) from party_members where room_id = r.id) >= 2 then return json_build_object('error', 'full'); end if;
+  if (select count(*) from party_members where room_id = r.id) >= (case when r.game = 'draw' then 6 else 2 end) then return json_build_object('error', 'full'); end if;
   perform party_out(auth.uid());
   insert into party_members(room_id, user_id, name, cat) values (r.id, auth.uid(), me.name, coalesce(me.cat, 'orange'));
   update party_rooms set last_at = now() where id = r.id;

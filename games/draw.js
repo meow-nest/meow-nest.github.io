@@ -62,6 +62,90 @@ App.registerGame({
     const fresh = (drawer, prev) => ({ round:(prev&&prev.round||0)+1, drawer, phase:"pick", opts:pickWords(prev&&prev.used, prev&&prev.only), only:(prev&&prev.only)||null, word:null, cat:null, until:0, started:0, strokes:[], guesses:[], hint:0,
       solved:(prev&&prev.solved)||0, streak:(prev&&prev.streak)||0, best:(prev&&prev.best)||0, fast:(prev&&prev.fast)||0, used:(prev&&prev.used)||[], hist:(prev&&prev.hist)||[], result:null });
 
+    // ---------- 多人版（開房間，最多 6 人）----------
+    // 每人輪流畫 per 次；猜對：第 1 個 +3、第 2 個 +2、其他 +1；每有一個人猜對，畫的人 +1；最後分數最高的人贏
+    const MP = !!ctx.party;
+    const here = () => ctx.players();
+    const hostId = () => { const h = ctx.partyHost && ctx.partyHost(); return h && here().includes(h) ? h : here()[0]; };
+    const amHost = () => hostId() === me();
+    const lobbyState = prev => ({ mp:true, phase:"lobby", per:(prev&&prev.per)||2, round:0, scores:{}, drawn:{}, order:[], drawer:null, strokes:[], guesses:[], used:(prev&&prev.used)||[], hist:[] });
+    function nextDrawerOf(x){
+      const pl = here(), ord = (x.order||[]).filter(u=>pl.includes(u)); if(!ord.length) return null;
+      const i0 = (x.order||[]).filter(u=>pl.includes(u) || u===x.drawer).indexOf(x.drawer);
+      const ring = (x.order||[]).filter(u=>pl.includes(u) || u===x.drawer);
+      for(let k=1;k<=ring.length;k++){ const u = ring[((i0<0?-1:i0)+k) % ring.length]; if(pl.includes(u) && ((x.drawn||{})[u]||0) < x.per) return u; }
+      return null;
+    }
+    function toPick(x, drawer){ return Object.assign(x, { round:(x.round||0)+1, drawer, phase:"pick", opts:pickWords(x.used), word:null, cat:null, until:0, started:0, strokes:[], guesses:[], hint:0, solvers:[], result:null }); }
+    function mpAdvance(x){ const u = nextDrawerOf(x); if(!u){ x.phase = "over"; x.drawer = null; x.strokes = []; x.guesses = []; return x; } return toPick(x, u); }
+    function mpSync(x){ let ch = false; for(const u of here()){ if(!(x.order||[]).includes(u)){ x.order = (x.order||[]).concat([u]); ch = true; } if(x.phase!=="lobby" && x.scores && x.scores[u]==null){ x.scores[u] = 0; ch = true; } } return ch; }
+    const mpTotal = x => here().length * (x.per||1);
+    const mpDoneN = x => here().reduce((n,u)=>n+Math.min(x.per||1, (x.drawn||{})[u]||0), 0);
+    function settleMP(x, why){
+      const secs = Math.max(1, Math.round((Date.now() - (x.started||Date.now()))/1000)), n = (x.solvers||[]).length;
+      x.phase = "done"; x.result = { ok: n > 0, n, secs, why: why||null, at: Date.now() };
+      x.drawn = x.drawn || {}; if(x.drawer) x.drawn[x.drawer] = (x.drawn[x.drawer]||0) + 1;
+      if(x.word) x.hist = (x.hist||[]).concat([{ w:x.word, ok:n>0, by:x.drawer, n }]).slice(-20);
+    }
+    const iSolved = () => !!(s && (s.solvers||[]).some(v=>v.u===me()));
+    function board(x, big){
+      const sc = x.scores || {}, list = here().map(u=>({ u, v: sc[u]||0 })).sort((a,b)=>b.v-a.v);
+      if(big){ const top = list.length ? list[0].v : 0;
+        return `<div class="drRank">${list.map((r,i)=>{ const pl = list.filter(q=>q.v>r.v).length; return `<div class="${r.v===top?"win":""} ${r.u===me()?"me":""}"><em>${pl===0?"🥇":pl===1?"🥈":pl===2?"🥉":pl+1}</em>${sprite(ctx.catOf(r.u), r.v===top?"love":"happy")}<span>${esc(r.u===me()?"你":ctx.nameOf(r.u))}</span><b>${r.v} 分</b></div>`; }).join("")}</div>`; }
+      return `<div class="drBoard">${list.map(r=>`<span class="${x.drawer===r.u?"dw":""} ${(x.solvers||[]).some(v=>v.u===r.u)?"ok":""}">${x.drawer===r.u?"✏️":""}${esc(r.u===me()?"你":ctx.nameOf(r.u))} <b>${r.v}</b></span>`).join("")}</div>`;
+    }
+    function renderMP(){
+      const pl = here();
+      if(s.phase==="lobby"){
+        const host = amHost();
+        box.innerHTML = `<div class="drHd"><b>你畫我猜・多人房</b></div>
+          <div class="drLobby">${pl.map(u=>`<span>${sprite(ctx.catOf(u), "happy")}<i>${esc(u===me()?"你":ctx.nameOf(u))}${u===hostId()?"<em>房主</em>":""}</i></span>`).join("")}</div>
+          <div class="drRule"><b>怎麼贏？</b>大家輪流畫，其他人一起猜。<br>猜對：第 1 個 <b>+3</b>、第 2 個 <b>+2</b>、之後 <b>+1</b><br>每有一個人猜對，畫的人也 <b>+1</b><br>每個人都畫完，<b>分數最高的人贏！</b></div>
+          <div class="drPer"><span>每人畫幾次</span>${[1,2,3].map(n=>`<button data-per="${n}" class="${s.per===n?"on":""}" ${host?"":"disabled"}>${n} 次</button>`).join("")}</div>
+          ${host ? `<button class="btn" id="drStart" style="width:100%" ${pl.length<2?"disabled":""}>${pl.length<2?"等朋友進來…":`開始遊戲（${pl.length} 人・共 ${pl.length*s.per} 回合）`}</button>` : `<p class="drSub" style="text-align:center">等房主 ${esc(ctx.nameOf(hostId()))} 按開始…</p>`}
+          <p class="drSub" style="text-align:center">最多 6 人・玩到一半也可以加入</p>`;
+        box.querySelectorAll("[data-per]").forEach(b=>b.addEventListener("click", ()=>{ if(!amHost()) return; SFX.tap(); const n = +b.dataset.per; ctx.update("draw", x=>{ if(!x || x.phase!=="lobby") return undefined; x.per = n; return x; }); }));
+        const st = $("#drStart"); if(st) st.addEventListener("click", ()=>{ if(here().length < 2) return; SFX.select();
+          ctx.update("draw", x=>{ if(!x || x.phase!=="lobby") return undefined; x.order = here().slice().sort(()=>Math.random()-.5); x.scores = {}; x.drawn = {}; here().forEach(u=>{ x.scores[u] = 0; }); x.drawer = null; x.round = 0; x.hist = []; return mpAdvance(x); }); });
+        return;
+      }
+      if(s.phase==="pick"){
+        const k = Math.min(mpTotal(s), mpDoneN(s)+1);
+        if(isDrawer()){
+          box.innerHTML = `<div class="drHd"><b>第 ${k} / ${mpTotal(s)} 回合・換你畫！</b></div><p class="drSub">選一個你想畫的題目（其他人看不到喔）</p>
+            <div class="drPick">${s.opts.map((o,i)=>`<button data-o="${i}"><i>${esc(o[1])}</i><b>${esc(o[0])}</b></button>`).join("")}</div>
+            <div class="drPickBtns"><button class="btn sub" id="drRe">🔄 換一組題目</button></div>${board(s)}`;
+          box.querySelectorAll("[data-o]").forEach(b=>b.addEventListener("click", ()=>start(+b.dataset.o)));
+          $("#drRe").addEventListener("click", ()=>{ SFX.tap(); ctx.update("draw", x=>{ if(!x || x.phase!=="pick" || x.drawer!==me()) return undefined; x.opts = pickWords(x.used); return x; }); });
+        } else box.innerHTML = `<div class="drWait">${sprite(ctx.catOf(s.drawer),"normal")}<p>第 ${k} / ${mpTotal(s)} 回合<br><b>${esc(ctx.nameOf(s.drawer))}</b> 正在選題目…</p><p class="drSub">等等大家一起猜，越快猜對分數越高 🤔</p></div>${board(s)}`;
+        return;
+      }
+      if(s.phase==="done"){
+        closeKb(); box.classList.remove("drFull", "rot"); box.style.width = box.style.height = ""; document.body.classList.remove("drFullOn"); box.dataset.mode = "";
+        const r = s.result || {}, last = mpDoneN(s) >= mpTotal(s);
+        const head = r.n ? `🎉 ${r.n} 個人猜對了！` : r.why==="give" ? "😵 這題放棄了" : r.why==="left" ? `${esc(ctx.nameOf(s.drawer))} 離開了，這題跳過` : "⏰ 時間到，沒有人猜到～";
+        box.innerHTML = `<div class="drRes ${r.n?"ok":""}"><div class="drResHd">${head}</div><div class="drAns">答案是「<b>${esc(s.word||"")}</b>」</div>
+          <canvas class="drCv" id="drCv"></canvas>
+          <div class="drGot">${(s.solvers||[]).map(v=>`<span>${esc(v.u===me()?"你":ctx.nameOf(v.u))} <b>+${v.pts}</b></span>`).join("")}${r.n ? `<span class="dw">✏️ ${esc(s.drawer===me()?"你":ctx.nameOf(s.drawer))} <b>+${r.n}</b></span>` : ""}</div>
+          ${board(s)}
+          <button class="btn" id="drNext" style="width:100%">${last ? "看最後結果 🏆" : "下一回合 ▶"}</button><p class="drSub" style="text-align:center" id="drAuto"></p></div>`;
+        setupCanvas();
+        $("#drNext").addEventListener("click", next);
+        return;
+      }
+      if(s.phase==="over"){
+        closeKb(); box.dataset.mode = "";
+        const sc = s.scores || {}, top = Math.max(0, ...here().map(u=>sc[u]||0)), win = here().filter(u=>(sc[u]||0)===top);
+        box.innerHTML = `<div class="drOver"><div class="drResHd">🏆 遊戲結束！</div>
+          <div class="drWin">${win.map(u=>sprite(ctx.catOf(u),"love")).join("")}<p>${win.length > 1 ? `${win.map(u=>esc(u===me()?"你":ctx.nameOf(u))).join("、")} 同分，一起贏了！` : win[0]===me() ? "你贏了！畫得好又猜得快 🎉" : `${esc(ctx.nameOf(win[0]))} 贏了！`}</p></div>
+          ${board(s, true)}
+          <button class="btn" id="drAgain" style="width:100%">再玩一局</button>
+          ${(s.hist||[]).length ? `<div class="drHist"><b>這局的題目</b>${s.hist.slice().reverse().map(h=>`<span class="${h.ok?"ok":""}">${h.ok?"✔":"✘"} ${esc(h.w)}</span>`).join("")}</div>` : ""}</div>`;
+        $("#drAgain").addEventListener("click", ()=>{ SFX.select(); ctx.update("draw", x=>{ if(!x || x.phase!=="over") return undefined; return lobbyState(x); }); });
+        return;
+      }
+    }
+
     // ---------- canvas ----------
     // stroke: { id, t:"pen"|"mark"|"er"|"line"|"oval"|"rect"|"fill", c:"#hex" (old: index), sz (old: w index), p:[x,y,...] }
     let cv = null, g = null, scale = 1, base = null;
@@ -249,6 +333,7 @@ App.registerGame({
     // ---------- views ----------
     function render(){
       const p = ctx.partner();
+      if(MP && s && s.phase !== "draw"){ renderMP(); return; }
       if(!p){ box.innerHTML = `<div class="drWait">${sprite("white","sleep",{soft:true})}<p>等${ctx.pw()}加入小窩才能玩喔</p></div>`; return; }
       if(!s){ box.innerHTML = `<div class="drWait">${sprite(ctx.me.cat,"happy")}<p>準備中…</p></div>`; return; }
       const stats = `<div class="drStats">🤝 一起答對 <b>${s.solved||0}</b> 題・連續 <b>${s.streak||0}</b>・最快 <b>${s.fast?s.fast+" 秒":"—"}</b></div>`;
@@ -266,9 +351,10 @@ App.registerGame({
         return;
       }
       if(s.phase==="draw"){
-        const drawer = isDrawer();
-        if(!$("#drCv") || box.dataset.mode !== (drawer?"d":"g")+s.round){
-          box.dataset.mode = (drawer?"d":"g")+s.round;
+        const drawer = isDrawer(), solvedMe = MP && !drawer && iSolved(), mkey = (drawer?"d":solvedMe?"s":"g")+s.round;
+        if(!$("#drCv") || box.dataset.mode !== mkey){
+          if(solvedMe) closeKb();
+          box.dataset.mode = mkey;
           box.innerHTML = `<div class="drTop"><span class="drWord" id="drWord"></span><span class="drTime" id="drTime"></span></div>
             <div class="drStage" id="drStage"><canvas class="drCv" id="drCv"></canvas>${drawer ? `<button class="drZoomR hidden" id="drZR">🔍 回到 1 倍</button>` : ""}</div>
             ${drawer ? `<div class="drBar" id="drBar">
@@ -278,6 +364,7 @@ App.registerGame({
                 <div class="drActRow"><button id="drUndo">↩ 復原</button><button id="drRedo">↪ 重做</button><button id="drClr">🗑 清空</button><button id="drHint">💡 提示</button><button id="drFull">⛶ 大畫布</button></div>
               </div>
               <div class="drFeed" id="drFeed"></div><button class="btn sub drGive" id="drGive">😵 放棄這題</button>`
+            : solvedMe ? `<div class="drFeed" id="drFeed"></div><div class="drSolved">🎉 你猜對了！等其他人猜…</div>`
             : `<div class="drFeed" id="drFeed"></div>
               <div class="drGuess"><input class="drIn" id="drIn" placeholder="點這裡猜猜看…" enterkeyhint="send"><button class="btn" id="drSend">猜！</button></div>`}`;
           setupCanvas(); bindDraw();
@@ -295,14 +382,15 @@ App.registerGame({
             $("#drHint").addEventListener("click", ()=>{ if(s.hint >= [...s.word].length-1){ ctx.toast("不能再提示了，再說就是答案啦 😹"); return; } SFX.select(); ctx.update("draw", x=>{ if(!x || x.phase!=="draw") return undefined; x.hint = Math.min([...x.word].length-1, (x.hint||0)+1); return x; }); });
             $("#drGive").addEventListener("click", ()=>finish(false, "give"));
             toolsUi();
-          } else {
+          } else if(!solvedMe) {
             gf = ctx.caretField($("#drIn"), 20); gf.el.addEventListener("input", ()=>{ guessText = gf.value; });
             kb = ctx.dockKeyboard(gf, { enterLabel:"猜！", onEnter: () => sendGuess(), phrases: ["是不是","好像是","應該是","我猜","動物","食物","哈哈","不知道"] });
             guessText = ""; paintGuess();
             $("#drSend").addEventListener("click", sendGuess);
           }
         } else animateNew();
-        $("#drWord").innerHTML = drawer ? `你要畫：<b>${esc(s.word)}</b>` : `提示：${esc(s.cat)}・<b class="hint">${esc(hintText())}</b>`;
+        $("#drWord").innerHTML = drawer ? `你要畫：<b>${esc(s.word)}</b>` : solvedMe ? `答案：<b>${esc(s.word)}</b>` : `提示：${esc(s.cat)}・<b class="hint">${esc(hintText())}</b>`;
+        if(MP){ let bd = $("#drBd"); if(!bd){ $("#drStage").insertAdjacentHTML("afterend", `<div id="drBd"></div>`); bd = $("#drBd"); } bd.innerHTML = board(s); }
         feed(); timeUi();
         return;
       }
@@ -333,10 +421,10 @@ App.registerGame({
     function feed(){
       const f = $("#drFeed"); if(!f || !s) return;
       const list = (s.guesses||[]).slice(-6);
-      f.innerHTML = list.length ? list.map(q=>`<span class="${q.close?"close":""}">${esc(q.by===me()?"你":ctx.nameOf(q.by))}：${esc(q.t)} ${q.close?"🔥 很接近！":"❌"}</span>`).join("") : `<span class="none">${isDrawer()?"猜的答案會出現在這裡":"猜錯也沒關係，多猜幾次！"}</span>`;
+      f.innerHTML = list.length ? list.map(q=>q.ok ? `<span class="got">🎉 ${esc(q.by===me()?"你":ctx.nameOf(q.by))} 猜對了！+${q.pts}</span>` : `<span class="${q.close?"close":""}">${esc(q.by===me()?"你":ctx.nameOf(q.by))}：${esc(q.t)} ${q.close?"🔥 很接近！":"❌"}</span>`).join("") : `<span class="none">${isDrawer()?"猜的答案會出現在這裡":"猜錯也沒關係，多猜幾次！"}</span>`;
       f.scrollLeft = f.scrollWidth;
       const n = (s.guesses||[]).length;
-      if(n > lastGuessN && lastGuessN){ const q = s.guesses[n-1]; if(q && q.by!==me()){ q.close ? SFX.select() : SFX.miss(); } }
+      if(n > lastGuessN && lastGuessN){ const q = s.guesses[n-1]; if(q && q.by!==me()){ q.ok ? SFX.match() : q.close ? SFX.select() : SFX.miss(); } }
       lastGuessN = n;
     }
     let gf = null;
@@ -348,6 +436,18 @@ App.registerGame({
       const t = guessText.trim(); if(!t || !s || s.phase!=="draw") return;
       guessText = ""; paintGuess(); SFX.send();
       let won = false;
+      if(MP){
+        await ctx.update("draw", x=>{ if(!x || x.phase!=="draw" || x.drawer===me()) return undefined; x.solvers = x.solvers || []; if(x.solvers.some(v=>v.u===me())) return undefined;
+          const a = norm(t), w = norm(x.word); won = !!a && (a===w || a.includes(w));
+          if(won){ const rk = x.solvers.length, pts = rk===0 ? 3 : rk===1 ? 2 : 1; x.scores = x.scores || {};
+            x.scores[me()] = (x.scores[me()]||0) + pts; if(x.drawer) x.scores[x.drawer] = (x.scores[x.drawer]||0) + 1;
+            x.solvers.push({ u:me(), pts, secs: Math.max(1, Math.round((Date.now()-x.started)/1000)) });
+            x.guesses = (x.guesses||[]).concat([{ by:me(), ok:true, pts, at:Date.now() }]).slice(-30);
+            if(here().filter(u=>u!==x.drawer).every(u=>x.solvers.some(v=>v.u===u))) settleMP(x, "all");
+          } else { const close = [...w].filter(ch=>a.includes(ch)).length >= Math.max(1, Math.ceil(w.length/2)); x.guesses = (x.guesses||[]).concat([{ t, by:me(), at:Date.now(), close }]).slice(-30); }
+          return x; });
+        if(won) celebrate(); return;
+      }
       await ctx.update("draw", x=>{ if(!x || x.phase!=="draw") return undefined;
         const a = norm(t), w = norm(x.word); won = !!a && (a===w || a.includes(w));
         const close = !won && [...w].filter(ch=>a.includes(ch)).length >= Math.max(1, Math.ceil(w.length/2));
@@ -363,16 +463,17 @@ App.registerGame({
       x.hist = (x.hist||[]).concat([{ w:x.word, ok, by:x.drawer, secs }]).slice(-20);
     }
     function celebrate(){ SFX.match(); ctx.burst(); }
-    async function finish(ok, why){ await ctx.update("draw", x=>{ if(!x || x.phase!=="draw") return undefined; settle(x, ok, why); return x; }); }
+    async function finish(ok, why){ await ctx.update("draw", x=>{ if(!x || x.phase!=="draw") return undefined; if(MP) settleMP(x, why); else settle(x, ok, why); return x; }); }
     async function start(i){
       SFX.select();
       const ns = await ctx.update("draw", x=>{ if(!x || x.phase!=="pick" || x.drawer!==me()) return undefined; const o = x.opts[i]; if(!o) return undefined;
-        x.word = o[0]; x.cat = o[1]; x.phase = "draw"; x.started = Date.now(); x.until = Date.now() + TIME*1000; x.strokes = []; x.guesses = []; x.hint = 0;
+        x.word = o[0]; x.cat = o[1]; x.phase = "draw"; x.started = Date.now(); x.until = Date.now() + TIME*1000; x.strokes = []; x.guesses = []; x.hint = 0; if(MP) x.solvers = [];
         x.used = (x.used||[]).concat([o[0]]).slice(-300); return x; });
       if(ns) ctx.notifyPartner(`${ctx.me.name} 在「你畫我猜」畫好題目了，快來猜！🎨`);
     }
     async function next(){
       SFX.next();
+      if(MP){ const r0 = s && s.round; await ctx.update("draw", x=>{ if(!x || x.phase!=="done" || x.round!==r0) return undefined; return mpAdvance(x); }); return; }
       const nextDrawer = s.drawer===me() ? other() : me();
       await ctx.update("draw", x=>{ if(!x || x.phase!=="done") return undefined; return fresh(nextDrawer, x); });
     }
@@ -381,25 +482,49 @@ App.registerGame({
       const prevPhase = s && s.phase, prevRound = s && s.round;
       s = st;
       if(s && prevPhase==="draw" && s.phase==="done" && s.round===prevRound){ if(s.result && s.result.ok) celebrate(); else SFX.miss(); }
+      if(MP && s && s.phase==="over" && prevPhase!=="over" && prevPhase){ SFX.match(); ctx.burst(); }
+      if(MP && s && s.phase==="done" && !doneAt[s.round]) doneAt[s.round] = Date.now();
+      if(MP) mpHostCheck();
       if(s && s.phase==="draw" && prevPhase!=="draw"){ drawn = 0; drawnKey = ""; lastGuessN = (s.guesses||[]).length; if(!isDrawer()) SFX.next(); }
       render();
       if(s && s.phase==="done" && g) redraw();
     }
     this._u = ctx.onState("draw", onState);
     this._b = ctx.onBroadcast(onLive);
-    tick = setInterval(()=>{ if(!s || s.phase!=="draw") return; timeUi(); if(Date.now() > s.until + 600) finish(false, "time"); }, 500);
+    tick = setInterval(()=>{ if(MP){ mpHostCheck(); autoUi(); } if(!s || s.phase!=="draw") return; timeUi(); if(Date.now() > s.until + 600 && (!MP || isDrawer() || (amHost() && Date.now() > s.until + 10000))) finish(false, "time"); }, 500);
+    // 房主負責：把新進來的人排進順序、畫的人離開就跳過、大家都猜對就結束、回合結束後 6 秒自動下一回合
+    let hostBusy = false; const doneAt = {};
+    function mpHostCheck(){
+      if(!MP || !s || hostBusy || !amHost()) return;
+      const pl = here(), need = { sync: s.phase!=="lobby" && s.phase!=="over" && (pl.some(u=>!(s.order||[]).includes(u)) || pl.some(u=>(s.scores||{})[u]==null)) };
+      need.gone = (s.phase==="pick" || s.phase==="draw") && s.drawer && !pl.includes(s.drawer);
+      need.all = s.phase==="draw" && !need.gone && pl.filter(u=>u!==s.drawer).length > 0 && pl.filter(u=>u!==s.drawer).every(u=>(s.solvers||[]).some(v=>v.u===u));
+      need.auto = s.phase==="done" && doneAt[s.round] && Date.now() - doneAt[s.round] > 6000;
+      need.alone = s.phase!=="lobby" && s.phase!=="over" && pl.length < 2;
+      if(!need.sync && !need.gone && !need.all && !need.auto && !need.alone) return;
+      hostBusy = true; const r0 = s.round;
+      ctx.update("draw", x=>{ if(!x || !x.mp || x.round!==r0) return undefined; let ch = mpSync(x);
+        if(here().length < 2 && x.phase!=="lobby" && x.phase!=="over"){ x.phase = "over"; x.drawer = null; return x; }
+        if((x.phase==="pick" || x.phase==="draw") && x.drawer && !here().includes(x.drawer)){ if(x.phase==="draw") settleMP(x, "left"); else { x.drawn = x.drawn || {}; x.drawn[x.drawer] = x.per; mpAdvance(x); } return x; }
+        if(x.phase==="draw" && here().filter(u=>u!==x.drawer).every(u=>(x.solvers||[]).some(v=>v.u===u))){ settleMP(x, "all"); return x; }
+        if(x.phase==="done" && doneAt[x.round] && Date.now() - doneAt[x.round] > 6000){ mpAdvance(x); return x; }
+        return ch ? x : undefined; }).finally(()=>{ hostBusy = false; });
+    }
+    function autoUi(){ const a = $("#drAuto"); if(!a || !s || s.phase!=="done" || !doneAt[s.round]) return; const l = Math.max(0, Math.ceil((doneAt[s.round] + 6000 - Date.now())/1000)); a.textContent = l ? `${l} 秒後自動${mpDoneN(s) >= mpTotal(s) ? "看結果" : "下一回合"}` : ""; }
+    if(MP && ctx.onMembers) this._m = ctx.onMembers(()=>{ if(s && (s.phase==="lobby" || s.phase==="pick" || s.phase==="over")) render(); else if(s && s.phase==="draw"){ const bd = $("#drBd"); if(bd) bd.innerHTML = board(s); } mpHostCheck(); });
     const onResize = () => { if(cv) setupCanvas(); };
     window.addEventListener("resize", onResize);
     this._cleanup = () => { closeKb(); document.body.classList.remove("drkb"); document.body.classList.remove("drFullOn"); clearInterval(tick); window.removeEventListener("resize", onResize); };
     (async()=>{
       const I = ctx.players();
       let c = await ctx.getState("draw");
-      if(!c && I.length>=2){ await ctx.update("draw", x=> x ? undefined : fresh(me(), null)); c = await ctx.getState("draw"); }
+      if(MP && (!c || !c.state || !c.state.mp)){ await ctx.update("draw", x=> x && x.mp ? undefined : lobbyState(null)); c = await ctx.getState("draw"); }
+      else if(!c && I.length>=2){ await ctx.update("draw", x=> x ? undefined : fresh(me(), null)); c = await ctx.getState("draw"); }
       s = c ? JSON.parse(JSON.stringify(c.state)) : null;
       if(s && s.phase==="draw") lastGuessN = (s.guesses||[]).length;
       render();
     })();
   },
-  unmount(){ if(this._u) this._u(); if(this._b) this._b(); if(this._cleanup) this._cleanup(); },
+  unmount(){ if(this._u) this._u(); if(this._b) this._b(); if(this._m) this._m(); if(this._cleanup) this._cleanup(); },
 });
 })();

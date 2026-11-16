@@ -1127,7 +1127,7 @@ const App = (function(){
 
   // ---------- 跟其他小窩的朋友開房間一起玩（更新 40）----------
   const PARTY_GAMES = ["draw","pool"];
-  const PT = { room:null, online:new Set(), subs:[], bcs:[], rs:{}, view:false, conn:null, mounted:null, loaded:false, busy:false, leaveArm:0 };
+  const PT = { room:null, online:new Set(), subs:[], bcs:[], msubs:[], rs:{}, view:false, conn:null, mounted:null, loaded:false, busy:false, leaveArm:0 };
   const ptErr = e => /party_|function|schema cache|404/i.test(String(e && e.message || e)) ? "資料庫還沒加上開房間的功能（更新 40）" : /not_member/.test(String(e && e.message || e)) ? "要先有自己的小窩才能開房間喔" : "連不上，檢查一下網路再試一次";
   const ptMembers = () => (PT.room && PT.room.members) || [];
   const ptOther = () => ptMembers().find(m => m.user_id !== me.uid) || null;
@@ -1142,10 +1142,13 @@ const App = (function(){
     const old = PT.room;
     if(!r){ if(old && PT.view) toast("房間已經關掉了"); PT.room = null; }
     else if(old && old.id === r.id){
-      const had = (old.members||[]).length; old.members = r.members; old.code = r.code; old.host = r.host;
+      const was = (old.members||[]).map(m=>m.user_id), now = r.members.map(m=>m.user_id), oldM = old.members || [];
+      old.members = r.members; old.code = r.code; old.host = r.host;
       if(r.version > old.version) ptSetState(r.version, r.state);
-      if(PT.view && had === 2 && r.members.length < 2) toast("朋友離開房間了");
-      if(PT.view && had === 1 && r.members.length === 2){ SFX.match(); toast(`${esc((ptOther()||{}).name||"朋友")} 進房間了！`); }
+      const gone = oldM.filter(m=>!now.includes(m.user_id)), came = r.members.filter(m=>!was.includes(m.user_id));
+      if(PT.view && gone.length) toast(`${esc(gone.map(m=>m.name).join("、"))} 離開房間了`);
+      if(PT.view && came.length){ SFX.match(); toast(`${esc(came.map(m=>m.name).join("、"))} 進房間了！`); }
+      if(gone.length || came.length || was.join() !== now.join()) PT.msubs.slice().forEach(h => { try{ h(); }catch(e){ console.error(e); } });
     } else PT.room = r;
     ptPaint();
   }
@@ -1153,6 +1156,8 @@ const App = (function(){
   function ptCtx(){
     const c = Object.create(ctx), G = () => PT.room && PT.room.game;
     c.party = true;
+    c.partyHost = () => PT.room && PT.room.host;
+    c.onMembers = h => { PT.msubs.push(h); return () => { PT.msubs = PT.msubs.filter(x => x !== h); }; };
     c.partner = () => { const m = ptOther(); return m ? { user_id:m.user_id, name:m.name, cat:m.cat } : null; };
     c.players = () => ptMembers().map(m => m.user_id).sort();
     c.nameOf = uid => uid === me.uid ? (me.name || "我") : ((ptMembers().find(m => m.user_id === uid) || {}).name || "朋友");
@@ -1196,7 +1201,7 @@ const App = (function(){
   function ptEntryBind(){ const bp = $("bParty"); if(bp) bp.addEventListener("click", ()=>{ SFX.tap(); go("party"); }); }
   function ptConnect(){ const id = PT.room && PT.view ? PT.room.id : null; if(id === PT.conn) return; PT.conn = id; PT.online = new Set();
     if(id){ if(B.partyConnect) B.partyConnect(id, ptHandlers); } else if(B.partyClose) B.partyClose(); }
-  function ptUnmount(){ const m = PT.mounted; if(!m) return; PT.mounted = null; try{ m.g.unmount && m.g.unmount(); }catch(e){ console.error(e); } PT.subs = []; PT.bcs = []; PT.rs = {}; document.querySelectorAll(".rqBar").forEach(x => x.remove()); }
+  function ptUnmount(){ const m = PT.mounted; if(!m) return; PT.mounted = null; try{ m.g.unmount && m.g.unmount(); }catch(e){ console.error(e); } PT.subs = []; PT.bcs = []; PT.msubs = []; PT.rs = {}; document.querySelectorAll(".rqBar").forEach(x => x.remove()); }
   function ptLeaveView(){ if(!PT.view) return; PT.view = false; ptUnmount(); ptConnect(); }
   const ptGame = id => games.find(g => g.id === id);
   async function ptShare(){
@@ -1219,7 +1224,7 @@ const App = (function(){
     if(code.length !== 6){ toast("房間碼是 6 個英文或數字喔"); return; }
     if(PT.busy) return; PT.busy = true; SFX.tap();
     try{ const r = await B.rpc("party_join", { p_code: code });
-      if(r && r.error) toast(r.error === "full" ? "這個房間已經滿了（一間最多 2 個人）" : r.error === "too_many" ? "試太多次了，等一下再試" : "找不到這個房間<br>可能是房間碼打錯，或房間已經關掉了", 3500);
+      if(r && r.error) toast(r.error === "full" ? "這個房間已經滿了" : r.error === "too_many" ? "試太多次了，等一下再試" : "找不到這個房間<br>可能是房間碼打錯，或房間已經關掉了", 3500);
       else if(r){ PT.room = r; SFX.match(); }
     }catch(e){ toast(ptErr(e), 4000); }
     try{ localStorage.removeItem("mw_ptJoin"); }catch(e){}
@@ -1234,10 +1239,14 @@ const App = (function(){
   }
   function ptPaintBar(){
     const b = $("ptBar"), R = PT.room; if(!b || !R) return;
-    const o = ptOther(), g = ptGame(R.game);
-    b.innerHTML = o ? `<span class="ptWho">${sprite(o.cat || "white", PT.online.has(o.user_id) ? "happy" : "sleep")}<span><b>${esc(o.name)}</b><small>${PT.online.has(o.user_id) ? "在房間裡" : "暫時離開了"}・房間碼 ${esc(R.code)}</small></span></span><button class="btn sub" id="ptOut">離開房間</button>`
+    const o = ptOther(), g = ptGame(R.game), others = ptMembers().filter(m => m.user_id !== me.uid);
+    const inv = R.game === "draw" && ptMembers().length < 6 ? `<button class="btn sub ptInv" id="ptInv">📤 邀請</button>` : "";
+    const bindInv = () => { const x = b.querySelector("#ptInv"); if(x) x.addEventListener("click", ptShare); };
+    if(others.length > 1){ b.innerHTML = `<span class="ptWho ptMany"><span class="ptAv">${others.map(m=>`<i class="${PT.online.has(m.user_id)?"":"off"}">${sprite(m.cat || "white", PT.online.has(m.user_id) ? "happy" : "sleep")}</i>`).join("")}</span><span><b>${ptMembers().length} 人在房間</b><small>房間碼 ${esc(R.code)}</small></span></span>${inv}<button class="btn sub" id="ptOut">離開房間</button>`;
+      b.querySelector("#ptOut").addEventListener("click", ptLeave); bindInv(); return; }
+    b.innerHTML = o ? `<span class="ptWho">${sprite(o.cat || "white", PT.online.has(o.user_id) ? "happy" : "sleep")}<span><b>${esc(o.name)}</b><small>${PT.online.has(o.user_id) ? "在房間裡" : "暫時離開了"}・房間碼 ${esc(R.code)}${R.game === "draw" ? "・還能再邀 4 人" : ""}</small></span></span>${inv}<button class="btn sub" id="ptOut">離開房間</button>`
       : `<span class="ptWho">${g ? (window.GameArt && GameArt[g.id] ? "" : g.icon()) : ""}<span><b>${esc(g ? g.name : "")}</b><small>房間碼 ${esc(R.code)}</small></span></span><button class="btn sub" id="ptOut">離開房間</button>`;
-    b.querySelector("#ptOut").addEventListener("click", ptLeave);
+    b.querySelector("#ptOut").addEventListener("click", ptLeave); bindInv();
   }
   function ptPaint(){
     const a = $("ptArea"); if(!a || !PT.view) return;
@@ -1251,7 +1260,7 @@ const App = (function(){
         ${PT.err ? `<div class="k ptErrT">${esc(PT.err)}</div>` : ""}
         <h3 class="ptH">開房間</h3><div class="ptGames">${PARTY_GAMES.map(id => { const g = ptGame(id); if(!g) return ""; return `<button class="gcard" data-pc="${id}"><span class="gi">${window.GameArt && GameArt[id] ? `<span class="ga">${GameArt[id]()}</span>` : g.icon()}</span><span class="gn">${esc(g.name)}</span><span class="gd">開一間房間</span></button>`; }).join("")}</div>
         <h3 class="ptH">有朋友的房間碼？</h3><div class="ptJoin"><input id="ptCode" maxlength="6" placeholder="6 碼房間碼" autocomplete="off" autocapitalize="characters" spellcheck="false" value="${esc(pend)}"><button class="btn" id="ptGo">加入</button></div>
-        <div class="k ptNote">一間房間最多 2 個人・房間碼只給想一起玩的朋友・一天沒玩房間會自動關掉</div></div>`;
+        <div class="k ptNote">你畫我猜最多 6 人、撞球 2 人・房間碼只給想一起玩的朋友・一天沒玩房間會自動關掉</div></div>`;
       a.querySelectorAll("[data-pc]").forEach(b => b.addEventListener("click", () => ptCreate(b.dataset.pc)));
       const inp = a.querySelector("#ptCode");
       inp.addEventListener("input", () => { const v = inp.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6); if(v !== inp.value) inp.value = v; });
