@@ -1200,7 +1200,7 @@ const App = (function(){
     const top = (r && r.top) || [], me = r && r.mine;
     o.querySelector("#lrL").innerHTML = (top.length ? top.map(x=>row(x, x.me)).join("") : `<div class="k" style="text-align:center;padding:20px">還沒有人上榜，快去玩默契大考驗！</div>`)
       + (me && !top.some(x=>x.me) ? `<div class="lrGap">⋯</div>${row(me, true)}` : "")
-      + (!me ? `<div class="k" style="text-align:center;margin-top:8px">你們還沒上榜，默契大考驗答對一題就上榜囉！</div>` : "")
+      + (r && r.owner ? `<div class="k" style="text-align:center;margin-top:8px">站長小窩不參加排名，把名次留給大家～</div>` : !me ? `<div class="k" style="text-align:center;margin-top:8px">你們還沒上榜，默契大考驗答對一題就上榜囉！</div>` : "")
       + `<div class="k" style="text-align:center;margin-top:6px">一共 ${(r && r.total) || 0} 對${who}</div>`;
   }
 
