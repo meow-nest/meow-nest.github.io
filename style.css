@@ -3192,3 +3192,7 @@ body.ptFsOn .fab,body.ptFsOn #nav{visibility:hidden}
 .pc{touch-action:pan-y}
 .ptStage.edit .ptRooms{display:none}
 .ptStage.fs .ptTI small{font-size:9px;max-height:12px}
+/* 全螢幕轉橫的時候，提示（例如抽籤結果）也跟著轉，手機橫拿時字是正的 */
+body.ptFsOn #toast{z-index:9100}
+body.ptFsRot #toast{left:auto;right:14px;top:50%;transform-origin:100% 0;transform:rotate(90deg) translateX(50%);max-width:80vh}
+body.ptFsOn .pdModal{z-index:9200}

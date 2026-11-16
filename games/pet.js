@@ -153,7 +153,7 @@ App.registerGame({
     function fsLayout(){
       const st = $("#ptStage"); if(!st || !FS.on) return;
       const vw = window.innerWidth, vh = window.innerHeight, W = st.offsetWidth, H = st.offsetHeight, m = 10;
-      FS.rot = vh > vw * 1.15;
+      FS.rot = vh > vw * 1.15; document.body.classList.toggle("ptFsRot", FS.rot);
       if(FS.rot){ FS.s = Math.min((vh - m*2)/W, (vw - m*2)/H); FS.tx = vw - (vw - H*FS.s)/2; FS.ty = (vh - W*FS.s)/2; st.style.transform = `translate(${FS.tx}px,${FS.ty}px) rotate(90deg) scale(${FS.s})`; }
       else { FS.s = Math.min((vw - m*2)/W, (vh - m*2)/H); FS.tx = (vw - W*FS.s)/2; FS.ty = (vh - H*FS.s)/2; st.style.transform = `translate(${FS.tx}px,${FS.ty}px) scale(${FS.s})`; }
     }
@@ -165,7 +165,7 @@ App.registerGame({
     }
     function fsOff(){
       const st = $("#ptStage"); FS.on = false; window.removeEventListener("resize", fsLayout);
-      if(FS.bg){ FS.bg.remove(); FS.bg = null; } document.body.classList.remove("ptFsOn");
+      if(FS.bg){ FS.bg.remove(); FS.bg = null; } document.body.classList.remove("ptFsOn", "ptFsRot");
       if(st){ st.classList.remove("fs"); st.style.transform = ""; } const room = $("#ptRoom"); if(room) room.style.width = ""; drawStrip();
     }
     function face(i, f){ const w = catEl(i); if(w){ w.querySelector(".pcSp").innerHTML = sprite(cats()[i].color, f); w.classList.toggle("curl", f==="curl"); } }
@@ -276,7 +276,7 @@ App.registerGame({
     }
     function pickRoom(r){
       if(editing) return;
-      if(!roomOpen(r)){ unlockRoom(r); return; }
+      if(!roomOpen(r)){ if(FS.on) fsOff(); unlockRoom(r); return; }
       if(r===curRoom) return;
       SFX.tap(); curRoom = r; try{ localStorage.setItem("mw_petRoom", r); }catch(e){}
       const layer = $("#ptDeco"); if(layer) layer.dataset.sig = "";
@@ -359,6 +359,8 @@ App.registerGame({
     // ---------- 擺家具模式：房間下面有「還沒擺的家具」，點一下放進來；拖曳移動；點一下選取可以收起來 ----------
     let selPf = null, trayPage = 0;
     function startEdit(){
+      if(editing) return;   // 已經在擺家具了，不要再開一次
+      document.querySelectorAll(".pdModal").forEach(m=>m.remove());
       editing = true; selPf = null; trayPage = 0; stopIdle(); render();
       const box = $(".petBox"), room = $("#ptRoom"); if(!box || !room) return;
       box.classList.add("pdEditing"); room.addEventListener("pointerdown", onDragStart); drawStrip();
@@ -442,6 +444,8 @@ App.registerGame({
     // ---------- shop / decorate sheet ----------
     let shopTab = "f", shopFilter = "all";
     function openDeco(){
+      if(document.querySelector(".pdModal")) return;   // 已經開著了
+      if(editing) endEdit();
       let tab = shopTab, who = sel, filter = shopFilter, pending = null;
       const m = metrics(), sn = new Set(seen()||[]), hadSeen = !!seen();
       const u = new Set(unlocked(m)); setSeen([...u]); toasted = new Set(u);
