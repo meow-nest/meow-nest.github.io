@@ -46,7 +46,7 @@ App.registerGame({
 
     function lobby(){
       if(G) stop();
-      const best = (s && s.best) || {}, open = i => i===0 || best[i-1] != null;
+      const best = (s && s.best) || {}, open = i => i===0 || best[i-1] != null || !!(ctx.testAll && ctx.testAll());
       el.innerHTML = `<div class="box btLobby">
         <div class="btHero"><canvas id="btHero" width="200" height="90"></canvas></div>
         <p class="btIntro">兩隻貓坐上同一條龍舟！<b>${side()==="L" ? "你划左邊" : "你划右邊"}</b>，${esc(ctx.partner() ? ctx.partner().name : "ta")} 划另一邊。<br>只划一邊船會轉彎，<b>兩個人一起划</b>才會直直往前衝！</p>

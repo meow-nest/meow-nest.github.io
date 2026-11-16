@@ -146,7 +146,7 @@ App.registerGame({
       delete d.room; d.pos = d.pos || {}; d.wear = d.wear || {}; d.items = d.items.filter(id=>D.BY[id]); return d; };
     // ---------- 房間：客廳（原本的）、臥室、院子；後兩間用貓幣解鎖 ----------
     const ROOMS = [["main","客廳",0],["r2","臥室",1800],["yard","院子",1200]];
-    const roomOpen = r => r==="main" || ((s && s.owned)||[]).includes("room_"+r);
+    const roomOpen = r => r==="main" || (ctx.testAll && ctx.testAll()) || ((s && s.owned)||[]).includes("room_"+r);
     let curRoom = (()=>{ try{ return localStorage.getItem("mw_petRoom") || "main"; }catch(e){ return "main"; } })();
     const roomDeco = (st, r) => { const main = normDeco(st && st.deco); if(r==="main") return main;
       const x = st && st.rooms && st.rooms[r]; const d = normDeco(Object.assign({ items:[] }, x||{})); d.wear = main.wear; return d; };
@@ -194,7 +194,8 @@ App.registerGame({
         photos: (src.album && src.album.count)||0, makeup: (src.mood && src.mood.makeup && src.mood.makeup.count)||0 };
     }
     const isAch = x => !!x.ok;
-    const owns = (x, m) => isAch(x) ? x.ok(m) : (!x.price || ((s && s.owned)||[]).includes(x.id));
+    const T = () => !!(ctx.testAll && ctx.testAll());
+    const owns = (x, m) => T() || (isAch(x) ? x.ok(m) : (!x.price || ((s && s.owned)||[]).includes(x.id)));
     const unlocked = m => D.ITEMS.filter(x=>isAch(x) && x.ok(m)).map(x=>x.id);   // only achievements pop a toast
     const SEENK = () => "mw_pdSeen";
     const seen = () => { try{ return JSON.parse(localStorage.getItem(SEENK())||"null"); }catch(e){ return null; } };

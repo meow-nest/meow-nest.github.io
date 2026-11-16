@@ -135,7 +135,9 @@ const App = (function(){
 
   const ctx = { get me(){return me}, partner, isOnline, nameOf, catOf, players, sprite, icon, SFX, burst, toast, floatSvg, esc,
     getState, update, onState, notifyPartner, back: ()=>go("home") };
-  ctx.rpc = (fn, args) => B.rpc ? B.rpc(fn, args) : Promise.reject(new Error("no_rpc")); ctx.mode = () => roomMode; ctx.pw = pw; ctx.isAdmin = () => isAdmin; ctx.isBusy = uid => isBusy(uid); Object.defineProperty(ctx, "backend", { get: () => B });
+  ctx.rpc = (fn, args) => B.rpc ? B.rpc(fn, args) : Promise.reject(new Error("no_rpc")); ctx.mode = () => roomMode; ctx.pw = pw; ctx.isAdmin = () => isAdmin;
+  // 站長測試模式：只改自己這支手機看到的畫面（家具、房間、龍舟賽道全部當作已解鎖），不會動到伺服器上的資料
+  ctx.testAll = () => { try{ return isAdmin && localStorage.getItem("mw_testAll") === "1"; }catch(e){ return false; } }; ctx.isBusy = uid => isBusy(uid); Object.defineProperty(ctx, "backend", { get: () => B });
   // fast, unsaved messages between the two phones (real-time co-op games)
   const bcSubs = [];
   ctx.broadcast = p => { if(B.bcast) B.bcast(Object.assign({ from: me.uid }, p)); };
@@ -910,10 +912,12 @@ const App = (function(){
         ${us ? `<input id="admQ" class="admQ" placeholder="搜尋暱稱或邀請碼" value="${esc(admQ)}" autocomplete="off">
         <div class="admTabs admSort"><button data-s="recent" class="${admSort==="recent"?"on":""}">最近上線</button><button data-s="idle" class="${admSort==="idle"?"on":""}">很久沒上線</button><button data-s="new" class="${admSort==="new"?"on":""}">最新加入</button></div>
         <div id="admUL"></div>` : `<div class="k" style="text-align:center;padding:8px">資料庫還沒加上使用者名單（更新 15）</div>`}</div></div>
+      <div class="box admBox"><h3>🧪 站長測試模式</h3><div class="k">打開後，你這支手機會看到全部解鎖：家具、飾品、臥室和院子、龍舟賽道都能直接用，不用花貓幣。<br>只影響你自己的畫面，伺服器上的資料不會改，關掉就恢復成一般使用者的樣子。</div><button class="btn ${ctx.testAll() ? "" : "sub"}" id="admTest" style="width:100%;margin-top:8px">${ctx.testAll() ? "✔ 測試模式開著（點一下關掉）" : "打開測試模式"}</button></div>
       <div class="box admBox admFold ${admOpen("survey", true) ? "open" : ""}" data-fold="survey"><h3 class="admFH">📋 意見問卷<small id="admSvN"></small><i class="admArr">▾</i></h3><div class="admFB" id="admSv"><div class="k">讀取中…</div></div></div>`;
     body.querySelectorAll(".admFH").forEach(h=>h.addEventListener("click", ()=>{ const box = h.closest(".admFold"), k = box.dataset.fold, open = !box.classList.contains("open");
       box.classList.toggle("open", open); admFoldSet(k, open); SFX.tap(); }));
     admSurvey();
+    { const tb = $("admTest"); if(tb) tb.addEventListener("click", ()=>{ const on = !ctx.testAll(); try{ localStorage.setItem("mw_testAll", on ? "1" : "0"); }catch(e){} SFX.select(); toast(on ? "測試模式打開了：全部都解鎖囉" : "測試模式關掉了，恢復一般使用者的樣子"); drawAdmin(); }); }
     admUsersData = us;
     if(us){ drawUsers();
       const q = body.querySelector("#admQ"); if(q) q.addEventListener("input", ()=>{ admQ = q.value; admShow = 20; drawUsers(); });
