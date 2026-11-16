@@ -224,7 +224,29 @@ App.registerGame({
         T(988,.12,{type:"triangle",vol:.25}); T(1319,.18,{type:"triangle",vol:.25,delay:.12}); it.classList.add("shake"); setTimeout(()=>it.classList.remove("shake"), 500);
         ctx.toast(`收到一封小信：<br><b>${L[Math.floor(Math.random()*L.length)]}</b>`, 4500); }
       else if(x.tap==="fortune"){ const d0 = new Date(Date.now() + 8*3600000).toISOString().slice(0,10), key = d0 + (ctx.me && (ctx.me.uid || ctx.me.user_id) || ""); let h = 7; for(const c of key) h = (h*31 + c.charCodeAt(0)) >>> 0;
-        const f = FORTUNE[h % FORTUNE.length]; SFX.select(); it.classList.add("shake"); setTimeout(()=>it.classList.remove("shake"), 500); ctx.toast(`今日運勢：<b>${f[0]}</b><br>${f[1]}`, 5000); }
+        drawFortune(FORTUNE[h % FORTUNE.length], (h % 64) + 1, d0); }
+    }
+    // ---------- 抽籤：搖籤筒 → 一支籤跳出來 → 翻開籤紙 ----------
+    let ftBusy = false;
+    function drawFortune(f, no, day){
+      const stage = $("#ptRoom"); if(!stage || ftBusy) return; ftBusy = true;
+      const T = (fq,d,o) => { if(SFX.tone) SFX.tone(fq,d,o); };
+      let again = false; try{ again = localStorage.getItem("mw_ftDay") === day; localStorage.setItem("mw_ftDay", day); }catch(e){}
+      const lv = { "大吉":"t1", "中吉":"t2", "吉":"t3", "小吉":"t4", "末吉":"t5" }[f[0]] || "t3";
+      const ov = document.createElement("div"); ov.className = "qkOv";
+      ov.innerHTML = `<div class="qkBox"><div class="qkCup">${D.art("fortune")}<i class="qkStick"><b>${no}</b></i></div><p class="qkHint">${again ? "今天已經抽過囉，再看一次今天的籤～" : "搖一搖籤筒…"}</p></div>`;
+      stage.appendChild(ov);
+      const cup = ov.querySelector(".qkCup"), stick = ov.querySelector(".qkStick");
+      cup.classList.add("shake");
+      [0,1,2,3,4,5,6,7].forEach(k=>T(300 + (k%3)*60, .05, { type:"square", vol:.07, delay:k*.13 }));
+      setTimeout(()=>{ if(!ov.isConnected) return; cup.classList.remove("shake"); stick.classList.add("up"); T(660,.12,{type:"triangle",vol:.25}); T(990,.18,{type:"triangle",vol:.22,delay:.12}); }, 1150);
+      setTimeout(()=>{ if(!ov.isConnected) return;
+        ov.querySelector(".qkBox").innerHTML = `<div class="qkCard ${lv}"><div class="qkIn"><small>第 ${no} 籤</small><b class="qkLv">${esc(f[0])}</b><p>${esc(f[1])}</p>
+          <div class="qkCat">${sprite((cats()[sel]||{}).color || "orange", f[0]==="大吉" ? "love" : f[0]==="末吉" ? "surprised" : "happy")}</div><em>點一下收下</em></div></div>`;
+        if(f[0]==="大吉"){ SFX.level(); ctx.burst(); } else SFX.select();
+      }, 1900);
+      setTimeout(()=>{ ov.addEventListener("click", ()=>{ ov.classList.add("out"); setTimeout(()=>ov.remove(), 250); ftBusy = false; }); }, 2100);
+      setTimeout(()=>{ if(ov.isConnected){ ov.remove(); ftBusy = false; } }, 20000);
     }
     el.addEventListener("click", e => { const it = e.target.closest && e.target.closest(".pf.tap"); if(it) pfTap(it); });
     function metrics(){
