@@ -152,9 +152,42 @@ function wave(rows){
 
 
 const COLORS = ["orange","white","calico","black","gray"];
-const CNAME = {orange:"橘貓",white:"白灰斑貓",calico:"三花貓",black:"黑貓",gray:"灰貓",star:"博士貓"};
-const SPECIAL = ["star"];   // 特別的貓：要完成條件才能選（例如填問卷）
-const palOf = c => c==="white" ? Object.assign({},PAL.white,{S:'#a9a4b6',D:'#a9a4b6'}) : PAL[c];
+// ---- 生日限定「壽星貓」：九種顏色，壽星每年可以挑一隻 ----
+const BD_BASE = [".OO.OO.......OVQQ.........", "ORROhRO.....OAVQQ...O.....", "ORRRRRO.....OVAO...OYO....", "ORRRRROO...OAVAO..OYYO....", ".ORRROYYOO.OVAVAOOYYYO....", "..OROYPYYYOAVAVAYYYPYO....", "...OYYPPPYOQQQQQQOPPYYO...", "...OYPPPIIYSYSYSYYPPPYO...", "...OYYIIIIIYYYYYYYYYYYO...", "..OOYYIIIIIYYYYYYYYYYYO...", "..OYYYYYIIYYYYYYYYYYYYYO..", ".OYYYYYYYYYYYYYYYYYYYYYYO.", ".OYYYYYEEYYYYYYYYEEYYYYYO.", ".OYYYYEHEEYYYYYYEHEEYYYSO.", ".OYYYYEEEEYYWWYYEEEEYYYSO.", ".OSYYYEELEWWWWWWEELEYYYSO.", ".OSYBBYEEWWWWWWWWEEYYBBSYO", "..OSYYYYYWWWWWWWWYYYYYSOYO", "..OSSYYYYWWWWWWWWYYYYSSYYO", "...OSSYWWWWWWWWWWWWSSSSYO.", "....OSSWWWWWFWWWWWWSSOOO..", ".....OOWWWWWCWWWWWWOO.....", "......OSWOOOOOOOWWSO......", ".......OOKKKKKKKOWO.......", "........OKQKKQKKOO........", "........ODDDDDDDO.........", "........ODDDDDDDO.........", ".........OOOOOOO.........."];
+const BD_DIFF = {"surprised":{"15":".OSYYYEEEEWWWWWWEEEEYYYSO.","17":"..OSYYYYYWWWMMWWWYYYYYSOYO","18":"..OSSYYYYWWWMMWWWYYYYSSYYO"},"happy":{"12":".OYYYYYYYYYYYYYYYYYYYYYYO.","13":".OYYYYYEEYYYYYYYYEEYYYYSO.","14":".OYYYYEYYEYYWWYYEYYEYYYSO.","15":".OSYYYYYYYWWWWWWYYYYYYYSO.","16":".OSYBBYYYWWWWWWWWYYYYBBSYO"},"love":{"12":".OYYYYKYYKYYYYYYKYYKYYYYO.","13":".OYYYYKKKKYYYYYYKKKKYYYSO.","14":".OYYYYKKKKYYWWYYKKKKYYYSO.","15":".OSYYYYKKYWWWWWWYKKYYYYSO.","16":".OSYBBYYYWWWWWWWWYYYYBBSYO"},"sleep":{"12":".OYYYYYYYYYYYYYYYYYYYYYYO.","13":".OYYYYYYYYYYYYYYYYYYYYYSO.","15":".OSYYYYYYYWWWWWWYYYYYYYSO.","16":".OSYBBYYYWWWWWWWWYYYYBBSYO"},"angry":{"12":".OYYYYEYYYYYYYYYYYYEYYYYO.","13":".OYYYYYEEYYYYYYYYEEYYYYSO.","14":".OYYYYYYEEYYWWYYEEYYYYYSO.","15":".OSYYYYYYYWWWWWWYYYYYYYSO.","16":".OSYBBYYYWWWWWWWWYYYYBBSYO"},"cry":{"12":".OYYYYYYYYYYYYYYYYYYYYYYO.","13":".OYYYYEEEEYYYYYYEEEEYYYSO.","14":".OYYYYYYYYYYWWYYYYYYYYYSO.","15":".OSYYYTYYTWWWWWWTYYTYYYSO.","16":".OSYBBTYYTWWWWWWTYYTYBBSYO"}};
+const BD_PALB = {h:'#ffb3c2',E:'#2e1a14',H:'#ffffff',L:'#7a5a6a',T:'#7fc4ff',K:'#ff6f91',A:'#ff6f91',V:'#fff1a8',Q:'#ffffff',R:'#ff5a7a',G:'#c93a5a',F:'#ffb347',C:'#8fd8f0',D:'#e0a86a',W:'#fffaf2',P:'#ff9eb0',B:'#ff8fa3',N:'#ff7f96'};
+const BD_COL = [
+  ["蜂蜜奶茶",{O:'#6b3f2a',Y:'#ffd9a8',S:'#f2b47c',I:'#ffeccc'}],
+  ["雪白小糰子",{O:'#6b4a5a',Y:'#ffffff',S:'#e9e2ec',I:'#ffffff',W:'#fff3f6',A:'#7fd0f0',V:'#fff3a0'}],
+  ["蜜桃粉",{O:'#7a4048',Y:'#ffc9bc',S:'#f4a596',I:'#ffe0d8',A:'#9b7fe0',V:'#ffe680'}],
+  ["檸檬奶油",{O:'#6b5230',Y:'#fff0a8',S:'#f5d66e',I:'#fff9d6',A:'#7fd0f0',V:'#ffffff'}],
+  ["薄荷牛奶",{O:'#3f6158',Y:'#cdf2e4',S:'#9fdcc6',I:'#e8fbf3',A:'#ff8fb1',V:'#fff1a8'}],
+  ["天空藍",{O:'#3f5578',Y:'#cfe6ff',S:'#9fc6ef',I:'#e9f3ff',A:'#ffd36b',V:'#ffffff'}],
+  ["薰衣草",{O:'#57457a',Y:'#e3d6ff',S:'#bfa8ef',I:'#f2ecff',A:'#ffd36b',V:'#ff9fb6'}],
+  ["灰灰小貓",{O:'#3f4252',Y:'#c9ccd8',S:'#a3a7b9',I:'#e2e4ec',A:'#ff8fb1',V:'#fff1a8'}],
+  ["黑糖可可",{O:'#2e1f1a',Y:'#8a5e48',S:'#6e4636',I:'#a8775e',W:'#f5e3d3',P:'#e8899a',E:'#1a100c',H:'#fff3d6',L:'#e0b070',A:'#ffd36b',V:'#ff8fb1'}],
+];
+const BD_IDS = BD_COL.map((_, i) => "bd" + (i + 1));
+const isBd = c => /^bd[1-9]$/.test(c || "");
+function bdPal(c){ const p = BD_COL[(+String(c).slice(2) || 1) - 1][1]; return Object.assign({}, BD_PALB, {M: p.O}, p); }
+// 嘴巴和鼻子用圓滑線條畫（不是像素），看起來比較軟萌
+function bdMouth(face, pal){
+  const g = `fill="none" stroke="${pal.M}" stroke-width=".3" stroke-linecap="round" stroke-linejoin="round"`;
+  const nose = `<path d="M12.25 16.2Q13 15.95 13.75 16.2Q13.85 16.45 13 17.1Q12.15 16.45 12.25 16.2Z" fill="${pal.N}"/>`;
+  let m;
+  if(face === "surprised") m = `<ellipse cx="13" cy="17.85" rx=".32" ry=".4" fill="#8a3a3a" stroke="${pal.M}" stroke-width=".22"/>`;
+  else if(face === "angry" || face === "cry") m = `<path d="M13 17.05L13 17.4M12.1 18.1Q13 17.35 13.9 18.1" ${g}/>`;
+  else m = `<path d="M13 17.05L13 17.55M13 17.55Q12.65 18.15 12 17.95M13 17.55Q13.35 18.15 14 17.95" ${g}/>`;
+  return `<g transform="translate(1 1)" shape-rendering="geometricPrecision">${nose}${m}</g>`;
+}
+function bdSprite(c, kind){
+  const face = {wave:"happy", loaf:"sleep", curl:"sleep"}[kind] || (BD_DIFF[kind] || kind === "normal" ? kind : "normal");
+  const rows = BD_BASE.map((r, i) => (BD_DIFF[face] || {})[i] || r), pal = bdPal(c);
+  return pix(rows, pal, {pad: 1}).replace("</svg>", bdMouth(face, pal) + "</svg>");
+}
+const CNAME = Object.assign({orange:"橘貓",white:"白灰斑貓",calico:"三花貓",black:"黑貓",gray:"灰貓",star:"博士貓"}, Object.fromEntries(BD_IDS.map((id, i) => [id, "壽星貓・" + BD_COL[i][0]])));
+const SPECIAL = ["star"].concat(BD_IDS);   // 特別的貓：要完成條件才能選（例如填問卷）
+const palOf = c => isBd(c) ? bdPal(c) : c==="white" ? Object.assign({},PAL.white,{S:'#a9a4b6',D:'#a9a4b6'}) : PAL[c];
 function baseSit(c, face){
   let r = setEyes(c==="black"||c==="calico" ? plain(sit) : sit, face);
   if(c==="white"||c==="calico") r = calicoize(r);
@@ -166,6 +199,7 @@ function sprite(c, kind, opts){
   c = COLORS.includes(c) || SPECIAL.includes(c) ? c : "orange";
   const key = c+kind+(opts&&opts.soft?'s':'');
   if(cache[key]) return cache[key];
+  if(isBd(c)) return cache[key] = bdSprite(c, kind);
   let pal = palOf(c);
   if(opts && opts.soft) pal = Object.assign({}, pal, {O: pal.D});
   let rows;
@@ -240,4 +274,9 @@ ICON.search = ["..OOOO.....",".OBBBBO....","OBWWBBBO...","OBWBBBBO...","OBBBBBBO
 ICON.lock = ["...OOOO...","..OO..OO..",".OO....OO.",".O......O.","OOOOOOOOOO","OYYYYYYYYO","OYYYOOYYYO","OYYYOOYYYO","OYYYYOYYYO","OYYYYYYYYO","OOOOOOOOOO"];
 ICON.memo = ["..O....O..",".OOOOOOOO.",".OKKKKKKO.",".OWWWWWWO.",".OWBBBBWO.",".OWWWWWWO.",".OWBBBWWO.",".OWWWWWWO.",".OWBBBBWO.",".OWWWWWWO.",".OOOOOOOO."];
 ICON.mic = ["...OOO...","..OKKKO..","..OKWKO..","..OKKKO..","..OKWKO..","..OKKKO..","O.OKKKO.O","O..OOO..O",".O.....O.","..OOOOO..","....O....","..OOOOO.."];
-const Pix = { COLORS, CNAME, SPECIAL, sprite, icon, palOf };
+// 生日貼圖用的小道具
+ICON.gift = ["..O...O..",".OKO.OKO.","..OOKOO..","OOOOKOOOO","OYYYKYYYO","OOOOKOOOO",".OYYKYYO.",".OYYKYYO.",".OOOOOOO."];
+ICON.conf = ["K...Y..","..B...K",".Y..K..","B....B.","..K.Y..","Y.....B"];
+ICON.cup = ["O.....O","OWWWWWO","OKKKKKO","OKWKKKO",".OKKKO.","..OKO..","...O...","..OOO.."];
+ICON.horn = ["........OO","......OOKO","....OOYYKO","OOOOYYYYKO","OKKYYYYYKO","OOOOYYYYKO","....OOYYKO","......OOKO","........OO"];
+const Pix = { COLORS, CNAME, SPECIAL, sprite, icon, palOf, BD_IDS, BD_COL, isBd };

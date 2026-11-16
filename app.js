@@ -291,7 +291,36 @@ const App = (function(){
     ["curl","curl","不想動",[SP("dots","right:8%;top:14%;width:35%",null,"blink")]],
   ];
   const STK_BY = Object.fromEntries(STICKERS.map(x=>[x[0],x]));
+  // 生日限定的會動貼圖（有壽星貓的人才能傳）：[id, 兩格動畫的表情, 說明, 道具, 動作]
+  const BD_STK = [
+    ["hbd",["happy","love"],"生日快樂",[SP("conf","left:0;top:0;width:30%",null,"blink"),SP("conf","right:0;top:4%;width:30%",null,"blink2")],"jump"],
+    ["wish",["sleep","love"],"許願中",[SP("star","left:2%;top:30%;width:18%",null,"blink"),SP("star","right:4%;top:36%;width:15%",null,"blink2"),SP("spark","left:18%;top:2%;width:13%",{O:"#ffd36b"},"blink2")],"sway"],
+    ["gift",["surprised","love"],"收到禮物",[SP("gift","right:-2%;bottom:2%;width:34%",null,"beat"),SP("spark","right:4%;top:30%;width:14%",{O:"#ffd36b"},"blink")]],
+    ["cheers",["happy","love"],"乾杯",[SP("cup","left:0;top:52%;width:24%",null,"sway"),SP("cup","right:0;top:52%;width:24%",null,"sway")],"jump"],
+    ["thx",["love","happy"],"謝謝大家",[SP("heart","left:2%;top:34%;width:20%",null,"float"),SP("heart","right:0;top:24%;width:17%",null,"float2")],"sway"],
+    ["party",["happy","surprised"],"派對開始",[SP("horn","right:-6%;top:44%;width:32%",null,"beat"),SP("conf","left:0;top:2%;width:28%",null,"fall"),SP("conf","right:2%;top:0;width:24%",null,"fall2")],"shake"],
+    ["older",["cry","normal"],"又老一歲",[SP("drop","left:12%;top:42%;width:12%",null,"fall"),SP("drop","right:16%;top:42%;width:12%",null,"fall2")]],
+    ["fly",["normal","happy"],"飛起來了",[SP("spark","left:4%;bottom:6%;width:14%",{O:"#6fb7e8"},"blink"),SP("spark","right:6%;bottom:14%;width:12%",{O:"#f0708d"},"blink2")],"bdFly"],
+  ];
+  function stkLook(id){
+    const m = /^bd:([a-z]+):([1-9])$/.exec(id || "");
+    if(m){ const b = BD_STK.find(x=>x[0]===m[1]); return b ? { bd:b, col:+m[2] } : null; }
+    return STK_BY[id] ? { st:STK_BY[id] } : null;
+  }
+  const stkCap = id => { const l = stkLook(id); return l ? (l.bd ? l.bd[2] : l.st[2]) : ""; };
+  const spHtml = list => (list||[]).map(([n,css,pal,cls])=>`<span class="sp ${cls||""}" style="${css}">${icon(n,pal||undefined)}</span>`).join("");
+  function bdStkHtml(b, col){
+    const c = "bd" + col, [f1, f2] = b[1];
+    return `<span class="stkArt bdStk ${b[4]||""}" title="${esc(b[2])}"><span class="stkCat bdF"><span class="f1">${sprite(c,f1)}</span><span class="f2">${sprite(c,f2)}</span></span>${spHtml(b[3])}</span>`;
+  }
+  // 我現在能傳的貼圖（有壽星貓的話，生日貼圖排最前面）
+  function bdStkCol(){ return Pix.isBd(me.cat) ? +me.cat.slice(2) : BD.cols.length ? BD.cols[0] : (ctx.testAll() ? 1 : 0); }
+  function myStk(){
+    const col = bdStkCol(), base = STICKERS.map(x=>[x[0], x[2]]);
+    return col ? BD_STK.map(b=>[`bd:${b[0]}:${col}`, b[2], 1]).concat(base) : base;
+  }
   function stickerHtml(id, cat){
+    const L = stkLook(id); if(L && L.bd) return bdStkHtml(L.bd, L.col);
     const st = STK_BY[id];
     if(!st){ return id==="heart" ? icon("heart") : sprite(cat||"orange", STK.includes(id)?id:"normal"); }
     const props = (st[3]||[]).map(([n,css,pal,cls])=>`<span class="sp ${cls||""}" style="${css}">${icon(n,pal||undefined)}</span>`).join("");
@@ -373,7 +402,7 @@ const App = (function(){
     { let tt = $("topTools"); if(!tt){ tt = document.createElement("div"); tt.id = "topTools"; $("top").appendChild(tt); }
       tt.innerHTML = v.id==="view" ? `<div class="tl"><button class="ctB find" id="bSearch" title="搜尋訊息">${icon("search")}<span>搜尋</span></button></div><div class="tr"><button class="ctB voice" id="bCallA" title="語音通話">${icon("phone")}<span>語音</span></button><button class="ctB video" id="bCallV" title="視訊通話">${icon("vcam")}<span>視訊</span></button></div>` : ""; }
     v.innerHTML = `<div class="box chat"><div class="chatTruce">${truceBar()}${busyBar()}</div><div class="pinBar hidden"></div><div class="lw"><div class="list" id="list"></div></div>
-      <div class="stickers hidden" id="stk"><button data-s="poke" class="pokeBtn" title="戳一下">${icon("paw")}<b>戳一下</b></button>${STICKERS.map(x=>`<button data-s="${x[0]}">${stickerHtml(x[0], me.cat||"orange")}</button>`).join("")}</div>
+      <div class="stickers hidden" id="stk"><button data-s="poke" class="pokeBtn" title="戳一下">${icon("paw")}<b>戳一下</b></button>${myStk().map(x=>`<button data-s="${x[0]}" class="${x[2]?"bdS":""}">${stickerHtml(x[0], me.cat||"orange")}</button>`).join("")}</div>
       <div class="combo hidden" id="combo"></div>
       <div class="replyBar hidden" id="replyBar"></div>
       <div class="bar"><button id="bStk" title="貼圖">${sprite(me.cat||"orange","happy")}</button>
@@ -913,10 +942,18 @@ const App = (function(){
         <div class="admTabs admSort"><button data-s="recent" class="${admSort==="recent"?"on":""}">最近上線</button><button data-s="idle" class="${admSort==="idle"?"on":""}">很久沒上線</button><button data-s="new" class="${admSort==="new"?"on":""}">最新加入</button></div>
         <div id="admUL"></div>` : `<div class="k" style="text-align:center;padding:8px">資料庫還沒加上使用者名單（更新 15）</div>`}</div></div>
       <div class="box admBox"><h3>🧪 站長測試模式</h3><div class="k">打開後，你這支手機會看到全部解鎖：家具、飾品、臥室和院子、龍舟賽道都能直接用，不用花貓幣。<br>只影響你自己的畫面，伺服器上的資料不會改，關掉就恢復成一般使用者的樣子。</div><button class="btn ${ctx.testAll() ? "" : "sub"}" id="admTest" style="width:100%;margin-top:8px">${ctx.testAll() ? "✔ 測試模式開著（點一下關掉）" : "打開測試模式"}</button></div>
+      <div class="box admBox"><h3>🎂 壽星貓</h3><div class="k">有人生日填錯，輸入 ta 的邀請碼和暱稱，就能清掉讓 ta 重填（已經領到的壽星貓會留著）。</div>
+        <div class="bdAdm"><input id="admBdC" placeholder="邀請碼" maxlength="8" autocomplete="off"><input id="admBdN" placeholder="暱稱" maxlength="10" autocomplete="off"></div>
+        <button class="btn sub" id="admBdR" style="width:100%;margin-top:6px">清掉 ta 的生日</button><button class="btn sub" id="admBdP" style="width:100%;margin-top:6px">預覽生日領取畫面</button></div>
       <div class="box admBox admFold ${admOpen("survey", true) ? "open" : ""}" data-fold="survey"><h3 class="admFH">📋 意見問卷<small id="admSvN"></small><i class="admArr">▾</i></h3><div class="admFB" id="admSv"><div class="k">讀取中…</div></div></div>`;
     body.querySelectorAll(".admFH").forEach(h=>h.addEventListener("click", ()=>{ const box = h.closest(".admFold"), k = box.dataset.fold, open = !box.classList.contains("open");
       box.classList.toggle("open", open); admFoldSet(k, open); SFX.tap(); }));
     admSurvey();
+    { const r = $("admBdR"); if(r) r.addEventListener("click", async ()=>{ const c = $("admBdC").value.trim(), n = $("admBdN").value.trim(); if(!c || !n){ toast("邀請碼和暱稱都要填"); return; }
+        if(!confirm(`確定要清掉「${n}」的生日嗎？`)) return; r.disabled = true;
+        try{ const x = await B.rpc("admin_bday_reset", { p_code:c, p_name:n }); toast(x && x.ok ? "清掉了，ta 可以重新填生日了" : "找不到這個人，檢查一下邀請碼和暱稱"); }catch(e){ toast("資料庫還沒加上壽星貓的設定（更新 46）"); }
+        r.disabled = false; });
+      const pv = $("admBdP"); if(pv) pv.addEventListener("click", ()=>{ SFX.select(); bdClaim(true); }); }
     { const tb = $("admTest"); if(tb) tb.addEventListener("click", ()=>{ const on = !ctx.testAll(); try{ localStorage.setItem("mw_testAll", on ? "1" : "0"); }catch(e){} SFX.select(); toast(on ? "測試模式打開了：全部都解鎖囉" : "測試模式關掉了，恢復一般使用者的樣子"); drawAdmin(); }); }
     admUsersData = us;
     if(us){ drawUsers();
@@ -1127,6 +1164,90 @@ const App = (function(){
     const tryShow = (n) => { if(SV.shown || SV.done) return; if(document.querySelector(".careModal")){ if(n < 40) setTimeout(()=>tryShow(n+1), 1500); return; }
       SV.shown = true; svDeclined = false; svIntro(); };
     tryShow(0);
+  }
+
+  // ---------- 生日限定「壽星貓」（更新 46）：生日前後 7 天挑一隻，每年都能再挑一隻 ----------
+  const BD = { ok:false, md:null, gap:null, can:false, got:false, cols:[], shown:false };
+  const BDN = Pix.BD_COL.map(x=>x[0]);
+  async function bdLoad(){
+    try{ const r = await B.rpc("bday_me"); Object.assign(BD, { ok:!!r, md:(r && r.md) || null, gap:r ? r.gap : null, can:!!(r && r.can), got:!!(r && r.got), cols:((r && r.cols) || []).map(Number).filter(n=>n>=1&&n<=9).sort((a,b)=>a-b) }); }
+    catch(e){ BD.ok = false; }
+    return BD;
+  }
+  const bdTxt = md => md ? `${+md.slice(0,2)} 月 ${+md.slice(3)} 日` : "";
+  const bdWhen = () => BD.gap === 0 ? "今天就是你的生日！" : BD.gap > 0 ? `再 ${BD.gap} 天就是你的生日` : `生日剛過 ${-BD.gap} 天`;
+  function bdClaim(preview){
+    const all = BD.cols.length >= 9; let sel = 0;
+    const o = modal(`<div class="bdHd" id="bdHd">${sprite("bd1","love")}</div><h3>生日快樂！</h3>
+      <p class="svP">${preview ? "（站長預覽：不會真的領）<br>" : esc(bdWhen()) + "<br>"}挑一隻壽星貓帶回家吧～<br><small>每年生日都可以再挑一隻不一樣的</small></p>
+      <div class="bdGrid">${Pix.BD_IDS.map((id,i)=>{ const own = !all && BD.cols.includes(i+1); return `<button data-i="${i+1}" class="${own?"own":""}" ${own?"disabled":""}>${sprite(id,"happy")}<span>${BDN[i]}</span>${own?"<i>已擁有</i>":""}</button>`; }).join("")}</div>
+      <button class="btn" id="bdGo" style="width:100%" disabled>先點一隻喜歡的</button>
+      <button class="btn sub" id="bdLater" style="width:100%;margin-top:8px">等等再選</button>`, "svModal bdModal");
+    const go = o.querySelector("#bdGo");
+    o.querySelectorAll(".bdGrid [data-i]").forEach(b=>b.addEventListener("click", ()=>{
+      sel = +b.dataset.i; SFX.tap(); o.querySelectorAll(".bdGrid [data-i]").forEach(x=>x.classList.toggle("on", x===b));
+      o.querySelector("#bdHd").innerHTML = sprite("bd"+sel, "love"); go.disabled = false; go.textContent = `就決定是「${BDN[sel-1]}」了！`; }));
+    o.querySelector("#bdLater").addEventListener("click", ()=>{ if(!preview) store.set("mw_bdLater", new Date().toDateString()); o.remove(); });
+    go.addEventListener("click", async ()=>{
+      if(!sel) return; go.disabled = true;
+      if(!preview){
+        let r; try{ r = await B.rpc("bday_claim", { p_col: sel }); }catch(e){ go.disabled = false; toast("網路好像不太穩，再試一次～"); return; }
+        if(!r || !r.ok){ o.remove(); toast(r && r.reason === "already" ? "今年的壽星貓已經領過囉" : "現在不是領壽星貓的時間喔"); await bdLoad(); if(view === "settings") render(); return; }
+        await bdLoad();
+      }
+      o.remove(); bdDone(sel, preview);
+    });
+  }
+  function bdDone(col, preview){
+    SFX.level(); burst && burst();
+    const id = "bd" + col, nm = BDN[col-1];
+    const o = modal(`<div class="bdHd big">${sprite(id,"wave")}</div><h3>「${esc(nm)}」來囉！</h3>
+      <p class="svP">${preview ? "（預覽：不會真的拿到）<br>" : ""}生日快樂！祝你天天開心 💕<br>專屬的<b>會動生日貼圖</b>也解鎖了，<br>聊天的貼圖裡找找看～</p>
+      <div class="bdStkPrev">${BD_STK.slice(0,4).map(b=>bdStkHtml(b, col)).join("")}</div>
+      ${preview || me.cat === id ? "" : `<button class="btn" id="bdUse" style="width:100%">現在就換成牠</button>`}
+      <button class="btn sub" id="bdOk" style="width:100%;margin-top:8px">好的</button>`, "svModal bdModal");
+    o.querySelector("#bdOk").addEventListener("click", ()=>{ o.remove(); if(view === "settings" || view === "chat") render(); });
+    const u = o.querySelector("#bdUse"); if(u) u.addEventListener("click", async ()=>{ u.disabled = true; me.cat = id; store.set("mw_cat", id);
+      try{ await B.updateMe({ cat:id }); }catch(e){} B.track({ name:me.name, cat:id }); lastHdr = ""; renderHeader(); o.remove(); toast(`${sprite(id,"wave")} 換好了，壽星貓來囉！`); if(view === "settings" || view === "chat") render(); });
+  }
+  async function maybeBday(){
+    if(BD.shown) return;
+    await bdLoad(); if(!BD.ok || !BD.can || BD.got) return;
+    if(store.get("mw_bdLater") === new Date().toDateString()) return;
+    const tryShow = (n) => { if(BD.shown || BD.got) return; if(document.querySelector(".careModal")){ if(n < 40) setTimeout(()=>tryShow(n+1), 1500); return; }
+      BD.shown = true; bdClaim(false); };
+    tryShow(0);
+  }
+  // 設定裡的「我的生日」
+  function bdSetBox(){
+    const box = $("bdSet"); if(!box) return;
+    if(!BD.ok){ box.classList.add("hidden"); return; }
+    box.classList.remove("hidden");
+    const n = BD.cols.length;
+    if(!BD.md){
+      box.innerHTML = `<div class="svGift">${sprite("bd1","happy")}<div><b>填生日，拿限定「壽星貓」</b><small>生日前後 7 天可以從 9 種顏色挑一隻，每年都能再挑一隻！</small></div></div>
+        <div class="bdIn"><select id="bdM">${Array.from({length:12},(_,i)=>`<option value="${i+1}">${i+1} 月</option>`).join("")}</select><select id="bdD"></select></div>
+        <button class="btn" id="bdSave">儲存生日</button><div class="k">生日填了之後就不能自己改，要確認清楚喔。</div>`;
+      const M = box.querySelector("#bdM"), D = box.querySelector("#bdD");
+      const fillD = () => { const max = [31,29,31,30,31,30,31,31,30,31,30,31][+M.value-1], v = Math.min(+D.value||1, max); D.innerHTML = Array.from({length:max},(_,i)=>`<option value="${i+1}">${i+1} 日</option>`).join(""); D.value = v; };
+      fillD(); M.addEventListener("change", fillD);
+      box.querySelector("#bdSave").addEventListener("click", ()=>{
+        const md = String(M.value).padStart(2,"0") + "-" + String(D.value).padStart(2,"0"); SFX.tap();
+        const o = modal(`<div class="bdHd">${sprite("bd1","surprised")}</div><h3>你的生日是<br>${bdTxt(md)} 對嗎？</h3><p class="svP">填了之後就<b>不能自己改</b>囉，<br>確認一下再按確定～</p>
+          <button class="btn" id="bdYes" style="width:100%">對，就是這天</button><button class="btn sub" id="bdNo" style="width:100%;margin-top:8px">再想想</button>`, "svModal bdModal");
+        o.querySelector("#bdNo").addEventListener("click", ()=>o.remove());
+        o.querySelector("#bdYes").addEventListener("click", async e=>{ e.target.disabled = true;
+          let r; try{ r = await B.rpc("bday_set", { p_md: md }); }catch(err){ e.target.disabled = false; toast("網路好像不太穩，再試一次～"); return; }
+          o.remove(); if(!r || !r.ok){ toast(r && r.reason === "locked" ? "生日已經填過了喔" : "日期好像怪怪的，再選一次～"); }
+          else toast(`${sprite("bd1","love")} 記住你的生日了！`);
+          await bdLoad(); bdSetBox(); if(BD.can && !BD.got) bdClaim(false); });
+      });
+      return;
+    }
+    box.innerHTML = `<h2>我的生日</h2><div class="svGift">${sprite(Pix.isBd(me.cat) ? me.cat : "bd" + (BD.cols[0]||1), BD.can ? "love" : "happy")}<div><b>${bdTxt(BD.md)}</b><small>${BD.can ? esc(bdWhen()) + (BD.got ? "・今年的壽星貓領過囉" : "") : "生日前後 7 天可以挑一隻壽星貓"}</small></div></div>
+      ${BD.can && !BD.got ? `<button class="btn" id="bdPick">挑一隻壽星貓</button>` : ""}
+      <div class="k">已收集 ${n} / 9 隻壽星貓${n ? "，有壽星貓就能傳專屬的會動生日貼圖" : ""}。生日填錯的話，可以寫信給站長幫你改。</div>`;
+    const pb = box.querySelector("#bdPick"); if(pb) pb.addEventListener("click", ()=>{ SFX.select(); bdClaim(false); });
   }
 
   // ---------- 跟其他小窩的朋友開房間一起玩（更新 40）----------
@@ -1849,7 +1970,7 @@ const App = (function(){
   const pinList = () => (stateCache.pins && stateCache.pins.state && stateCache.pins.state.list) || [];
   function msgPreview(m){
     const k = m.kind, b = String(m.body||"");
-    if(k==="image" || k==="photo_gone") return "📷 照片"; if(k==="voice") return "🎤 語音訊息"; if(k==="sticker") return "貼圖：" + ((STK_BY[b]||[])[2] || "貓咪");
+    if(k==="image" || k==="photo_gone") return "📷 照片"; if(k==="voice") return "🎤 語音訊息"; if(k==="sticker") return "貼圖：" + (stkCap(b) || "貓咪");
     if(k==="poke") return "戳了一下 🐾"; if(k==="letter") return "💌 一封信"; return b.slice(0, 80);
   }
   async function togglePin(m, on){
@@ -2168,7 +2289,7 @@ const App = (function(){
     const t = document.createElement("div"); t.id = "stkTray"; t.className = "stkTray";
     const p = partner(), off = !p || !isOnline(p.user_id);
     t.innerHTML = `<div class="stkTrayHd"><b>傳貼圖給${esc(p ? p.name : pw())}</b><button id="stkX">✕</button></div>${off ? `<div class="stkOff">${esc(p ? p.name : pw())} 現在不在線上，傳了 ta 也看不到喔 (；ω；)</div>` : ""}
-      <div class="stkGrid">${STICKERS.map(x=>`<button data-s="${x[0]}" title="${esc(x[2])}">${stickerHtml(x[0], me.cat||"orange")}<span>${esc(x[2])}</span></button>`).join("")}</div>`;
+      <div class="stkGrid">${myStk().map(x=>`<button data-s="${x[0]}" title="${esc(x[1])}" class="${x[2]?"bdS":""}">${stickerHtml(x[0], me.cat||"orange")}<span>${esc(x[1])}</span></button>`).join("")}</div>`;
     document.body.appendChild(t);
     t.addEventListener("pointerdown", e=>e.stopPropagation());
     t.querySelector("#stkX").addEventListener("click", ()=>stkClose());
@@ -2181,11 +2302,11 @@ const App = (function(){
   let stkN = 0, stkGot = [];
   function stkShow(id, cat, from, mine){
     const d = document.createElement("div"); d.className = "stkPop" + (mine ? " mine" : ""); d.style.setProperty("--x", mine ? "0px" : ((stkN++ % 3) - 1) * 40 + "px");
-    d.innerHTML = mine ? `<div class="stkBig">${stickerHtml(id, cat)}</div><div class="stkFrom">傳出去了～</div>` : `<div class="stkFrom">${esc(from)} 傳來</div><div class="stkBig">${stickerHtml(id, cat)}</div><div class="stkCap">${esc((STK_BY[id]||[])[2]||"")}</div>`;
+    d.innerHTML = mine ? `<div class="stkBig">${stickerHtml(id, cat)}</div><div class="stkFrom">傳出去了～</div>` : `<div class="stkFrom">${esc(from)} 傳來</div><div class="stkBig">${stickerHtml(id, cat)}</div><div class="stkCap">${esc(stkCap(id))}</div>`;
     document.body.appendChild(d); setTimeout(()=>d.remove(), mine ? 1300 : 3200);
   }
   ctx.onBroadcast(p=>{
-    if(!p || p.g !== "stk" || !STK_BY[p.s]) return;
+    if(!p || p.g !== "stk" || !stkLook(p.s)) return;
     if(document.body.classList.contains("locked")) return;
     const pp = partner(); if(!pp || p.from !== pp.user_id) return;                 // 只接受另一半傳來的貼圖
     const now = Date.now(); stkGot = stkGot.filter(t => now - t < 4000);            // 4 秒內最多跳 3 張，就算對方改程式狂傳也不會洗版
@@ -2556,7 +2677,7 @@ const App = (function(){
   const privacyBox = () => `<div class="box set"><h2>隱私說明</h2>${privacyList()}</div>`;
   function viewSettings(v){
     const ps=pushState();
-    v.innerHTML = `${appBox()}<div class="box set svSetBox ${SV.on && !SV.done ? "" : "hidden"}" id="svSet"><div class="svGift">${sprite("star","happy")}<div><b>填問卷，拿限定「博士貓」</b><small>大約 1～2 分鐘，幫小窩變得更好～</small></div></div><button class="btn" id="svOpen">去填問卷</button></div><div class="box set"><h2>我的貓</h2><div class="picks" id="pk"></div><input id="nm" maxlength="10" value="${esc(me.name)}" style="font-size:17px;padding:8px;border:3px solid var(--line);text-align:center;border-radius:0"><button class="btn" id="bSave">儲存</button></div>
+    v.innerHTML = `${appBox()}<div class="box set svSetBox ${SV.on && !SV.done ? "" : "hidden"}" id="svSet"><div class="svGift">${sprite("star","happy")}<div><b>填問卷，拿限定「博士貓」</b><small>大約 1～2 分鐘，幫小窩變得更好～</small></div></div><button class="btn" id="svOpen">去填問卷</button></div><div class="box set bdSetBox hidden" id="bdSet"></div><div class="box set"><h2>我的貓</h2><div class="picks" id="pk"></div><input id="nm" maxlength="10" value="${esc(me.name)}" style="font-size:17px;padding:8px;border:3px solid var(--line);text-align:center;border-radius:0"><button class="btn" id="bSave">儲存</button></div>
       <div class="box set"><h2>小窩模式</h2><div class="modePick" id="mSet">${Object.keys(MODES).map(m=>`<button data-m="${m}" class="${roomMode===m?"on":""}">${modeArt(m)}<b>${MODES[m].name}</b></button>`).join("")}</div><div class="k">兩個人會一起切換。閨蜜／兄弟模式會換掉情侶向的題目和用語</div></div>
       <div class="box set"><h2>整體風格</h2><div class="sthemes" id="sthm">${SITE_THEMES.map(([id,n,bg,pa,ln,ac,sh])=>`<button data-st="${id}" class="${(store.get("mw_theme")||"cream")===id?"on":""}"><span class="stPrev" style="background-color:${bg};background-image:linear-gradient(${ln}14 1px,transparent 1px),linear-gradient(90deg,${ln}14 1px,transparent 1px)"><b style="background:${pa};border-color:${ln};box-shadow:2px 2px 0 ${sh}"></b><i style="background:${ac};border-color:${ln}"></i><s>${icon("heart",{K:ac,W:pa,O:ln})}</s></span>${n}</button>`).join("")}</div></div>
       <div class="box set"><h2>字體</h2><div class="fontPick" id="fPick"><button data-f="pixel" class="${store.get("mw_font")==="sys"?"":"on"}" style="font-family:Cubic11">像素字 喵喵小窩</button><button data-f="sys" class="${store.get("mw_font")==="sys"?"on":""}" style="font-family:-apple-system,'PingFang TC','Noto Sans TC',sans-serif">一般字 喵喵小窩</button></div></div>
@@ -2583,9 +2704,13 @@ const App = (function(){
     let pick = me.cat||"orange";
     const drawPk=()=>{ const pk=$("pk"); if(!pk) return; const star = SV.done || me.cat==="star";
       pk.innerHTML=COLORS.map(c=>`<button class="${c===pick?"on":""}" data-c="${c}">${sprite(c,"normal")}</button>`).join("")
-        + (star ? `<button class="${pick==="star"?"on":""} svPk" data-c="star">${sprite("star","normal")}<i>限定</i></button>` : SV.on ? `<button class="svPk lock" data-sv="1">${sprite("star","normal")}<i>填問卷</i></button>` : "");
+        + (star ? `<button class="${pick==="star"?"on":""} svPk" data-c="star">${sprite("star","normal")}<i>限定</i></button>` : SV.on ? `<button class="svPk lock" data-sv="1">${sprite("star","normal")}<i>填問卷</i></button>` : "")
+        + [...new Set(BD.cols.map(i=>"bd"+i).concat(Pix.isBd(me.cat) ? [me.cat] : []))].map(c=>`<button class="${pick===c?"on":""} svPk bdPk" data-c="${c}">${sprite(c,"normal")}<i>壽星</i></button>`).join("")
+        + (BD.ok && !BD.cols.length && !Pix.isBd(me.cat) ? `<button class="svPk lock bdPk" data-bdl="1">${sprite("bd1","normal")}<i>生日限定</i></button>` : "");
       pk.querySelectorAll("[data-c]").forEach(b=>b.addEventListener("click",()=>{pick=b.dataset.c;drawPk();}));
-      const lk=pk.querySelector("[data-sv]"); if(lk) lk.addEventListener("click", ()=>{ SFX.tap(); svDeclined = true; svForm(false); }); };
+      const lk=pk.querySelector("[data-sv]"); if(lk) lk.addEventListener("click", ()=>{ SFX.tap(); svDeclined = true; svForm(false); });
+      const bl=pk.querySelector("[data-bdl]"); if(bl) bl.addEventListener("click", ()=>{ SFX.tap(); const b=$("bdSet"); if(b){ b.scrollIntoView({behavior:"smooth",block:"center"}); b.classList.remove("flash"); void b.offsetWidth; b.classList.add("flash"); } toast(BD.md ? "生日前後 7 天就能挑一隻壽星貓喔" : "先在上面填生日，生日前後 7 天就能挑一隻喔"); }); };
+    bdSetBox(); bdLoad().then(()=>{ if($("pk")) drawPk(); bdSetBox(); });
     drawPk(); svLoad().then(()=>{ if($("pk")) drawPk(); const sb=$("svSet"); if(sb) sb.classList.toggle("hidden", !(SV.on && !SV.done)); });
     $("bSave").addEventListener("click", async()=>{ const n=$("nm").value.trim().slice(0,10); if(!n) return; me.name=n; me.cat=pick; store.set("mw_name",n); store.set("mw_cat",pick); try{ await B.updateMe({name:n,cat:pick}); }catch(e){} B.track({name:n,cat:pick}); lastHdr=""; renderHeader(); toast(`${sprite(pick,"wave")} 已儲存！`); });
     const svo=$("svOpen"); if(svo) svo.addEventListener("click", ()=>{ SFX.select(); svDeclined = true; svForm(false); });
@@ -2921,6 +3046,7 @@ const App = (function(){
     onState("pins", ()=>drawPinBar());
     setTimeout(()=>maybeNews(justCreated), 1600);
     setTimeout(()=>maybeSurvey().catch(()=>{}), 4500);
+    bdLoad().then(()=>setTimeout(()=>maybeBday().catch(()=>{}), 2500)).catch(()=>{});
     setTimeout(checkFb, 2400);
     setInterval(refreshTiles, 60000);
     if(!NO_MEDIA){ setTimeout(cleanupVoices, 8000); setInterval(cleanupVoices, 3*3600e3); }
