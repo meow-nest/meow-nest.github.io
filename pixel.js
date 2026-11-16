@@ -155,6 +155,7 @@ const COLORS = ["orange","white","calico","black","gray"];
 // ---- 生日限定「壽星貓」：九種顏色，壽星每年可以挑一隻 ----
 const BD_BASE = [".OO.OO.......OVQQ.........", "ORROhRO.....OAVQQ...O.....", "ORRRRRO.....OVAO...OYO....", "ORRRRROO...OAVAO..OYYO....", ".ORRROYYOO.OVAVAOOYYYO....", "..OROYPYYYOAVAVAYYYPYO....", "...OYYPPPYOQQQQQQOPPYYO...", "...OYPPPIIYSYSYSYYPPPYO...", "...OYYIIIIIYYYYYYYYYYYO...", "..OOYYIIIIIYYYYYYYYYYYO...", "..OYYYYYIIYYYYYYYYYYYYYO..", ".OYYYYYYYYYYYYYYYYYYYYYYO.", ".OYYYYYEEYYYYYYYYEEYYYYYO.", ".OYYYYEHEEYYYYYYEHEEYYYSO.", ".OYYYYEEEEYYWWYYEEEEYYYSO.", ".OSYYYEELEWWWWWWEELEYYYSO.", ".OSYBBYEEWWWWWWWWEEYYBBSYO", "..OSYYYYYWWWWWWWWYYYYYSOYO", "..OSSYYYYWWWWWWWWYYYYSSYYO", "...OSSYWWWWWWWWWWWWSSSSYO.", "....OSSWWWWWFWWWWWWSSOOO..", ".....OOWWWWWCWWWWWWOO.....", "......OSWOOOOOOOWWSO......", ".......OOKKKKKKKOWO.......", "........OKQKKQKKOO........", "........ODDDDDDDO.........", "........ODDDDDDDO.........", ".........OOOOOOO.........."];
 const BD_DIFF = {"surprised":{"15":".OSYYYEEEEWWWWWWEEEEYYYSO.","17":"..OSYYYYYWWWMMWWWYYYYYSOYO","18":"..OSSYYYYWWWMMWWWYYYYSSYYO"},"happy":{"12":".OYYYYYYYYYYYYYYYYYYYYYYO.","13":".OYYYYYEEYYYYYYYYEEYYYYSO.","14":".OYYYYEYYEYYWWYYEYYEYYYSO.","15":".OSYYYYYYYWWWWWWYYYYYYYSO.","16":".OSYBBYYYWWWWWWWWYYYYBBSYO"},"love":{"12":".OYYYYKYYKYYYYYYKYYKYYYYO.","13":".OYYYYKKKKYYYYYYKKKKYYYSO.","14":".OYYYYKKKKYYWWYYKKKKYYYSO.","15":".OSYYYYKKYWWWWWWYKKYYYYSO.","16":".OSYBBYYYWWWWWWWWYYYYBBSYO"},"sleep":{"12":".OYYYYYYYYYYYYYYYYYYYYYYO.","13":".OYYYYYYYYYYYYYYYYYYYYYSO.","15":".OSYYYYYYYWWWWWWYYYYYYYSO.","16":".OSYBBYYYWWWWWWWWYYYYBBSYO"},"angry":{"12":".OYYYYEYYYYYYYYYYYYEYYYYO.","13":".OYYYYYEEYYYYYYYYEEYYYYSO.","14":".OYYYYYYEEYYWWYYEEYYYYYSO.","15":".OSYYYYYYYWWWWWWYYYYYYYSO.","16":".OSYBBYYYWWWWWWWWYYYYBBSYO"},"cry":{"12":".OYYYYYYYYYYYYYYYYYYYYYYO.","13":".OYYYYEEEEYYYYYYEEEEYYYSO.","14":".OYYYYYYYYYYWWYYYYYYYYYSO.","15":".OSYYYTYYTWWWWWWTYYTYYYSO.","16":".OSYBBTYYTWWWWWWTYYTYBBSYO"}};
+const BD_PLAIN = {"0":".............OVQQ.........","1":".....O......OAVQQ...O.....","2":"....OYO.....OVAO...OYO....","3":"....OYYO...OAVAO..OYYO....","4":"....OYYYOO.OVAVAOOYYYO....","5":"....OYPYYYOAVAVAYYYPYO....","9":"...OYYIIIIIYYYYYYYYYYYO...","20":"....OSSWWWWWWWWWWWWSSOOO..","21":".....OOWWWWWWWWWWWWOO.....","22":"......OSWWWWWWWWWWSO......","23":".......OWWWOOOOWWWO.......","24":"........OOO....OOO........","25":"..........................","26":"..........................","27":".........................."};   // 一般貼圖用：拿掉氣球和蛋糕
 const BD_PALB = {h:'#ffb3c2',E:'#2e1a14',H:'#ffffff',L:'#7a5a6a',T:'#7fc4ff',K:'#ff6f91',A:'#ff6f91',V:'#fff1a8',Q:'#ffffff',R:'#ff5a7a',G:'#c93a5a',F:'#ffb347',C:'#8fd8f0',D:'#e0a86a',W:'#fffaf2',P:'#ff9eb0',B:'#ff8fa3',N:'#ff7f96'};
 const BD_COL = [
   ["蜂蜜奶茶",{O:'#6b3f2a',Y:'#ffd9a8',S:'#f2b47c',I:'#ffeccc'}],
@@ -180,9 +181,10 @@ function bdMouth(face, pal){
   else m = `<path d="M13 17.05L13 17.55M13 17.55Q12.65 18.15 12 17.95M13 17.55Q13.35 18.15 14 17.95" ${g}/>`;
   return `<g transform="translate(1 1)" shape-rendering="geometricPrecision">${nose}${m}</g>`;
 }
-function bdSprite(c, kind){
+function bdSprite(c, kind, plain){
   const face = {wave:"happy", loaf:"sleep", curl:"sleep"}[kind] || (BD_DIFF[kind] || kind === "normal" ? kind : "normal");
-  const rows = BD_BASE.map((r, i) => (BD_DIFF[face] || {})[i] || r), pal = bdPal(c);
+  let rows = BD_BASE.map((r, i) => (plain && BD_PLAIN[i]) || (BD_DIFF[face] || {})[i] || r), pal = bdPal(c);
+  if(plain) rows = rows.slice(0, 25);
   return pix(rows, pal, {pad: 1}).replace("</svg>", bdMouth(face, pal) + "</svg>");
 }
 const CNAME = Object.assign({orange:"橘貓",white:"白灰斑貓",calico:"三花貓",black:"黑貓",gray:"灰貓",star:"博士貓"}, Object.fromEntries(BD_IDS.map((id, i) => [id, "壽星貓・" + BD_COL[i][0]])));
@@ -197,9 +199,9 @@ function baseSit(c, face){
 const cache = {};
 function sprite(c, kind, opts){
   c = COLORS.includes(c) || SPECIAL.includes(c) ? c : "orange";
-  const key = c+kind+(opts&&opts.soft?'s':'');
+  const key = c+kind+(opts&&opts.soft?'s':'')+(opts&&opts.plain?'p':'');
   if(cache[key]) return cache[key];
-  if(isBd(c)) return cache[key] = bdSprite(c, kind);
+  if(isBd(c)) return cache[key] = bdSprite(c, kind, opts && opts.plain);
   let pal = palOf(c);
   if(opts && opts.soft) pal = Object.assign({}, pal, {O: pal.D});
   let rows;

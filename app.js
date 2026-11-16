@@ -322,9 +322,10 @@ const App = (function(){
   function stickerHtml(id, cat){
     const L = stkLook(id); if(L && L.bd) return bdStkHtml(L.bd, L.col);
     const st = STK_BY[id];
-    if(!st){ return id==="heart" ? icon("heart") : sprite(cat||"orange", STK.includes(id)?id:"normal"); }
+    if(!st){ return id==="heart" ? icon("heart") : sprite(cat||"orange", STK.includes(id)?id:"normal", Pix.isBd(cat) ? {plain:true} : undefined); }
     const props = (st[3]||[]).map(([n,css,pal,cls])=>`<span class="sp ${cls||""}" style="${css}">${icon(n,pal||undefined)}</span>`).join("");
-    return `<span class="stkArt ${st[4]||""}" title="${esc(st[2])}"><span class="stkCat">${sprite(cat||"orange", st[1])}</span>${props}</span>`;
+    // 壽星貓傳一般貼圖時，拿掉氣球和蛋糕，跟其他貓咪一樣
+    return `<span class="stkArt ${st[4]||""}" title="${esc(st[2])}"><span class="stkCat">${sprite(cat||"orange", st[1], Pix.isBd(cat) ? {plain:true} : undefined)}</span>${props}</span>`;
   }
 
   const QK = {
