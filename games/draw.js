@@ -162,6 +162,8 @@ App.registerGame({
     function onLive(m){
       if(!m || m.g !== "drw" || !s || s.phase !== "draw" || m.r !== s.round || isDrawer() || !g) return;
       if(!["pen","mark","er"].includes(m.t || "pen")) return;
+      // 別人傳來的即時筆畫先檢查一下，太誇張的直接丟掉（避免被亂傳的資料卡住）
+      if(!Array.isArray(m.p) || m.p.length > 400 || m.p.some(v => typeof v !== "number" || !isFinite(v)) || (m.sz != null && !(+m.sz > 0 && +m.sz <= 80)) || (m.c != null && (typeof m.c !== "string" || m.c.length > 30)) || (!liveS[m.id] && Object.keys(liveS).length > 500)) return;
       let L = liveS[m.id]; if(!L){ L = liveS[m.id] = { t: m.t, c: m.c, sz: m.sz, p: [], snap: m.t === "mark" ? g.getImageData(0, 0, cv.width, cv.height) : null }; live.add(m.id); }
       const from = Math.max(0, L.p.length - 2); L.p.push(...m.p);
       if(L.snap){ g.putImageData(L.snap, 0, 0); paintStroke(L); } else paintSeg(L, from);
