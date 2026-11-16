@@ -948,10 +948,10 @@ const App = (function(){
         ${us ? `<input id="admQ" class="admQ" placeholder="搜尋暱稱或邀請碼" value="${esc(admQ)}" autocomplete="off">
         <div class="admTabs admSort"><button data-s="recent" class="${admSort==="recent"?"on":""}">最近上線</button><button data-s="idle" class="${admSort==="idle"?"on":""}">很久沒上線</button><button data-s="new" class="${admSort==="new"?"on":""}">最新加入</button></div>
         <div id="admUL"></div>` : `<div class="k" style="text-align:center;padding:8px">資料庫還沒加上使用者名單（更新 15）</div>`}</div></div>
-      <div class="box admBox"><h3>🧪 站長測試模式</h3><div class="k">打開後，你這支手機會看到全部解鎖：家具、飾品、臥室和院子、龍舟賽道都能直接用，不用花貓幣。<br>只影響你自己的畫面，伺服器上的資料不會改，關掉就恢復成一般使用者的樣子。</div><button class="btn ${ctx.testAll() ? "" : "sub"}" id="admTest" style="width:100%;margin-top:8px">${ctx.testAll() ? "✔ 測試模式開著（點一下關掉）" : "打開測試模式"}</button></div>
-      <div class="box admBox"><h3>🎂 壽星貓</h3><div class="k">有人生日填錯，輸入 ta 的邀請碼和暱稱，就能清掉讓 ta 重填（已經領到的壽星貓會留著）。</div>
+      <div class="box admBox admFold ${admOpen("test", false) ? "open" : ""}" data-fold="test"><h3 class="admFH">🧪 站長測試模式<small>${ctx.testAll() ? "開著" : "關著"}</small><i class="admArr">▾</i></h3><div class="admFB"><div class="k">打開後，你這支手機會看到全部解鎖：家具、飾品、臥室和院子、龍舟賽道都能直接用，不用花貓幣。<br>只影響你自己的畫面，伺服器上的資料不會改，關掉就恢復成一般使用者的樣子。</div><button class="btn ${ctx.testAll() ? "" : "sub"}" id="admTest" style="width:100%;margin-top:8px">${ctx.testAll() ? "✔ 測試模式開著（點一下關掉）" : "打開測試模式"}</button></div></div>
+      <div class="box admBox admFold ${admOpen("bday", false) ? "open" : ""}" data-fold="bday"><h3 class="admFH">🎂 壽星貓<small>重設生日・預覽</small><i class="admArr">▾</i></h3><div class="admFB"><div class="k">有人生日填錯，輸入 ta 的邀請碼和暱稱，就能清掉讓 ta 重填（已經領到的壽星貓會留著）。</div>
         <div class="bdAdm"><input id="admBdC" placeholder="邀請碼" maxlength="8" autocomplete="off"><input id="admBdN" placeholder="暱稱" maxlength="10" autocomplete="off"></div>
-        <button class="btn sub" id="admBdR" style="width:100%;margin-top:6px">清掉 ta 的生日</button><button class="btn sub" id="admBdP" style="width:100%;margin-top:6px">預覽生日領取畫面</button></div>
+        <button class="btn sub" id="admBdR" style="width:100%;margin-top:6px">清掉 ta 的生日</button><button class="btn sub" id="admBdP" style="width:100%;margin-top:6px">預覽生日領取畫面</button></div></div>
       <div class="box admBox admFold ${admOpen("survey", true) ? "open" : ""}" data-fold="survey"><h3 class="admFH">📋 意見問卷<small id="admSvN"></small><i class="admArr">▾</i></h3><div class="admFB" id="admSv"><div class="k">讀取中…</div></div></div>`;
     body.querySelectorAll(".admFH").forEach(h=>h.addEventListener("click", ()=>{ const box = h.closest(".admFold"), k = box.dataset.fold, open = !box.classList.contains("open");
       box.classList.toggle("open", open); admFoldSet(k, open); SFX.tap(); }));
@@ -1227,9 +1227,11 @@ const App = (function(){
   }
   // 設定裡的「我的生日」
   function bdSetBox(){
-    const box = $("bdSet"); if(!box) return;
-    if(!BD.ok){ box.classList.add("hidden"); return; }
-    box.classList.remove("hidden");
+    const outer = $("bdSet"), box = $("bdIn"); if(!outer || !box) return;
+    if(!BD.ok){ outer.classList.add("hidden"); return; }
+    outer.classList.remove("hidden");
+    if(BD.can && !BD.got) setOpen.add("我的生日");   // 可以領的時候自動打開
+    const hd = outer.querySelector(".setHd"); if(hd && hd._paint) hd._paint();
     const n = BD.cols.length;
     if(!BD.md){
       box.innerHTML = `<div class="svGift">${sprite("bd1","happy")}<div><b>填生日，拿限定「壽星貓」</b><small>生日前後 7 天可以從 9 種顏色挑一隻，每年都能再挑一隻！</small></div></div>
@@ -1251,7 +1253,7 @@ const App = (function(){
       });
       return;
     }
-    box.innerHTML = `<h2>我的生日</h2><div class="svGift">${sprite(Pix.isBd(me.cat) ? me.cat : "bd" + (BD.cols[0]||1), BD.can ? "love" : "happy")}<div><b>${bdTxt(BD.md)}</b><small>${BD.can ? esc(bdWhen()) + (BD.got ? "・今年的壽星貓領過囉" : "") : "生日前後 7 天可以挑一隻壽星貓"}</small></div></div>
+    box.innerHTML = `<div class="svGift">${sprite(Pix.isBd(me.cat) ? me.cat : "bd" + (BD.cols[0]||1), BD.can ? "love" : "happy")}<div><b>${bdTxt(BD.md)}</b><small>${BD.can ? esc(bdWhen()) + (BD.got ? "・今年的壽星貓領過囉" : "") : "生日前後 7 天可以挑一隻壽星貓"}</small></div></div>
       ${BD.can && !BD.got ? `<button class="btn" id="bdPick">挑一隻壽星貓</button>` : ""}
       <div class="k">已收集 ${n} / 9 隻壽星貓${n ? "，有壽星貓就能傳專屬的會動生日貼圖" : ""}。生日填錯的話，可以寫信給站長幫你改。</div>`;
     const pb = box.querySelector("#bdPick"); if(pb) pb.addEventListener("click", ()=>{ SFX.select(); bdClaim(false); });
@@ -2684,7 +2686,7 @@ const App = (function(){
   const privacyBox = () => `<div class="box set"><h2>隱私說明</h2>${privacyList()}</div>`;
   function viewSettings(v){
     const ps=pushState();
-    v.innerHTML = `${appBox()}<div class="box set svSetBox ${SV.on && !SV.done ? "" : "hidden"}" id="svSet"><div class="svGift">${sprite("star","happy")}<div><b>填問卷，拿限定「博士貓」</b><small>大約 1～2 分鐘，幫小窩變得更好～</small></div></div><button class="btn" id="svOpen">去填問卷</button></div><div class="box set bdSetBox hidden" id="bdSet"></div><div class="box set"><h2>我的貓</h2><div class="picks" id="pk"></div><input id="nm" maxlength="10" value="${esc(me.name)}" style="font-size:17px;padding:8px;border:3px solid var(--line);text-align:center;border-radius:0"><button class="btn" id="bSave">儲存</button></div>
+    v.innerHTML = `${appBox()}<div class="box set svSetBox ${SV.on && !SV.done ? "" : "hidden"}" id="svSet"><div class="svGift">${sprite("star","happy")}<div><b>填問卷，拿限定「博士貓」</b><small>大約 1～2 分鐘，幫小窩變得更好～</small></div></div><button class="btn" id="svOpen">去填問卷</button></div><div class="box set bdSetBox ${BD.ok ? "" : "hidden"}" id="bdSet"><h2>我的生日</h2><div id="bdIn"></div></div><div class="box set"><h2>我的貓</h2><div class="picks" id="pk"></div><input id="nm" maxlength="10" value="${esc(me.name)}" style="font-size:17px;padding:8px;border:3px solid var(--line);text-align:center;border-radius:0"><button class="btn" id="bSave">儲存</button></div>
       <div class="box set"><h2>小窩模式</h2><div class="modePick" id="mSet">${Object.keys(MODES).map(m=>`<button data-m="${m}" class="${roomMode===m?"on":""}">${modeArt(m)}<b>${MODES[m].name}</b></button>`).join("")}</div><div class="k">兩個人會一起切換。閨蜜／兄弟模式會換掉情侶向的題目和用語</div></div>
       <div class="box set"><h2>整體風格</h2><div class="sthemes" id="sthm">${SITE_THEMES.map(([id,n,bg,pa,ln,ac,sh])=>`<button data-st="${id}" class="${(store.get("mw_theme")||"cream")===id?"on":""}"><span class="stPrev" style="background-color:${bg};background-image:linear-gradient(${ln}14 1px,transparent 1px),linear-gradient(90deg,${ln}14 1px,transparent 1px)"><b style="background:${pa};border-color:${ln};box-shadow:2px 2px 0 ${sh}"></b><i style="background:${ac};border-color:${ln}"></i><s>${icon("heart",{K:ac,W:pa,O:ln})}</s></span>${n}</button>`).join("")}</div></div>
       <div class="box set"><h2>字體</h2><div class="fontPick" id="fPick"><button data-f="pixel" class="${store.get("mw_font")==="sys"?"":"on"}" style="font-family:Cubic11">像素字 喵喵小窩</button><button data-f="sys" class="${store.get("mw_font")==="sys"?"on":""}" style="font-family:-apple-system,'PingFang TC','Noto Sans TC',sans-serif">一般字 喵喵小窩</button></div></div>
@@ -2716,7 +2718,7 @@ const App = (function(){
         + (BD.ok && !BD.cols.length && !Pix.isBd(me.cat) ? `<button class="svPk lock bdPk" data-bdl="1">${sprite("bd1","normal")}<i>生日限定</i></button>` : "");
       pk.querySelectorAll("[data-c]").forEach(b=>b.addEventListener("click",()=>{pick=b.dataset.c;drawPk();}));
       const lk=pk.querySelector("[data-sv]"); if(lk) lk.addEventListener("click", ()=>{ SFX.tap(); svDeclined = true; svForm(false); });
-      const bl=pk.querySelector("[data-bdl]"); if(bl) bl.addEventListener("click", ()=>{ SFX.tap(); const b=$("bdSet"); if(b){ b.scrollIntoView({behavior:"smooth",block:"center"}); b.classList.remove("flash"); void b.offsetWidth; b.classList.add("flash"); } toast(BD.md ? "生日前後 7 天就能挑一隻壽星貓喔" : "先在上面填生日，生日前後 7 天就能挑一隻喔"); }); };
+      const bl=pk.querySelector("[data-bdl]"); if(bl) bl.addEventListener("click", ()=>{ SFX.tap(); const b=$("bdSet"); if(b){ setOpen.add("我的生日"); const h=b.querySelector(".setHd"); if(h && h._paint) h._paint(); b.scrollIntoView({behavior:"smooth",block:"center"}); b.classList.remove("flash"); void b.offsetWidth; b.classList.add("flash"); } toast(BD.md ? "生日前後 7 天就能挑一隻壽星貓喔" : "先在上面填生日，生日前後 7 天就能挑一隻喔"); }); };
     bdSetBox(); bdLoad().then(()=>{ if($("pk")) drawPk(); bdSetBox(); });
     drawPk(); svLoad().then(()=>{ if($("pk")) drawPk(); const sb=$("svSet"); if(sb) sb.classList.toggle("hidden", !(SV.on && !SV.done)); });
     $("bSave").addEventListener("click", async()=>{ const n=$("nm").value.trim().slice(0,10); if(!n) return; me.name=n; me.cat=pick; store.set("mw_name",n); store.set("mw_cat",pick); try{ await B.updateMe({name:n,cat:pick}); }catch(e){} B.track({name:n,cat:pick}); lastHdr=""; renderHeader(); toast(`${sprite(pick,"wave")} 已儲存！`); });
@@ -2765,10 +2767,10 @@ const App = (function(){
   function setSummary(t){
     const th = SITE_THEMES.find(x=>x[0]===(store.get("mw_theme")||"cream")), kt = KB_THEMES.find(x=>x[0]===(store.get("mw_kb")||"strawberry")),
           an = KB_ANIMS.find(x=>x[0]===(store.get("mw_anim")||"jelly")), wl = WALLS.find(x=>x[0]===(store.get("mw_wall")||"paws"));
-    return ({ "我的貓": me.name||"", "小窩模式": MI().name, "整體風格": th?th[1]:"", "字體": store.get("mw_font")==="sys"?"一般字":"像素字",
+    return ({ "我的生日": BD.md ? bdTxt(BD.md) + (BD.can && !BD.got ? "・可以領壽星貓！" : "") : "還沒填", "我的貓": me.name||"", "小窩模式": MI().name, "整體風格": th?th[1]:"", "字體": store.get("mw_font")==="sys"?"一般字":"像素字",
       "鍵盤設定": ({s:"小",m:"中",l:"大"})[store.get("mw_kbsize")||"m"]+"鍵", "鍵盤配色": kt?kt[1]:"", "打字動畫": an?an[1]:"", "聊天背景": wl?wl[1]:"", "通知": pushState()==="on"?"已開啟":"未開啟", "邀請碼": B.code||"", "下載 App": standalone ? "已下載" : "還沒下載", "換手機": "邀請碼＋暱稱", "密碼鎖": Lock.on() ? "已開啟" : "未開啟" })[t] || "";
   }
-  const SET_ICON = { "我的貓":()=>sprite(me.cat||"orange","happy"), "小窩模式":()=>icon("heart"), "整體風格":()=>icon("star"), "字體":()=>icon("chat"), "鍵盤設定":()=>icon("keys"), "鍵盤配色":()=>icon("star",{Y:"#f0708d"}),
+  const SET_ICON = { "我的生日":()=>sprite(Pix.isBd(me.cat) ? me.cat : "bd1","happy",{plain:true}), "我的貓":()=>sprite(me.cat||"orange","happy"), "小窩模式":()=>icon("heart"), "整體風格":()=>icon("star"), "字體":()=>icon("chat"), "鍵盤設定":()=>icon("keys"), "鍵盤配色":()=>icon("star",{Y:"#f0708d"}),
     "打字動畫":()=>icon("spark"), "聊天背景":()=>icon("paw"), "通知":()=>icon("bell"), "邀請碼":()=>icon("home"), "換手機":()=>icon("phone"), "下載 App":()=>icon("home"), "密碼鎖":()=>icon("lock"), "其他":()=>icon("gear") };
   function collapseSettings(v){
     // 單人模式：沒有模式切換、邀請碼、聊天背景；其他模式不能切成單人
