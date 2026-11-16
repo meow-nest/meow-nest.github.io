@@ -3314,7 +3314,7 @@ body[data-theme="night"] .lrRow,body[data-theme="night"] .lrRow.me,body[data-the
 .ttl.sm.t1{padding:3px 7px}.ttl.sm.t2{padding:3px 8px;margin-top:7px}.ttl.sm.t2:before,.ttl.sm.t2:after{top:-9px;width:11px;height:9px}
 .ttl.sm.t3{padding:2px 8px 2px 3px}.ttl.sm.t3 .tic{width:17px;height:17px}.ttl.sm.t3 .tic svg{width:10px}
 .ttl.sm.t4{padding:3px 8px 3px 20px;margin-left:10px}.ttl.sm.t4 .tic svg{width:24px}.ttl.sm.t4 .tic{left:-11px}
-.ttl.sm.t5{padding:4px 9px}.ttl.sm.t6{padding:4px 11px;margin:0 9px}.ttl.sm.t6:before,.ttl.sm.t6:after{width:11px;top:4px}.ttl.sm.t6:before{left:-9px}.ttl.sm.t6:after{right:-9px}
+.ttl.sm.t5{padding:5px 11px;outline-width:1.5px;outline-offset:-4px}.ttl.sm.t6{padding:4px 11px;margin:0 9px}.ttl.sm.t6:before,.ttl.sm.t6:after{width:11px;top:4px}.ttl.sm.t6:before{left:-9px}.ttl.sm.t6:after{right:-9px}
 .ttl.sm.t7,.ttl.sm.t9,.ttl.sm.t11{padding:4px 9px}.ttl.sm.t8,.ttl.sm.t10{padding:4px 9px}.ttl.sm .tcr svg{width:16px}.ttl.sm .tcr{top:-12px}
 .ttl.t7,.ttl.t9,.ttl.t11{margin:0}.ttl.t11{margin-top:11px}
 .ttlW.hw .ttl{margin-left:0;margin-right:0}
