@@ -484,6 +484,7 @@ App.registerGame({
         if(x.k==="fl") return (d.floor||"fl0")===x.id;
         return (d.wear[who]||{})[x.slot]===x.id;
       }
+      let drawTok = 0; const cardHtml = {};
       function card(x, d){
         const ok = owns(x, m), using = ok && on(x, d), afford = !ok && x.price && coins() >= x.price, pc = !ok && x.p ? Math.max(0, Math.min(1, x.p(m))) : 0;
         const pic = x.bg ? `<span class="pdArt bg" style="background:${x.bg}"></span>` : `<span class="pdArt">${D.art(x.id)}</span>`;
@@ -500,6 +501,7 @@ App.registerGame({
       function draw(){
         const d = deco(), all = D.ITEMS.filter(inTab);
         const list = all.filter(x => filter==="own" ? owns(x,m) : filter==="buy" ? (!owns(x,m) && x.price) : filter==="ach" ? isAch(x) : true);
+        const cards = list.map(x => (cardHtml[x.id] = card(x, d))), FIRST = 24;
         const nOwn = all.filter(x=>owns(x,m)).length;
         const keep = ov.querySelector(".pdBox") ? ov.querySelector(".pdBox").scrollTop : 0;
         ov.innerHTML = `<div class="pdBox">
@@ -510,8 +512,20 @@ App.registerGame({
           ${tab==="f" ? `<button class="btn mint pdMove" data-move>✋ 到房間裡自己擺位置</button>` : ""}
           <div class="pdFil">${[["all","全部"],["own","已擁有"],["buy","商店"],["ach","成就"]].map(([k,n])=>`<button data-fil="${k}" class="${filter===k?"on":""}">${n}</button>`).join("")}</div>
           <div class="pdSub">擁有 ${nOwn}/${all.length}・${tab==="f"?"點一下放進房間、再點一下收起來":tab==="a"?"點一下戴上、再點一下拿掉（頭上、脖子、臉上各一件）":"點一下換上"}・🔒 是成就，${solo ? "" : "兩個人一起"}達成就解鎖；標價的用貓幣買</div>
-          <div class="pdGrid">${list.map(x=>card(x,d)).join("") || `<p class="pdEmpty">這裡還沒有東西～</p>`}</div></div>`;
+          <div class="pdGrid">${cards.slice(0, FIRST).join("") || `<p class="pdEmpty">這裡還沒有東西～</p>`}</div></div>`;
         ov.querySelector(".pdBox").scrollTop = keep;
+        // 東西很多的時候：先畫前面幾個，其他的下一格畫面再補上，打開不會卡一下
+        const tok = ++drawTok, grid = ov.querySelector(".pdGrid");
+        const more = i => { if(tok !== drawTok || !grid.isConnected || i >= cards.length) return; grid.insertAdjacentHTML("beforeend", cards.slice(i, i + 40).join("")); requestAnimationFrame(() => more(i + 40)); };
+        if(cards.length > FIRST) requestAnimationFrame(() => { more(FIRST); ov.querySelector(".pdBox").scrollTop = keep; });
+      }
+      // 換上/拿掉、按一下要買：只重畫有變的那幾張卡片
+      function patch(){
+        const grid = ov.querySelector(".pdGrid"); if(!grid) return draw();
+        const d = deco();
+        grid.querySelectorAll("[data-it]").forEach(b => { const x = D.BY[b.dataset.it]; if(!x) return; const h = card(x, d);
+          if(cardHtml[x.id] !== h){ cardHtml[x.id] = h; const t = document.createElement("template"); t.innerHTML = h.trim(); b.replaceWith(t.content.firstChild); } });
+        const bal = ov.querySelector(".pdBal b"); if(bal) bal.textContent = coins();
       }
       draw();
       ov.addEventListener("click", async e=>{
@@ -526,7 +540,7 @@ App.registerGame({
         if(!owns(x, m)){
           if(isAch(x)){ SFX.tap(); ctx.toast(`🔒 ${esc(x.n)}：${esc(x.need)}`); return; }
           if(coins() < x.price){ SFX.tap(); ctx.toast(`${D.coin} 還差 ${x.price - coins()} 個貓幣～去玩接小魚乾賺吧！`); return; }
-          if(pending !== x.id){ pending = x.id; SFX.tap(); draw(); return; }
+          if(pending !== x.id){ pending = x.id; SFX.tap(); patch(); return; }
           pending = null;
           const ns = await setDeco((dd, st)=>{ st.owned = st.owned || []; if(st.owned.includes(x.id) || (st.coins||0) < x.price) return false;
             st.coins -= x.price; st.owned.push(x.id); equip(dd, x);
@@ -537,7 +551,7 @@ App.registerGame({
         }
         SFX.select(); pending = null;
         await setDeco(dd=>{ equip(dd, x, true); });
-        draw();
+        patch();
       });
       function equip(dd, x, toggle){
         if(x.k==="r"){ dd.rug = toggle && dd.rug===x.id ? null : x.id; }

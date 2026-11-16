@@ -205,7 +205,7 @@ one("pond","f","floorM","小池塘",520,["...OOOOOOOO...",".OOUUUUUUUUOO.","OUUU
 bgItem("rugPicnic","r","野餐墊",150,"repeating-conic-gradient(#e5486a 0 25%,#fff 0 50%) 0 0/16px 16px");
 
 const BY = Object.fromEntries(ITEMS.map(x=>[x.id,x]));
-const art = id => A[id] ? px(A[id][0], A[id][1]) : "";
+const ART = {}; const art = id => ART[id] || (ART[id] = A[id] ? px(A[id][0], A[id][1]) : "");   // 畫好的家具圖存起來，打開佈置不用每次重畫
 const cols = id => A[id] ? Math.max(...A[id][0].map(r=>r.length)) : 10;
 const coin = `<i class="pdCoin">${px([".OOO.","OYYYO","OYWYO","OYYYO",".OOO."], { Y:"#ffcf4a", W:"#fff6c8" })}</i>`;
 const frames = id => A[id] ? [px(A[id][0], A[id][1])].concat((FR[id]||[]).map(r => px(r, A[id][1]))) : [];

@@ -133,7 +133,8 @@ const shinyArt = i => { const mk = maskOf(i), m = `-webkit-mask-image:${mk};mask
   return `<span class="cwShinyA">${art(i)}<span class="cwHolo" style="${m}"></span><span class="cwSheen" style="${m}"></span>${[1, 2, 3, 4].map(n => `<span class="cwSpk k${n}">${SPK}</span>`).join("")}</span>`; };
 const SHINY_COST = 2, SHINY_NEED = 3;
 // 每天固定一批：用台灣日期當種子，大家同一天看到的一樣
-const dayKey = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Taipei" });
+// 台灣時間的日期（台灣沒有日光節約，直接 +8 小時算，比 toLocaleDateString 快很多）
+const dayKey = () => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
 const seeded = str => { let h = 1779033703 ^ str.length; for(const ch of str){ h = Math.imul(h ^ ch.charCodeAt(0), 3432918353); h = h << 13 | h >>> 19; }
   return () => { h = Math.imul(h ^ h >>> 16, 2246822507); h = Math.imul(h ^ h >>> 13, 3266489909); h ^= h >>> 16; return (h >>> 0)/4294967296; }; };
 const lineup = (day, n) => { const rnd = seeded("meow-claw-" + day), used = new Set(), out = [];

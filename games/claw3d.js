@@ -119,7 +119,8 @@ const IDX = {}; PRIZES.forEach((P, i) => IDX[P[2]] = i);
 const normCol = c => { const r = {}; if(c) for(const k in c) if(IDX[k] != null && c[k] > 0) r[k] = c[k]; return r; };
 const RAR = [["普通", "#9aa3bd"], ["稀有", "#5e9de6"], ["超稀有", "#e8a400"]];
 const FREE = 10, PITY = 6, SHINY_COST = 2, SHINY_NEED = 3;
-const dayKey = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Taipei" });
+// 台灣時間的日期（台灣沒有日光節約，直接 +8 小時算，比 toLocaleDateString 快很多）
+const dayKey = () => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
 const seeded = str => { let h = 1779033703 ^ str.length; for(const ch of str){ h = Math.imul(h ^ ch.charCodeAt(0), 3432918353); h = h << 13 | h >>> 19; }
   return () => { h = Math.imul(h ^ h >>> 16, 2246822507); h = Math.imul(h ^ h >>> 13, 3266489909); h ^= h >>> 16; return (h >>> 0)/4294967296; }; };
 const lineup = (day, n) => { const rnd = seeded("meow-claw3d-" + day), used = new Set(), out = [];
@@ -580,5 +581,14 @@ App.registerGame({
   },
   unmount(){ if(this._u) this._u(); if(this._stop) this._stop(); },
 });
-if(window.GameArt) window.GameArt.claw3d = () => `<span class="gaL" style="left:2%;bottom:0;width:52%"><img src="${thumb("c_calico")}" alt="" style="width:100%"></span><span class="gaL" style="right:2%;bottom:4%;width:48%"><img src="${thumb("a_shiba")}" alt="" style="width:100%"></span>`;
+// 首頁的小圖：3D 娃娃要算一下，先讓首頁出來，空閒時再補上（算過一次就存著）
+const THUMB_SAVE = "mw_c3t1_";   // 娃娃長相改了的話，把這裡的數字 +1
+const thumbLater = key => {
+  if(THUMB[key] == null){ try{ const v = localStorage.getItem(THUMB_SAVE + key); if(v) THUMB[key] = v; }catch(e){} }
+  if(THUMB[key] != null) return `<img src="${THUMB[key]}" alt="" style="width:100%">`;
+  const go = () => { const u = thumb(key); if(u) try{ localStorage.setItem(THUMB_SAVE + key, u); }catch(e){}
+    document.querySelectorAll(`img[data-c3t="${key}"]`).forEach(im => { im.src = u; im.removeAttribute("data-c3t"); }); };
+  (window.requestIdleCallback || (f => setTimeout(f, 200)))(go, { timeout: 1500 });
+  return `<img data-c3t="${key}" alt="" style="width:100%;aspect-ratio:1/1">`; };
+if(window.GameArt) window.GameArt.claw3d = () => `<span class="gaL" style="left:2%;bottom:0;width:52%">${thumbLater("c_calico")}</span><span class="gaL" style="right:2%;bottom:4%;width:48%">${thumbLater("a_shiba")}</span>`;
 })();

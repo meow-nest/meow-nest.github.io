@@ -698,7 +698,13 @@ const App = (function(){
     document.body.dataset.wall = (w==="photo" && !img) ? "paws" : w;
     if(img) document.body.style.setProperty("--wall-img", `url("${img}")`);
   }
+  const WALL_CSS = {};   // 每種聊天背景的預覽只算一次（每次算都要量畫面，很慢）
   function wallCss(id){
+    const wk = id + "|" + (document.body.dataset.theme || "") + "|" + (id === "photo" ? (store.get("mw_wall_img") || "").length : "");
+    if(WALL_CSS[wk]) return WALL_CSS[wk];
+    return WALL_CSS[wk] = wallCss0(id);
+  }
+  function wallCss0(id){
     const prev = document.body.dataset.wall;
     const probe = document.createElement("div"); probe.className="chat"; probe.style.cssText="position:absolute;left:-9999px;width:60px;height:80px"; probe.innerHTML='<div class="list" style="height:80px"></div>';
     document.body.appendChild(probe); document.body.dataset.wall = (id==="photo" && !store.get("mw_wall_img")) ? "paws" : id;
