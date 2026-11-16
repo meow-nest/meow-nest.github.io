@@ -215,11 +215,28 @@ const App = (function(){
   function lvOf(h){ let n = 1; while(h >= lvNeed(n+1) && n < 9999) n++; return n; }
   function lvInfo(h){ const n = lvOf(h); return { n, name:lvName(n), cur:lvNeed(n), next:lvNeed(n+1), nextName:lvName(n+1) }; }
   ctx.lvInfo = lvInfo; ctx.lvRank = () => lvRank();
+  // ---- 稱號徽章：越高等越華麗；Lv7 起有小翅膀（小天使／小惡魔，兩個人一起選）----
+  let roomWing = "angel";
+  const WING_SVG = {
+    angel: e => `<svg viewBox="0 0 42 31" xmlns="http://www.w3.org/2000/svg"><path d="M3 15C3 7 13 2 23 3C32 4 38 8 37 12C36.5 15 33 16 30.5 16C33 18 32 22.5 28 22.5C29.5 25.5 26 28.5 22 26.5C19.5 29.5 14 29.5 11 26.5C6 26.5 3 21 3 15Z" fill="#fff" stroke="${e}" stroke-width="1.6" stroke-linejoin="round"/><path d="M12.5 20.5a3.2 3.2 0 1 1-3.4-4.3a2 2 0 1 1 1.6 2.6" fill="none" stroke="${e}" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+    devil: () => `<svg viewBox="0 0 42 23" xmlns="http://www.w3.org/2000/svg"><path d="M2 15Q17 2 39 2Q33 10 34.5 19Q29.5 14.5 24.5 20Q20.5 14.5 15.5 20Q11.5 15.5 6.5 19.5Q4 18 2 15Z" fill="#24212b" stroke="#16141b" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 15L39 2M8 14L24.5 20M7 15.5L15.5 20M14 10L34.5 19" fill="none" stroke="#55505f" stroke-width="1" stroke-linecap="round"/></svg>`,
+  };
+  const WING_EDGE = { 7:"#8a7cf0", 8:"#5fb8f0", 9:"#ff9ec4", 10:"#e0b54a", 11:"#d9a521" };
+  const TTL_IC = { 3:()=>icon("heart"), 4:()=>icon("heart",{K:"#6fcf9f",W:"#fff",O:"#2f9467"}), 6:()=>icon("crown") };
+  function ttlHtml(h, wing, sm){
+    const n = lvOf(h || 0), t = Math.min(n, 11), name = lvName(n).replace(/^Lv\d+\s*/, "");
+    const ic = TTL_IC[t] ? `<span class="tic">${TTL_IC[t]()}</span>` : "", cr = t >= 10 ? `<span class="tcr">${icon("crown")}</span>` : "";
+    const badge = `<span class="ttl t${t}${sm ? " sm" : ""}">${cr}${ic}<span class="tlv">Lv${n}</span>${esc(name)}</span>`;
+    if(t < 7) return `<span class="ttlW">${badge}</span>`;
+    const w = (WING_SVG[wing] || WING_SVG.angel)(WING_EDGE[t]);
+    return `<span class="ttlW hw ${wing === "devil" ? "dv" : ""}"><span class="twg l">${w}</span><span class="twg r">${w}</span>${badge}</span>`;
+  }
+  ctx.ttlHtml = (h, sm) => ttlHtml(h, roomWing, sm);
   function renderMeter(){
     const el=$("meter"); if(!el) return;
     const s = stateCache.moqi && stateCache.moqi.state; const h = s ? (s.hearts||0) : 0; const L=lvInfo(h);
     const frac = L.next ? (h-L.cur)/(L.next-L.cur) : 1;
-    el.innerHTML = `<span class="lv">${L.name}</span><span class="segs">${[...Array(8)].map((_,i)=>`<i class="${i<Math.round(frac*8)?'f':''}"></i>`).join("")}</span><span class="fish">${icon("fish")}${h}</span>`;
+    el.innerHTML = `${ttlHtml(h, roomWing, true)}<span class="segs">${[...Array(8)].map((_,i)=>`<i class="${i<Math.round(frac*8)?'f':''}"></i>`).join("")}</span><span class="fish">${icon("fish")}${h}</span>`;
     el.title = `再收集 ${L.next-h} 條小魚乾 → ${L.nextName}・點一下看排行榜`;
     if(!el.dataset.rk){ el.dataset.rk = "1"; el.style.cursor = "pointer"; el.addEventListener("click", ()=>{ SFX.tap(); lvRank(); }); }
   }
@@ -1196,7 +1213,7 @@ const App = (function(){
     const row = (x, me) => { const L = lvInfo(x.h), w = x.who || [];
       const names = me ? mine.map(esc).join(" ♥ ") : w.map(m=>esc(m.name)).join(" ♥ ");
       const cats = (me ? myCats : w.map(m=>m.cat)).map(c=>`<span>${sprite(c||"orange","love",{plain:true})}</span>`).join("");
-      return `<div class="lrRow ${me?"me":""} ${x.rk<=3?"top"+x.rk:""}"><b class="lrRk">${x.rk<=3 ? icon("crown") : ""}<i>${x.rk}</i></b><span class="lrCats">${cats}</span><span class="lrWho"><b>${names}</b><small>${esc(L.name)}</small></span><span class="lrH">${icon("fish")}${x.h}</span></div>`; };
+      return `<div class="lrRow ${me?"me":""} ${x.rk<=3?"top"+x.rk:""}"><b class="lrRk">${x.rk<=3 ? icon("crown") : ""}<i>${x.rk}</i></b><span class="lrCats">${cats}</span><span class="lrWho"><b>${names}</b><span class="lrT">${ttlHtml(x.h, me ? roomWing : (x.wing === "devil" ? "devil" : "angel"), true)}</span></span><span class="lrH">${icon("fish")}${x.h}</span></div>`; };
     const top = (r && r.top) || [], me = r && r.mine;
     o.querySelector("#lrL").innerHTML = (top.length ? top.map(x=>row(x, x.me)).join("") : `<div class="k" style="text-align:center;padding:20px">還沒有人上榜，快去玩默契大考驗！</div>`)
       + (me && !top.some(x=>x.me) ? `<div class="lrGap">⋯</div>${row(me, true)}` : "")
@@ -2719,6 +2736,7 @@ const App = (function(){
     const ps=pushState();
     v.innerHTML = `${appBox()}<div class="box set svSetBox ${SV.on && !SV.done ? "" : "hidden"}" id="svSet"><div class="svGift">${sprite("star","happy")}<div><b>填問卷，拿限定「博士貓」</b><small>大約 1～2 分鐘，幫小窩變得更好～</small></div></div><button class="btn" id="svOpen">去填問卷</button></div><div class="box set bdSetBox ${BD.ok ? "" : "hidden"}" id="bdSet"><h2>我的生日</h2><div id="bdIn"></div></div><div class="box set"><h2>我的貓</h2><div class="picks" id="pk"></div><input id="nm" maxlength="10" value="${esc(me.name)}" style="font-size:17px;padding:8px;border:3px solid var(--line);text-align:center;border-radius:0"><button class="btn" id="bSave">儲存</button></div>
       <div class="box set"><h2>小窩模式</h2><div class="modePick" id="mSet">${Object.keys(MODES).map(m=>`<button data-m="${m}" class="${roomMode===m?"on":""}">${modeArt(m)}<b>${MODES[m].name}</b></button>`).join("")}</div><div class="k">兩個人會一起切換。閨蜜／兄弟模式會換掉情侶向的題目和用語</div></div>
+      <div class="box set"><h2>稱號翅膀</h2><div class="wingPick" id="wPick">${["angel","devil"].map(w=>`<button data-w="${w}" class="${roomWing===w?"on":""}"><span class="wpPrev">${ttlHtml(lvNeed(7), w, true)}</span><b>${w==="angel"?"小天使":"小惡魔"}</b></button>`).join("")}</div><div class="k">親密等級到 Lv7 就會長出小翅膀，兩個人會一起換。更高級的翅膀開發中～</div></div>
       <div class="box set"><h2>整體風格</h2><div class="sthemes" id="sthm">${SITE_THEMES.map(([id,n,bg,pa,ln,ac,sh])=>`<button data-st="${id}" class="${(store.get("mw_theme")||"cream")===id?"on":""}"><span class="stPrev" style="background-color:${bg};background-image:linear-gradient(${ln}14 1px,transparent 1px),linear-gradient(90deg,${ln}14 1px,transparent 1px)"><b style="background:${pa};border-color:${ln};box-shadow:2px 2px 0 ${sh}"></b><i style="background:${ac};border-color:${ln}"></i><s>${icon("heart",{K:ac,W:pa,O:ln})}</s></span>${n}</button>`).join("")}</div></div>
       <div class="box set"><h2>字體</h2><div class="fontPick" id="fPick"><button data-f="pixel" class="${store.get("mw_font")==="sys"?"":"on"}" style="font-family:Cubic11">像素字 喵喵小窩</button><button data-f="sys" class="${store.get("mw_font")==="sys"?"on":""}" style="font-family:-apple-system,'PingFang TC','Noto Sans TC',sans-serif">一般字 喵喵小窩</button></div></div>
       <div class="box set"><h2>鍵盤設定</h2>
@@ -2787,6 +2805,9 @@ const App = (function(){
     setTimeout(()=>collapseSettings(v), 0);
     $("mSet").querySelectorAll("[data-m]").forEach(b=>b.addEventListener("click", async ()=>{ const m=b.dataset.m; if(m===roomMode) return; SFX.select();
       await update("room", st=>Object.assign(st||{}, { mode:m })); roomMode = m; $("mSet").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); toast(`換成${MODES[m].name}了`); }));
+    $("wPick") && $("wPick").querySelectorAll("[data-w]").forEach(b=>b.addEventListener("click", async ()=>{ const w = b.dataset.w; if(w===roomWing) return; SFX.select();
+      roomWing = w; $("wPick").querySelectorAll("[data-w]").forEach(x=>x.classList.toggle("on", x===b)); lastHdr = ""; renderHeader();
+      try{ await update("room", st=>Object.assign(st||{}, { wing:w })); }catch(e){} toast(`換成${w==="angel"?"小天使":"小惡魔"}翅膀了`); }));
     $("caretSty").querySelectorAll("[data-v]").forEach(b=>b.addEventListener("click", ()=>{ store.set("mw_caret", b.dataset.v); SFX.select(); $("caretSty").querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b)); }));
     $("kbSize").querySelectorAll("[data-v]").forEach(b=>b.addEventListener("click", ()=>{ store.set("mw_kbsize", b.dataset.v); applyKbSize(); SFX.select(); $("kbSize").querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b)); }));
     v.querySelectorAll("[data-tog]").forEach(b=>b.addEventListener("click", ()=>{ const k = b.dataset.tog, on = store.get(k)==="0"; store.set(k, on?"1":"0"); b.classList.toggle("on", on); SFX.select(); }));
@@ -2798,10 +2819,10 @@ const App = (function(){
   function setSummary(t){
     const th = SITE_THEMES.find(x=>x[0]===(store.get("mw_theme")||"cream")), kt = KB_THEMES.find(x=>x[0]===(store.get("mw_kb")||"strawberry")),
           an = KB_ANIMS.find(x=>x[0]===(store.get("mw_anim")||"jelly")), wl = WALLS.find(x=>x[0]===(store.get("mw_wall")||"paws"));
-    return ({ "我的生日": BD.md ? bdTxt(BD.md) + (BD.can && !BD.got ? "・可以領壽星貓！" : "") : "還沒填", "我的貓": me.name||"", "小窩模式": MI().name, "整體風格": th?th[1]:"", "字體": store.get("mw_font")==="sys"?"一般字":"像素字",
+    return ({ "稱號翅膀": roomWing==="devil" ? "小惡魔" : "小天使", "我的生日": BD.md ? bdTxt(BD.md) + (BD.can && !BD.got ? "・可以領壽星貓！" : "") : "還沒填", "我的貓": me.name||"", "小窩模式": MI().name, "整體風格": th?th[1]:"", "字體": store.get("mw_font")==="sys"?"一般字":"像素字",
       "鍵盤設定": ({s:"小",m:"中",l:"大"})[store.get("mw_kbsize")||"m"]+"鍵", "鍵盤配色": kt?kt[1]:"", "打字動畫": an?an[1]:"", "聊天背景": wl?wl[1]:"", "通知": pushState()==="on"?"已開啟":"未開啟", "邀請碼": B.code||"", "下載 App": standalone ? "已下載" : "還沒下載", "換手機": "邀請碼＋暱稱", "密碼鎖": Lock.on() ? "已開啟" : "未開啟" })[t] || "";
   }
-  const SET_ICON = { "我的生日":()=>sprite(Pix.isBd(me.cat) ? me.cat : "bd1","happy",{plain:true}), "我的貓":()=>sprite(me.cat||"orange","happy"), "小窩模式":()=>icon("heart"), "整體風格":()=>icon("star"), "字體":()=>icon("chat"), "鍵盤設定":()=>icon("keys"), "鍵盤配色":()=>icon("star",{Y:"#f0708d"}),
+  const SET_ICON = { "稱號翅膀":()=>WING_SVG[roomWing]("#8a7cf0"), "我的生日":()=>sprite(Pix.isBd(me.cat) ? me.cat : "bd1","happy",{plain:true}), "我的貓":()=>sprite(me.cat||"orange","happy"), "小窩模式":()=>icon("heart"), "整體風格":()=>icon("star"), "字體":()=>icon("chat"), "鍵盤設定":()=>icon("keys"), "鍵盤配色":()=>icon("star",{Y:"#f0708d"}),
     "打字動畫":()=>icon("spark"), "聊天背景":()=>icon("paw"), "通知":()=>icon("bell"), "邀請碼":()=>icon("home"), "換手機":()=>icon("phone"), "下載 App":()=>icon("home"), "密碼鎖":()=>icon("lock"), "其他":()=>icon("gear") };
   function collapseSettings(v){
     // 單人模式：沒有模式切換、邀請碼、聊天背景；其他模式不能切成單人
@@ -3075,9 +3096,9 @@ const App = (function(){
     B.isOwner && B.isOwner().then(async o=>{ if(!o) return; isAdmin = true; document.body.classList.add("admin"); if(B.adminRole) admRole = await B.adminRole(); document.body.classList.toggle("admsolo", isSolo());
       const hb = document.querySelector('#nav [data-go="home"]'); if(hb) hb.lastChild.textContent = "後台";
       if(route==="home") render(); }).catch(()=>{});
-    try{ const rm = await getState("room"); roomMode = validMode(rm && rm.state && rm.state.mode); }catch(e){}
+    try{ const rm = await getState("room"); roomMode = validMode(rm && rm.state && rm.state.mode); roomWing = rm && rm.state && rm.state.wing === "devil" ? "devil" : "angel"; }catch(e){}
     if(justCreated && pendingMode!=="couple"){ roomMode = pendingMode; await update("room", st=>Object.assign(st||{}, { mode:pendingMode })); }
-    onState("room", st=>{ const m = validMode(st && st.mode); if(m!==roomMode){ roomMode = m; render(); } });
+    onState("room", st=>{ const m = validMode(st && st.mode), w = st && st.wing === "devil" ? "devil" : "angel"; if(m!==roomMode || w!==roomWing){ roomMode = m; roomWing = w; render(); } });
     for(const g of ["daily","pet","fishing","album","notes"]) await getState(g).catch(()=>{});
     onState("album", onAlbumState);
     await getState("voice").catch(()=>{});

@@ -3266,3 +3266,61 @@ body[data-theme="night"] .stickers button.bdS,body[data-theme="night"] .stkGrid 
 .mqLv{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:-4px 0 10px;font-size:14px;color:var(--muted)}
 .mqRk{display:flex;align-items:center;gap:4px;font:inherit;font-size:13px;color:var(--ink);background:#fff6d6;border:2px solid #e8b93a;border-radius:8px;padding:2px 8px;cursor:pointer}.mqRk svg{width:16px;height:auto}
 body[data-theme="night"] .lrRow,body[data-theme="night"] .lrRow.me,body[data-theme="night"] .lrRow.top1,body[data-theme="night"] .lrRow.top2,body[data-theme="night"] .lrRow.top3{background:var(--paper);color:var(--ink)}
+
+/* 親密等級稱號：越高等越華麗（Lv7 起有小翅膀） */
+.ttl{position:relative;display:inline-flex;align-items:center;gap:5px;font-size:15px;line-height:1;white-space:nowrap;color:var(--t,#4a2f25);vertical-align:middle;isolation:isolate}
+.ttl .tlv{font-size:11px;opacity:.9}.ttl .tic{display:grid;place-items:center}.ttl .tic svg{width:15px;height:auto;display:block}
+/* Lv1 像素方框 */
+.ttl.t1{--l:#f3ece6;--m:#c8b6a6;--d:#8a7464;padding:5px 10px;background:var(--l);border:3px solid var(--d);box-shadow:inset 0 -3px 0 var(--m)}
+/* Lv2 貓耳 */
+.ttl.t2{--l:#ffe3ea;--m:#ff9eb5;--d:#d9577a;padding:5px 12px;background:var(--l);border:3px solid var(--d);border-radius:10px;margin-top:8px}
+.ttl.t2:before,.ttl.t2:after{content:"";position:absolute;top:-11px;width:14px;height:12px;background:var(--d);clip-path:polygon(50% 0,100% 100%,0 100%)}.ttl.t2:before{left:7px}.ttl.t2:after{right:7px}
+/* Lv3 膠囊＋圖示 */
+.ttl.t3{--l:#ffe9d6;--m:#ffb37a;--d:#d9772f;padding:4px 11px 4px 4px;background:var(--l);border:3px solid var(--d);border-radius:99px;box-shadow:0 3px 0 var(--d)}
+.ttl.t3 .tic{width:21px;height:21px;background:#fff;border-radius:50%;border:2px solid var(--d)}.ttl.t3 .tic svg{width:13px}
+.ttl.t3 .tlv{background:var(--d);color:#fff;border-radius:5px;padding:2px 4px;opacity:1}
+/* Lv4 大愛心 */
+.ttl.t4{--l:#dcf5e8;--m:#6fcf9f;--d:#2f9467;padding:5px 11px 5px 26px;background:var(--l);border:3px solid var(--d);border-radius:8px;margin-left:12px}
+.ttl.t4 .tic{position:absolute;left:-14px;top:50%;transform:translateY(-50%)}.ttl.t4 .tic svg{width:32px}
+/* Lv5 刺繡布章 */
+.ttl.t5{--l:#ddeeff;--m:#6fb0ec;--d:#2f6fb5;--t:#fff;padding:6px 13px;background:var(--m);border-radius:12px;box-shadow:0 0 0 3px var(--d),0 3px 0 3px var(--d);outline:2px dashed #fff;outline-offset:-6px;text-shadow:1px 1px 0 var(--d)}
+/* Lv6 緞帶 */
+.ttl.t6{--l:#fff1c4;--m:#f2c14e;--d:#b07d10;--t:#fff;padding:6px 16px;background:var(--m);text-shadow:1px 1px 0 var(--d);border-top:3px solid var(--d);border-bottom:3px solid var(--d);margin:0 11px}
+.ttl.t6:before,.ttl.t6:after{content:"";position:absolute;top:5px;width:14px;height:100%;background:var(--d);z-index:-1}.ttl.t6:before{left:-11px;clip-path:polygon(0 0,100% 0,100% 100%,0 100%,45% 50%)}.ttl.t6:after{right:-11px;clip-path:polygon(0 0,100% 0,55% 50%,100% 100%,0 100%)}
+/* Lv7 銀河＋小翅膀 */
+.ttl.t7{--m:#8a7cf0;--d:#1d1b3d;--t:#fff;padding:6px 13px;border:3px solid var(--d);border-radius:99px;margin:0 17px;
+  background:radial-gradient(circle at 15% 35%,#fff 1px,transparent 1.6px),radial-gradient(circle at 62% 70%,#fff 1px,transparent 1.6px),radial-gradient(circle at 85% 30%,#ffe68a 1px,transparent 1.6px),radial-gradient(circle at 40% 20%,#bfe3ff 1px,transparent 1.6px),linear-gradient(90deg,#2d2b5a,#4b3f8f)}
+/* Lv8 流星＋光環 */
+.ttl.t8{--m:#6fd0ff;--d:#0f2247;--t:#fff;padding:6px 13px;border:3px solid var(--d);border-radius:8px;margin-top:9px;background:linear-gradient(115deg,transparent 40%,rgba(160,230,255,.55) 47%,transparent 54%),linear-gradient(90deg,#1f3b6e,#2f5aa0)}
+.ttl.t8:before{content:"";position:absolute;left:50%;top:-11px;width:28px;height:7px;margin-left:-14px;border-radius:50%;border:3px solid #ffd36b;box-shadow:0 0 6px #ffd36b}
+/* Lv9 彩虹果凍＋翅膀 */
+.ttl.t9{--m:#ff9ec4;--d:#b4579a;padding:6px 14px;border-radius:99px;margin:0 17px;border:2px solid var(--d);background:linear-gradient(90deg,#ffd6e3,#fff1c4,#d9f7e4,#d6ecff,#ead9ff);box-shadow:inset 0 3px 0 rgba(255,255,255,.75),0 3px 0 var(--d)}
+/* Lv10 永恆：珍珠白金＋皇冠 */
+.ttl.t10{--m:#f2c14e;--d:#b07d10;padding:6px 13px;border-radius:8px;margin-top:11px;border:3px solid var(--d);background:linear-gradient(180deg,#fff,#fff6dc);box-shadow:0 0 0 2px #fff,0 0 8px rgba(242,193,78,.8)}
+.ttl.t10 .tcr,.ttl.t11 .tcr{position:absolute;left:50%;top:-15px;transform:translateX(-50%)}.ttl .tcr svg{width:22px;height:auto;display:block}
+/* Lv11+ 傳說：金色會發光＋皇冠＋翅膀 */
+.ttl.t11{--m:#ffd36b;--d:#9a6b12;--t:#5a3b05;padding:6px 14px;border-radius:99px;margin:11px 17px 0;border:3px solid var(--d);
+  background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.85) 45%,transparent 60%) -60px 0/200% 100% no-repeat,linear-gradient(90deg,#ffe58a,#ffc94a,#ffe58a);box-shadow:0 0 10px rgba(255,201,74,.9);animation:ttlShine 2.4s linear infinite}
+@keyframes ttlShine{to{background-position:160px 0,0 0}}
+@media (prefers-reduced-motion:reduce){.ttl.t11{animation:none}}
+
+.ttlW{position:relative;display:inline-block;isolation:isolate;vertical-align:middle;line-height:1}
+.ttlW .ttl{position:relative;z-index:1}
+.ttlW.hw{margin:0 22px}
+.ttlW .twg{position:absolute;z-index:0;top:50%;width:30px;transform:translateY(-58%)}.ttlW .twg svg{width:100%;height:auto;display:block}
+.ttlW .twg.l{left:-23px;transform:translateY(-58%) scaleX(-1)}.ttlW .twg.r{right:-23px}
+.ttlW.dv .twg{width:32px;transform:translateY(-70%)}.ttlW.dv .twg.l{left:-25px;transform:translateY(-70%) scaleX(-1)}.ttlW.dv .twg.r{right:-25px}
+.ttl.sm{font-size:12px;gap:4px}.ttl.sm .tlv{font-size:10px}.ttl.sm .tic svg{width:12px}
+.ttl.sm.t1{padding:3px 7px}.ttl.sm.t2{padding:3px 8px;margin-top:7px}.ttl.sm.t2:before,.ttl.sm.t2:after{top:-9px;width:11px;height:9px}
+.ttl.sm.t3{padding:2px 8px 2px 3px}.ttl.sm.t3 .tic{width:17px;height:17px}.ttl.sm.t3 .tic svg{width:10px}
+.ttl.sm.t4{padding:3px 8px 3px 20px;margin-left:10px}.ttl.sm.t4 .tic svg{width:24px}.ttl.sm.t4 .tic{left:-11px}
+.ttl.sm.t5{padding:4px 9px}.ttl.sm.t6{padding:4px 11px;margin:0 9px}.ttl.sm.t6:before,.ttl.sm.t6:after{width:11px;top:4px}.ttl.sm.t6:before{left:-9px}.ttl.sm.t6:after{right:-9px}
+.ttl.sm.t7,.ttl.sm.t9,.ttl.sm.t11{padding:4px 9px}.ttl.sm.t8,.ttl.sm.t10{padding:4px 9px}.ttl.sm .tcr svg{width:16px}.ttl.sm .tcr{top:-12px}
+.ttl.t7,.ttl.t9,.ttl.t11{margin:0}.ttl.t11{margin-top:11px}
+.ttlW.hw .ttl{margin-left:0;margin-right:0}
+.meterSlim .ttlW{margin-top:2px;margin-bottom:2px}
+.lrT{display:block;margin-top:3px}.lrT .ttlW:not(.hw){margin-left:0}
+.wingPick{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.wingPick button{font:inherit;color:var(--ink);background:var(--card);border:3px solid var(--shadow);border-radius:10px;padding:14px 4px 8px;cursor:pointer}
+.wingPick button.on{border-color:#ff6f91;background:#fff0f4}
+.wingPick .wpPrev{display:block;margin-bottom:6px;overflow:hidden;padding:4px 0}.wingPick b{font-weight:400}
