@@ -3105,3 +3105,8 @@ body[data-wall="sakura"] .chat .lw::before{content:"";inset:-110px 0 0 -40px;bac
 .drGot{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:6px 0}.drGot span{font-size:13px;padding:2px 8px;border:2px solid var(--line);background:#d8f3e3}.drGot span.dw{background:#fff3c4}.drGot b{font-weight:400;color:#2f7a52}
 .drOver{display:flex;flex-direction:column;gap:10px}.drWin{display:flex;flex-direction:column;align-items:center}.drWin>svg{width:84px;height:84px}.drWin p{margin:4px 0 0;font-size:17px;text-align:center}
 .drRank{display:flex;flex-direction:column;gap:4px}.drRank>div{display:flex;align-items:center;gap:8px;border:3px solid var(--line);background:var(--card);padding:4px 8px}.drRank>div.win{background:#fff3c4}.drRank>div.me span{color:var(--pinkT)}.drRank em{font-style:normal;width:26px;text-align:center}.drRank svg{width:34px;height:34px}.drRank span{flex:1}.drRank b{font-weight:400}
+/* 通話：暗螢幕、提示 */
+.callDim{position:fixed;inset:0;z-index:10050;background:#000;color:#6d5a52;display:flex;align-items:center;justify-content:center;text-align:center;touch-action:manipulation}
+.callDim b{display:block;font-weight:400;font-size:20px;color:#8a766d}.callDim span{display:block;font-size:28px;margin:6px 0 14px;color:#8a766d}.callDim small{font-size:13px;line-height:1.7}
+.callTip{margin-top:6px;font-size:12px;line-height:1.6;opacity:.75;text-align:center}
+.callBtns{flex-wrap:wrap}

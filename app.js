@@ -1874,9 +1874,12 @@ const App = (function(){
   }
   // ---- 通話：語音＋視訊（WebRTC，兩支手機直接連；訊號用即時頻道傳）----
   let CALL = null; const declined = new Set();
-  const callIce = async () => {
+  // 連線用的伺服器清單先存起來（10 分鐘內不用重抓，接通比較快）
+  let iceCache = null;
+  const callIce = async () => { if(iceCache && Date.now() - iceCache.at < 600000) return iceCache.list; const list = await callIce0(); iceCache = { at: Date.now(), list }; return list; };
+  const callIce0 = async () => {
     const cfg = window.MEOW_CONFIG || {}, base = [{ urls:["stun:stun.l.google.com:19302","stun:stun1.l.google.com:19302","stun:stun.cloudflare.com:3478"] }];
-    if(cfg.TURN_API){ try{ const r = await fetch(cfg.TURN_API); const list = await r.json(); if(Array.isArray(list) && list.length) return base.concat(list); }catch(e){} }
+    if(cfg.TURN_API){ try{ const ctl = new AbortController(), tm = setTimeout(()=>ctl.abort(), 2500); const r = await fetch(cfg.TURN_API, { signal: ctl.signal }); clearTimeout(tm); const list = await r.json(); if(Array.isArray(list) && list.length) return base.concat(list); }catch(e){} }
     if(cfg.TURN) return base.concat([].concat(cfg.TURN));
     return base;
   };
@@ -1901,15 +1904,19 @@ const App = (function(){
     let local; try{ local = await getMedia(video); }catch(e){ toast(video ? "要允許使用相機和麥克風才能視訊喔" : "要允許使用麥克風才能打電話喔"); return; }
     CALL = { id: Date.now() + "-" + Math.random().toString(36).slice(2,6), role:"caller", video, local, peer:p.user_id, phase:"ringing", ice:[], camOn:true, micOn:true, facing:"user", started: Date.now() };
     callUI(); ringTone("out");
-    const ring = () => csend("ring", { video, name: me.name, cat: me.cat });
+    // 對方還在響鈴時就先把連線準備好，對方一接馬上送出去
+    CALL.prep = (async () => { const c0 = CALL; const pc = await makePc(true); const off = await pc.createOffer(); await pc.setLocalDescription(off); if(c0 !== CALL) return null; const ld = pc.localDescription; CALL.offer = ld.toJSON ? ld.toJSON() : { type:ld.type, sdp:ld.sdp }; ring(); return pc; })().catch(()=>null);
+    // 響鈴時就把連線資料一起帶過去，對方按接聽可以直接回覆，少來回兩趟
+    const ring = () => CALL && csend("ring", { video, name: me.name, cat: me.cat, sdp: CALL.offer || undefined });
     ring(); CALL.ringBc = setInterval(ring, 2500);
     if(!isOnline(p.user_id)) postCallLog(`📞 ${me.name} 打${video ? "視訊" : "語音"}電話給你，快打開喵喵小窩接聽！`);
     CALL.timeout = setTimeout(()=>{ if(CALL && CALL.phase==="ringing"){ csend("cancel"); endCall("對方沒有接聽", "missed"); } }, 45000);
   }
-  async function makePc(){
-    const pc = new RTCPeerConnection({ iceServers: await callIce() }); CALL.pc = pc;
+  async function makePc(hold){
+    const c0 = CALL; const ice = await callIce(); if(CALL !== c0 || !CALL) throw new Error("gone");
+    const pc = new RTCPeerConnection({ iceServers: ice, iceCandidatePoolSize: 2 }); CALL.pc = pc; CALL.myIce = []; CALL.hold = !!hold;
     CALL.local.getTracks().forEach(t=>pc.addTrack(t, CALL.local));
-    pc.onicecandidate = e => { if(e.candidate) csend("ice", { c: e.candidate.toJSON() }); };
+    pc.onicecandidate = e => { if(!e.candidate || !CALL || CALL.pc !== pc) return; const c = e.candidate.toJSON(); if(CALL.hold) CALL.myIce.push(c); else csend("ice", { c }); };
     pc.ontrack = e => { CALL.remote = e.streams[0]; attachMedia(); };
     pc.onconnectionstatechange = () => { if(!CALL || CALL.pc !== pc) return; const s2 = pc.connectionState;
       if(s2==="connected"){ if(CALL.phase!=="live"){ CALL.phase = "live"; CALL.t0 = Date.now(); stopRing(); SFX.select(); callUI(); } clearTimeout(CALL.lostT); CALL.lostT = null; setCallSt(""); }
@@ -1923,13 +1930,38 @@ const App = (function(){
     stopRing();
     try{ CALL.local = await getMedia(asVideo); }catch(e){ toast("要允許使用麥克風" + (asVideo ? "和相機" : "") + "才能接聽喔"); return; }
     CALL.myVideo = asVideo; CALL.phase = "connecting"; callUI();
-    await makePc(); csend("accept", { video: asVideo });
+    const pc = await makePc();
+    if(CALL && CALL.offer){ try{ await pc.setRemoteDescription(CALL.offer); const ans = await pc.createAnswer(); await pc.setLocalDescription(ans); const ld = pc.localDescription;
+        CALL.answered = true; csend("accept", { video: asVideo, sdp: ld.toJSON ? ld.toJSON() : { type:ld.type, sdp:ld.sdp } }); flushIce(); }
+      catch(e){ csend("accept", { video: asVideo }); } }
+    else csend("accept", { video: asVideo });
     CALL.connT = setTimeout(()=>{ if(CALL && CALL.phase==="connecting"){ csend("hang"); endCall("連不上對方 (´；ω；`) 可能是網路擋住了，換成 Wi-Fi 再試試", "fail"); } }, 30000);
   }
   function declineCall(){ if(!CALL) return; declined.add(CALL.id); csend("decline"); endCall("", "declined"); }
   function hangUp(){ if(!CALL) return; if(CALL.phase==="ringing"){ csend("cancel"); endCall("", "cancel"); } else { csend("hang"); endCall("通話結束", "hang"); } }
+  // 通話中讓螢幕保持亮著：很多手機螢幕一暗，瀏覽器就會把麥克風停掉，對方就聽不到了
+  let wakeL = null;
+  async function wakeOn(){ try{ if(!("wakeLock" in navigator) || wakeL || document.visibilityState !== "visible") return; wakeL = await navigator.wakeLock.request("screen"); wakeL.addEventListener("release", ()=>{ wakeL = null; }); }catch(e){ wakeL = null; } }
+  function wakeOff(){ try{ wakeL && wakeL.release(); }catch(e){} wakeL = null; }
+  function dimOn(){
+    if(!CALL || document.getElementById("callDim")) return;
+    const d = document.createElement("div"); d.id = "callDim"; d.className = "callDim";
+    d.innerHTML = `<div><b>通話中</b><span id="dimTm"></span><small>螢幕已調暗，電話會繼續<br>點兩下回到通話畫面</small></div>`;
+    document.body.appendChild(d); let lt = 0;
+    d.addEventListener("click", ()=>{ const t = Date.now(); if(t - lt < 450) d.remove(); lt = t; });
+    const up = () => { if(!document.getElementById("callDim")) return; if(!CALL){ d.remove(); return; } const e = document.getElementById("dimTm"); if(e) e.textContent = CALL.t0 ? fmtDur((Date.now()-CALL.t0)/1000) : ""; setTimeout(up, 1000); }; up();
+  }
+  // 螢幕關掉又打開時，如果麥克風被系統停掉了，自動重新接上
+  async function micFix(){
+    if(!CALL || !CALL.pc || !CALL.local) return;
+    const t = CALL.local.getAudioTracks()[0]; if(t && t.readyState === "live" && !t.muted) return;
+    try{ const ns = await navigator.mediaDevices.getUserMedia({ audio:{ echoCancellation:true, noiseSuppression:true, autoGainControl:true } }); const nt = ns.getAudioTracks()[0]; if(!CALL){ nt.stop(); return; }
+      nt.enabled = CALL.micOn; const snd = CALL.pc.getSenders().find(x=>x.track ? x.track.kind==="audio" : false) || CALL.pc.getSenders().find(x=>!x.track);
+      if(snd) await snd.replaceTrack(nt); if(t){ try{ t.stop(); }catch(e){} CALL.local.removeTrack(t); } CALL.local.addTrack(nt); toast("麥克風重新接上了"); }catch(e){}
+  }
+  document.addEventListener("visibilitychange", ()=>{ if(!CALL || document.visibilityState !== "visible") return; if(CALL.phase === "live" || CALL.phase === "connecting"){ wakeOn(); micFix(); } });
   function endCall(msg, why){
-    if(!CALL) return; const c = CALL; CALL = null;
+    if(!CALL) return; const c = CALL; CALL = null; wakeOff(); { const d = document.getElementById("callDim"); if(d) d.remove(); }
     stopRingFor(c); [c.ringBc, c.timer].forEach(t=>clearInterval(t)); [c.timeout, c.lostT, c.connT].forEach(t=>clearTimeout(t));
     try{ c.pc && c.pc.close(); }catch(e){} try{ c.ac && c.ac.close(); }catch(e){} [c.local].forEach(st=>st && st.getTracks().forEach(t=>t.stop()));
     const ov = document.getElementById("callOv"); if(ov) ov.remove(); document.body.classList.remove("inCall");
@@ -1966,13 +1998,14 @@ const App = (function(){
       btns = B2("decline", "end", PH, "拒接") + (CALL.video ? B2("acceptA", "ok alt", PH, "用語音接") : "") + B2(CALL.video ? "acceptV" : "acceptA", "ok", PH, "接聽"); }
     else if(CALL.phase==="connecting"){ status = `<span class="bubble">連線中<i class="ell"><b>.</b><b>.</b><b>.</b></i></span>`; btns = B2("hang", "end", PH, "掛斷"); }
     else { status = `<span class="timer" id="callTm">0:00</span>`; const hasCam = CALL.local && CALL.local.getVideoTracks().length;
-      btns = B2("mic", CALL.micOn ? "" : "off", icon("mic"), CALL.micOn ? "靜音" : "已靜音") + (hasCam ? B2("cam", CALL.camOn ? "" : "off", icon("camera"), CALL.camOn ? "關鏡頭" : "開鏡頭") + B2("flip", "", icon("spark"), "翻轉") : "") + B2("mini", "mini", icon("dots"), "縮小") + B2("hang", "end", PH, "掛斷"); }
+      btns = B2("mic", CALL.micOn ? "" : "off", icon("mic"), CALL.micOn ? "靜音" : "已靜音") + (hasCam ? B2("cam", CALL.camOn ? "" : "off", icon("camera"), CALL.camOn ? "關鏡頭" : "開鏡頭") + B2("flip", "", icon("spark"), "翻轉") : B2("dim", "", icon("moon"), "暗螢幕")) + B2("mini", "mini", icon("dots"), "縮小") + B2("hang", "end", PH, "掛斷"); }
+    if(CALL.phase==="live" || CALL.phase==="connecting" || CALL.phase==="ringing") wakeOn();
     if(CALL.mini && CALL.phase==="live"){ return miniUI(ov, pcat, pname, PH); }
     document.body.classList.add("inCall"); ov.style.left = ov.style.top = "";
     ov.className = "callOv" + (showVideo ? " video" : "");
     ov.innerHTML = `${showVideo ? `<video id="cvRemote" autoplay playsinline></video><div class="cvLocalWrap"><video id="cvLocal" class="${CALL.facing==="user" ? "mirror" : ""}" autoplay playsinline muted></video></div>` : `<div class="callBg"></div>`}
       <audio id="caRemote" autoplay playsinline></audio>
-      <div class="callTop">${showVideo ? `<b class="callName small">${sprite(pcat,"happy")}${pname}</b>` : head}<div class="callStatus">${status}</div><div class="callSub" id="callSt"></div></div>
+      <div class="callTop">${showVideo ? `<b class="callName small">${sprite(pcat,"happy")}${pname}</b>` : head}<div class="callStatus">${status}</div><div class="callSub" id="callSt"></div>${CALL.phase==="live" && !showVideo ? `<div class="callTip">通話時不要關掉螢幕，對方才聽得到喔<br>想省電可以按「暗螢幕」</div>` : ""}</div>
       <div class="callBtns">${btns}</div>`;
     ov.querySelectorAll("[data-c]").forEach(b=>b.addEventListener("click", ()=>callBtn(b.dataset.c)));
     attachMedia(); startTimer();
@@ -2015,6 +2048,7 @@ const App = (function(){
     if(c==="hang") return hangUp();
     if(c==="decline") return declineCall();
     if(c==="mini"){ CALL.mini = true; callUI(); return; }
+    if(c==="dim"){ dimOn(); return; }
     if(c==="acceptA") return acceptCall(false);
     if(c==="acceptV") return acceptCall(true);
     if(c==="mic"){ CALL.micOn = !CALL.micOn; CALL.local.getAudioTracks().forEach(t=>t.enabled = CALL.micOn); callUI(); }
@@ -2026,21 +2060,31 @@ const App = (function(){
   ctx.onBroadcast(async p=>{
     if(!p || p.g!=="call") return;
     if(p.k==="ring"){
+      if(CALL && CALL.id === p.id && CALL.role === "callee"){ if(p.sdp && !CALL.offer) CALL.offer = p.sdp; return; }
       if(CALL){ if(CALL.id !== p.id && CALL.phase!=="ringing") ctx.broadcast({ g:"call", k:"busy", id:p.id }); return; }
       if(declined.has(p.id)) return;
-      CALL = { id:p.id, role:"callee", video:!!p.video, peer:p.from, phase:"incoming", ice:[], camOn:true, micOn:true, facing:"user" };
-      callUI(); ringTone("in"); clearNotifs && clearNotifs();
+      CALL = { id:p.id, role:"callee", video:!!p.video, peer:p.from, phase:"incoming", ice:[], camOn:true, micOn:true, facing:"user", offer: p.sdp || null };
+      callUI(); ringTone("in"); clearNotifs && clearNotifs(); callIce().catch(()=>{});
       CALL.timeout = setTimeout(()=>{ if(CALL && CALL.phase==="incoming") endCall("", "missed"); }, 47000);
       return; }
     if(!CALL || p.id !== CALL.id) return;
     if(p.k==="accept" && CALL.role==="caller" && CALL.phase==="ringing"){
       clearInterval(CALL.ringBc); clearTimeout(CALL.timeout); stopRing(); CALL.phase = "connecting"; callUI();
-      const pc = await makePc(); const off = await pc.createOffer(); await pc.setLocalDescription(off); csend("offer", { sdp: pc.localDescription.toJSON ? pc.localDescription.toJSON() : { type:off.type, sdp:off.sdp } });
+      const c0 = CALL; let pc = await CALL.prep; if(CALL !== c0) return;
+      if(p.sdp && pc && pc.signalingState === "have-local-offer"){ try{ await pc.setRemoteDescription(p.sdp); }catch(e){ p.sdp = null; } }
+      else p.sdp = null;
+      if(!p.sdp){
+        if(!pc || pc.signalingState === "closed"){ pc = await makePc(false); const off = await pc.createOffer(); await pc.setLocalDescription(off); }
+        const ld = pc.localDescription; csend("offer", { sdp: ld.toJSON ? ld.toJSON() : { type:ld.type, sdp:ld.sdp } }); }
+      else flushIce();
+      // 響鈴時先收集好的連線資訊一次送過去，之後的照常一個一個送
+      CALL.hold = false; const q = CALL.myIce.splice(0); if(q.length) csend("iceb", { cs: q });
       CALL.connT = setTimeout(()=>{ if(CALL && CALL.phase==="connecting"){ csend("hang"); endCall("連不上對方 (´；ω；`) 可能是網路擋住了，換成 Wi-Fi 再試試", "fail"); } }, 30000);
     }
-    if(p.k==="offer" && CALL.role==="callee" && CALL.pc){ await CALL.pc.setRemoteDescription(p.sdp); const ans = await CALL.pc.createAnswer(); await CALL.pc.setLocalDescription(ans); csend("answer", { sdp: CALL.pc.localDescription.toJSON ? CALL.pc.localDescription.toJSON() : { type:ans.type, sdp:ans.sdp } }); flushIce(); }
+    if(p.k==="offer" && CALL.role==="callee" && CALL.pc && !CALL.answered){ await CALL.pc.setRemoteDescription(p.sdp); const ans = await CALL.pc.createAnswer(); await CALL.pc.setLocalDescription(ans); csend("answer", { sdp: CALL.pc.localDescription.toJSON ? CALL.pc.localDescription.toJSON() : { type:ans.type, sdp:ans.sdp } }); flushIce(); }
     if(p.k==="answer" && CALL.role==="caller" && CALL.pc){ await CALL.pc.setRemoteDescription(p.sdp); flushIce(); }
     if(p.k==="ice"){ if(CALL.pc && CALL.pc.remoteDescription){ try{ await CALL.pc.addIceCandidate(p.c); }catch(e){} } else CALL.ice.push(p.c); }
+    if(p.k==="iceb" && Array.isArray(p.cs)){ for(const c of p.cs.slice(0, 40)){ if(CALL.pc && CALL.pc.remoteDescription){ try{ await CALL.pc.addIceCandidate(c); }catch(e){} } else CALL.ice.push(c); } }
     if(p.k==="decline"){ endCall("對方現在不方便接 (´・ω・`)", "declined_by_them"); }
     if(p.k==="busy"){ endCall("對方正在通話中", "busy"); }
     if(p.k==="cancel"){ endCall(CALL.phase==="incoming" ? `錯過了一通電話` : "", "cancel_by_them"); }
