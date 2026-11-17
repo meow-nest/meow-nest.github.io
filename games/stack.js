@@ -226,8 +226,28 @@ App.registerGame({
         <div class="skHow"><span>點畫面任何地方都能跳</span><span>被撞到就輸了</span><span>越高滑得越快</span></div>
         <div class="tsBest">${row(ctx.me.name, me())}${p ? row(p.name, p.user_id) : ""}</div>
         <button class="btn" id="skGo">🐱 開始疊！</button>
+        <button class="skRkB" id="skRk">${ctx.icon("crown")}全站排行榜</button>
         <div class="k" style="text-align:center">每疊 5 層得 1 個貓幣，完美 4 次再多 1 個 🪙</div></div>`;
       el.querySelector("#skGo").addEventListener("click", go);
+      el.querySelector("#skRk").addEventListener("click", rank);
+    }
+    // 全站排行榜（更新 54）：每個人自己排，不管是什麼模式的小窩
+    async function rank(){
+      SFX.tap();
+      const o = document.createElement("div"); o.className = "careModal svModal skRkM";
+      o.innerHTML = `<div class="cmBox"><div class="lrHd">${ctx.icon("crown")}<h3>疊貓貓排行榜</h3></div><div class="lrList" id="skRL"><div class="k" style="text-align:center;padding:20px">讀取中…</div></div>
+        <div class="k lrNote">全站每個人一起比最高分，名字只會顯示第一個字</div><button class="btn sub" id="skRO" style="width:100%;margin-top:8px">關閉</button></div>`;
+      o.addEventListener("click", e => { if(e.target === o) o.remove(); });
+      document.body.appendChild(o); o.querySelector("#skRO").addEventListener("click", () => o.remove());
+      let r; try{ r = await ctx.rpc("stack_rank"); }catch(e){ const L = o.querySelector("#skRL"); if(L) L.innerHTML = `<div class="k" style="text-align:center;padding:20px">${/stack_rank|function|schema|no_rpc/.test(String(e && e.message || e)) ? "排行榜還沒開放喔（更新 54）" : "網路好像不太穩，等等再試～"}</div>`; return; }
+      if(!o.isConnected) return;
+      const row = (x, mine) => `<div class="lrRow ${mine ? "me" : ""} ${x.rk <= 3 ? "top" + x.rk : ""}"><b class="lrRk">${x.rk <= 3 ? ctx.icon("crown") : ""}<i>${x.rk}</i></b><span class="lrCats"><span>${Pix.sprite(mine ? (ctx.me.cat || "orange") : (x.cat || "orange"), x.rk <= 3 ? "happy" : "loaf", { plain:true })}</span></span>
+        <span class="lrWho"><b>${esc(mine ? (ctx.me.name || "我") : x.name)}</b><small>最高 ${x.fl || 0} 層</small></span><span class="lrH skPt">${x.best} 分</span></div>`;
+      const top = (r && r.top) || [], me2 = r && r.mine;
+      o.querySelector("#skRL").innerHTML = (top.length ? top.map(x => row(x, x.me)).join("") : `<div class="k" style="text-align:center;padding:20px">還沒有人上榜，快來疊第一隻！</div>`)
+        + (me2 && !top.some(x => x.me) ? `<div class="lrGap">⋯</div>${row(me2, true)}` : "")
+        + (!me2 ? `<div class="k" style="text-align:center;margin-top:8px">你還沒上榜，疊一局就會出現囉！</div>` : "");
+      const c = top.some(x => x.me) && o.querySelector(".lrRow.me"); if(c) setTimeout(() => c.scrollIntoView({ block:"center" }), 60);
     }
     async function go(){
       if(document.querySelector(".skGame")) return;
