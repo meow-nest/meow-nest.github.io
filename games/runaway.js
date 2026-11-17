@@ -319,8 +319,28 @@ App.registerGame({
         <div class="raHow"><span>左右滑：換跑道</span><span>上滑：跳過毛線、水坑</span><span>下滑：滑過曬衣繩</span><span>路口：往箭頭方向滑</span></div>
         <div class="raBest"><div><b>${esc(ctx.me.name)}</b><span>${best[me()]||0} 分</span></div>${p?`<div><b>${esc(p.name)}</b><span>${best[p.user_id]||0} 分</span></div>`:""}</div>
         <button class="btn raGo" id="raGo">🏃 開始逃跑！</button>
+        <button class="skRkB" id="raRk">${ctx.icon("crown")}全站排行榜</button>
         <div class="k" style="text-align:center">撿到的小魚乾每 2 條換 1 個貓幣，會送進養貓房間 🪙</div></div>`;
       el.querySelector("#raGo").addEventListener("click", go);
+      el.querySelector("#raRk").addEventListener("click", rank);
+    }
+    // 全站排行榜（更新 55）：每個人自己排，不管是什麼模式的小窩
+    async function rank(){
+      SFX.tap();
+      const o = document.createElement("div"); o.className = "careModal svModal skRkM";
+      o.innerHTML = `<div class="cmBox"><div class="lrHd">${ctx.icon("crown")}<h3>大逃亡排行榜</h3></div><div class="lrList" id="raRL"><div class="k" style="text-align:center;padding:20px">讀取中…</div></div>
+        <div class="k lrNote">全站每個人一起比最高分，名字只會顯示第一個字</div><button class="btn sub" id="raRO" style="width:100%;margin-top:8px">關閉</button></div>`;
+      o.addEventListener("click", e => { if(e.target === o) o.remove(); });
+      document.body.appendChild(o); o.querySelector("#raRO").addEventListener("click", () => o.remove());
+      let r; try{ r = await ctx.rpc("run_rank"); }catch(e){ const L = o.querySelector("#raRL"); if(L) L.innerHTML = `<div class="k" style="text-align:center;padding:20px">${/run_rank|function|schema|no_rpc/.test(String(e && e.message || e)) ? "排行榜還沒開放喔（更新 55）" : "網路好像不太穩，等等再試～"}</div>`; return; }
+      if(!o.isConnected) return;
+      const row = (x, mine) => `<div class="lrRow ${mine ? "me" : ""} ${x.rk <= 3 ? "top" + x.rk : ""}"><b class="lrRk">${x.rk <= 3 ? ctx.icon("crown") : ""}<i>${x.rk}</i></b><span class="lrCats"><span>${Pix.sprite(mine ? (ctx.me.cat || "orange") : (x.cat || "orange"), x.rk <= 3 ? "happy" : "surprised", { plain:true })}</span></span>
+        <span class="lrWho"><b>${esc(mine ? (ctx.me.name || "我") : x.name)}</b></span><span class="lrH skPt">${x.best} 分</span></div>`;
+      const top = (r && r.top) || [], me2 = r && r.mine;
+      o.querySelector("#raRL").innerHTML = (top.length ? top.map(x => row(x, x.me)).join("") : `<div class="k" style="text-align:center;padding:20px">還沒有人上榜，快來跑第一名！</div>`)
+        + (me2 && !top.some(x => x.me) ? `<div class="lrGap">⋯</div>${row(me2, true)}` : "")
+        + (!me2 ? `<div class="k" style="text-align:center;margin-top:8px">你還沒上榜，跑一局就會出現囉！</div>` : "");
+      const c = top.some(x => x.me) && o.querySelector(".lrRow.me"); if(c) setTimeout(() => c.scrollIntoView({ block:"center" }), 60);
     }
     async function go(){
       if(document.querySelector(".raGame")) return;   // already running (double tap)

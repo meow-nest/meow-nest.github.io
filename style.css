@@ -3420,3 +3420,4 @@ body[data-theme="night"] .box.ckCard{background:var(--card)}
 .msg.named{position:relative;margin-top:16px}
 .skRkB{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin:8px 0 4px;font:inherit;font-size:15px;color:var(--ink);background:#fff6d6;border:3px solid #e8b93a;border-radius:10px;padding:7px 0;cursor:pointer;box-shadow:0 3px 0 #e8b93a}.skRkB svg{width:20px;height:auto}
 .skPt{color:var(--pinkT)}
+.raLobby .skRkB{margin:10px 0 10px}
