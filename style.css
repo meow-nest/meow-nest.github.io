@@ -3469,3 +3469,4 @@ body[data-theme="night"] .box.ckCard{background:var(--card)}
 .wcPick button.on{border-color:var(--line);background:var(--pinkL);box-shadow:3px 3px 0 var(--shadow)}
 .wcPick .wcPrev{flex:none;width:150px;display:flex;justify-content:center}.wcPick b{font-weight:400;font-size:14px}
 .wcPick .ttl.t40{min-width:34px;min-height:10px}
+.lrCats{position:relative}.lrMore{position:absolute;right:-4px;bottom:-4px;font-style:normal;font-size:10px;line-height:1;color:#fff;background:var(--pinkT);border:1.5px solid var(--line);border-radius:8px;padding:1px 4px}

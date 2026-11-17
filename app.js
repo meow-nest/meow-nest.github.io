@@ -1336,7 +1336,7 @@ const App = (function(){
     let r; try{ r = await B.rpc("lv_checkin"); }catch(e){ return; }
     ckRefresh();
     if(!r || !r.got) return;
-    const t = isSolo() ? (r.week ? `連續 ${r.streak} 天都有來！小魚乾 +${r.got}` : `今天來小窩了！小魚乾 +${r.got}`) : r.week ? `兩個人連續 ${r.streak} 天都有來！親密小魚乾 +${r.got}` : `兩個人今天都來了！親密小魚乾 +${r.got}`;
+    const t = r.all ? (r.week ? `全家都到齊，還連續 ${r.streak} 天！小魚乾 +${r.got}` : `全家今天都到齊了！小魚乾 +${r.got}`) : isSolo() ? (r.week ? `連續 ${r.streak} 天都有來！小魚乾 +${r.got}` : `今天來小窩了！小魚乾 +${r.got}`) : r.week ? `兩個人連續 ${r.streak} 天都有來！親密小魚乾 +${r.got}` : `兩個人今天都來了！親密小魚乾 +${r.got}`;
     setTimeout(()=>{ toast(`${icon("fish")} ${t}`); SFX.coin && SFX.coin(); }, 2500);
   }
   let lvPlayBusy = false;
@@ -1355,7 +1355,7 @@ const App = (function(){
         <small>${n === cur ? `<b>${isSolo() ? "你" : "你們"}在這裡！</b>` : got ? "已經解鎖" : `需要 ${need} 條小魚乾・還差 ${need - h} 條`}${n === 12 ? "<br>之後每一級都是傳說喵，一直升下去" : n === 40 ? "<br>Lv40 起換成會發光的熾天使大翅膀（小天使限定）" : ""}</small></div>`; }).join("");
     const o = modal(`<div class="lrHd">${icon("star")}<h3>稱號圖鑑</h3></div><div class="lbHow" id="lbHow">${isSolo() ? `<b>怎麼拿小魚乾升等級</b>
         <span>每天打開小窩 +2<i id="lbB"></i></span><span>玩單人遊戲 +1<i id="lbP">每天最多 3</i></span><span>連續 7 天都有來 +5<i id="lbS"></i></span><i id="lbM" hidden></i></div>` : `<b>怎麼拿親密小魚乾</b>
-        <span>默契大考驗答得一樣 +1<i id="lbM">每天最多 20</i></span><span>兩個人當天都打開小窩 +2<i id="lbB"></i></span><span>一起玩你畫我猜猜對 +1<i id="lbP">每天最多 3</i></span><span>連續 7 天兩個人都有來 +5<i id="lbS"></i></span></div>`}
+        ${isFam() && others().length > 1 ? `<i id="lbM" hidden></i>` : `<span>默契大考驗答得一樣 +1<i id="lbM">每天最多 20</i></span>`}<span>${isFam() ? "家裡有兩個人當天都打開小窩" : "兩個人當天都打開小窩"} +2<i id="lbB"></i></span>${isFam() && others().length > 1 ? `<span>全家當天都到齊 +3<i></i></span>` : ""}<span>一起玩你畫我猜猜對 +1<i id="lbP">每天最多 3</i></span><span>連續 7 天兩個人都有來 +5<i id="lbS"></i></span></div>`}
       <div class="k" style="text-align:center">Lv7 開始會長出小翅膀（到設定選小天使或小惡魔）</div>
       <div class="lbList">${rows}</div><button class="btn sub" id="lbOk" style="width:100%;margin-top:8px">關閉</button>`, "svModal lbModal");
     o.querySelector("#lbOk").addEventListener("click", ()=>o.remove());
@@ -1369,17 +1369,18 @@ const App = (function(){
   async function lvRank(){
     const who = roomMode==="bro" ? "兄弟" : roomMode==="bestie" ? "閨蜜" : roomMode==="family" ? "家人" : roomMode==="solo" ? "單人" : "情侶";
     const o = modal(`<div class="lrHd">${icon("crown")}<h3>${who}貓貓等級排行榜</h3></div><button class="lbOpen" id="lrBook">${icon("star")}看所有稱號</button><div class="lrList" id="lrL"><div class="k" style="text-align:center;padding:20px">讀取中…</div></div>
-      <div class="k lrNote">${isSolo() ? "只跟單人小窩比。每天來、玩遊戲就會得到小魚乾、升等級。" : "默契大考驗答得一樣就會得到小魚乾、升等級。"}名字只會顯示第一個字。</div>
+      <div class="k lrNote">${isSolo() ? "只跟單人小窩比。每天來、玩遊戲就會得到小魚乾、升等級。" : isFam() ? "只跟家人小窩比。家人每天都來、一起玩就會得到小魚乾、升等級。" : "默契大考驗答得一樣就會得到小魚乾、升等級。"}名字只會顯示第一個字。</div>
       <button class="btn sub" id="lrOk" style="width:100%;margin-top:8px">關閉</button>`, "svModal lrModal");
     o.querySelector("#lrOk").addEventListener("click", ()=>o.remove());
     o.querySelector("#lrBook").addEventListener("click", ()=>{ SFX.tap(); lvBook(); });
-    let r; if(isFam() && others().length > 1){ o.querySelector("#lrL").innerHTML = `<div class="k" style="text-align:center;padding:20px">家人排行榜還在準備中，敬請期待～</div>`; return; }
+    let r;
     try{ r = await B.rpc("lv_rank"); }catch(e){ o.querySelector("#lrL").innerHTML = `<div class="k" style="text-align:center;padding:20px">${/lv_rank|function|schema/.test(String(e && e.message || e)) ? "排行榜還沒開放喔（更新 47）" : "網路好像不太穩，等等再試～"}</div>`; return; }
     if(!o.isConnected) return;
     const mine = members.map(m=>m.name), myCats = members.map(m=>m.cat);
     const row = (x, me) => { const L = lvInfo(x.h), w = x.who || [];
-      const names = me ? mine.map(esc).join(" ♥ ") : w.map(m=>esc(m.name)).join(" ♥ ");
-      const cats = (me ? myCats : w.map(m=>m.cat)).map(c=>`<span>${sprite(c||"orange","love",{plain:true})}</span>`).join("");
+      const sep = isFam() ? "・" : " ♥ ", cl = me ? myCats : w.map(m=>m.cat);
+      const names = me ? mine.map(esc).join(sep) : w.map(m=>esc(m.name)).join(sep);
+      const cats = cl.slice(0, 2).map(c=>`<span>${sprite(c||"orange",isFam() ? "happy" : "love",{plain:true})}</span>`).join("") + (cl.length > 2 ? `<em class="lrMore">+${cl.length - 2}</em>` : "");
       return `<div class="lrRow ${me?"me":""} ${x.rk<=3?"top"+x.rk:""}"><b class="lrRk">${x.rk<=3 ? icon("crown") : ""}<i>${x.rk}</i></b><span class="lrCats">${cats}</span><span class="lrWho"><b>${names}</b><span class="lrT">${ttlHtml(x.h, me ? roomWing : (x.wing === "devil" ? "devil" : "angel"), true, me ? roomWc : validWc(x.wc))}</span></span><span class="lrH">${icon("fish")}${x.h}</span></div>`; };
     const top = (r && r.top) || [], me = r && r.mine;
     o.querySelector("#lrL").innerHTML = (top.length ? top.map(x=>row(x, x.me)).join("") : `<div class="k" style="text-align:center;padding:20px">還沒有人上榜，快去玩默契大考驗！</div>`)
