@@ -1,5 +1,5 @@
 @font-face{font-family:"Cubic11";src:url("fonts/Cubic_11.woff2") format("woff2");font-display:swap}
-/* 像素字體裡的「畫」少了外框，用自己畫的字補上（只換這一個字） */
+/* 像素字體裡的「畫」筆畫擠在一起，這一個字改用 Noto Sans CJK TC（OFL）的正常字形 */
 @font-face{font-family:"Cubic11";src:url("fonts/cubic_fix.woff") format("woff");unicode-range:U+756B;font-display:swap}
 :root{--pinkT:#d35d7b;--mintT:#3f9c76;--card:#fff;--onPink:#fff;--grid:rgba(90,59,46,.045);--bg:#f6eee3;--paper:#fffaf2;--ink:#5a3b2e;--line:#5a3b2e;--shadow:#e3cfba;--muted:#8f7365;--pink:#f08aa0;--pinkL:#ffe1e7;--mint:#7cc7a5;--mintL:#e2f5ec;--sun:#f6c45f;--sky:#eaf4f4}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
