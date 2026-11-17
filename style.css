@@ -3336,9 +3336,10 @@ body[data-theme="night"] .lrRow,body[data-theme="night"] .lrRow.me,body[data-the
 body[data-theme="night"] .lbRow,body[data-theme="night"] .lbRow.got,body[data-theme="night"] .lbRow.cur{background:var(--paper)}
 
 /* 天使翅膀（像素版）疊在稱號兩側上面 */
-.ttlW:not(.dv) .twg{z-index:2;width:34px;transform:translateY(-60%)}
-.ttlW:not(.dv) .twg.l{left:-26px;transform:translateY(-60%) scaleX(-1)}.ttlW:not(.dv) .twg.r{right:-26px}
-.ttlW.hw:not(.dv){margin:0 26px}
+.ttlW .twg{z-index:2;width:34px;transform:translateY(-60%)}
+.ttlW .twg.l{left:-26px;transform:translateY(-60%) scaleX(-1)}.ttlW .twg.r{right:-26px}
+.ttlW.hw{margin:0 26px}
+.ttlW.dv .twg{width:36px;transform:translateY(-62%)}.ttlW.dv .twg.l{left:-28px;transform:translateY(-62%) scaleX(-1)}.ttlW.dv .twg.r{right:-28px}.ttlW.hw.dv{margin:0 28px}
 
 /* Lv9 起：翅膀拍動＋小特效 */
 .ttlW.fl .twg svg{transform-origin:6% 62%;animation:ttlFlap 1.1s steps(6) infinite}
