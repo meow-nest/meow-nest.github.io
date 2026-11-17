@@ -3447,7 +3447,7 @@ body[data-theme="night"] .box.ckCard{background:var(--card)}
 .ttlW.s40 .spk.a{left:-40px;top:-16px}.ttlW.s40 .spk.b{right:-42px;top:-12px;animation-delay:.6s}.ttlW.s40 .spk.c{right:-38px;bottom:-18px;animation-delay:.3s}.ttlW.s40 .spk.d{left:-36px;bottom:-16px;animation-delay:.9s}
 @keyframes s40Tw{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.2;transform:scale(.5)}}
 .ttl.t40{height:28px;padding:0 20px;margin:0;color:#fff;font-size:14px;text-shadow:1px 1px 0 rgba(0,0,0,.6),0 0 4px rgba(0,0,0,.35);background:var(--pm) 0 0/8px 28px repeat-x;background-clip:content-box;background-origin:content-box;image-rendering:pixelated;border-radius:9px;box-shadow:0 0 6px var(--gl)}
-.ttl.t40:before,.ttl.t40:after{content:"";position:absolute;top:0;width:18px;height:100%;background-size:100% 100%;z-index:-1;image-rendering:pixelated}
+.ttl.t40:before,.ttl.t40:after{content:"";position:absolute;top:0;width:18.6px;height:100%;background-size:100% 100%;z-index:-1;image-rendering:pixelated}
 .ttl.t40:before{left:2px;background-image:var(--pl)}.ttl.t40:after{right:2px;background-image:var(--pr)}
 .ttl.t40 .tlv{color:#ffe9a8;font-size:10px}
 .ttl.t40 .pcr{position:absolute;left:50%;top:-12px;width:33px;margin-left:-16.5px;line-height:0;z-index:2}.ttl.t40 .pcr svg{width:100%;height:auto;display:block}
@@ -3457,7 +3457,7 @@ body[data-theme="night"] .box.ckCard{background:var(--card)}
 @keyframes s40Shine{0%{transform:translateX(-110%)}100%{transform:translateX(260%)}}
 .ttlW.s40.sm{margin:20px 32px 10px}.ttlW.s40.sm .twg{width:33px}.ttlW.s40.sm .twg.l{left:-28px}.ttlW.s40.sm .twg.r{right:-28px}
 .ttlW.s40.sm .halo{width:34px;height:7px;margin-left:-17px;top:-21px;border-width:2px}
-.ttl.sm.t40{height:22px;padding:0 15px;font-size:12px;background-size:6.3px 22px}.ttl.sm.t40:before,.ttl.sm.t40:after{width:14px}.ttl.sm.t40:before{left:1px}.ttl.sm.t40:after{right:1px}
+.ttl.sm.t40{height:22px;padding:0 15px;font-size:12px;background-size:6.3px 22px}.ttl.sm.t40:before,.ttl.sm.t40:after{width:14.6px}.ttl.sm.t40:before{left:1px}.ttl.sm.t40:after{right:1px}
 .ttl.sm.t40 .pcr{width:26px;margin-left:-13px;top:-10px}.ttl.sm.t40 .psh{left:6px;right:6px;top:3px;bottom:3px}
 .ttlW.s40.sm .spk{width:8px}.ttlW.s40.sm .spk.a{left:-33px;top:-12px}.ttlW.s40.sm .spk.b{right:-34px;top:-10px}.ttlW.s40.sm .spk.c{right:-31px;bottom:-14px}.ttlW.s40.sm .spk.d{left:-30px;bottom:-12px}
 @media (prefers-reduced-motion:reduce){.ttlW.s40 .wp,.ttlW.s40 .shn:before,.ttlW.s40 .halo,.ttlW.s40 .fth,.ttlW.s40 .spk,.ttl.t40 .psh:before{animation:none}}
@@ -3470,3 +3470,66 @@ body[data-theme="night"] .box.ckCard{background:var(--card)}
 .wcPick .wcPrev{flex:none;width:150px;display:flex;justify-content:center}.wcPick b{font-weight:400;font-size:14px}
 .wcPick .ttl.t40{min-width:34px;min-height:10px}
 .lrCats{position:relative}.lrMore{position:absolute;right:-4px;bottom:-4px;font-style:normal;font-size:10px;line-height:1;color:#fff;background:var(--pinkT);border:1.5px solid var(--line);border-radius:8px;padding:1px 4px}
+
+/* ---------- Lv40 小惡魔大翅膀 ---------- */
+.ttlW.d40{margin:30px 58px 22px;animation:d40Lift 3s cubic-bezier(.4,0,.4,1) infinite}
+.ttlW.d40.sm{zoom:.78}
+.ttlW.d40 .twg{width:64px;z-index:4;top:50%;transform:translateY(-52%);perspective:160px}
+.ttlW.d40 .twg.l{left:-55px;transform:translateY(-52%) scaleX(-1)}.ttlW.d40 .twg.r{right:-55px}
+.ttlW.d40 .twg:before{content:"";position:absolute;left:-10%;top:5%;width:110%;height:90%;border-radius:50%;background:radial-gradient(closest-side,rgba(255,40,60,.55),transparent);z-index:-1}
+.ttlW.d40 .dfr{position:relative;display:block;transform-origin:0% 45%;animation:d40Flap 3s infinite;will-change:transform;transform-style:preserve-3d}
+.ttlW.d40 .dfr img{width:100%;height:auto;display:block;image-rendering:pixelated}
+.ttlW.d40 .dfr img.a{animation:d40A 3s linear infinite}
+.ttlW.d40 .dfr img.b{position:absolute;left:0;top:0;width:100%;opacity:0;animation:d40B 3s linear infinite}
+.ttlW.d40 .dmid,.ttlW.d40 .dout{position:absolute;inset:0;will-change:transform;transform-style:preserve-3d}
+.ttlW.d40 .dmid{transform-origin:25% 46%;animation:d40Flex 3s .07s infinite}
+.ttlW.d40 .dout{transform-origin:52% 46%;animation:d40Flex2 3s .16s infinite}
+.ttlW.d40 .dmid img.a,.ttlW.d40 .dout img.a{position:static}
+@keyframes d40Flap{
+  0%{transform:rotateY(-3deg) rotate(1deg);animation-timing-function:cubic-bezier(.45,0,.45,1)}
+  22%{transform:rotateY(70deg) rotate(-5deg) scaleY(.97);animation-timing-function:cubic-bezier(.4,0,.3,1)}
+  38%{transform:rotateY(-6deg) rotate(2deg) scaleY(1.01);animation-timing-function:cubic-bezier(.4,0,.5,1)}
+  46%,50%{transform:rotateY(-3deg) rotate(1deg);animation-timing-function:cubic-bezier(.45,0,.45,1)}
+  72%{transform:rotateY(70deg) rotate(-5deg) scaleY(.97);animation-timing-function:cubic-bezier(.4,0,.3,1)}
+  88%{transform:rotateY(-6deg) rotate(2deg) scaleY(1.01);animation-timing-function:cubic-bezier(.4,0,.5,1)}
+  96%,100%{transform:rotateY(-3deg) rotate(1deg)}}
+@keyframes d40Flex{
+  0%{transform:rotateY(0) rotate(0);animation-timing-function:cubic-bezier(.45,0,.55,1)}
+  14%{transform:rotateY(-10deg) rotate(2deg);animation-timing-function:cubic-bezier(.45,0,.55,1)}
+  30%{transform:rotateY(18deg) rotate(-3deg);animation-timing-function:cubic-bezier(.4,0,.5,1)}
+  42%{transform:rotateY(-7deg) rotate(2deg);animation-timing-function:cubic-bezier(.45,0,.55,1)}
+  50%{transform:rotateY(0) rotate(0);animation-timing-function:cubic-bezier(.45,0,.55,1)}
+  64%{transform:rotateY(-10deg) rotate(2deg);animation-timing-function:cubic-bezier(.45,0,.55,1)}
+  80%{transform:rotateY(18deg) rotate(-3deg);animation-timing-function:cubic-bezier(.4,0,.5,1)}
+  92%{transform:rotateY(-7deg) rotate(2deg);animation-timing-function:cubic-bezier(.45,0,.55,1)}
+  100%{transform:rotateY(0) rotate(0)}}
+@keyframes d40Flex2{
+  0%{transform:rotateY(0) rotate(0);animation-timing-function:cubic-bezier(.45,0,.55,1)}
+  14%{transform:rotateY(-16deg) rotate(4deg);animation-timing-function:cubic-bezier(.45,0,.55,1)}
+  30%{transform:rotateY(28deg) rotate(-6deg);animation-timing-function:cubic-bezier(.4,0,.5,1)}
+  42%{transform:rotateY(-11deg) rotate(3deg);animation-timing-function:cubic-bezier(.45,0,.55,1)}
+  50%{transform:rotateY(0) rotate(0);animation-timing-function:cubic-bezier(.45,0,.55,1)}
+  64%{transform:rotateY(-16deg) rotate(4deg);animation-timing-function:cubic-bezier(.45,0,.55,1)}
+  80%{transform:rotateY(28deg) rotate(-6deg);animation-timing-function:cubic-bezier(.4,0,.5,1)}
+  92%{transform:rotateY(-11deg) rotate(3deg);animation-timing-function:cubic-bezier(.45,0,.55,1)}
+  100%{transform:rotateY(0) rotate(0)}}
+@keyframes d40A{0%,19%{opacity:1}24%,69%{opacity:0}74%,100%{opacity:1}}
+@keyframes d40B{0%,19%{opacity:0}24%,69%{opacity:1}74%,100%{opacity:0}}
+@keyframes d40Lift{0%,24%{transform:translateY(0)}38%{transform:translateY(-1.5px)}52%,74%{transform:translateY(0)}88%{transform:translateY(-1.5px)}100%{transform:translateY(0)}}
+@keyframes d40Emb{0%{opacity:0;transform:translate(0,6px)}20%{opacity:1}100%{opacity:0;transform:translate(4px,-34px)}}
+@keyframes d40Aura{0%,100%{opacity:.55}40%{opacity:1}}
+.ttl.t40d{height:28px;padding:0 20px;margin:0;color:#ffe2e2;font-size:14px;text-shadow:1px 1px 0 #000,0 0 4px rgba(255,0,0,.45);background:url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAA4CAYAAAD0DHg6AAABQ0lEQVR42sWXsUoDQRCGZze3W2xjQAyIB2kED4tUaUSJjaWllYVFilSWeQDfIEWewDfyIU6EQArbu4S1kNVdUNiZfyHT/Py73H/fzN4WpyaXd56AUt57KKB6//gkiOBp/oIRvDYOI0CHWC2uzjGCx6MRRKDbvksWuL4cgVQPT6BrY6ntO5KqRh6ujcUJ1MwNsSHWxhIRkVTLEYTi+uy7sFyv/r4LcAsEFh6w2X33JFU1c0O/2XU0qn6ny/E6mDiZ45NTkJDonDct16t/95MZSFQ11vk4mYiI43WcGG/metVYV+ZTjqfL8eUIxAHbfZ8scH25FqQkOEFIkqpqrPPbfU/HA5Pg5XodTJzM8ToYqaqTgfkZYpyc63XoJU7m+IRAdIxxokRxAvQ2VqcXt1jAffuGBbQPz1jAzfUUCxiPzw77x/IFS0nMfGZQTGYAAAAASUVORK5CYII=') 0 0/8px 28px repeat-x;background-clip:content-box;background-origin:content-box;image-rendering:pixelated;border-radius:9px;box-shadow:0 0 7px rgba(255,40,60,.6);z-index:1}
+.ttl.t40d:before,.ttl.t40d:after{content:"";position:absolute;top:0;width:18.6px;height:100%;background-size:100% 100%;z-index:-1;image-rendering:pixelated}
+.ttl.t40d:before{left:2px;background-image:url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAA4CAYAAACVFFp4AAAC2ElEQVR42u2ZP2gTURzHv7lcbnAxWAgWA+0QiBRsO2SpFroUp44OTuLUpaYSbBYRxFETraYGlw41Q5RSFKQo1DoItVOGpGBRcEghpSHQ0q75Qx3s73h3l7vL2dwvV+hbfnx5747P+/5+7x3czweHY3ho8hguDp9TiNLPr+gZEIGIELt7R70B0sMQyMNHL/mBhocmj61A3l69wAekhyEQEWJkaY0HyApGhJgei7gGJLc7SWYwBLK58sF9ICrgdjAiSKVRRzigqM90W0v6VImFq4cBoHnYDS2JgtwR03TQaqrO0I7cjJJVPqfHIvj18ZNmJ25HidIl1o44uJwxdUisneV37xEOKGrhcUTTlB20muww4YBiDnTJL7PD2DrkiRoSHRKr/3E2w3PKOnXoycyso53efvG0+/fQaW7edDzhaP3cwnx7oNJiru095LamDUjw2DgH+m+go5NTVmvWWaMp0MWTeygkK5h59RwhWcHhYAwhWUGtWUdIVtT5buqOHMref4DDwRhKd29qoGher5+9yVrOW2lLh2gxwSCZRK5ZtXUqHU84cmZuYV7VEgCsfSvi85cNDVA+n9fAlBZzKEWvAQCmKsWOnOpUp+MJVctmDqk7KBcwsgTkACxXqwCA1fAoguWC5qXdiqYpE3cSLBdwR75sgDmtM45qSJ/rYLlgcMaNUyZ34pAa/2yiZjXv5j1ExNzatoa49dn7uO63GqzaFqjPH2DVklecIS15xRnSBiD6PBAxd7R1qM8fwH6rwaZta4gWc2kDUOXWPUxViuiPTmgWc0Vpa3vdl5xNYmDgCsZvxAxp43bK8h5SItfZa0kDRC5R2np2yihtZrWkP3VuRp/+x3kqk8LOzi42fhT+/QxYeY3V8CgAYO/3d76P69b2uk+fOtEpAOiPTqiOsTZfUpkUABicokGOsbanRCgAKpgejr2BZwXWsxYnQYlgnmkCi3A9A+Jsk/8Fl8m+XdldZ/oAAAAASUVORK5CYII=')}.ttl.t40d:after{right:2px;background-image:url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAA4CAYAAACVFFp4AAADMklEQVR42tWZT0gUURzHv7PO7qGLUCSJgh4WDCPtIIF/wIvtaU+xh+hgUiDFqtmfTYjAAhGSrKwkCA/mRVkWg4gCtVtM1x1B8bDHqRbB0EuH2ZXpYG98s/Pm7WzNe2vv8uM3773Zz/u+7/zesKO0tfZZENjWN9eUSsYrlmUJBWo/c6EiOMX4visUqKG+1gXHA1P6rz4UCjQ5MeoAKwelWFNTwoCubP3igrGgFJGm1gdiLrjJiVEulPLq2nVhQG++5hxwfqCUy7V1woC6EhcdYCyoUk+FjILpuEmQuZZZRnpxCYOdUQx2RtE+v4K3p48BAO4/eI5vP/agb6w65ocawxHHBRG5llkGABeUvZ0bqyBethUSHdOLS4f16A8UUYmpkIyoZZYx2Bnl+k6aQiT+3C86AGgvtbX2WaHGcARGwQQrXnr6GLz+v4lb794jcb6Z6SVbIa/JS7fHKvqx8dkXvsYdr1G9tyxIBR4lR3yNK922qnqotG4xFZL1lLHq1P+jkMhKzcs9FRJxlpXL9bkFN5AX6d2Xz1CN5gn0ZPhWRTcKagGhoFZW6QI8gbaLB3sqO3oC1akRbBdN1KkH7g86j0S7XP17vEpNBtMrCCrfbe6APhCzoUh/Le8sE6mMPhADUiksFPMupXx5KGhl9LkF6C1nAQBxI2tDraUzDoiPn75g5XPW7SESkzPTYF33G82chvb5lYNX13we6XweHxrPwcxpjkX49tDszTsVKTP1etbVb+Y09KunAMCGofuFPmX3biSZ/WZOcyhD+pMz09WrQ7QyJI4nh8tX6lIZRedlgUqNJjoXfpYFdtrv7BccF2TnLqATNWHHBdm555ZVWxkXULWVcXlIdiTHCtNDO/sFewWycq5C9CBZOfcpoyfJiJFoF+JGFkZiiO8hmUqR1tPdgaamBqRGUljfXFNCsr1T39J7tJ4y8vZoJIZsdZiVWkasb+lleodsFwAoJ2vClugDk2wTDUN7h/7jXJUB4gXD+o6mljPZv7S4kT3814MBQ2+VDURPCrrRXunp7gAALgwAqKziFGRjgfA+4KlkgqhGe6UcDACopXUg6EYgfH8EPmqfyX8DopnI67qEjZsAAAAASUVORK5CYII=')}
+.ttl.t40d .tlv{color:#ff9a9a;font-size:10px}
+.ttl.t40d .pcr{position:absolute;left:50%;top:-12px;width:33px;margin-left:-16.5px;line-height:0;z-index:2}.ttl.t40d .pcr svg{width:100%;height:auto;display:block}
+.ttl.t40d .psh{position:absolute;left:8px;right:8px;top:4px;bottom:4px;border-radius:6px;overflow:hidden;z-index:1;pointer-events:none}
+.ttl.t40d .psh:before{content:"";position:absolute;top:0;bottom:0;left:0;width:40%;background:linear-gradient(110deg,transparent 15%,rgba(255,80,80,.25) 40%,rgba(255,160,160,.45) 50%,rgba(255,80,80,.25) 60%,transparent 85%);transform:translateX(-110%);animation:s40Shine 3.2s linear infinite;will-change:transform}
+.ttlW.d40 .tail{position:absolute;left:-30px;top:-34px;width:212px;height:88px;overflow:hidden;pointer-events:none;line-height:0;filter:drop-shadow(0 0 1.5px rgba(255,60,80,.55)) drop-shadow(0 0 4px rgba(255,30,50,.35))}
+.ttlW.d40 .tail.bk{z-index:0}.ttlW.d40 .tail.fr{z-index:5}
+.ttlW.d40 .tail img{position:absolute;left:0;top:0;width:2544px;height:88px;max-width:none;image-rendering:pixelated;animation:d40TailF 3.2s steps(12) infinite}
+@keyframes d40TailF{to{transform:translateX(-2544px)}}
+.ttlW.d40 .emb{position:absolute;width:3px;height:3px;background:#ff5a3a;box-shadow:0 0 3px #ff2a2a;z-index:3;opacity:0;animation:d40Emb 2.6s linear infinite}
+.ttlW.d40 .aura{position:absolute;left:-60px;right:-60px;top:-22px;bottom:-22px;border-radius:50%;background:radial-gradient(closest-side,rgba(150,0,20,.45),rgba(60,0,10,.15) 60%,transparent);z-index:-1;animation:d40Aura 3s ease-in-out infinite;pointer-events:none}
+.ttlW.d40 .rsp{position:absolute;width:10px;z-index:3;line-height:0;animation:s40Tw 1.5s steps(2) infinite}.ttlW.d40 .rsp svg{width:100%;height:auto;display:block}
+@media (prefers-reduced-motion:reduce){.ttlW.d40,.ttlW.d40 .dfr,.ttlW.d40 .dmid,.ttlW.d40 .dout,.ttlW.d40 .tail img,.ttlW.d40 .emb,.ttlW.d40 .aura,.ttlW.d40 .rsp,.ttl.t40d .psh:before{animation:none}}
