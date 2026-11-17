@@ -311,13 +311,26 @@ const App = (function(){
     const go2 = () => { new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(scan))).observe(document.body, { childList:true, subtree:true }); scan(document.body); };
     if(document.body) go2(); else document.addEventListener("DOMContentLoaded", go2);
   })();
+  // 首頁：稱號自己佔一整行（點一下可以放大看）；下面是「今日簽到」和「小魚乾」左右並排
   function renderMeter(){
-    const el=$("meter"); if(!el) return;
     const s = stateCache.moqi && stateCache.moqi.state; const h = s ? (s.hearts||0) : 0; const L=lvInfo(h);
     const frac = L.next ? (h-L.cur)/(L.next-L.cur) : 1;
-    el.innerHTML = `${ttlHtml(h, roomWing, true)}<span class="segs">${[...Array(8)].map((_,i)=>`<i class="${i<Math.round(frac*8)?'f':''}"></i>`).join("")}</span><span class="fish">${icon("fish")}${h}</span>`;
-    el.title = `再收集 ${L.next-h} 條小魚乾 → ${L.nextName}・點一下看排行榜`;
-    if(!el.dataset.rk){ el.dataset.rk = "1"; el.style.cursor = "pointer"; el.addEventListener("click", ()=>{ SFX.tap(); lvRank(); }); }
+    const tr = $("ttlRow");
+    if(tr){ const sig = h + roomWing + roomWc + roomDc + roomMode; if(tr.dataset.sig !== sig){ tr.dataset.sig = sig; tr.innerHTML = `<span class="ttlBig">${ttlHtml(h, roomWing)}</span><span class="ttlTap">點一下放大看</span>`; }
+      if(!tr.dataset.b){ tr.dataset.b = "1"; tr.addEventListener("click", ()=>{ SFX.tap(); ttlZoom(); }); } }
+    const el=$("meter"); if(!el) return;
+    el.innerHTML = `<div class="fcH">${icon("fish")}<b>${h}</b></div><div class="fcT">${isSolo() ? "小魚乾" : "親密小魚乾"}</div><span class="segs">${[...Array(8)].map((_,i)=>`<i class="${i<Math.round(frac*8)?'f':''}"></i>`).join("")}</span><div class="fcN">再 <b>${L.next-h}</b> 條升 Lv${L.n+1}</div><div class="fcR">${icon("crown")}排行榜</div>`;
+    if(!el.dataset.rk){ el.dataset.rk = "1"; el.addEventListener("click", ()=>{ SFX.tap(); lvRank(); }); }
+  }
+  function ttlZoom(){
+    const s = stateCache.moqi && stateCache.moqi.state; const h = s ? (s.hearts||0) : 0; const L = lvInfo(h);
+    const o = modal(`<div class="tzStage"><span class="tzBadge">${ttlHtml(h, roomWing)}</span></div>
+      <div class="tzInfo"><b>${esc(L.name)}</b><span>${icon("fish")} ${h} 條・再 ${L.next-h} 條升 Lv${L.n+1}</span></div>
+      <div class="tzBtns"><button class="btn sub" id="tzBook">${icon("star")} 稱號圖鑑</button><button class="btn sub" id="tzRank">${icon("crown")} 排行榜</button></div>
+      <button class="btn" id="tzOk" style="width:100%;margin-top:8px">關閉</button>`, "tzModal");
+    o.querySelector("#tzOk").addEventListener("click", ()=>o.remove());
+    o.querySelector("#tzBook").addEventListener("click", ()=>{ o.remove(); lvBook(); });
+    o.querySelector("#tzRank").addEventListener("click", ()=>{ o.remove(); lvRank(); });
   }
   // ---------- 家人模式：選「現在一起玩的家人」＋首頁的全家福 ----------
   function setBuddy(uid){
@@ -347,7 +360,7 @@ const App = (function(){
   function viewHome(v, force){
     if(isAdmin && !force) return viewAdmin(v);
     const p = partner();
-    let html = `<div class="title">喵喵<b>小窩</b>${isBestie()||isSolo()||isFam()?`<span class="modeTag">${modeArt(roomMode)}${MI().name}</span>`:""}<div class="meterSlim" id="meter"></div></div>${isFam() ? `<div class="box famBox" id="famBox">${famHtml()}</div>` : ""}<div id="truceHome">${truceBar()}</div>${p ? `<div class="box ckCard" id="ckCard">${ckHtml()}</div>` : ""}<div class="hTiles" id="hTiles">${homeTiles()}</div>`;
+    let html = `<div class="title">喵喵<b>小窩</b>${isBestie()||isSolo()||isFam()?`<span class="modeTag">${modeArt(roomMode)}${MI().name}</span>`:""}</div><div class="ttlRow" id="ttlRow"></div>${isFam() ? `<div class="box famBox" id="famBox">${famHtml()}</div>` : ""}<div id="truceHome">${truceBar()}</div><div class="hStat${p ? "" : " one"}">${p ? `<div class="box ckCard" id="ckCard">${ckHtml()}</div>` : ""}<button class="box fishCard" id="meter"></button></div><div class="hTiles" id="hTiles">${homeTiles()}</div>`;
     if(!p && !isSolo()) html += `<div class="box banner warn waitBan"><span class="bi">⚠️</span><div style="flex:1">${pw()}還沒加入！把邀請碼 <b style="font-weight:400;color:var(--pinkT);letter-spacing:2px">${esc(B.code||"")}</b> 傳給 ta<div class="waitWarn">⏰ <b>14 天</b>都沒人加入、你也沒打開的話，<b>小窩會自動刪除</b>，裡面的紀錄也會不見！</div></div><button class="btn" id="bInv">傳邀請</button></div>`;
     const alb = stateCache.album && stateCache.album.state, apct = alb ? (alb.bytes||0)/albumLimit : 0;
     if(apct >= .7 && !NO_MEDIA) html = html.replace('<div id="truceHome">', `<div class="box banner ${apct>=.85?"warn":""}" id="albBan"><span class="bi">${icon("camera")}</span><div style="flex:1">相簿已經用了 ${Math.round(apct*100)}%${apct>=.85?"，該刪一些照片了 🥺":"，可以開始整理照片囉"}</div><button class="btn" id="bAlbum">去整理</button></div><div id="truceHome">`);
