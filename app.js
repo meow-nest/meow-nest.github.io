@@ -144,6 +144,7 @@ const App = (function(){
 
   const ctx = { get me(){return me}, partner, isOnline, nameOf, catOf, players, sprite, icon, SFX, burst, toast, floatSvg, esc,
     getState: g => getState(gk(g)), update: (g, fn) => update(gk(g), fn), onState: (g, h) => onState(gk(g), h), notifyPartner, back: ()=>go("home") };
+  ctx.rawGetState = getState; ctx.rawOnState = onState;
   ctx.rpc = (fn, args) => B.rpc ? B.rpc(fn, args) : Promise.reject(new Error("no_rpc")); ctx.mode = () => roomMode; ctx.pw = pw; ctx.isAdmin = () => isAdmin;
   // 站長測試模式：只改自己這支手機看到的畫面（家具、房間、龍舟賽道全部當作已解鎖），不會動到伺服器上的資料
   ctx.testAll = () => { try{ return isAdmin && localStorage.getItem("mw_testAll") === "1"; }catch(e){ return false; } }; ctx.isBusy = uid => isBusy(uid); Object.defineProperty(ctx, "backend", { get: () => B });
@@ -1079,9 +1080,26 @@ const App = (function(){
     const go2 = ()=>{ wipeLocal(); location.replace(location.pathname); };
     o.querySelector("#ngOk").addEventListener("click", go2); setTimeout(go2, 8000);
   }
-  function askDeleteNest(){
+  function askLeaveFam(){
     SFX.tap();
-    const o = modal(`<h3>🗑 要刪除小窩嗎？</h3><p>你們兩個的<b>聊天、遊戲紀錄、記事本、養的貓</b>會全部刪掉，${esc(partner() ? partner().name : "ta")} 也會看不到。<br><b>刪了就救不回來喔</b></p>
+    const o = modal(`<h3>要離開這個家嗎？</h3><p>離開之後你就看不到家裡的聊天和遊戲了，其他家人的紀錄都會留著。<br>想回來的話，再請家人給你邀請碼就好。</p>
+      <button class="btn" id="lvGo" style="width:100%">確定離開</button><button class="btn sub" id="lvNo" style="width:100%;margin-top:8px">先不要</button>`);
+    o.querySelector("#lvNo").addEventListener("click", ()=>o.remove());
+    o.querySelector("#lvGo").addEventListener("click", async ()=>{
+      const b = o.querySelector("#lvGo"); b.disabled = true; b.textContent = "離開中…";
+      try{
+        try{ await B.send(`${me.name||"家人"} 離開了這個家`, "game", me.name, me.cat); }catch(e){}
+        await B.leaveNest(); wipeLocal();
+        o.querySelector(".cmBox").innerHTML = `<h3>已經離開了 🐾</h3><p>謝謝你來玩！</p>`;
+        setTimeout(()=>location.replace(location.pathname), 1800);
+      }catch(e){ console.error(e); b.disabled = false; b.textContent = "確定離開";
+        toast(String(e.message||e).includes("NEED_SQL") ? "網站還沒設定好離開功能，請聯絡站長" : "離開失敗，請檢查網路再試一次", 4000); }
+    });
+  }
+  function askDeleteNest(){
+    if(isFam() && members.length > 2) return askLeaveFam();
+    SFX.tap();
+    const o = modal(`<h3>🗑 要刪除小窩嗎？</h3><p>${isFam() ? "家裡所有人" : "你們兩個"}的<b>聊天、遊戲紀錄、記事本、養的貓</b>會全部刪掉，${esc(partner() ? partner().name : "ta")} 也會看不到。<br><b>刪了就救不回來喔</b></p>
       <button class="btn" id="dnNext" style="width:100%">繼續</button><button class="btn sub" id="dnNo" style="width:100%;margin-top:8px">不要刪</button>`);
     o.querySelector("#dnNo").addEventListener("click", ()=>o.remove());
     o.querySelector("#dnNext").addEventListener("click", ()=>{
@@ -2862,7 +2880,7 @@ const App = (function(){
       ${privacyBox()}
       <div class="box set"><h2>其他</h2><div class="row" style="justify-content:flex-start"><button class="btn sub" id="bSnd">${SFX.on?"♪ 音效 開":"♪ 音效 關"}</button><button class="btn sub" id="bNews">📢 更新紀錄</button><button class="btn sub" id="bReload">重新整理</button><a class="btn sub" href="about.html" style="text-decoration:none;color:inherit">📜 網站聲明</a></div>
         <div class="fbRow"><button class="btn sub" id="bFeedback">📮 站長信箱・回報問題${fbUnread ? ` <span class="fbDot">${fbUnread}</span>` : ""}</button><div class="k">遇到 bug、有建議，或想請站長幫忙，都可以寫給站長。</div></div>
-        <div class="delNest"><button class="btn sub" id="bDelNest">🗑 刪除小窩</button><div class="k">把這個小窩的聊天、遊戲紀錄、記事本全部刪掉，兩個人都會看不到，刪了就救不回來。</div></div>
+        <div class="delNest">${isFam() && members.length > 2 ? `<button class="btn sub" id="bDelNest">離開這個家</button><div class="k">只有你會離開，家裡其他人的聊天和紀錄都會留著。家裡人數多的時候，為了安全不能一個人刪掉整個小窩。</div>` : `<button class="btn sub" id="bDelNest">🗑 刪除小窩</button><div class="k">把這個小窩的聊天、遊戲紀錄、記事本全部刪掉，${isFam() ? "家裡的人" : "兩個人"}都會看不到，刪了就救不回來。</div>`}</div>
         </div>`;
     let pick = me.cat||"orange";
     const drawPk=()=>{ const pk=$("pk"); if(!pk) return; const star = SV.done || me.cat==="star";

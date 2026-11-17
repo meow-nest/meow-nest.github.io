@@ -96,6 +96,12 @@
       if (error) { if (/delete_my_couple|function/i.test(error.message || "")) throw new Error("NEED_SQL"); throw error; }
       try { await sb.auth.signOut(); } catch (e) {}
     };
+    // 家人模式：自己離開這個家（其他人的資料留著）
+    B.leaveNest = async () => {
+      const { error } = await sb.rpc("leave_couple");
+      if (error) { if (/leave_couple|function/i.test(error.message || "")) throw new Error("NEED_SQL"); throw error; }
+      try { await sb.auth.signOut(); } catch (e) {}
+    };
     B.uploadImage = async (blob) => {
       const ext = blob.type === "image/gif" ? "gif" : blob.type === "image/png" ? "png" : "jpg";
       const path = `${B.coupleId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
@@ -313,6 +319,7 @@
     B.myFeedbackSeen = async () => call("fbSeen");
     B.touch = async () => {};
     B.deleteNest = async () => call("delnest", { cid: B.coupleId });
+    B.leaveNest = async () => call("leavenest", { cid: B.coupleId, uid: B.uid });
     B.deletePhotos = async (rows) => call("delphotos", { cid: B.coupleId, ids: rows.map(r => r.id) });
     B.getState = async (game) => call("get", { cid: B.coupleId, game });
     B.casState = async (game, version, state) => call("cas", { cid: B.coupleId, game, version, state });

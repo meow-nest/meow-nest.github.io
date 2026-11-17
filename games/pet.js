@@ -765,7 +765,8 @@ App.registerGame({
       render();
     }
     (async()=>{
-      for(const g of ["moqi","fishing","daily","draw","album","mood"]){ try{ const r = await ctx.getState(g); src[g] = r ? r.state : null; }catch(e){} subs.push(ctx.onState(g, st=>{ src[g] = st; if(s) render(); })); }
+      for(const g of ["moqi","fishing","daily","draw","album","mood"]){ const gs = ctx.rawGetState || ctx.getState, os = ctx.rawOnState || ctx.onState;   // 家人模式的你畫我猜是每一對分開存的，養貓用全家共用的那份
+        try{ const r = await gs(g); src[g] = r ? r.state : null; }catch(e){} subs.push(os(g, st=>{ src[g] = st; if(s) render(); })); }
       const cur = await ctx.getState("pet").catch(()=>null);
       s = cur ? P.norm(clone(cur.state)) : null; lastLog = logKey(s);
       subs.push(ctx.onState("pet", onPet));
