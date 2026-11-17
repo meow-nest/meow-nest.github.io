@@ -1,5 +1,5 @@
 // 喵喵小窩 service worker：負責跳通知、點通知打開 App
-const CACHE = "meow-pub-v189";
+const CACHE = "meow-pub-v190";
 const SHELL = ["./", "index.html"];   // 其他檔案用到時才存（帶版本號，存在 ASSET 裡，更新時沒改到的不用重新下載）
 const ASSET = "meow-pub-assets";
 
