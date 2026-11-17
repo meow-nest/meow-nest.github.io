@@ -277,6 +277,7 @@ ICON.lock = ["...OOOO...","..OO..OO..",".OO....OO.",".O......O.","OOOOOOOOOO","O
 ICON.memo = ["..O....O..",".OOOOOOOO.",".OKKKKKKO.",".OWWWWWWO.",".OWBBBBWO.",".OWWWWWWO.",".OWBBBWWO.",".OWWWWWWO.",".OWBBBBWO.",".OWWWWWWO.",".OOOOOOOO."];
 ICON.mic = ["...OOO...","..OKKKO..","..OKWKO..","..OKKKO..","..OKWKO..","..OKKKO..","O.OKKKO.O","O..OOO..O",".O.....O.","..OOOOO..","....O....","..OOOOO.."];
 // 生日貼圖用的小道具
+ICON.twk = ["..O..","..O..","OOOOO","..O..","..O.."];   // 閃閃（稱號特效）
 ICON.gift = ["..O...O..",".OKO.OKO.","..OOKOO..","OOOOKOOOO","OYYYKYYYO","OOOOKOOOO",".OYYKYYO.",".OYYKYYO.",".OOOOOOO."];
 ICON.conf = ["K...Y..","..B...K",".Y..K..","B....B.","..K.Y..","Y.....B"];
 ICON.cup = ["O.....O","OWWWWWO","OKKKKKO","OKWKKKO",".OKKKO.","..OKO..","...O...","..OOO.."];

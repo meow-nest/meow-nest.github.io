@@ -231,7 +231,10 @@ const App = (function(){
     const badge = `<span class="ttl t${t}${sm ? " sm" : ""}">${cr}${ic}<span class="tlv">Lv${n}</span>${esc(name)}</span>`;
     if(t < 7) return `<span class="ttlW">${badge}</span>`;
     const w = (WING_SVG[wing] || WING_SVG.angel)(WING_EDGE[t]);
-    return `<span class="ttlW hw ${wing === "devil" ? "dv" : ""}"><span class="twg l">${w}</span><span class="twg r">${w}</span>${badge}</span>`;
+    // Lv9 起翅膀會拍動＋小星星閃閃；Lv11 起再多愛心飄上去
+    const fx = t >= 9 ? `<span class="tfx s1">${icon("twk",{O:"#ffd36b"})}</span><span class="tfx s2">${icon("twk",{O:"#ff9ec4"})}</span><span class="tfx s3">${icon("twk",{O:WING_EDGE[t]})}</span>`
+      + (t >= 11 ? `<span class="tfx h1">${icon("heart")}</span><span class="tfx h2">${icon("heart")}</span>` : "") : "";
+    return `<span class="ttlW hw ${wing === "devil" ? "dv" : ""} ${t >= 9 ? "fl" : ""}"><span class="twg l">${w}</span><span class="twg r">${w}</span>${badge}${fx}</span>`;
   }
   ctx.ttlHtml = (h, sm) => ttlHtml(h, roomWing, sm);
   function renderMeter(){
