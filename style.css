@@ -3334,3 +3334,8 @@ body[data-theme="night"] .lrRow,body[data-theme="night"] .lrRow.me,body[data-the
 .lbOpen{display:flex;align-items:center;gap:4px;margin:6px auto 0;font:inherit;font-size:13px;color:var(--ink);background:#fff6d6;border:2px solid #e8b93a;border-radius:8px;padding:3px 10px;cursor:pointer}.lbOpen svg{width:15px;height:auto}
 .mqBtns{display:flex;gap:6px}
 body[data-theme="night"] .lbRow,body[data-theme="night"] .lbRow.got,body[data-theme="night"] .lbRow.cur{background:var(--paper)}
+
+/* 天使翅膀（像素版）疊在稱號兩側上面 */
+.ttlW:not(.dv) .twg{z-index:2;width:34px;transform:translateY(-60%)}
+.ttlW:not(.dv) .twg.l{left:-26px;transform:translateY(-60%) scaleX(-1)}.ttlW:not(.dv) .twg.r{right:-26px}
+.ttlW.hw:not(.dv){margin:0 26px}
