@@ -205,7 +205,7 @@ const App = (function(){
   const LV_B=[[0,"Lv1 剛認識的貓"],[3,"Lv2 一起喝珍奶"],[8,"Lv3 心有靈喵"],[15,"Lv4 默契滿喵"],[25,"Lv5 靈魂姊妹喵"],[40,"Lv6 宇宙第一喵閨蜜"]];
   const LV_M=[[0,"Lv1 點頭之交喵"],[3,"Lv2 一起打電動"],[8,"Lv3 心有靈喵"],[15,"Lv4 默契滿喵"],[25,"Lv5 換帖兄弟喵"],[40,"Lv6 宇宙第一喵兄弟"]];
   // 親密等級沒有上限：Lv6 之後每升一級要多 5 條小魚乾（Lv7 60、Lv8 85、Lv9 115、Lv10 150…）
-  const lvNeed = n => n <= 6 ? LV_C[n-1][0] : lvNeed(n-1) + 15 + 5*(n-6);
+  const lvNeed = n => n <= 6 ? LV_C[n-1][0] : 40 + 15*(n-6) + 5*(n-6)*(n-5)/2;   // 直接算，等級很高也不會變慢
   function lvName(n){
     const LV = roomMode==="bro" ? LV_M : roomMode==="bestie" ? LV_B : LV_C;
     if(n <= 6) return LV[n-1][1];
