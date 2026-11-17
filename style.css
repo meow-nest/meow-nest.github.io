@@ -3476,7 +3476,7 @@ body[data-theme="night"] .box.ckCard{background:var(--card)}
 .ttlW.d40.sm{zoom:.78}
 .ttlW.d40 .twg{width:64px;z-index:4;top:50%;transform:translateY(-52%);perspective:160px}
 .ttlW.d40 .twg.l{left:-55px;transform:translateY(-52%) scaleX(-1)}.ttlW.d40 .twg.r{right:-55px}
-.ttlW.d40 .twg:before{content:"";position:absolute;left:-10%;top:5%;width:110%;height:90%;border-radius:50%;background:radial-gradient(closest-side,rgba(255,40,60,.55),transparent);z-index:-1}
+.ttlW.d40 .twg:before{content:"";position:absolute;left:-10%;top:5%;width:110%;height:90%;border-radius:50%;background:radial-gradient(closest-side,rgba(var(--dg,255,40,60),.55),transparent);z-index:-1}
 .ttlW.d40 .dfr{position:relative;display:block;transform-origin:0% 45%;animation:d40Flap 3s infinite;will-change:transform;transform-style:preserve-3d}
 .ttlW.d40 .dfr img{width:100%;height:auto;display:block;image-rendering:pixelated}
 .ttlW.d40 .dfr img.a{animation:d40A 3s linear infinite}
@@ -3534,3 +3534,4 @@ body[data-theme="night"] .box.ckCard{background:var(--card)}
 .ttlW.d40 .rsp{position:absolute;width:10px;z-index:3;line-height:0;animation:s40Tw 1.5s steps(2) infinite}.ttlW.d40 .rsp svg{width:100%;height:auto;display:block}
 @media (prefers-reduced-motion:reduce){.ttlW.d40,.ttlW.d40 .dfr,.ttlW.d40 .dmid,.ttlW.d40 .dout,.ttlW.d40 .tail img,.ttlW.d40 .emb,.ttlW.d40 .aura,.ttlW.d40 .rsp,.ttl.t40d .psh:before{animation:none}}
 .ttlW.d40 .hrn{position:absolute;top:-17px;width:15px;z-index:0;line-height:0;filter:drop-shadow(0 0 2px rgba(255,40,60,.5))}.ttlW.d40 .hrn svg{width:100%;height:auto;display:block}.ttlW.d40 .hrn.l{left:12px;transform:scaleX(-1)}.ttlW.d40 .hrn.r{right:12px}
+.dcPrev .ttlW.d40{zoom:.62;margin:30px 58px 14px}.dcPrev .ttlW.d40 .tail,.dcPrev .ttlW.d40 .hrn,.dcPrev .ttlW.d40 .emb,.dcPrev .ttlW.d40 .rsp,.dcPrev .ttlW.d40 .aura{display:none}.dcPrev .ttl.t40d{min-width:30px}
