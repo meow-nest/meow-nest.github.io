@@ -3533,3 +3533,4 @@ body[data-theme="night"] .box.ckCard{background:var(--card)}
 .ttlW.d40 .aura{position:absolute;left:-60px;right:-60px;top:-22px;bottom:-22px;border-radius:50%;background:radial-gradient(closest-side,rgba(150,0,20,.45),rgba(60,0,10,.15) 60%,transparent);z-index:-1;animation:d40Aura 3s ease-in-out infinite;pointer-events:none}
 .ttlW.d40 .rsp{position:absolute;width:10px;z-index:3;line-height:0;animation:s40Tw 1.5s steps(2) infinite}.ttlW.d40 .rsp svg{width:100%;height:auto;display:block}
 @media (prefers-reduced-motion:reduce){.ttlW.d40,.ttlW.d40 .dfr,.ttlW.d40 .dmid,.ttlW.d40 .dout,.ttlW.d40 .tail img,.ttlW.d40 .emb,.ttlW.d40 .aura,.ttlW.d40 .rsp,.ttl.t40d .psh:before{animation:none}}
+.ttlW.d40 .hrn{position:absolute;top:-21px;width:14px;z-index:3;line-height:0;filter:drop-shadow(0 0 2px rgba(255,40,60,.5))}.ttlW.d40 .hrn svg{width:100%;height:auto;display:block}.ttlW.d40 .hrn.l{left:12px;transform:scaleX(-1)}.ttlW.d40 .hrn.r{right:12px}
