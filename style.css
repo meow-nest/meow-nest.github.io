@@ -3597,3 +3597,10 @@ body[data-theme="night"] .box.ckCard{background:var(--card)}
 .lrTabs button{font:inherit;font-size:15px;padding:6px 0;border:0;border-radius:9px;background:transparent;color:var(--muted);cursor:pointer}
 .lrTabs button.on{background:var(--card);color:var(--pinkT);box-shadow:0 2px 0 var(--line)}
 .lrWkNote{text-align:center;font-size:12px;margin:2px 0 4px}
+
+/* 站長小窩：天使／惡魔切換 */
+.ownSw{display:flex;justify-content:center;gap:8px;margin:-2px 0 8px}
+.ownSw button{display:flex;align-items:center;gap:4px;font:inherit;font-size:13px;color:var(--ink);background:var(--card);border:2px solid var(--line);border-radius:999px;padding:3px 12px 3px 8px;cursor:pointer}
+.ownSw button svg{width:22px;height:auto;display:block}
+.ownSw button.on{background:#2e2538;color:#ffe08a;border-color:#e8b93a;box-shadow:0 2px 0 #b8862a}
+.tzModal .ownSw{margin:8px 0 2px}

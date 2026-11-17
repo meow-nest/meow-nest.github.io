@@ -1403,19 +1403,30 @@ const App = (function(){
     try{ const r = await B.rpc("owner_show"); if(r && typeof r.h === "number"){ ownerCache = r; ownerAt = Date.now(); } }catch(e){}
     return ownerCache;
   }
+  let ownWing = null;   // 大家看站長小窩時選的翅膀（天使／惡魔都能切換）
+  const ownW = o => ownWing || (o.wing === "devil" ? "devil" : "angel");
+  const ownSw = o => `<div class="ownSw">${[["angel","天使"],["devil","惡魔"]].map(([w,t])=>`<button data-ow="${w}" class="${ownW(o)===w?"on":""}">${WING_SVG[w] ? WING_SVG[w](w==="devil"?"#b43a5a":"#8a7cf0") : ""}${t}</button>`).join("")}</div>`;
+  // 切換後，排行榜上的小卡和放大的都一起換
+  function ownPaint(o){
+    document.querySelectorAll("#lrOwn .ownT").forEach(t=>t.innerHTML = ownerTtl(o, true));
+    document.querySelectorAll("#owBadge").forEach(t=>t.innerHTML = ownerTtl(o));
+    document.querySelectorAll(".ownSw [data-ow]").forEach(x=>x.classList.toggle("on", x.dataset.ow===ownW(o)));
+  }
+  function ownSwBind(box, o){ box.querySelectorAll("[data-ow]").forEach(b=>b.addEventListener("click", e=>{ e.stopPropagation(); if(ownW(o)===b.dataset.ow) return; SFX.tap(); ownWing = b.dataset.ow; ownPaint(o); })); }
   function ownerTtl(o, sm){
     const old = roomMode; roomMode = validMode(o.mode);
-    try{ const dv = o.wing === "devil"; return ttlHtml(o.h, dv ? "devil" : "angel", sm, dv ? { dc: validDc(o.dc) } : validWc(o.wc)); } finally { roomMode = old; }
+    try{ const dv = ownW(o) === "devil"; return ttlHtml(o.h, dv ? "devil" : "angel", sm, dv ? { dc: validDc(o.dc) } : validWc(o.wc)); } finally { roomMode = old; }
   }
   function ownerZoom(o){
     const L = lvInfo(o.h), cats = (o.cats || []).slice(0, 2).map(c=>`<span>${sprite(c || "orange", "love", { plain:true })}</span>`).join(`<i>${icon("heart")}</i>`);
     const old = roomMode; roomMode = validMode(o.mode); const nm = lvName(L.n); roomMode = old;
     const m = modal(`<div class="ownHd">${icon("crown")}<b>站長小窩</b></div><div class="ownCats">${cats}</div>
-      <div class="tzStage"><span class="tzBadge">${ownerTtl(o)}</span></div>
+      <div class="tzStage"><span class="tzBadge" id="owBadge">${ownerTtl(o)}</span></div>${ownSw(o)}
       <div class="tzInfo"><b>${esc(nm)}</b><span>${icon("fish")} ${o.h} 條小魚乾</span></div>
       <div class="k" style="text-align:center;margin-top:6px">每天來小窩、一起玩遊戲就能拿小魚乾升等級，總有一天也能長出這樣的翅膀！<br>站長小窩不參加排名，把名次留給大家～</div>
       <button class="btn" id="owOk" style="width:100%;margin-top:10px">我也要努力！</button>`, "tzModal ownModal");
     m.querySelector("#owOk").addEventListener("click", ()=>m.remove());
+    ownSwBind(m, o);
   }
   async function lvRank(){
     const who = roomMode==="bro" ? "兄弟" : roomMode==="bestie" ? "閨蜜" : roomMode==="family" ? "家人" : roomMode==="solo" ? "單人" : "情侶";
@@ -1425,8 +1436,9 @@ const App = (function(){
     o.querySelector("#lrOk").addEventListener("click", ()=>o.remove());
     o.querySelector("#lrBook").addEventListener("click", ()=>{ SFX.tap(); lvBook(); });
     ownerShow().then(ow=>{ const el = o.querySelector("#lrOwn"); if(!el || !ow) return;
-      el.innerHTML = `<button class="ownCard"><span class="ownTag">${icon("crown")}站長小窩・最高等級的樣子</span><span class="ownT">${ownerTtl(ow, true)}</span><span class="ownGo">點一下放大看</span></button>`;
-      el.querySelector(".ownCard").addEventListener("click", ()=>{ SFX.tap(); ownerZoom(ow); }); });
+      el.innerHTML = `<button class="ownCard"><span class="ownTag">${icon("crown")}站長小窩・最高等級的樣子</span><span class="ownT">${ownerTtl(ow, true)}</span><span class="ownGo">點一下放大看</span></button>${ownSw(ow)}`;
+      el.querySelector(".ownCard").addEventListener("click", ()=>{ SFX.tap(); ownerZoom(ow); });
+      ownSwBind(el, ow); });
     // 本週排行（更新 61）：只算這個禮拜拿到的小魚乾，每週一重新開始；總排行：累積的小魚乾
     let tab = "week", seq = 0;
     o.querySelectorAll(".lrTabs button").forEach(b=>b.addEventListener("click", ()=>{ if(b.dataset.t === tab) return; SFX.tap(); tab = b.dataset.t; o.querySelectorAll(".lrTabs button").forEach(x=>x.classList.toggle("on", x===b)); load(); }));
