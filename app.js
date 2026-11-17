@@ -1419,7 +1419,7 @@ const App = (function(){
   }
   async function lvRank(){
     const who = roomMode==="bro" ? "兄弟" : roomMode==="bestie" ? "閨蜜" : roomMode==="family" ? "家人" : roomMode==="solo" ? "單人" : "情侶";
-    const o = modal(`<div class="lrHd">${icon("crown")}<h3>${who}貓貓等級排行榜</h3></div><button class="lbOpen" id="lrBook">${icon("star")}看所有稱號</button><div id="lrOwn"></div><div class="lrList" id="lrL"><div class="k" style="text-align:center;padding:20px">讀取中…</div></div>
+    const o = modal(`<div class="lrHd">${icon("crown")}<h3>${who}貓貓等級排行榜</h3></div><button class="lbOpen" id="lrBook">${icon("star")}看所有稱號</button><div id="lrOwn"></div><div class="lrTabs"><button data-t="week" class="on">本週排行</button><button data-t="all">總排行</button></div><div class="k lrWkNote" id="lrWk"></div><div class="lrList" id="lrL"><div class="k" style="text-align:center;padding:20px">讀取中…</div></div>
       <div class="k lrNote">${isSolo() ? "只跟單人小窩比。每天來、玩遊戲就會得到小魚乾、升等級。" : isFam() ? "只跟家人小窩比。家人每天都來、一起玩就會得到小魚乾、升等級。" : "默契大考驗答得一樣就會得到小魚乾、升等級。"}名字只會顯示第一個字。</div>
       <button class="btn sub" id="lrOk" style="width:100%;margin-top:8px">關閉</button>`, "svModal lrModal");
     o.querySelector("#lrOk").addEventListener("click", ()=>o.remove());
@@ -1427,19 +1427,30 @@ const App = (function(){
     ownerShow().then(ow=>{ const el = o.querySelector("#lrOwn"); if(!el || !ow) return;
       el.innerHTML = `<button class="ownCard"><span class="ownTag">${icon("crown")}站長小窩・最高等級的樣子</span><span class="ownT">${ownerTtl(ow, true)}</span><span class="ownGo">點一下放大看</span></button>`;
       el.querySelector(".ownCard").addEventListener("click", ()=>{ SFX.tap(); ownerZoom(ow); }); });
+    // 本週排行（更新 61）：只算這個禮拜拿到的小魚乾，每週一重新開始；總排行：累積的小魚乾
+    let tab = "week", seq = 0;
+    o.querySelectorAll(".lrTabs button").forEach(b=>b.addEventListener("click", ()=>{ if(b.dataset.t === tab) return; SFX.tap(); tab = b.dataset.t; o.querySelectorAll(".lrTabs button").forEach(x=>x.classList.toggle("on", x===b)); load(); }));
+    const load = async () => {
+    const my = ++seq, wk = tab === "week";
+    o.querySelector("#lrL").innerHTML = `<div class="k" style="text-align:center;padding:20px">讀取中…</div>`;
+    o.querySelector("#lrWk").textContent = wk ? "每週一重新開始，看這個禮拜誰拿到最多小魚乾！" : "從開始到現在累積的小魚乾";
     let r;
-    try{ r = await B.rpc("lv_rank"); }catch(e){ o.querySelector("#lrL").innerHTML = `<div class="k" style="text-align:center;padding:20px">${/lv_rank|function|schema/.test(String(e && e.message || e)) ? "排行榜還沒開放喔（更新 47）" : "網路好像不太穩，等等再試～"}</div>`; return; }
-    if(!o.isConnected) return;
+    try{ r = await B.rpc(wk ? "lv_rank_week" : "lv_rank"); }catch(e){ if(my !== seq) return; o.querySelector("#lrL").innerHTML = `<div class="k" style="text-align:center;padding:20px">${/lv_rank|function|schema/.test(String(e && e.message || e)) ? (wk ? "本週排行還沒開放喔（更新 61）" : "排行榜還沒開放喔（更新 47）") : "網路好像不太穩，等等再試～"}</div>`; return; }
+    if(!o.isConnected || my !== seq) return;
     const mine = members.map(m=>m.name), myCats = members.map(m=>m.cat);
     const row = (x, me) => { const L = lvInfo(x.h), w = x.who || [];
       const sep = isFam() ? "・" : " ♥ ", cl = me ? myCats : w.map(m=>m.cat);
       const names = me ? mine.map(esc).join(sep) : w.map(m=>esc(m.name)).join(sep);
       const cats = cl.slice(0, 2).map(c=>`<span>${sprite(c||"orange",isFam() ? "happy" : "love",{plain:true})}</span>`).join("") + (cl.length > 2 ? `<em class="lrMore">+${cl.length - 2}</em>` : "");
-      return `<div class="lrRow ${me?"me":""} ${x.rk<=3?"top"+x.rk:""}"><b class="lrRk">${x.rk<=3 ? icon("crown") : ""}<i>${x.rk}</i></b><span class="lrCats">${cats}</span><span class="lrWho"><b>${names}</b><span class="lrT">${(() => { const dv = me ? roomWing === "devil" : x.wing === "devil"; return ttlHtml(x.h, dv ? "devil" : "angel", true, dv ? { dc: me ? roomDc : validDc(x.dc) } : (me ? roomWc : validWc(x.wc))); })()}</span></span><span class="lrH">${icon("fish")}${x.h}</span></div>`; };
+      const th = wk ? (x.tot || 0) : x.h;
+      return `<div class="lrRow ${me?"me":""} ${x.rk<=3?"top"+x.rk:""}"><b class="lrRk">${x.rk<=3 ? icon("crown") : ""}<i>${x.rk}</i></b><span class="lrCats">${cats}</span><span class="lrWho"><b>${names}</b><span class="lrT">${(() => { const dv = me ? roomWing === "devil" : x.wing === "devil"; return ttlHtml(th, dv ? "devil" : "angel", true, dv ? { dc: me ? roomDc : validDc(x.dc) } : (me ? roomWc : validWc(x.wc))); })()}</span></span><span class="lrH">${icon("fish")}${wk ? "+" : ""}${x.h}</span></div>`; };
     const top = (r && r.top) || [], me = r && r.mine;
     o.querySelector("#lrL").innerHTML = (top.length ? top.map(x=>row(x, x.me)).join("") : `<div class="k" style="text-align:center;padding:20px">還沒有人上榜，快去玩默契大考驗！</div>`)
       + (me && !top.some(x=>x.me) ? `<div class="lrGap">⋯</div>${row(me, true)}` : "")
-      + (r && r.owner ? `<div class="k" style="text-align:center;margin-top:8px">站長小窩不參加排名，把名次留給大家～</div>` : !me ? `<div class="k" style="text-align:center;margin-top:8px">你們還沒上榜，默契大考驗答對一題就上榜囉！</div>` : "");
+      + (r && r.owner ? `<div class="k" style="text-align:center;margin-top:8px">站長小窩不參加排名，把名次留給大家～</div>` : !me ? `<div class="k" style="text-align:center;margin-top:8px">${wk ? "這週還沒拿到小魚乾，今天來簽到、一起玩遊戲就上榜囉！" : "你們還沒上榜，默契大考驗答對一題就上榜囉！"}</div>` : "");
+    if(wk && !top.length) o.querySelector("#lrL").innerHTML = `<div class="k" style="text-align:center;padding:20px">這週還沒有人拿到小魚乾，現在衝就是第一名！</div>` + (r && r.owner ? "" : `<div class="k" style="text-align:center">今天來簽到、一起玩遊戲就上榜囉！</div>`);
+    };
+    load();
   }
 
   // ---------- 生日限定「壽星貓」（更新 46）：生日前後 7 天挑一隻，每年都能再挑一隻 ----------

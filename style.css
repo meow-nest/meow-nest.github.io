@@ -3593,3 +3593,7 @@ body[data-theme="night"] .box.ckCard{background:var(--card)}
 .ownHd{display:flex;align-items:center;justify-content:center;gap:6px;font-size:18px}.ownHd svg{width:22px;height:auto}.ownHd b{font-weight:400}
 .ownCats{display:flex;justify-content:center;align-items:center;gap:4px;margin:2px 0 4px}.ownCats span{width:52px}.ownCats span svg{width:100%;height:auto;display:block}.ownCats i{width:16px}.ownCats i svg{width:100%;height:auto}
 .tzOwn{width:100%;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:4px;background:#fff6d6!important;border-color:#e8b93a!important}.tzOwn svg{width:16px;height:auto}
+.lrTabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:#f3e4c8;border:2px solid var(--line);border-radius:12px;padding:4px;margin:4px 0 2px}
+.lrTabs button{font:inherit;font-size:15px;padding:6px 0;border:0;border-radius:9px;background:transparent;color:var(--muted);cursor:pointer}
+.lrTabs button.on{background:var(--card);color:var(--pinkT);box-shadow:0 2px 0 var(--line)}
+.lrWkNote{text-align:center;font-size:12px;margin:2px 0 4px}
