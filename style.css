@@ -1316,6 +1316,30 @@ body[data-kbsize="l"] .ime .k{height:59px}body[data-kbsize="l"] .ime .kv{font-si
 .ktHow{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11.5px;margin-bottom:8px}
 .ktHow span{background:var(--card);border:2px solid var(--line);border-radius:10px;padding:5px 4px}
 .ktGo{width:100%;height:50px;font-size:18px;margin-bottom:6px}
+.ktMode{display:flex;gap:6px;margin:8px 0;background:#f3e4c8;border:2px solid var(--line);border-radius:12px;padding:4px}
+.ktMode button{flex:1;font:inherit;font-size:15px;padding:7px 0;border:0;border-radius:9px;background:transparent;color:#7a5a4a;cursor:pointer}
+.ktMode button.on{background:var(--card);color:var(--pinkT);box-shadow:0 2px 0 var(--line)}
+.ktStar{width:16px;height:16px;image-rendering:pixelated;vertical-align:middle}
+.ktLock{width:16px;height:18px}
+.ktLvTop{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#7a5a4a;margin:2px 4px 6px}
+.ktLvTop b{font-weight:400;font-size:15px;color:#5a3b2e;display:flex;align-items:center;gap:4px}
+.ktLvGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px}
+.ktLv{font:inherit;background:#fff6e6;border:2px solid var(--line);border-radius:10px;padding:5px 0 4px;display:flex;flex-direction:column;align-items:center;gap:2px;color:#5a3b2e;cursor:pointer;box-shadow:0 3px 0 #d9a066}
+.ktLv em{font-style:normal;font-size:18px;line-height:1}
+.ktLv span{display:flex;gap:1px}.ktLv .ktStar{width:12px;height:12px}
+.ktLv.sel{background:#ffe1e9;border-color:var(--pinkT);box-shadow:0 3px 0 var(--pinkT);transform:translateY(-1px)}
+.ktLv.lock{background:#efe6d6;color:#b3a28c;box-shadow:0 3px 0 #d8c8ae}
+.ktLvCard{background:var(--card);border:2px solid var(--line);border-radius:12px;padding:8px 10px;margin-bottom:8px;text-align:left}
+.ktLvH{display:flex;align-items:baseline;gap:8px}.ktLvH em{font-style:normal;font-size:12px;color:#fff;background:var(--pinkT);border-radius:6px;padding:1px 6px}.ktLvH b{font-weight:400;font-size:17px}
+.ktLvTip{font-size:12.5px;color:#7a5a4a;margin:4px 0 6px;line-height:1.5}
+.ktLvRow{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;border-top:1.5px dashed #e6d3b5}.ktLvRow span{color:#7a5a4a}.ktLvRow b{font-weight:400}
+.ktLvGoal{display:flex;gap:5px;margin:6px 0 4px}
+.ktLvGoal div{flex:1;background:#fff6e6;border:2px solid #e6d3b5;border-radius:9px;padding:3px 0;display:flex;flex-direction:column;align-items:center;font-size:12px;color:#7a5a4a}
+.ktLvGoal i{display:flex;gap:1px}.ktLvGoal div.got{border-color:#ffcf4a;background:#fff3c8;color:#5a3b2e}.ktLvGoal .ktStar{width:12px;height:12px}
+.ktGoalL{display:flex;align-items:center;gap:1px;flex:none}.ktGoalL .ktStar{width:15px;height:15px}.ktGoalL small{font-size:11px;color:#7a5a4a;margin-left:3px}
+.ktEndStars{display:flex;justify-content:center;gap:6px;margin:6px 0 2px}
+.ktEndStars span{animation:ktStarIn .45s cubic-bezier(.3,1.6,.5,1) both}.ktEndStars .ktStar{width:40px;height:40px}
+@keyframes ktStarIn{from{transform:scale(0) rotate(-40deg);opacity:0}to{transform:none;opacity:1}}
 .ktPlay{padding:8px;user-select:none;-webkit-user-select:none}
 .ktTop{display:flex;align-items:center;gap:10px;font-size:15px;margin-bottom:6px}
 .ktTop #ktScore{flex:1;color:var(--pinkT)}.ktTop .btn{width:auto;padding:4px 12px;font-size:13px}
