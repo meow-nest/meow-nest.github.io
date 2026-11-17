@@ -1714,7 +1714,39 @@ const App = (function(){
   const NEWS_K = "mw_newsSeen";
   const newsSeen = () => { try{ return JSON.parse(localStorage.getItem(NEWS_K)||"null"); }catch(e){ return null; } };
   const markNews = () => { try{ localStorage.setItem(NEWS_K, JSON.stringify((window.CHANGELOG||[]).map(n=>n.id))); }catch(e){} };
-  function newsHtml(n){ return `<div class="nwItem"><div class="nwHd"><span class="nwI">${icon(n.icon||"star")}</span><b>${esc(n.title)}</b><i>${esc(n.date||"")}</i></div><ul>${n.items.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div>`; }
+  // ---- 限定禮物（例如睡衣小貓）：看到那則通知就送 ----
+  const GIFT = { has: new Set(), ok: false };
+  const GIFT_END = { pj: Date.parse("2026-12-01T00:00:00+08:00") };
+  async function giftLoad(){ try{ const r = await B.rpc("gift_me"); GIFT.has = new Set((Array.isArray(r) ? r : []).filter(k=>k==="pj")); GIFT.ok = true; }catch(e){} return GIFT; }
+  async function giftClaim(k){
+    if(GIFT.has.has(k)) return true;
+    if(!(Date.now() < (GIFT_END[k]||0))) return false;
+    try{ const r = await B.rpc("claim_gift", { p_k: k }); if(r && r.ok){ GIFT.has.add(k); return true; } if(r && r.reason === "ended") return false; }catch(e){}
+    return null;   // 網路或伺服器出問題：之後打開 app 會自動再領一次
+  }
+  // 看過通知但當時沒領成功的，下次打開 app 時偷偷補領
+  async function giftRetry(){
+    const seen = new Set(newsSeen()||[]);
+    for(const n of (window.CHANGELOG||[])) if(n.gift && seen.has(n.id) && Date.now() < (GIFT_END[n.gift]||0) && !GIFT.has.has(n.gift)){
+      await giftLoad(); if(GIFT.has.has(n.gift)) continue;
+      if(await giftClaim(n.gift)) toast(`${sprite(n.gift,"wave")} 限定「${CNAME[n.gift]}」送到你的小窩了！`);
+    }
+  }
+  async function wearCat(c){ me.cat = c; store.set("mw_cat", c); try{ await B.updateMe({ cat: c }); }catch(e){} B.track({ name: me.name, cat: c }); lastHdr = ""; renderHeader(); }
+  function giftHtml(n){
+    if(!n.gift) return "";
+    const live = Date.now() < (GIFT_END[n.gift]||0) || GIFT.has.has(n.gift);
+    if(!live) return "";
+    return `<div class="svGift nwGift" data-gk="${esc(n.gift)}">${sprite(n.gift,"wave")}<div><b>限定「${esc(CNAME[n.gift]||"")}」送給你！</b><small class="nwGs">正在送到你的小窩…</small></div></div><button class="btn sub nwWear hidden" data-wear="${esc(n.gift)}" style="width:100%;margin:-4px 0 4px">馬上換上</button>`;
+  }
+  function newsHtml(n){ return `<div class="nwItem"><div class="nwHd"><span class="nwI">${icon(n.icon||"star")}</span><b>${esc(n.title)}</b><i>${esc(n.date||"")}</i></div><ul>${n.items.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>${giftHtml(n)}</div>`; }
+  function newsGifts(o){
+    o.querySelectorAll(".nwGift").forEach(async box=>{
+      const k = box.dataset.gk, ok = await giftClaim(k), sm = box.querySelector(".nwGs"), w = o.querySelector(`[data-wear="${k}"]`);
+      if(sm) sm.textContent = ok ? (me.cat===k ? "已經換上囉～晚安喵" : "已經放進「設定 → 我的貓」，隨時可以換上") : ok === false ? "這份禮物領取時間已經結束了" : "網路不太穩，下次打開小窩會自動補送給你～";
+      if(w && ok && me.cat!==k){ w.classList.remove("hidden"); w.addEventListener("click", async ()=>{ SFX.select(); w.disabled = true; await wearCat(k); w.textContent = "換好了！"; if(sm) sm.textContent = "已經換上囉～晚安喵"; toast(`${sprite(k,"wave")} 換上${CNAME[k]}了！`); }); }
+    });
+  }
   function showNews(all){
     const log = window.CHANGELOG || []; if(!log.length) return;
     const seen = new Set(newsSeen()||[]);
@@ -1725,12 +1757,13 @@ const App = (function(){
       <div class="nwList">${shown.map(newsHtml).join("")}</div>
       ${more>0 ? `<button class="btn sub" id="nwAll" style="width:100%;margin-bottom:8px">還有 ${more} 則，看全部</button>` : ""}
       <button class="btn" id="nwOk" style="width:100%">${all ? "關閉" : "知道了 💗"}</button>`, "newsModal");
-    markNews(); SFX.select();
+    markNews(); SFX.select(); newsGifts(o);
     o.querySelector("#nwOk").addEventListener("click", ()=>o.remove());
     const a = o.querySelector("#nwAll"); if(a) a.addEventListener("click", ()=>{ o.remove(); showNews(true); });
   }
   function maybeNews(justCreated){
     if(newsSeen()===null && justCreated){ markNews(); return; }   // brand-new member: nothing is "new" to them
+    giftRetry();
     showNews(false);
   }
   // ---- mood ----
@@ -2998,12 +3031,14 @@ const App = (function(){
     const drawPk=()=>{ const pk=$("pk"); if(!pk) return; const star = SV.done || me.cat==="star";
       pk.innerHTML=COLORS.map(c=>`<button class="${c===pick?"on":""}" data-c="${c}">${sprite(c,"normal")}</button>`).join("")
         + (star ? `<button class="${pick==="star"?"on":""} svPk" data-c="star">${sprite("star","normal")}<i>限定</i></button>` : SV.on ? `<button class="svPk lock" data-sv="1">${sprite("star","normal")}<i>填問卷</i></button>` : "")
+        + (GIFT.has.has("pj") || me.cat==="pj" ? `<button class="${pick==="pj"?"on":""} svPk" data-c="pj">${sprite("pj","normal")}<i>限定</i></button>` : "")
         + [...new Set(BD.cols.map(i=>"bd"+i).concat(Pix.isBd(me.cat) ? [me.cat] : []))].map(c=>`<button class="${pick===c?"on":""} svPk bdPk" data-c="${c}">${sprite(c,"normal")}<i>壽星</i></button>`).join("")
         + (BD.ok && !BD.cols.length && !Pix.isBd(me.cat) ? `<button class="svPk lock bdPk" data-bdl="1">${sprite("bd1","normal")}<i>生日限定</i></button>` : "");
       pk.querySelectorAll("[data-c]").forEach(b=>b.addEventListener("click",()=>{pick=b.dataset.c;drawPk();}));
       const lk=pk.querySelector("[data-sv]"); if(lk) lk.addEventListener("click", ()=>{ SFX.tap(); svDeclined = true; svForm(false); });
       const bl=pk.querySelector("[data-bdl]"); if(bl) bl.addEventListener("click", ()=>{ SFX.tap(); const b=$("bdSet"); if(b){ setOpen.add("我的生日"); const h=b.querySelector(".setHd"); if(h && h._paint) h._paint(); b.scrollIntoView({behavior:"smooth",block:"center"}); b.classList.remove("flash"); void b.offsetWidth; b.classList.add("flash"); } toast(BD.md ? "生日前後 7 天就能挑一隻壽星貓喔" : "先在上面填生日，生日前後 7 天就能挑一隻喔"); }); };
     bdSetBox(); bdLoad().then(()=>{ if($("pk")) drawPk(); bdSetBox(); });
+    giftLoad().then(()=>{ if($("pk")) drawPk(); });
     drawPk(); svLoad().then(()=>{ if($("pk")) drawPk(); const sb=$("svSet"); if(sb) sb.classList.toggle("hidden", !(SV.on && !SV.done)); });
     $("bSave").addEventListener("click", async()=>{ const n=$("nm").value.trim().slice(0,10); if(!n) return; me.name=n; me.cat=pick; store.set("mw_name",n); store.set("mw_cat",pick); try{ await B.updateMe({name:n,cat:pick}); }catch(e){} B.track({name:n,cat:pick}); lastHdr=""; renderHeader(); toast(`${sprite(pick,"wave")} 已儲存！`); });
     const svo=$("svOpen"); if(svo) svo.addEventListener("click", ()=>{ SFX.select(); svDeclined = true; svForm(false); });

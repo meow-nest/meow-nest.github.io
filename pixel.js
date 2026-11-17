@@ -75,6 +75,7 @@ const PAL = {
   black:  {O:'#1d1a22',Y:'#3a3542',S:'#2c2833',D:'#2f2a36',P:'#e89aa8',E:'#f5d36b',H:'#fff6c8',B:'#c9707f',N:'#e8798a',M:'#9a92a8',W:'#5a5363',K:'#ec5f7e',T:'#7fc4ff'},
   calico: {O:'#5a3b2e',Y:'#fffaf2',S:'#e59a4f',D:'#3e3434',P:'#f2a1ae',E:'#2b1d18',H:'#ffffff',B:'#f59aa6',N:'#e8798a',M:'#5a3b2e',W:'#ffffff',K:'#ec5f7e',T:'#7fc4ff'},
   star:   {O:'#5a3b2e',Y:'#ead6b8',S:'#b98d62',D:'#d4b994',P:'#f2a1ae',E:'#2b1d18',H:'#ffffff',B:'#f59aa6',N:'#e8798a',M:'#5a3b2e',W:'#fff8ee',K:'#ec5f7e',T:'#7fc4ff',G:'#231c1f',L:'#f4f9ff'},
+  pj:     {O:'#5a4a63',Y:'#fff4e6',S:'#f0d9c2',D:'#e9d3bd',P:'#f6b2bf',E:'#2b1d18',H:'#ffffff',B:'#f7a8b8',N:'#e8798a',M:'#5a4a63',W:'#fff8ee',K:'#ec5f7e',T:'#7fc4ff',J:'#a9c6f2',I:'#ffffff',Q:'#ffe27a',U:'#ffd35c'},
   gray:   {O:'#4a4f60',Y:'#a7aec2',S:'#868da3',D:'#9097ab',P:'#f2b1bc',E:'#232631',H:'#ffffff',B:'#f0a5b2',N:'#e8798a',M:'#4a4f60',W:'#e9ecf3',K:'#ec5f7e',T:'#7fc4ff'},
 };
 const soft = p => Object.assign({}, p, {O: p.D});      // no-outline soft version
@@ -93,6 +94,28 @@ function starMark(rows){
   // 哭的時候眼淚從眼鏡下面流出來
   for(let x=0;x<rows[8].length;x++) if(rows[8][x]==='T'){ rows[8][x]='L'; put(x,10,'T'); put(x,11,'T'); }
   return rows.map(r=>r.join(''));
+}
+// 限定「睡衣小貓」：睡帽（尾巴垂下來、掛一顆毛球）＋條紋睡衣
+const PJ_CAP = [
+"...........OOO.........",
+".........OOJJJOO.......",
+"....O...OJJJIJJJO......",
+"...OPO.OJJJJJJJJJO.....",
+"...OPPOJJJJJJJJIJJO....",
+"..OYYYOIIIIIIIIIIIOJO..",
+".OYYYOIIIIIIIIIIIIIOJO.",
+".OYYYYOOOOOOOOOOOOOOJO.",
+];
+const PJ_POM = [".OO.","OQQO","OQIO",".OO."];
+function pjMark(rows){
+  const body = rows.slice(5).map((r, i) => { const oy = i + 5; const a = [...r.padEnd(27,'.')];
+    a.forEach((c, x) => { if(oy===5 && c==='S') a[x]='Y';
+      if(oy>=12 && oy<=17 && x<=17 && 'YSDW'.includes(c) && !(oy===17 && c==='D')) a[x] = oy % 2 ? 'I' : 'J'; });
+    if(oy===13 || oy===15) a[10]='U';
+    return a; });
+  const out = PJ_CAP.map(r=>[...r.padEnd(27,'.')]).concat(body);
+  PJ_POM.forEach((ln, dy) => [...ln].forEach((c, dx) => { if(c!=='.') out[8+dy][20+dx] = c; }));
+  return out.map(r=>r.join(''));
 }
 function calicoize(rows){
   return rows.map((r,y)=>[...r].map((c,x)=>{
@@ -187,8 +210,8 @@ function bdSprite(c, kind, plain){
   if(plain) rows = rows.slice(0, 25);
   return pix(rows, pal, {pad: 1}).replace("</svg>", bdMouth(face, pal) + "</svg>");
 }
-const CNAME = Object.assign({orange:"橘貓",white:"白灰斑貓",calico:"三花貓",black:"黑貓",gray:"灰貓",star:"博士貓"}, Object.fromEntries(BD_IDS.map((id, i) => [id, "壽星貓・" + BD_COL[i][0]])));
-const SPECIAL = ["star"].concat(BD_IDS);   // 特別的貓：要完成條件才能選（例如填問卷）
+const CNAME = Object.assign({orange:"橘貓",white:"白灰斑貓",calico:"三花貓",black:"黑貓",gray:"灰貓",star:"博士貓",pj:"睡衣小貓"}, Object.fromEntries(BD_IDS.map((id, i) => [id, "壽星貓・" + BD_COL[i][0]])));
+const SPECIAL = ["star","pj"].concat(BD_IDS);   // 特別的貓：要完成條件才能選（例如填問卷）
 const palOf = c => isBd(c) ? bdPal(c) : c==="white" ? Object.assign({},PAL.white,{S:'#a9a4b6',D:'#a9a4b6'}) : PAL[c];
 function baseSit(c, face){
   let r = setEyes(c==="black"||c==="calico" ? plain(sit) : sit, face);
@@ -205,6 +228,7 @@ function sprite(c, kind, opts){
   let pal = palOf(c);
   if(opts && opts.soft) pal = Object.assign({}, pal, {O: pal.D});
   let rows;
+  if(c==="pj" && kind!=="loaf" && kind!=="curl") return cache[key] = pix(pjMark(kind==="wave" ? wave(baseSit(c,"happy")) : baseSit(c, kind==="normal" ? "sleep" : kind)), pal, {pad: 1});
   if(kind==="wave") rows = wave(baseSit(c,"happy"));
   else if(kind==="loaf") rows = LOAF;   // 趴著睡覺時眼鏡拿下來了
   else if(kind==="curl") rows = CURL;
