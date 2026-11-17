@@ -241,13 +241,15 @@ const App = (function(){
     rainbow: { n:"彩虹・極光翼", P:{O:"#4a3a6a",D:"#e88aa8",M:"#8ac8f0",L:"#f8e08a",W:"#ffffff"}, gl:"#ffd1f0", hc:"#fff0a0", b1:"#ff9ec4", b2:"#8ad8ff", ol:"#4a3a6a" },
   };
   const validWc = c => S40C[c] ? c : "gold";
-  const s40Url = (() => { const c = {}; return k => c[k] || (c[k] = (() => { const P = k === "mask" ? { O:"#000", D:"#000", M:"#000", L:"#000", W:"#000" } : S40C[k].P; let r = "";
-    S40.forEach((row, y) => { let x = 0; while(x < row.length){ const ch = row[x]; if(ch === "."){ x++; continue; } let e = x; while(e < row.length && row[e] === ch) e++; r += `<rect x="${x}" y="${y}" width="${e-x}" height="1" fill="${P[ch]}"/>`; x = e; } });
+  // 翅膀分成上、下兩片，拍的時候上面那片往上抬、下面那片往下展開
+  const s40Up = (x, y) => y < (x <= 29 ? 56 : 44);
+  const s40Url = (() => { const c = {}; return (k, part) => c[k + part] || (c[k + part] = (() => { const P = k === "mask" ? { O:"#000", D:"#000", M:"#000", L:"#000", W:"#000" } : S40C[k].P; let r = "";
+    S40.forEach((row, y) => { let x = 0; while(x < row.length){ const ch = row[x]; if(ch === "." || s40Up(x, y) !== (part === "u")){ x++; continue; } let e = x; while(e < row.length && row[e] === ch && s40Up(e, y) === (part === "u")) e++; r += `<rect x="${x}" y="${y}" width="${e-x}" height="1" fill="${P[ch]}"/>`; x = e; } });
     return "data:image/svg+xml," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${S40[0].length} ${S40.length}" shape-rendering="crispEdges">${r}</svg>`); })()); })();
   const FEATHER = `<svg viewBox="0 0 5 9" shape-rendering="crispEdges"><rect x="2" y="0" width="1" height="1" fill="#6a6a80"/><rect x="1" y="1" width="3" height="5" fill="#fff"/><rect x="0" y="2" width="1" height="3" fill="#d4d4e4"/><rect x="2" y="6" width="1" height="3" fill="#9a9ab0"/></svg>`;
   function s40Html(n, name, sm, wc){
-    const C = S40C[validWc(wc)], st = `--gl:${C.gl};--hc:${C.hc};--b1:${C.b1};--b2:${C.b2};--ol:${C.ol};--wm:url('${s40Url("mask")}')`;
-    const w = `<span class="twi"><img src="${s40Url(validWc(wc))}" alt=""><span class="shn"></span></span>`;
+    const k = validWc(wc), C = S40C[k], st = `--gl:${C.gl};--hc:${C.hc};--b1:${C.b1};--b2:${C.b2};--ol:${C.ol};--wmu:url('${s40Url("mask", "u")}');--wmd:url('${s40Url("mask", "d")}')`;
+    const w = `<span class="twi"><span class="wp d"><img src="${s40Url(k, "d")}" alt=""><span class="shn"></span></span><span class="wp u"><img src="${s40Url(k, "u")}" alt=""><span class="shn"></span></span></span>`;
     return `<span class="ttlW hw s40${sm ? " sm" : ""}" style="${st}"><span class="twg l">${w}</span><span class="twg r">${w}</span><span class="halo"></span>`
       + `<span class="ttl t40${sm ? " sm" : ""}"><span class="tlv">Lv${n}</span>${esc(name)}</span>`
       + `<span class="spk a">${icon("twk",{O:C.hc})}</span><span class="spk b">${icon("twk",{O:"#fff"})}</span><span class="spk c">${icon("twk",{O:C.gl})}</span><span class="spk d">${icon("twk",{O:C.hc})}</span>`
