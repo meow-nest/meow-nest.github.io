@@ -326,11 +326,12 @@ const App = (function(){
     const s = stateCache.moqi && stateCache.moqi.state; const h = s ? (s.hearts||0) : 0; const L = lvInfo(h);
     const o = modal(`<div class="tzStage"><span class="tzBadge">${ttlHtml(h, roomWing)}</span></div>
       <div class="tzInfo"><b>${esc(L.name)}</b><span>${icon("fish")} ${h} 條・再 ${L.next-h} 條升 Lv${L.n+1}</span></div>
-      <div class="tzBtns"><button class="btn sub" id="tzBook">${icon("star")} 稱號圖鑑</button><button class="btn sub" id="tzRank">${icon("crown")} 排行榜</button></div>
+      <div class="tzBtns"><button class="btn sub" id="tzBook">${icon("star")} 稱號圖鑑</button><button class="btn sub" id="tzRank">${icon("crown")} 排行榜</button></div><button class="btn sub tzOwn" id="tzOwn">${icon("crown")} 看站長小窩的稱號</button>
       <button class="btn" id="tzOk" style="width:100%;margin-top:8px">關閉</button>`, "tzModal");
     o.querySelector("#tzOk").addEventListener("click", ()=>o.remove());
     o.querySelector("#tzBook").addEventListener("click", ()=>{ o.remove(); lvBook(); });
     o.querySelector("#tzRank").addEventListener("click", ()=>{ o.remove(); lvRank(); });
+    const tw = o.querySelector("#tzOwn"); if(tw) tw.addEventListener("click", async ()=>{ const ow = await ownerShow(); if(!ow){ toast("站長小窩的稱號還沒開放喔"); return; } o.remove(); ownerZoom(ow); });
   }
   // ---------- 家人模式：選「現在一起玩的家人」＋首頁的全家福 ----------
   function setBuddy(uid){
@@ -1395,13 +1396,37 @@ const App = (function(){
   ctx.lvBook = () => lvBook();
 
   // ---------- 全站親密等級排行榜（更新 47）：只跟同一種模式比（情侶／閨蜜／兄弟） ----------
+  // ---------- 站長小窩的稱號（給大家看，當作努力的目標；站長小窩不參加排名）----------
+  let ownerCache = null, ownerAt = 0;
+  async function ownerShow(){
+    if(ownerCache && Date.now() - ownerAt < 300000) return ownerCache;
+    try{ const r = await B.rpc("owner_show"); if(r && typeof r.h === "number"){ ownerCache = r; ownerAt = Date.now(); } }catch(e){}
+    return ownerCache;
+  }
+  function ownerTtl(o, sm){
+    const old = roomMode; roomMode = validMode(o.mode);
+    try{ const dv = o.wing === "devil"; return ttlHtml(o.h, dv ? "devil" : "angel", sm, dv ? { dc: validDc(o.dc) } : validWc(o.wc)); } finally { roomMode = old; }
+  }
+  function ownerZoom(o){
+    const L = lvInfo(o.h), cats = (o.cats || []).slice(0, 2).map(c=>`<span>${sprite(c || "orange", "love", { plain:true })}</span>`).join(`<i>${icon("heart")}</i>`);
+    const old = roomMode; roomMode = validMode(o.mode); const nm = lvName(L.n); roomMode = old;
+    const m = modal(`<div class="ownHd">${icon("crown")}<b>站長小窩</b></div><div class="ownCats">${cats}</div>
+      <div class="tzStage"><span class="tzBadge">${ownerTtl(o)}</span></div>
+      <div class="tzInfo"><b>${esc(nm)}</b><span>${icon("fish")} ${o.h} 條小魚乾</span></div>
+      <div class="k" style="text-align:center;margin-top:6px">每天來小窩、一起玩遊戲就能拿小魚乾升等級，總有一天也能長出這樣的翅膀！<br>站長小窩不參加排名，把名次留給大家～</div>
+      <button class="btn" id="owOk" style="width:100%;margin-top:10px">我也要努力！</button>`, "tzModal ownModal");
+    m.querySelector("#owOk").addEventListener("click", ()=>m.remove());
+  }
   async function lvRank(){
     const who = roomMode==="bro" ? "兄弟" : roomMode==="bestie" ? "閨蜜" : roomMode==="family" ? "家人" : roomMode==="solo" ? "單人" : "情侶";
-    const o = modal(`<div class="lrHd">${icon("crown")}<h3>${who}貓貓等級排行榜</h3></div><button class="lbOpen" id="lrBook">${icon("star")}看所有稱號</button><div class="lrList" id="lrL"><div class="k" style="text-align:center;padding:20px">讀取中…</div></div>
+    const o = modal(`<div class="lrHd">${icon("crown")}<h3>${who}貓貓等級排行榜</h3></div><button class="lbOpen" id="lrBook">${icon("star")}看所有稱號</button><div id="lrOwn"></div><div class="lrList" id="lrL"><div class="k" style="text-align:center;padding:20px">讀取中…</div></div>
       <div class="k lrNote">${isSolo() ? "只跟單人小窩比。每天來、玩遊戲就會得到小魚乾、升等級。" : isFam() ? "只跟家人小窩比。家人每天都來、一起玩就會得到小魚乾、升等級。" : "默契大考驗答得一樣就會得到小魚乾、升等級。"}名字只會顯示第一個字。</div>
       <button class="btn sub" id="lrOk" style="width:100%;margin-top:8px">關閉</button>`, "svModal lrModal");
     o.querySelector("#lrOk").addEventListener("click", ()=>o.remove());
     o.querySelector("#lrBook").addEventListener("click", ()=>{ SFX.tap(); lvBook(); });
+    ownerShow().then(ow=>{ const el = o.querySelector("#lrOwn"); if(!el || !ow) return;
+      el.innerHTML = `<button class="ownCard"><span class="ownTag">${icon("crown")}站長小窩・最高等級的樣子</span><span class="ownT">${ownerTtl(ow, true)}</span><span class="ownGo">點一下放大看</span></button>`;
+      el.querySelector(".ownCard").addEventListener("click", ()=>{ SFX.tap(); ownerZoom(ow); }); });
     let r;
     try{ r = await B.rpc("lv_rank"); }catch(e){ o.querySelector("#lrL").innerHTML = `<div class="k" style="text-align:center;padding:20px">${/lv_rank|function|schema/.test(String(e && e.message || e)) ? "排行榜還沒開放喔（更新 47）" : "網路好像不太穩，等等再試～"}</div>`; return; }
     if(!o.isConnected) return;

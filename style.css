@@ -3583,3 +3583,11 @@ body[data-theme="night"] .box.ckCard{background:var(--card)}
 .ime.candGrid .cands button{font-size:22px;min-width:0;padding:5px 6px}
 .ime.candGrid .ime-body{visibility:hidden}
 .ime .imeMore{z-index:5}.ime.candGrid .imeMore{position:fixed;z-index:61}
+/* ---------- 站長小窩的稱號展示 ---------- */
+.ownCard{display:flex;flex-direction:column;align-items:center;width:100%;font:inherit;color:var(--ink);background:linear-gradient(180deg,#2e2538,#1d1822);border:3px solid #e8b93a;border-radius:12px;padding:8px 4px 6px;margin:6px 0 8px;cursor:pointer;box-shadow:0 3px 0 #b8862a;overflow:hidden}
+.ownCard .ownTag{display:flex;align-items:center;gap:4px;font-size:12px;color:#ffe08a}.ownCard .ownTag svg{width:14px;height:auto}
+.ownCard .ownT{display:flex;justify-content:center;max-width:100%}
+.ownCard .ownGo{font-size:10px;color:#c9b8d8;margin-top:-4px}
+.ownHd{display:flex;align-items:center;justify-content:center;gap:6px;font-size:18px}.ownHd svg{width:22px;height:auto}.ownHd b{font-weight:400}
+.ownCats{display:flex;justify-content:center;align-items:center;gap:4px;margin:2px 0 4px}.ownCats span{width:52px}.ownCats span svg{width:100%;height:auto;display:block}.ownCats i{width:16px}.ownCats i svg{width:100%;height:auto}
+.tzOwn{width:100%;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:4px;background:#fff6d6!important;border-color:#e8b93a!important}.tzOwn svg{width:16px;height:auto}
