@@ -271,7 +271,7 @@ const App = (function(){
     const n = lvOf(h || 0), t = Math.min(n, 11), name = lvName(n).replace(/^Lv\d+\s*/, "");
     if(n >= 40 && wing !== "devil") return s40Html(n, name, sm, wc === undefined ? roomWc : wc);
     const ic = TTL_IC[t] ? `<span class="tic">${TTL_IC[t]()}</span>` : "", cr = t >= 10 ? `<span class="tcr">${icon("crown")}</span>` : "";
-    const badge = `<span class="ttl t${t}${sm ? " sm" : ""}">${cr}${ic}<span class="tlv">Lv${n}</span>${esc(name)}</span>`;
+    const badge = `<span class="ttl t${t}${sm ? " sm" : ""}">${t === 11 ? `<span class="tsh"></span>` : ""}${cr}${ic}<span class="tlv">Lv${n}</span>${esc(name)}</span>`;
     if(t < 7) return `<span class="ttlW">${badge}</span>`;
     const w = (WING_SVG[wing] || WING_SVG.angel)(WING_EDGE[t]);
     // Lv9 起翅膀會拍動＋小星星閃閃；Lv11 起再多愛心飄上去
@@ -280,6 +280,16 @@ const App = (function(){
     return `<span class="ttlW hw ${wing === "devil" ? "dv" : ""} ${t >= 9 ? "fl" : ""}"><span class="twg l">${w}</span><span class="twg r">${w}</span>${badge}${fx}</span>`;
   }
   ctx.ttlHtml = (h, sm) => ttlHtml(h, roomWing, sm);
+  // 會動的稱號只在畫面上看得到的時候才動，排行榜、圖鑑一次很多個也不會卡
+  (() => {
+    if(!("IntersectionObserver" in window) || !("MutationObserver" in window)) return;
+    const io = new IntersectionObserver(es => es.forEach(e => e.target.classList.toggle("off", !e.isIntersecting)), { rootMargin:"40px" });
+    const seen = new WeakSet();
+    const scan = root => { if(!root.querySelectorAll) return; const list = root.matches && root.matches(".ttlW") ? [root] : []; root.querySelectorAll(".ttlW").forEach(x => list.push(x));
+      list.forEach(x => { if(seen.has(x)) return; seen.add(x); x.classList.add("off"); io.observe(x); }); };
+    const go2 = () => { new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(scan))).observe(document.body, { childList:true, subtree:true }); scan(document.body); };
+    if(document.body) go2(); else document.addEventListener("DOMContentLoaded", go2);
+  })();
   function renderMeter(){
     const el=$("meter"); if(!el) return;
     const s = stateCache.moqi && stateCache.moqi.state; const h = s ? (s.hearts||0) : 0; const L=lvInfo(h);
