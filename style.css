@@ -3395,3 +3395,26 @@ body[data-theme="night"] .lbHow{background:var(--paper)}
 .ckPaws span.on{border:2px solid #ff8fab;background:#ffeef3}.ckPaws span svg{width:24px;height:auto}.ckPaws span.gift{border-style:solid;border-color:#e8b93a;background:#fff6d6}.ckPaws span.gift svg{width:18px}
 .ckS{text-align:center;font-size:12px;color:var(--muted);margin-top:6px}.ckS b{font-weight:400;color:var(--pinkT)}
 body[data-theme="night"] .box.ckCard{background:var(--card)}
+/* ---------- 家人模式 ---------- */
+.modePick button:last-child:nth-child(odd){grid-column:1/-1}
+.mpArt.fam .mpA svg{width:46px;height:46px}
+.mpArt.fam .mpB svg{width:28px;height:28px}
+.mpArt.fam .mpMid{align-self:flex-start;margin:0 -2px}
+.famBox{padding:10px 10px 8px}
+.famHd{display:flex;justify-content:space-between;align-items:baseline;margin:0 2px 6px}.famHd b{font-weight:400;font-size:16px}.famHd span{font-size:12px;color:var(--muted)}
+.famRow{display:grid;grid-template-columns:repeat(4,1fr);gap:12px 6px;padding:10px 0 4px}
+.famCat{position:relative;min-width:0;display:flex;flex-direction:column;align-items:center;gap:1px;background:#fff6e6;border:2px solid var(--line);border-radius:12px;padding:4px 2px 5px;font:inherit;color:var(--ink);cursor:pointer}
+.famCat .fcS svg{width:44px;height:44px;display:block}
+.famCat b{font-weight:400;font-size:12px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.famCat i{position:absolute;top:5px;right:6px;width:8px;height:8px;border-radius:50%;background:#cfc3b2;border:1.5px solid var(--line)}.famCat i.on{background:#5cb87a}
+.famCat em{position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-style:normal;font-size:10px;color:#fff;background:var(--pinkT);border-radius:6px;padding:0 5px;white-space:nowrap}
+.famCat.sel{background:var(--pinkL);border-color:var(--pinkT);box-shadow:0 3px 0 var(--pinkT)}
+.famCat.me{cursor:default;background:#f3ecdf}
+.famCat.add{border-style:dashed;background:transparent}
+.fcPlus{display:flex;align-items:center;justify-content:center;width:44px;height:44px;font-size:28px;color:var(--pinkT)}
+.famBox .famTip{text-align:center;margin-top:2px;font-size:12px}
+.famModal .famBox{padding:0;margin-top:10px}
+#top .who.famPick{position:relative;cursor:pointer}
+#top .who .famN{position:absolute;top:-4px;right:-10px;font-size:10px;line-height:1;color:#fff;background:var(--pinkT);border:1.5px solid var(--line);border-radius:8px;padding:2px 4px;white-space:nowrap}
+.msg .mWho{position:absolute;left:44px;top:-15px;font-size:11px;color:var(--muted);white-space:nowrap}
+.msg.named{position:relative;margin-top:16px}

@@ -15,24 +15,33 @@ const App = (function(){
   let curGame = null;
 
   // ---------- helpers ----------
-  const partner = () => members.find(m => m.user_id !== me.uid) || null;
+  // 家人模式（最多 6 人）：partner() 是「現在一起玩的家人」（可以在上面點貓咪換人），其他模式就是另一個人
+  const others = () => members.filter(m => m.user_id !== me.uid);
+  let buddyId = null; try{ buddyId = localStorage.getItem("mw_buddy") || null; }catch(e){}
+  const partner = () => { const o = others(); if(o.length < 2 || roomMode !== "family") return o[0] || null; return o.find(m => m.user_id === buddyId) || o[0]; };
   const isOnline = uid => online.has(uid);
   let roomMode = "couple";                       // "couple" | "bestie" | "bro" (stored in game_state "room")
   const MODES = {
     couple: { name:"情侶模式", desc:"跟另一半一起", pw:"另一半", qk:"常用語", love:"啾～", a:["orange","love"], b:["white","love"], mid:"heart" },
     bestie: { name:"閨蜜模式", desc:"跟好姊妹一起", pw:"閨蜜", qk:"閨蜜", love:"抱抱～", a:["calico","happy"], b:["white","happy"], mid:"star" },
     bro:    { name:"兄弟模式", desc:"跟好兄弟一起", pw:"兄弟", qk:"兄弟", love:"兄弟！", a:["black","wave"], b:["gray","wave"], mid:"bigpaw" },
+    family: { name:"家人模式", desc:"一家人一起", pw:"家人", qk:"家人", love:"抱抱～", a:["orange","happy"], b:["white","happy"], mid:"home", fam:true },
     solo:   { name:"單人模式", desc:"一個人慢慢玩", pw:"你", qk:"常用語", love:"喵～", a:["orange","happy"], b:["orange","happy"], mid:"star", solo:true },
   };
   const MI = () => MODES[roomMode] || MODES.couple;
   const validMode = m => MODES[m] ? m : "couple";
   const isBestie = () => roomMode==="bestie" || roomMode==="bro";      // any friends mode (閨蜜 / 兄弟)
-  const isSolo = () => roomMode==="solo";        // 單人模式：只有單人遊戲，沒有聊天和邀請
+  const isSolo = () => roomMode==="solo";
+  const isFam = () => roomMode==="family";
+  const FAM_MAX = 6;        // 單人模式：只有單人遊戲，沒有聊天和邀請
   const pw = () => MI().pw;
-  function modeArt(m){ const d = MODES[m]; if(d.solo) return `<span class="mpArt solo"><span class="mpA">${sprite(me.cat||d.a[0], d.a[1])}</span><span class="mpMid">${icon(d.mid)}</span></span>`; return `<span class="mpArt"><span class="mpA">${sprite(d.a[0], d.a[1])}</span><span class="mpMid">${icon(d.mid)}</span><span class="mpB">${sprite(d.b[0], d.b[1])}</span></span>`; }
+  function modeArt(m){ const d = MODES[m]; if(d.solo) return `<span class="mpArt solo"><span class="mpA">${sprite(me.cat||d.a[0], d.a[1])}</span><span class="mpMid">${icon(d.mid)}</span></span>`; return `<span class="mpArt${d.fam ? " fam" : ""}"><span class="mpA">${sprite(d.a[0], d.a[1])}</span><span class="mpMid">${icon(d.mid)}</span><span class="mpB">${sprite(d.b[0], d.b[1])}</span></span>`; }
   const nameOf = uid => uid===me.uid ? (me.name||"我") : ((members.find(m=>m.user_id===uid)||{}).name || pw());
   const catOf = uid => uid===me.uid ? (me.cat||"orange") : ((members.find(m=>m.user_id===uid)||{}).cat || "white");
-  const players = () => members.map(m=>m.user_id).sort();
+  const players = () => { if(isFam()){ const p = partner(); return (p ? [me.uid, p.user_id] : [me.uid]).sort(); } return members.map(m=>m.user_id).sort(); };
+  // 家人模式：雙人遊戲的存檔分開存（每一對家人各自一份），才不會兩組人同時玩同一個遊戲互相打架
+  const PAIR_GAMES = new Set(["banqi","battleship","bingo","boat","chess","defense","draw","fight","gomoku","guess","kitchen","meld","memoryduo","quickdraw","pool"]);
+  const gk = g => { if(!isFam() || !PAIR_GAMES.has(g)) return g; const p = partner(); if(!p) return g; return g + ":" + [me.uid, p.user_id].map(u => String(u).slice(0, 8)).sort().join("-"); };
   const clone = o => o==null ? o : JSON.parse(JSON.stringify(o));
   function toast(html, ms=2600){ const t=$("toast"); t.innerHTML=html; t.classList.remove("hidden"); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.add("hidden"),ms); }
   const hhmm = d => { const x=new Date(d); return String(x.getHours()).padStart(2,"0")+":"+String(x.getMinutes()).padStart(2,"0"); };
@@ -134,13 +143,13 @@ const App = (function(){
   async function notifyPartner(text){ const p=partner(); if(!p || isOnline(p.user_id)) return; try{ const row=await B.send(text,"game",me.name,me.cat); addMessage(row); }catch(e){} }
 
   const ctx = { get me(){return me}, partner, isOnline, nameOf, catOf, players, sprite, icon, SFX, burst, toast, floatSvg, esc,
-    getState, update, onState, notifyPartner, back: ()=>go("home") };
+    getState: g => getState(gk(g)), update: (g, fn) => update(gk(g), fn), onState: (g, h) => onState(gk(g), h), notifyPartner, back: ()=>go("home") };
   ctx.rpc = (fn, args) => B.rpc ? B.rpc(fn, args) : Promise.reject(new Error("no_rpc")); ctx.mode = () => roomMode; ctx.pw = pw; ctx.isAdmin = () => isAdmin;
   // 站長測試模式：只改自己這支手機看到的畫面（家具、房間、龍舟賽道全部當作已解鎖），不會動到伺服器上的資料
   ctx.testAll = () => { try{ return isAdmin && localStorage.getItem("mw_testAll") === "1"; }catch(e){ return false; } }; ctx.isBusy = uid => isBusy(uid); Object.defineProperty(ctx, "backend", { get: () => B });
   // fast, unsaved messages between the two phones (real-time co-op games)
   const bcSubs = [];
-  ctx.broadcast = p => { if(B.bcast) B.bcast(Object.assign({ from: me.uid }, p)); };
+  ctx.broadcast = p => { if(!B.bcast) return; const o = Object.assign({ from: me.uid }, p); if(isFam()){ const pp = partner(); if(pp) o.to = pp.user_id; } B.bcast(o); };
   ctx.onBroadcast = h => { bcSubs.push(h); return ()=>{ const i = bcSubs.indexOf(h); if(i>=0) bcSubs.splice(i,1); }; };
   // ---- 雙人遊戲的「呼叫 ta」貓爪按鈕 ----
   const PAW_SVG = `<svg viewBox="0 0 64 64" class="pawSvg"><ellipse cx="32" cy="42" rx="17" ry="14" fill="#fff4f6" stroke="#5a3b2e" stroke-width="3.5"/><ellipse cx="32" cy="43" rx="10" ry="8" fill="#f7a0b4"/>
@@ -193,6 +202,9 @@ const App = (function(){
     }
     $("nmMe").textContent = me.name||"我";
     $("nmThem").textContent = p ? p.name : "???";
+    const fm = isFam() && others().length > 1, wt = $("catThem").parentNode; wt.classList.toggle("famPick", fm);
+    let fb = wt.querySelector(".famN"); if(fm){ if(!fb){ fb = document.createElement("span"); fb.className = "famN"; wt.appendChild(fb); } fb.textContent = `換人 ${others().length}`; } else if(fb) fb.remove();
+    if(!wt.dataset.fam){ wt.dataset.fam = "1"; wt.addEventListener("click", ()=>{ if(isFam() && others().length > 1){ SFX.tap(); famPick(); } }); }
     const pm = p && moodOf(p.user_id), mm = moodOf(me.uid);
     const st=$("stThem"); const ps = p && statusOf(p.user_id);
     st.textContent = (!p ? "還沒加入" : ps && ps.def[0]!=="free" ? (here?"● ":"○ ")+ps.def[2]+ps.def[1] : here ? "● 在線" : "○ 睡著了") + (pm ? " "+pm[2] : ""); st.className = "st"+(here?" on":"");
@@ -203,13 +215,14 @@ const App = (function(){
   // ---------- hub ----------
   const LV_C=[[0,"Lv1 陌生小貓"],[3,"Lv2 開始蹭蹭"],[8,"Lv3 心有靈喵"],[15,"Lv4 默契滿喵"],[25,"Lv5 靈魂貓伴"],[40,"Lv6 宇宙第一喵情侶"]];
   const LV_B=[[0,"Lv1 剛認識的貓"],[3,"Lv2 一起喝珍奶"],[8,"Lv3 心有靈喵"],[15,"Lv4 默契滿喵"],[25,"Lv5 靈魂姊妹喵"],[40,"Lv6 宇宙第一喵閨蜜"]];
+  const LV_F=[[0,"Lv1 剛搬進來的貓"],[3,"Lv2 一起吃晚餐"],[8,"Lv3 心有靈喵"],[15,"Lv4 默契滿喵"],[25,"Lv5 溫暖貓窩"],[40,"Lv6 宇宙第一喵家庭"]];
   const LV_M=[[0,"Lv1 點頭之交喵"],[3,"Lv2 一起打電動"],[8,"Lv3 心有靈喵"],[15,"Lv4 默契滿喵"],[25,"Lv5 換帖兄弟喵"],[40,"Lv6 宇宙第一喵兄弟"]];
   // 親密等級沒有上限：Lv6 之後每升一級要多 5 條小魚乾（Lv7 60、Lv8 85、Lv9 115、Lv10 150…）
   const lvNeed = n => n <= 6 ? LV_C[n-1][0] : 40 + 15*(n-6) + 5*(n-6)*(n-5)/2;   // 直接算，等級很高也不會變慢
   function lvName(n){
-    const LV = roomMode==="bro" ? LV_M : roomMode==="bestie" ? LV_B : LV_C;
+    const LV = roomMode==="bro" ? LV_M : roomMode==="bestie" ? LV_B : roomMode==="family" ? LV_F : LV_C;
     if(n <= 6) return LV[n-1][1];
-    const who = roomMode==="bro" ? "兄弟" : roomMode==="bestie" ? "閨蜜" : "情侶";
+    const who = roomMode==="bro" ? "兄弟" : roomMode==="bestie" ? "閨蜜" : roomMode==="family" ? "一家人" : "情侶";
     return `Lv${n} ${(["銀河","流星","彩虹","永恆"][n-7] || "傳說")}喵${who}`;
   }
   function lvOf(h){ let n = 1; while(h >= lvNeed(n+1) && n < 9999) n++; return n; }
@@ -247,10 +260,35 @@ const App = (function(){
     el.title = `再收集 ${L.next-h} 條小魚乾 → ${L.nextName}・點一下看排行榜`;
     if(!el.dataset.rk){ el.dataset.rk = "1"; el.style.cursor = "pointer"; el.addEventListener("click", ()=>{ SFX.tap(); lvRank(); }); }
   }
+  // ---------- 家人模式：選「現在一起玩的家人」＋首頁的全家福 ----------
+  function setBuddy(uid){
+    if(uid === buddyId) return; buddyId = uid; try{ localStorage.setItem("mw_buddy", uid); }catch(e){}
+    lastHdr = ""; wasOnline = null; renderHeader();
+    if(route === "game"){ go("home"); }
+    else if(route === "home") render();
+    toast(`現在跟 ${esc(nameOf(uid))} 一起玩`);
+  }
+  function famHtml(){
+    const p = partner(), list = [{ user_id: me.uid, name: me.name || "我", cat: me.cat || "orange", me: true }].concat(others());
+    return `<div class="famHd"><b>我們家</b><span>${list.length} / ${FAM_MAX} 人</span></div><div class="famRow">${list.map(m => { const on = m.me || isOnline(m.user_id), sel = p && m.user_id === p.user_id;
+      return `<button class="famCat${sel ? " sel" : ""}${m.me ? " me" : ""}" ${m.me ? "" : `data-bud="${esc(m.user_id)}"`}><span class="fcS">${sprite(m.cat || "white", m.me ? moodFace(me.uid, "normal") : moodFace(m.user_id, on ? "normal" : "curl"))}</span><b>${esc(m.me ? "我" : m.name)}</b><i class="${on ? "on" : ""}"></i>${sel ? `<em>一起玩</em>` : ""}</button>`; }).join("")}
+      ${list.length < FAM_MAX ? `<button class="famCat add" id="famAdd"><span class="fcS"><span class="fcPlus">+</span></span><b>邀請</b></button>` : ""}</div>
+      ${others().length > 1 ? `<div class="k famTip">點家人的貓咪，就能換成跟 ta 一起玩雙人遊戲</div>` : ""}`;
+  }
+  function famBind(root){
+    root.querySelectorAll("[data-bud]").forEach(b => b.addEventListener("click", () => { SFX.tap(); setBuddy(b.dataset.bud); }));
+    const a = root.querySelector("#famAdd"); if(a) a.addEventListener("click", () => { SFX.tap(); shareInvite(); });
+  }
+  function famPick(){
+    const o = modal(`<h3>要跟誰一起玩？</h3><div class="famBox">${famHtml()}</div><button class="btn sub" id="fpOk" style="width:100%;margin-top:8px">關閉</button>`, "famModal");
+    famBind(o); o.querySelectorAll("[data-bud]").forEach(b => b.addEventListener("click", () => o.remove()));
+    o.querySelector("#fpOk").addEventListener("click", () => o.remove());
+  }
+  const famHides = g => isFam() && others().length > 1 && (g.id === "moqi");   // 默契大考驗要兩個人一起答，家人版第二階段再做
   function viewHome(v, force){
     if(isAdmin && !force) return viewAdmin(v);
     const p = partner();
-    let html = `<div class="title">喵喵<b>小窩</b>${isBestie()||isSolo()?`<span class="modeTag">${modeArt(roomMode)}${MI().name}</span>`:""}<div class="meterSlim" id="meter"></div></div><div id="truceHome">${truceBar()}</div>${p ? `<div class="box ckCard" id="ckCard">${ckHtml()}</div>` : ""}<div class="hTiles" id="hTiles">${homeTiles()}</div>`;
+    let html = `<div class="title">喵喵<b>小窩</b>${isBestie()||isSolo()||isFam()?`<span class="modeTag">${modeArt(roomMode)}${MI().name}</span>`:""}<div class="meterSlim" id="meter"></div></div>${isFam() ? `<div class="box famBox" id="famBox">${famHtml()}</div>` : ""}<div id="truceHome">${truceBar()}</div>${p ? `<div class="box ckCard" id="ckCard">${ckHtml()}</div>` : ""}<div class="hTiles" id="hTiles">${homeTiles()}</div>`;
     if(!p && !isSolo()) html += `<div class="box banner warn waitBan"><span class="bi">⚠️</span><div style="flex:1">${pw()}還沒加入！把邀請碼 <b style="font-weight:400;color:var(--pinkT);letter-spacing:2px">${esc(B.code||"")}</b> 傳給 ta<div class="waitWarn">⏰ <b>14 天</b>都沒人加入、你也沒打開的話，<b>小窩會自動刪除</b>，裡面的紀錄也會不見！</div></div><button class="btn" id="bInv">傳邀請</button></div>`;
     const alb = stateCache.album && stateCache.album.state, apct = alb ? (alb.bytes||0)/albumLimit : 0;
     if(apct >= .7 && !NO_MEDIA) html = html.replace('<div id="truceHome">', `<div class="box banner ${apct>=.85?"warn":""}" id="albBan"><span class="bi">${icon("camera")}</span><div style="flex:1">相簿已經用了 ${Math.round(apct*100)}%${apct>=.85?"，該刪一些照片了 🥺":"，可以開始整理照片囉"}</div><button class="btn" id="bAlbum">去整理</button></div><div id="truceHome">`);
@@ -260,14 +298,14 @@ const App = (function(){
     // 雙人小窩還在等 ta 加入：一個人能玩的排前面，要兩個人的加上「等 ta 加入」
     const waitingTa = !p && !isSolo(), ALONE = ["pool","stars","notes","pet"];
     const canAlone = g => g.solo || ALONE.includes(g.id);
-    const gl = games.filter(g=>!g.hidden && (!isSolo() || g.solo));
+    const gl = games.filter(g=>!g.hidden && (!isSolo() || g.solo) && !famHides(g));
     if(waitingTa) gl.sort((a,b)=>(canAlone(b)?1:0)-(canAlone(a)?1:0));
     if(PT.ok) html += ptEntryHtml();
     html += `<div class="games">` + gl.map(g=>g.wip && !isAdmin ? `<div class="gcard soon wip" data-wip="1"><span class="gi">${window.GameArt && GameArt[g.id] ? `<span class="ga">${GameArt[g.id]()}</span>` : g.icon()}</span><span class="gn">${esc(g.name)}</span><span class="gd">🚧 待開發中</span></div>` : `<button class="gcard${waitingTa && !canAlone(g) ? " needTa" : ""}" data-g="${g.id}"><span class="gi">${window.GameArt && GameArt[g.id] ? `<span class="ga">${GameArt[g.id]()}</span>` : g.icon()}</span><span class="gn">${esc(g.name)}</span><span class="gd">${esc(g.desc)}</span>${waitingTa && !canAlone(g) ? `<span class="gb gWait">等 ta 加入</span>` : g.wip?`<span class="gb">🚧 測試中</span>`:g.badge&&g.badge()?`<span class="gb">${esc(g.badge())}</span>`:""}</button>`).join("")
       + `<div class="gcard soon"><span class="gi">${sprite("gray","sleep",{soft:true})}</span><span class="gn">新遊戲</span><span class="gd">敬請期待…</span></div></div><p class="gNote">本站遊戲純屬娛樂，不是賭博。貓幣、股市資金等都是虛擬的，不能儲值、不能換成現金或獎品。</p>`;
     if(fbUnread > 0) html = html.replace('<div id="truceHome">', `<div class="box banner fbBan" id="fbBan"><span class="bi">📮</span><div style="flex:1">站長回覆你的回報了！</div><button class="btn" id="bFbH">看看</button></div><div id="truceHome">`);
     v.innerHTML = html;
-    renderMeter(); if(p) ckRefresh();
+    renderMeter(); if(p) ckRefresh(); if(isFam()) famBind(v);
     const bfh=$("bFbH"); if(bfh) bfh.addEventListener("click", ()=>askFeedback());
     v.querySelectorAll("[data-g]").forEach(b=>b.addEventListener("click",()=>go("game-"+b.dataset.g)));
     ptEntryBind();
@@ -365,6 +403,7 @@ const App = (function(){
   const QK = {
     "兄弟": ["兄弟！","笑死 (≧▽≦)","出來打球","開黑嗎 (•̀ᴗ•́)و","吃宵夜？","讚啦 (ゝω・)v","衝啊！","等我一下","在幹嘛？","到家了","晚安 ( ˘ω˘ )zzZ","請你喝飲料","辛苦了","抱歉啦","好喔 (｀・ω・´)ゞ","哈哈哈哈"],
     "閨蜜": ["愛你 (♡˙︶˙♡)","想你了","抱抱 (つ≧▽≦)つ","姊妹！","笑死 (≧▽≦)","出來玩！","八卦時間 (¬‿¬)","晚安 ( ˘ω˘ )zzZ","早安 ヾ(＾∇＾)","在幹嘛？","吃飯了嗎？","好想見你","你最棒了！","對不起嘛 (｡•́︿•̀｡)","快回我～","我到家了","好喔 (｀・ω・´)ゞ","哈哈哈哈"],
+    "家人": ["回家吃飯囉","吃飽了嗎？","我到家了","晚安 ( ˘ω˘ )zzZ","早安 ヾ(＾∇＾)","在幹嘛？","今天辛苦了","記得帶傘","愛你們 (♡˙︶˙♡)","想你們了","等我一下","好喔 (｀・ω・´)ゞ","謝謝！","週末一起出去玩？","注意安全","哈哈哈哈"],
     "常用語": ["我愛你 (♡˙︶˙♡)","想你了","抱抱 (つ≧▽≦)つ","親親 (づ￣ ³￣)づ","晚安 ( ˘ω˘ )zzZ","早安 ヾ(＾∇＾)","在幹嘛？","吃飯了嗎？","好想見你","你最棒了！","對不起嘛 (｡•́︿•̀｡)","快回我～","我到家了","等等打給你","好喔 (｀・ω・´)ゞ","哈哈哈哈"],
   };
   let lastSeen = +(store.get("mw_seen")||0);
@@ -429,8 +468,10 @@ const App = (function(){
     else if(m.kind==="image") bub = `<span class="pic"><img data-media="${esc(m.media||"")}" ${imgCache[m.media]?`src="${esc(imgCache[m.media])}"`:""} alt="照片"></span>`;
     else if(m.kind==="poke") bub = `<div class="bub">戳了${mine?"對方":"你"}一下 🐾</div>`;
     else bub = `<div class="bub ${quote?"rqBub":""}">${quote}${esc(m.body)}</div>`;
-    const p = partner(); const read = mine && p && (p.last_read||0) >= m.id;
-    return `<div class="msg ${mine?"me":""} ${m.kind==="poke"?"poke":""}">${mine?"":av}${bub}<span class="tm">${read?`<span class="rd">已讀</span>`:""}${hhmm(m.created_at)}</span></div>`;
+    const p = partner(); let read = mine && p && (p.last_read||0) >= m.id;
+    if(isFam() && mine){ const n = others().filter(x => (x.last_read||0) >= m.id).length; read = n ? (others().length > 1 ? `已讀 ${n}` : "已讀") : ""; } else if(read) read = "已讀";
+    const who = isFam() && !mine && others().length > 1 ? `<span class="mWho">${esc(m.name || nameOf(m.sender))}</span>` : "";
+    return `<div class="msg ${mine?"me":""} ${m.kind==="poke"?"poke":""} ${who?"named":""}">${mine?"":av}${who}${bub}<span class="tm">${read?`<span class="rd">${read}</span>`:""}${hhmm(m.created_at)}</span></div>`;
   }
   let kb = null;
   function viewChat(v){
@@ -693,7 +734,9 @@ const App = (function(){
   }
   // 對方已讀：只補上「已讀」兩個字
   function markReadDom(){
-    const L = $("list"), p = partner(); if(!L || !p) return; const lr = p.last_read || 0;
+    const L = $("list"), p = partner(); if(!L || !p) return;
+    if(isFam() && others().length > 1){ drawList(false); return; }   // 家人模式：已讀人數會變，整個重畫
+    const lr = p.last_read || 0;
     const all = L.querySelectorAll(".msg.me[data-mid]"); for(let i = all.length - 1; i >= 0; i--){ const e = all[i]; if(+e.dataset.mid > lr || e.querySelector(".letterBub,.makeupBub,.gone")) continue; const tm = e.querySelector(".tm"); if(!tm) continue; if(tm.querySelector(".rd")) break; tm.insertAdjacentHTML("afterbegin", `<span class="rd">已讀</span>`); }
   }
   function addMessage(m){
@@ -969,7 +1012,7 @@ const App = (function(){
             <div class="admReBox hidden"><textarea maxlength="500" rows="3" placeholder="${f.alive===false ? "這個小窩已經刪除了，對方收不到回覆" : "回覆給對方，對方的手機會收到通知"}"></textarea><div class="admFbA"><button data-a="cancel">取消</button><button data-a="send" class="pri">送出回覆</button></div></div>
             <div class="admFbA admActs"><button data-a="reply">💬 回覆</button>${f.done ? "" : `<button data-a="wip">${f.wip ? "↩ 取消處理中" : "🔧 處理中"}</button>`}<button data-a="done">${f.done ? "↩ 改回未處理" : "✓ 已處理"}</button>${isBoss() ? `<button data-a="del">🗑 刪除</button>` : ""}</div></div>`).join("")
           : `<div class="k" style="text-align:center;padding:10px">${admTab==="new" ? "目前沒有未處理的回報 🐾" : admTab==="wip" ? "目前沒有處理中的回報" : "還沒有人傳回報"}</div>`}</div></div>
-      <div class="box admBox admFold ${admOpen("modes", false) ? "open" : ""}" data-fold="modes"><h3 class="admFH">小窩模式<small>${st.waiting ? `${st.waiting} 個在等人` : ""}</small><i class="admArr">▾</i></h3><div class="admFB">${["couple","bestie","bro","solo"].map(modeRow).join("")}
+      <div class="box admBox admFold ${admOpen("modes", false) ? "open" : ""}" data-fold="modes"><h3 class="admFH">小窩模式<small>${st.waiting ? `${st.waiting} 個在等人` : ""}</small><i class="admArr">▾</i></h3><div class="admFB">${["couple","bestie","bro","family","solo"].map(modeRow).join("")}
         ${st.waiting ? `<div class="k admNote">有 ${st.waiting} 個雙人小窩還在等另一個人加入</div>` : ""}</div></div>
       <div class="box admBox admFold ${admOpen("usage", true) ? "open" : ""}" data-fold="usage"><h3 class="admFH">用量<small>${Math.round(cPct*100)}%</small><i class="admArr">▾</i></h3><div class="admFB">
         <div class="auTop"><span>小窩 <b>${st.total}</b> / ${max||"不限"}</span><span>${Math.round(cPct*100)}%</span></div>${bar(cPct)}
@@ -1263,13 +1306,14 @@ const App = (function(){
 
   // ---------- 全站親密等級排行榜（更新 47）：只跟同一種模式比（情侶／閨蜜／兄弟） ----------
   async function lvRank(){
-    const who = roomMode==="bro" ? "兄弟" : roomMode==="bestie" ? "閨蜜" : "情侶";
+    const who = roomMode==="bro" ? "兄弟" : roomMode==="bestie" ? "閨蜜" : roomMode==="family" ? "家人" : "情侶";
     const o = modal(`<div class="lrHd">${icon("crown")}<h3>${who}貓貓等級排行榜</h3></div><button class="lbOpen" id="lrBook">${icon("star")}看所有稱號</button><div class="lrList" id="lrL"><div class="k" style="text-align:center;padding:20px">讀取中…</div></div>
       <div class="k lrNote">默契大考驗答得一樣就會得到小魚乾、升等級。名字只會顯示第一個字。</div>
       <button class="btn sub" id="lrOk" style="width:100%;margin-top:8px">關閉</button>`, "svModal lrModal");
     o.querySelector("#lrOk").addEventListener("click", ()=>o.remove());
     o.querySelector("#lrBook").addEventListener("click", ()=>{ SFX.tap(); lvBook(); });
-    let r; try{ r = await B.rpc("lv_rank"); }catch(e){ o.querySelector("#lrL").innerHTML = `<div class="k" style="text-align:center;padding:20px">${/lv_rank|function|schema/.test(String(e && e.message || e)) ? "排行榜還沒開放喔（更新 47）" : "網路好像不太穩，等等再試～"}</div>`; return; }
+    let r; if(isFam() && others().length > 1){ o.querySelector("#lrL").innerHTML = `<div class="k" style="text-align:center;padding:20px">家人排行榜還在準備中，敬請期待～</div>`; return; }
+    try{ r = await B.rpc("lv_rank"); }catch(e){ o.querySelector("#lrL").innerHTML = `<div class="k" style="text-align:center;padding:20px">${/lv_rank|function|schema/.test(String(e && e.message || e)) ? "排行榜還沒開放喔（更新 47）" : "網路好像不太穩，等等再試～"}</div>`; return; }
     if(!o.isConnected) return;
     const mine = members.map(m=>m.name), myCats = members.map(m=>m.cat);
     const row = (x, me) => { const L = lvInfo(x.h), w = x.who || [];
@@ -2796,7 +2840,7 @@ const App = (function(){
   function viewSettings(v){
     const ps=pushState();
     v.innerHTML = `${appBox()}<div class="box set svSetBox ${SV.on && !SV.done ? "" : "hidden"}" id="svSet"><div class="svGift">${sprite("star","happy")}<div><b>填問卷，拿限定「博士貓」</b><small>大約 1～2 分鐘，幫小窩變得更好～</small></div></div><button class="btn" id="svOpen">去填問卷</button></div><div class="box set bdSetBox ${BD.ok ? "" : "hidden"}" id="bdSet"><h2>我的生日</h2><div id="bdIn"></div></div><div class="box set"><h2>我的貓</h2><div class="picks" id="pk"></div><input id="nm" maxlength="10" value="${esc(me.name)}" style="font-size:17px;padding:8px;border:3px solid var(--line);text-align:center;border-radius:0"><button class="btn" id="bSave">儲存</button></div>
-      <div class="box set"><h2>小窩模式</h2><div class="modePick" id="mSet">${Object.keys(MODES).map(m=>`<button data-m="${m}" class="${roomMode===m?"on":""}">${modeArt(m)}<b>${MODES[m].name}</b></button>`).join("")}</div><div class="k">兩個人會一起切換。閨蜜／兄弟模式會換掉情侶向的題目和用語</div></div>
+      <div class="box set"><h2>小窩模式</h2><div class="modePick" id="mSet">${Object.keys(MODES).map(m=>`<button data-m="${m}" class="${roomMode===m?"on":""}">${modeArt(m)}<b>${MODES[m].name}</b></button>`).join("")}</div><div class="k">${isFam() ? "全家人會一起切換。" : "兩個人會一起切換。"}閨蜜／兄弟／家人模式會換掉情侶向的題目和用語${isFam() ? "<br>家人模式最多 6 個人，家裡超過 2 個人時不能換成其他模式" : ""}</div></div>
       <div class="box set"><h2>稱號翅膀</h2><div class="wingPick" id="wPick">${["angel","devil"].map(w=>`<button data-w="${w}" class="${roomWing===w?"on":""}"><span class="wpPrev">${ttlHtml(lvNeed(7), w, true)}</span><b>${w==="angel"?"小天使":"小惡魔"}</b></button>`).join("")}</div><div class="k">親密等級到 Lv7 就會長出小翅膀，兩個人會一起換。更高級的翅膀開發中～</div><button class="btn sub" id="wBook" style="margin-top:8px">${icon("star")} 看所有稱號</button></div>
       <div class="box set"><h2>整體風格</h2><div class="sthemes" id="sthm">${SITE_THEMES.map(([id,n,bg,pa,ln,ac,sh])=>`<button data-st="${id}" class="${(store.get("mw_theme")||"cream")===id?"on":""}"><span class="stPrev" style="background-color:${bg};background-image:linear-gradient(${ln}14 1px,transparent 1px),linear-gradient(90deg,${ln}14 1px,transparent 1px)"><b style="background:${pa};border-color:${ln};box-shadow:2px 2px 0 ${sh}"></b><i style="background:${ac};border-color:${ln}"></i><s>${icon("heart",{K:ac,W:pa,O:ln})}</s></span>${n}</button>`).join("")}</div></div>
       <div class="box set"><h2>字體</h2><div class="fontPick" id="fPick"><button data-f="pixel" class="${store.get("mw_font")==="sys"?"":"on"}" style="font-family:Cubic11">像素字 喵喵小窩</button><button data-f="sys" class="${store.get("mw_font")==="sys"?"on":""}" style="font-family:-apple-system,'PingFang TC','Noto Sans TC',sans-serif">一般字 喵喵小窩</button></div></div>
@@ -2864,7 +2908,9 @@ const App = (function(){
     $("bReload").addEventListener("click", ()=>location.reload());
     $("bNews").addEventListener("click", ()=>{ SFX.tap(); showNews(true); });
     setTimeout(()=>collapseSettings(v), 0);
-    $("mSet").querySelectorAll("[data-m]").forEach(b=>b.addEventListener("click", async ()=>{ const m=b.dataset.m; if(m===roomMode) return; SFX.select();
+    $("mSet").querySelectorAll("[data-m]").forEach(b=>b.addEventListener("click", async ()=>{ const m=b.dataset.m; if(m===roomMode) return;
+      if(roomMode==="family" && members.length > 2){ SFX.miss(); toast(`家裡有 ${members.length} 個人，其他模式最多 2 個人，所以不能換喔`); return; }
+      SFX.select();
       await update("room", st=>Object.assign(st||{}, { mode:m })); roomMode = m; $("mSet").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); toast(`換成${MODES[m].name}了`); }));
     $("wBook") && $("wBook").addEventListener("click", ()=>{ SFX.tap(); lvBook(); });
     $("wPick") && $("wPick").querySelectorAll("[data-w]").forEach(b=>b.addEventListener("click", async ()=>{ const w = b.dataset.w; if(w===roomWing) return; SFX.select();
@@ -2918,7 +2964,7 @@ const App = (function(){
   }
   async function shareInvite(){
     const url = location.origin + location.pathname + "?join=" + encodeURIComponent(B.code||"");
-    const text = `來我們的喵喵小窩玩 🐾 邀請碼：${B.code}\n${url}`;
+    const text = isFam() ? `來我們家的喵喵小窩 🐾 邀請碼：${B.code}\n${url}` : `來我們的喵喵小窩玩 🐾 邀請碼：${B.code}\n${url}`;
     try{ if(navigator.share){ await navigator.share({ title:"喵喵小窩", text, url }); return; } }catch(e){ if(e && e.name==="AbortError") return; }
     try{ await navigator.clipboard.writeText(text); toast("邀請連結已複製，貼給 ta 吧！"); }catch(e){ toast("邀請碼："+esc(B.code||""), 6000); }
   }
@@ -3069,6 +3115,7 @@ const App = (function(){
     else if(route==="game"){
       const g = games.find(x=>x.id===r.slice(5));
       if(!g || (g.wip && !isAdmin)){ go("home"); return; }
+      if(famHides(g)){ toast("家人版的默契大考驗還在做，敬請期待～"); go("home"); return; }
       v.innerHTML = `<div class="gtop"><button class="btn sub" id="bBack">◀ 回小窩</button><span class="gname">${esc(g.id==="pet" && isSolo() ? "我的貓" : g.name)}</span>${pawCallable(g) ? `<button class="pawCall" id="bPaw" aria-label="呼叫 ta">${PAW_SVG}<em>呼叫</em></button>` : ""}</div><div id="gArea"></div>`;
       $("bBack").addEventListener("click", ()=>go(isAdmin ? "games" : "home"));
       if($("bPaw")) $("bPaw").addEventListener("click", ()=>pawCall(g));
@@ -3126,7 +3173,7 @@ const App = (function(){
   async function enterNest(justCreated){
     $("top").classList.remove("hidden"); $("nav").classList.remove("hidden");
     B.on("msg", addMessage);
-    B.on("bc", p=>{ if(p && p.from !== me.uid) bcSubs.slice().forEach(h=>{ try{ h(p); }catch(e){} }); });
+    B.on("bc", p=>{ if(p && p.from !== me.uid && (!p.to || p.to === me.uid)) bcSubs.slice().forEach(h=>{ try{ h(p); }catch(e){} }); });
     B.on("members", async()=>{ const sig = () => members.map(x=>[x.user_id,x.name,x.cat].join("|")).join(","); const s0 = sig(); members = await B.members(); renderHeader(); if(route==="home") render(); else if(chatVisible()){ if(sig() === s0) markReadDom(); else drawList(false); } });
     B.on("msg", ()=>{ lastRt = Date.now(); }); B.on("bc", ()=>{ lastRt = Date.now(); });
     B.on("state", (game, version, state)=>{ lastRt = Date.now(); },);

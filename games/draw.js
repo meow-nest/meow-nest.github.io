@@ -44,6 +44,8 @@ const ALL = []; for(const c in WORDS) for(const w of WORDS[c]) ALL.push([w,c]);
 const ALL_B = ALL.filter(x=>x[1]!=="我們").concat(WORDS_B.map(w=>[w,"閨蜜"]));
 const WORDS_M = ["打籃球","打電動","烤肉","喝啤酒","機車","健身","釣魚","露營","看球賽","吃宵夜","鹹酥雞","網咖","開黑","打撞球","保齡球","爬山","騎腳踏車","衝浪","賽車","擊掌","勾肩搭背","畢業旅行","當兵","拔河","打雪仗","抓娃娃","吃到飽","漢堡","拉麵","啞鈴","球鞋","棒球帽","遊戲手把","耳機麥克風","外送","熬夜","打呼","搞笑自拍","生日驚喜","夜衝","看日出","吃火鍋","便利商店","泡麵","背包旅行","足球","桌球","滑板","烤香腸","乾杯"];
 const ALL_M = ALL.filter(x=>x[1]!=="我們").concat(WORDS_M.map(w=>[w,"兄弟"]));
+const WORDS_F = ["年夜飯","圍爐","包水餃","發紅包","掃墓","烤肉","中秋賞月","吃粽子","划龍舟","放天燈","全家福","洗碗","晾衣服","掃地","倒垃圾","買菜","煮晚餐","便當","家庭旅行","露營","野餐","遊樂園","動物園","看電視","搶遙控器","睡午覺","說故事","哄睡","搖籃","奶瓶","尿布","學走路","騎腳踏車","放風箏","堆沙堡","寫功課","家長會","畢業典禮","生日蛋糕","許願","拔草","澆花","養狗","餵貓","阿嬤的菜","泡茶","下棋","打麻將","搬家","大掃除","貼春聯","拜年","壓歲錢","爸爸的鬍子","媽媽的拿手菜","兄弟吵架","捉迷藏","溜滑梯","盪鞦韆","抱抱"];
+const ALL_F = ALL.filter(x=>x[1]!=="我們").concat(WORDS_F.map(w=>[w,"家人"]));
 const COLORS = ["#3b2a24","#e5486a","#f39a3d","#f6c945","#5cb87a","#4a90d9","#9b6fd6","#f7a7b8","#8a5a33"];   // old strokes store an index into this
 const SIZES = [5, 11, 22];
 const PALETTE = ["#2b1d18","#6b5a52","#a8a29e","#ffffff","#e5486a","#ff8fab","#f39a3d","#f6c945","#fff27a","#9be27a","#5cb87a","#2f8f6b","#7fd3e8","#4a90d9","#2f4ea8","#9b6fd6","#d6a2ff","#8a5a33","#c98b5a","#f3d3a4"];
@@ -79,7 +81,7 @@ App.registerGame({
     const box = $("#dr");
 
     function pickWords(used, only){
-      let pool = (ctx.mode()==="bestie"?ALL_B:ctx.mode()==="bro"?ALL_M:ALL).filter(x=>!(used||[]).includes(x[0])), out = [];
+      let pool = (ctx.mode()==="bestie"?ALL_B:ctx.mode()==="family"?ALL_F:ctx.mode()==="bro"?ALL_M:ALL).filter(x=>!(used||[]).includes(x[0])), out = [];
       if(only){ const sp = pool.filter(x=>x[1]===only); if(sp.length >= 3){ return sp.sort(()=>Math.random()-.5).slice(0, 3); } }
       const cats = [...new Set(pool.map(x=>x[1]))].sort(()=>Math.random()-.5);
       for(const c of cats){ const opts = pool.filter(x=>x[1]===c); if(opts.length) out.push(opts[Math.floor(Math.random()*opts.length)]); if(out.length===3) break; }
