@@ -1014,28 +1014,34 @@ const App = (function(){
   let isAdmin = false, admRole = "boss", admTab = "new", admTimer = 0;
   const isBoss = () => admRole === "boss";
   const agoTxt = t => { const d = (Date.now() - new Date(t).getTime())/1000; return d < 60 ? "剛剛" : d < 3600 ? `${Math.floor(d/60)} 分鐘前` : d < 86400 ? `${Math.floor(d/3600)} 小時前` : d < 86400*30 ? `${Math.floor(d/86400)} 天前` : new Date(t).toLocaleDateString("zh-TW"); };
-  let admUsersData = null, admQ = "", admSort = "recent", admShow = 20;
+  let admUsersData = null, admQ = "", admSort = "recent", admShow = 20, admMode = "all";
   const seenTxt = t => { const d = (Date.now() - new Date(t).getTime())/1000; return d < 3600 ? "1 小時內" : d < 86400 ? `${Math.floor(d/3600)} 小時前` : `${Math.floor(d/86400)} 天前`; };
   const idleDays = t => Math.floor((Date.now() - new Date(t).getTime())/86400000);
   function drawUsers(){
     const el = $("admUL"); if(!el || !admUsersData) return;
     const q = admQ.trim().toLowerCase();
     let list = admUsersData.filter(n=>!q || String(n.code||"").toLowerCase().includes(q) || (n.members||[]).some(m=>String(m.name||"").toLowerCase().includes(q)));
+    // 依小窩模式分開看（數字是搜尋後的數量）
+    const mOf = n => validMode(n.mode), cnt = {}; list.forEach(n=>{ cnt[mOf(n)] = (cnt[mOf(n)]||0) + 1; });
+    if(admMode !== "all" && !MODES[admMode]) admMode = "all";
+    const modeBar = `<div class="admModes">${[["all","全部",list.length]].concat(Object.keys(MODES).map(k=>[k, MODES[k].name.replace("模式",""), cnt[k]||0])).map(([k,t,c])=>`<button data-md="${k}" class="${admMode===k?"on":""}">${t}<small>${c}</small></button>`).join("")}</div>`;
+    if(admMode !== "all") list = list.filter(n=>mOf(n)===admMode);
     const ts = n => new Date(n.last_at||n.created_at).getTime();
     if(admSort==="idle") list = list.slice().sort((a,b)=>ts(a)-ts(b));
     else if(admSort==="new") list = list.slice().sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
     else list = list.slice().sort((a,b)=>ts(b)-ts(a));
     const shown = list.slice(0, admShow);
-    el.innerHTML = `<div class="k admNote" style="margin:4px 0 6px">${q ? `找到 ${list.length} 個小窩` : `共 ${list.length} 個小窩・${list.reduce((s,n)=>s+(n.members||[]).length,0)} 個人`}</div>`
+    el.innerHTML = modeBar + `<div class="k admNote" style="margin:4px 0 6px">${q ? `找到 ${list.length} 個小窩` : `${admMode==="all" ? "共" : MODES[admMode].name.replace("模式","") + "小窩"} ${list.length} 個・${list.reduce((s,n)=>s+(n.members||[]).length,0)} 個人`}</div>`
       + (shown.length ? shown.map(n=>{ const ms = n.members||[], md = MODES[n.mode] || MODES.couple, idle = idleDays(n.last_at||n.created_at);
         return `<div class="admN ${n.owner?"own":""}" data-id="${esc(n.id)}">
           <div class="admNH"><span class="admMT">${n.owner ? "👑 站長" : esc(md.name)}</span><b>${esc(n.code||"")}</b><i>開了 ${Math.max(0, idleDays(n.created_at))} 天・${n.msgs||0} 則訊息</i></div>
           ${ms.map(m=>{ const d = idleDays(m.seen); return `<div class="admU" data-uid="${esc(m.uid)}"><span class="admUC">${sprite(m.cat||"orange","normal")}</span><div class="admUN"><b>${esc(m.name||"（沒有暱稱）")}</b><i class="${d>=60?"old":d>=14?"mid":""}">上線：${seenTxt(m.seen)}</i></div>${isBoss() && !n.owner && ms.length>1 ? `<button class="admUX" data-a="rm">移出</button>` : ""}</div>`; }).join("")}
           ${!n.owner && n.mode!=="solo" && ms.length<2 ? `<div class="k admNote">等另一個人加入中・等了 ${Math.max(0, idleDays(n.created_at))} 天（滿 14 天又沒動靜會自動刪除）</div>` : ""}
           ${!n.owner ? `<div class="admFbA"><span class="k admIdle">${idle>=60 ? `⚠ ${idle} 天沒人用，滿 90 天自動刪除` : ""}</span>${isBoss() ? `<button data-a="delnest">🗑 刪除小窩</button>` : ""}</div>` : ""}</div>`; }).join("")
-        : `<div class="k" style="text-align:center;padding:10px">${q ? "找不到符合的使用者" : "還沒有人開小窩"}</div>`)
+        : `<div class="k" style="text-align:center;padding:10px">${q ? "找不到符合的使用者" : admMode!=="all" ? "這種小窩還沒有人開" : "還沒有人開小窩"}</div>`)
       + (list.length > admShow ? `<button class="btn sub" id="admMore" style="width:100%;margin-top:6px">顯示更多（還有 ${list.length-admShow} 個）</button>` : "");
     const more = $("admMore"); if(more) more.addEventListener("click", ()=>{ admShow += 20; drawUsers(); });
+    el.querySelectorAll(".admModes [data-md]").forEach(b=>b.addEventListener("click", ()=>{ if(admMode===b.dataset.md) return; admMode = b.dataset.md; admShow = 20; SFX.tap(); drawUsers(); }));
     el.querySelectorAll(".admN").forEach(card=>{ const n = admUsersData.find(x=>x.id===card.dataset.id); if(!n) return;
       const names = (n.members||[]).map(m=>`「${esc(m.name||"沒有暱稱")}」`).join("和") || "這個";
       const dn = card.querySelector('[data-a="delnest"]');

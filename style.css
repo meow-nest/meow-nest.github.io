@@ -3604,3 +3604,9 @@ body[data-theme="night"] .box.ckCard{background:var(--card)}
 .ownSw button svg{width:22px;height:auto;display:block}
 .ownSw button.on{background:#2e2538;color:#ffe08a;border-color:#e8b93a;box-shadow:0 2px 0 #b8862a}
 .tzModal .ownSw{margin:8px 0 2px}
+
+/* 站長：使用者依小窩模式分開看 */
+.admModes{display:flex;flex-wrap:wrap;gap:5px;margin:2px 0 4px}
+.admModes button{font:inherit;font-size:13px;border:2px solid var(--line);background:var(--card);color:var(--ink);padding:2px 8px;display:flex;align-items:center;gap:4px}
+.admModes button small{font-size:11px;color:var(--muted)}
+.admModes button.on{background:var(--pinkL);color:var(--pinkT)}.admModes button.on small{color:var(--pinkT)}
