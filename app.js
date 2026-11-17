@@ -40,6 +40,10 @@ const App = (function(){
   const catOf = uid => uid===me.uid ? (me.cat||"orange") : ((members.find(m=>m.user_id===uid)||{}).cat || "white");
   const players = () => { if(isFam()){ const p = partner(); return (p ? [me.uid, p.user_id] : [me.uid]).sort(); } return members.map(m=>m.user_id).sort(); };
   // 家人模式：雙人遊戲的存檔分開存（每一對家人各自一份），才不會兩組人同時玩同一個遊戲互相打架
+  // 單人模式：玩完單人遊戲（遊戲存成績的時候）就算玩了一局，可以升等級（伺服器每天最多算 3 次）
+  const SOLO_LV = new Set(["catstack","runaway","runner","blast","fishing","memory","bingo"]);
+  let soloLvAt = 0;
+  const soloPlayed = g => { if(!isSolo() || !SOLO_LV.has(g) || Date.now() - soloLvAt < 60000) return; soloLvAt = Date.now(); setTimeout(() => ctx.lvPlay(g), 800); };
   const PAIR_GAMES = new Set(["banqi","battleship","bingo","boat","chess","defense","draw","fight","gomoku","guess","kitchen","meld","memoryduo","quickdraw","pool"]);
   const gk = g => { if(!isFam() || !PAIR_GAMES.has(g)) return g; const p = partner(); if(!p) return g; return g + ":" + [me.uid, p.user_id].map(u => String(u).slice(0, 8)).sort().join("-"); };
   const clone = o => o==null ? o : JSON.parse(JSON.stringify(o));
@@ -143,7 +147,7 @@ const App = (function(){
   async function notifyPartner(text){ const p=partner(); if(!p || isOnline(p.user_id)) return; try{ const row=await B.send(text,"game",me.name,me.cat); addMessage(row); }catch(e){} }
 
   const ctx = { get me(){return me}, partner, isOnline, nameOf, catOf, players, sprite, icon, SFX, burst, toast, floatSvg, esc,
-    getState: g => getState(gk(g)), update: (g, fn) => update(gk(g), fn), onState: (g, h) => onState(gk(g), h), notifyPartner, back: ()=>go("home") };
+    getState: g => getState(gk(g)), update: (g, fn) => { soloPlayed(g); return update(gk(g), fn); }, onState: (g, h) => onState(gk(g), h), notifyPartner, back: ()=>go("home") };
   ctx.rawGetState = getState; ctx.rawOnState = onState;
   ctx.rpc = (fn, args) => B.rpc ? B.rpc(fn, args) : Promise.reject(new Error("no_rpc")); ctx.mode = () => roomMode; ctx.pw = pw; ctx.isAdmin = () => isAdmin;
   // 站長測試模式：只改自己這支手機看到的畫面（家具、房間、龍舟賽道全部當作已解鎖），不會動到伺服器上的資料
@@ -216,14 +220,15 @@ const App = (function(){
   // ---------- hub ----------
   const LV_C=[[0,"Lv1 陌生小貓"],[3,"Lv2 開始蹭蹭"],[8,"Lv3 心有靈喵"],[15,"Lv4 默契滿喵"],[25,"Lv5 靈魂貓伴"],[40,"Lv6 宇宙第一喵情侶"]];
   const LV_B=[[0,"Lv1 剛認識的貓"],[3,"Lv2 一起喝珍奶"],[8,"Lv3 心有靈喵"],[15,"Lv4 默契滿喵"],[25,"Lv5 靈魂姊妹喵"],[40,"Lv6 宇宙第一喵閨蜜"]];
+  const LV_S=[[0,"Lv1 一個人的小窩"],[3,"Lv2 自得其樂"],[8,"Lv3 慢活小貓"],[15,"Lv4 生活達人喵"],[25,"Lv5 自在靈魂喵"],[40,"Lv6 宇宙第一喵獨行俠"]];
   const LV_F=[[0,"Lv1 剛搬進來的貓"],[3,"Lv2 一起吃晚餐"],[8,"Lv3 心有靈喵"],[15,"Lv4 默契滿喵"],[25,"Lv5 溫暖貓窩"],[40,"Lv6 宇宙第一喵家庭"]];
   const LV_M=[[0,"Lv1 點頭之交喵"],[3,"Lv2 一起打電動"],[8,"Lv3 心有靈喵"],[15,"Lv4 默契滿喵"],[25,"Lv5 換帖兄弟喵"],[40,"Lv6 宇宙第一喵兄弟"]];
   // 親密等級沒有上限：Lv6 之後每升一級要多 5 條小魚乾（Lv7 60、Lv8 85、Lv9 115、Lv10 150…）
   const lvNeed = n => n <= 6 ? LV_C[n-1][0] : 40 + 15*(n-6) + 5*(n-6)*(n-5)/2;   // 直接算，等級很高也不會變慢
   function lvName(n){
-    const LV = roomMode==="bro" ? LV_M : roomMode==="bestie" ? LV_B : roomMode==="family" ? LV_F : LV_C;
+    const LV = roomMode==="bro" ? LV_M : roomMode==="bestie" ? LV_B : roomMode==="family" ? LV_F : roomMode==="solo" ? LV_S : LV_C;
     if(n <= 6) return LV[n-1][1];
-    const who = roomMode==="bro" ? "兄弟" : roomMode==="bestie" ? "閨蜜" : roomMode==="family" ? "一家人" : "情侶";
+    const who = roomMode==="bro" ? "兄弟" : roomMode==="bestie" ? "閨蜜" : roomMode==="family" ? "一家人" : roomMode==="solo" ? "獨行俠" : "情侶";
     return `Lv${n} ${(["銀河","流星","彩虹","永恆"][n-7] || "傳說")}喵${who}`;
   }
   function lvOf(h){ let n = 1; while(h >= lvNeed(n+1) && n < 9999) n++; return n; }
@@ -1327,17 +1332,17 @@ const App = (function(){
 
   // ---------- 親密小魚乾的其他拿法（更新 50）：簽到、一起玩、連續 7 天 ----------
   async function lvCheckin(){
-    if(!partner()) return;
+    if(!partner() && !isSolo()) return;
     let r; try{ r = await B.rpc("lv_checkin"); }catch(e){ return; }
     ckRefresh();
     if(!r || !r.got) return;
-    const t = r.week ? `兩個人連續 ${r.streak} 天都有來！親密小魚乾 +${r.got}` : `兩個人今天都來了！親密小魚乾 +${r.got}`;
+    const t = isSolo() ? (r.week ? `連續 ${r.streak} 天都有來！小魚乾 +${r.got}` : `今天來小窩了！小魚乾 +${r.got}`) : r.week ? `兩個人連續 ${r.streak} 天都有來！親密小魚乾 +${r.got}` : `兩個人今天都來了！親密小魚乾 +${r.got}`;
     setTimeout(()=>{ toast(`${icon("fish")} ${t}`); SFX.coin && SFX.coin(); }, 2500);
   }
   let lvPlayBusy = false;
   ctx.lvPlay = async (game) => {
-    if(lvPlayBusy || !partner()) return; lvPlayBusy = true;
-    try{ const r = await B.rpc("lv_play", { p_game: String(game || "").slice(0, 20) }); if(r && r.ok) setTimeout(()=>toast(`${icon("fish")} 一起玩遊戲，親密小魚乾 +1（今天 ${r.n}/3）`), 1200); }catch(e){}
+    if(lvPlayBusy || (!partner() && !isSolo())) return; lvPlayBusy = true;
+    try{ const r = await B.rpc("lv_play", { p_game: String(game || "").slice(0, 20) }); if(r && r.ok) setTimeout(()=>toast(`${icon("fish")} ${isSolo() ? "玩遊戲，小魚乾" : "一起玩遊戲，親密小魚乾"} +1（今天 ${r.n}/3）`), 1200); }catch(e){}
     lvPlayBusy = false;
   };
 
@@ -1347,9 +1352,10 @@ const App = (function(){
     const rows = Array.from({ length: 12 }, (_, i) => i + 1).concat([40]).map(n => {
       const need = lvNeed(n), got = h >= need;
       return `<div class="lbRow ${n === cur ? "cur" : ""} ${got ? "got" : ""}"><div class="lbT">${ttlHtml(need, roomWing)}</div>
-        <small>${n === cur ? `<b>你們在這裡！</b>` : got ? "已經解鎖" : `需要 ${need} 條小魚乾・還差 ${need - h} 條`}${n === 12 ? "<br>之後每一級都是傳說喵，一直升下去" : n === 40 ? "<br>Lv40 起換成會發光的熾天使大翅膀（小天使限定）" : ""}</small></div>`; }).join("");
-    const o = modal(`<div class="lrHd">${icon("star")}<h3>稱號圖鑑</h3></div><div class="lbHow" id="lbHow"><b>怎麼拿親密小魚乾</b>
-        <span>默契大考驗答得一樣 +1<i id="lbM">每天最多 20</i></span><span>兩個人當天都打開小窩 +2<i id="lbB"></i></span><span>一起玩你畫我猜猜對 +1<i id="lbP">每天最多 3</i></span><span>連續 7 天兩個人都有來 +5<i id="lbS"></i></span></div>
+        <small>${n === cur ? `<b>${isSolo() ? "你" : "你們"}在這裡！</b>` : got ? "已經解鎖" : `需要 ${need} 條小魚乾・還差 ${need - h} 條`}${n === 12 ? "<br>之後每一級都是傳說喵，一直升下去" : n === 40 ? "<br>Lv40 起換成會發光的熾天使大翅膀（小天使限定）" : ""}</small></div>`; }).join("");
+    const o = modal(`<div class="lrHd">${icon("star")}<h3>稱號圖鑑</h3></div><div class="lbHow" id="lbHow">${isSolo() ? `<b>怎麼拿小魚乾升等級</b>
+        <span>每天打開小窩 +2<i id="lbB"></i></span><span>玩單人遊戲 +1<i id="lbP">每天最多 3</i></span><span>連續 7 天都有來 +5<i id="lbS"></i></span><i id="lbM" hidden></i></div>` : `<b>怎麼拿親密小魚乾</b>
+        <span>默契大考驗答得一樣 +1<i id="lbM">每天最多 20</i></span><span>兩個人當天都打開小窩 +2<i id="lbB"></i></span><span>一起玩你畫我猜猜對 +1<i id="lbP">每天最多 3</i></span><span>連續 7 天兩個人都有來 +5<i id="lbS"></i></span></div>`}
       <div class="k" style="text-align:center">Lv7 開始會長出小翅膀（到設定選小天使或小惡魔）</div>
       <div class="lbList">${rows}</div><button class="btn sub" id="lbOk" style="width:100%;margin-top:8px">關閉</button>`, "svModal lbModal");
     o.querySelector("#lbOk").addEventListener("click", ()=>o.remove());
@@ -1361,9 +1367,9 @@ const App = (function(){
 
   // ---------- 全站親密等級排行榜（更新 47）：只跟同一種模式比（情侶／閨蜜／兄弟） ----------
   async function lvRank(){
-    const who = roomMode==="bro" ? "兄弟" : roomMode==="bestie" ? "閨蜜" : roomMode==="family" ? "家人" : "情侶";
+    const who = roomMode==="bro" ? "兄弟" : roomMode==="bestie" ? "閨蜜" : roomMode==="family" ? "家人" : roomMode==="solo" ? "單人" : "情侶";
     const o = modal(`<div class="lrHd">${icon("crown")}<h3>${who}貓貓等級排行榜</h3></div><button class="lbOpen" id="lrBook">${icon("star")}看所有稱號</button><div class="lrList" id="lrL"><div class="k" style="text-align:center;padding:20px">讀取中…</div></div>
-      <div class="k lrNote">默契大考驗答得一樣就會得到小魚乾、升等級。名字只會顯示第一個字。</div>
+      <div class="k lrNote">${isSolo() ? "只跟單人小窩比。每天來、玩遊戲就會得到小魚乾、升等級。" : "默契大考驗答得一樣就會得到小魚乾、升等級。"}名字只會顯示第一個字。</div>
       <button class="btn sub" id="lrOk" style="width:100%;margin-top:8px">關閉</button>`, "svModal lrModal");
     o.querySelector("#lrOk").addEventListener("click", ()=>o.remove());
     o.querySelector("#lrBook").addEventListener("click", ()=>{ SFX.tap(); lvBook(); });
