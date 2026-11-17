@@ -250,7 +250,7 @@ const App = (function(){
   function viewHome(v, force){
     if(isAdmin && !force) return viewAdmin(v);
     const p = partner();
-    let html = `<div class="title">喵喵<b>小窩</b>${isBestie()||isSolo()?`<span class="modeTag">${modeArt(roomMode)}${MI().name}</span>`:""}<div class="meterSlim" id="meter"></div></div><div id="truceHome">${truceBar()}</div><div class="hTiles" id="hTiles">${homeTiles()}</div>`;
+    let html = `<div class="title">喵喵<b>小窩</b>${isBestie()||isSolo()?`<span class="modeTag">${modeArt(roomMode)}${MI().name}</span>`:""}<div class="meterSlim" id="meter"></div></div><div id="truceHome">${truceBar()}</div>${p ? `<div class="box ckCard" id="ckCard">${ckHtml()}</div>` : ""}<div class="hTiles" id="hTiles">${homeTiles()}</div>`;
     if(!p && !isSolo()) html += `<div class="box banner warn waitBan"><span class="bi">⚠️</span><div style="flex:1">${pw()}還沒加入！把邀請碼 <b style="font-weight:400;color:var(--pinkT);letter-spacing:2px">${esc(B.code||"")}</b> 傳給 ta<div class="waitWarn">⏰ <b>14 天</b>都沒人加入、你也沒打開的話，<b>小窩會自動刪除</b>，裡面的紀錄也會不見！</div></div><button class="btn" id="bInv">傳邀請</button></div>`;
     const alb = stateCache.album && stateCache.album.state, apct = alb ? (alb.bytes||0)/albumLimit : 0;
     if(apct >= .7 && !NO_MEDIA) html = html.replace('<div id="truceHome">', `<div class="box banner ${apct>=.85?"warn":""}" id="albBan"><span class="bi">${icon("camera")}</span><div style="flex:1">相簿已經用了 ${Math.round(apct*100)}%${apct>=.85?"，該刪一些照片了 🥺":"，可以開始整理照片囉"}</div><button class="btn" id="bAlbum">去整理</button></div><div id="truceHome">`);
@@ -267,7 +267,7 @@ const App = (function(){
       + `<div class="gcard soon"><span class="gi">${sprite("gray","sleep",{soft:true})}</span><span class="gn">新遊戲</span><span class="gd">敬請期待…</span></div></div><p class="gNote">本站遊戲純屬娛樂，不是賭博。貓幣、股市資金等都是虛擬的，不能儲值、不能換成現金或獎品。</p>`;
     if(fbUnread > 0) html = html.replace('<div id="truceHome">', `<div class="box banner fbBan" id="fbBan"><span class="bi">📮</span><div style="flex:1">站長回覆你的回報了！</div><button class="btn" id="bFbH">看看</button></div><div id="truceHome">`);
     v.innerHTML = html;
-    renderMeter();
+    renderMeter(); if(p) ckRefresh();
     const bfh=$("bFbH"); if(bfh) bfh.addEventListener("click", ()=>askFeedback());
     v.querySelectorAll("[data-g]").forEach(b=>b.addEventListener("click",()=>go("game-"+b.dataset.g)));
     ptEntryBind();
@@ -1207,10 +1207,27 @@ const App = (function(){
     tryShow(0);
   }
 
+  // ---------- 首頁「今日簽到」小卡 ----------
+  let CK = null;
+  function ckHtml(){
+    const p = partner(); if(!p) return "";
+    const ins = (CK && CK.in) || [], meIn = ins.includes(me.uid) || !CK, taIn = ins.includes(p.user_id);
+    const st = (CK && CK.streak) || 0, both = CK && CK.both, inWeek = both ? ((st - 1) % 7) + 1 : st % 7, left = 7 - inWeek;
+    const cat = (c, nm, ok) => `<span class="ckCat ${ok?"ok":""}"><span class="ckS">${sprite(c||"orange", ok?"happy":"sleep")}</span><b>${esc(nm)}</b><i>${ok?"來了 ✓":"還沒來"}</i></span>`;
+    return `<div class="ckHd">${icon("star")}今日簽到<small>${both ? "今天親密小魚乾 +2 拿到了！" : "兩個人今天都打開小窩，親密小魚乾 +2"}</small></div>
+      <div class="ckRow">${cat(me.cat, me.name, meIn)}<span class="ckHeart">${icon("heart")}</span>${cat(p.cat, p.name, taIn)}</div>
+      <div class="ckWeek">${Array.from({length:7},(_,i)=>`<i class="${i<inWeek?"on":""}">${i===6?icon("gift"):""}</i>`).join("")}</div>
+      <div class="ckTxt">已連續 <b>${st}</b> 天${left === 0 && both ? "・今天拿到 7 天大獎 +5！" : `・再 <b>${left}</b> 天拿 7 天大獎 +5`}</div>`;
+  }
+  async function ckRefresh(){
+    try{ const r = await B.rpc("lv_status"); if(r && Array.isArray(r.in)){ CK = r; const el = $("ckCard"); if(el) el.innerHTML = ckHtml(); } }catch(e){}
+  }
+
   // ---------- 親密小魚乾的其他拿法（更新 50）：簽到、一起玩、連續 7 天 ----------
   async function lvCheckin(){
     if(!partner()) return;
     let r; try{ r = await B.rpc("lv_checkin"); }catch(e){ return; }
+    ckRefresh();
     if(!r || !r.got) return;
     const t = r.week ? `兩個人連續 ${r.streak} 天都有來！親密小魚乾 +${r.got}` : `兩個人今天都來了！親密小魚乾 +${r.got}`;
     setTimeout(()=>{ toast(`${icon("fish")} ${t}`); SFX.coin && SFX.coin(); }, 2500);
