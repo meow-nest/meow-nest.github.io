@@ -3570,3 +3570,16 @@ body[data-theme="night"] .box.ckCard{background:var(--card)}
 .tzStage .tzBadge>.ttlW.s40,.tzStage .tzBadge>.ttlW.d40{zoom:1.28}
 .tzInfo{text-align:center}.tzInfo b{display:block;font-weight:400;font-size:17px}.tzInfo span{display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--muted)}.tzInfo svg{width:18px;height:auto}
 .tzBtns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.tzBtns .btn{display:flex;align-items:center;justify-content:center;gap:4px;width:100%}.tzBtns svg{width:16px;height:auto}
+
+/* 鍵盤：候選字展開成好幾排 */
+.ime .ime-top{position:relative}
+.ime .imeMore{position:absolute;right:4px;bottom:6px;width:30px;height:30px;border:2px solid var(--kb-line);border-radius:8px;background:var(--kb-key);box-shadow:0 2px 0 var(--kb-shadow);display:grid;place-items:center;padding:0;z-index:2}
+.ime .imeMore i{width:9px;height:9px;border-right:2.5px solid var(--kb-text);border-bottom:2.5px solid var(--kb-text);transform:translateY(-2px) rotate(45deg);transition:transform .15s}
+.ime .imeMore.on i{transform:translateY(2px) rotate(-135deg)}
+.ime .imeMore[hidden]{display:none}
+.ime .imeMore:not([hidden])~.ime-body{}
+.ime .ime-top .cands{padding-right:40px}
+.ime.candGrid .cands{position:fixed;z-index:60;box-sizing:border-box;background:var(--kb-top);border:2px solid var(--kb-line);border-top:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(46px,1fr));grid-auto-rows:min-content;overflow-x:hidden;overflow-y:auto;align-content:start;padding:8px 44px 8px 8px;gap:8px}
+.ime.candGrid .cands button{font-size:22px;min-width:0;padding:5px 6px}
+.ime.candGrid .ime-body{visibility:hidden}
+.ime .imeMore{z-index:5}.ime.candGrid .imeMore{position:fixed;z-index:61}

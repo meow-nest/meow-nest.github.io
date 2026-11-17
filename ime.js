@@ -67,6 +67,17 @@ const IME = (function(){
       res.push(s); });
     return res;
   }
+  // ---------- 記住使用者選過的字（同一個音，選過的排前面；只存在這支手機）----------
+  const LKEY = "mw_imeLearn"; let learn = null;
+  const learnLoad = () => { if(learn) return learn; try{ learn = JSON.parse(localStorage.getItem(LKEY) || "{}") || {}; }catch(e){ learn = {}; } return learn; };
+  const readKey = syls => syls.map(x=>String(x).replace(/[*ˊˇˋ˙]/g,"")).join("|");
+  function learnScore(syls, w){ const L = learnLoad()[readKey(syls)]; return L && L[w] || 0; }
+  function learnAdd(syls, w){
+    if(!syls.length || !w) return; const L = learnLoad(), k = readKey(syls); const m = L[k] = L[k] || {};
+    m[w] = (m[w] || 0) + 1;
+    const ks = Object.keys(L); if(ks.length > 1500){ for(const x of ks.slice(0, ks.length - 1200)) delete L[x]; }
+    try{ localStorage.setItem(LKEY, JSON.stringify(L)); }catch(e){}
+  }
   // best conversion of the syllables: prefer long phrases, then frequent characters
   function convert(syls){
     const n = syls.length; if(!n) return "";
@@ -74,8 +85,9 @@ const IME = (function(){
     for(let i=1;i<=n;i++) for(let j=Math.max(0,i-5);j<i;j++){
       if(best[j] < -1e8) continue;
       const c = lookupAny(syls.slice(j,i)); if(!c.length) continue;
-      const sc = best[j] + (i-j>1 ? 9*(i-j) : 0) + Math.log((c[0].f||0)+2);
-      if(sc > best[i]){ best[i] = sc; back[i] = [j, c[0].w]; }
+      let top = c[0], ls = 0; for(const x of c.slice(0, 60)){ const v = learnScore(syls.slice(j,i), x.w); if(v > ls){ ls = v; top = x; } }
+      const sc = best[j] + (i-j>1 ? 9*(i-j) : 0) + Math.log((top.f||0)+2) + (ls ? 6 + Math.log(ls + 1) * 3 : 0);
+      if(sc > best[i]){ best[i] = sc; back[i] = [j, top.w]; }
     }
     if(best[n] < -1e8){ // unknown syllable somewhere: fall back per syllable
       return syls.map(s=>{ const c=lookupAny([s]); return c.length?c[0].w:s.replace("*",""); }).join("");
@@ -115,8 +127,9 @@ const IME = (function(){
   let assocIdx = null;
   function buildAssoc(){
     assocIdx = new Map();
-    for(const v of dict.values()) for(const e of v.split(" ")){
-      const k = e.lastIndexOf(":"), w = k>0 ? e.slice(0,k) : e, f = k>0 ? +e.slice(k+1) : 0, ch = [...w];
+    for(const v of dict.values()) for(const e of (typeof v === "string" ? v.split(" ") : v)){
+      let w, f; if(typeof e === "string"){ const k = e.lastIndexOf(":"); w = k>0 ? e.slice(0,k) : e; f = k>0 ? +e.slice(k+1) : 0; } else { w = e.w; f = e.f || 0; }
+      const ch = [...w];
       if(ch.length < 2 || ch.length > 4) continue;
       let l = assocIdx.get(ch[0]); if(!l){ l = []; assocIdx.set(ch[0], l); } l.push([ch.slice(1).join(""), f]);
     }
@@ -161,6 +174,16 @@ const IME = (function(){
     root.innerHTML = `<div class="ime"><span class="ear l"></span><span class="ear r"></span>${opt.mascot?`<span class="mascot">${opt.mascot}</span>`:""}<div class="ime-top"><div class="pre" id="imePre"></div><div class="cands" id="imeCands"></div></div><div class="ime-body" id="imeBody"></div></div>`;
     const imeEl = root.querySelector(".ime");
     const preEl = root.querySelector("#imePre"), candEl = root.querySelector("#imeCands"), body = root.querySelector("#imeBody");
+    // 「更多字」：把候選字攤開成好幾排，蓋在鍵盤上面，不用一直往右滑
+    const moreEl = document.createElement("button"); moreEl.className = "imeMore"; moreEl.type = "button"; moreEl.hidden = true; moreEl.innerHTML = "<i></i>";
+    candEl.parentNode.insertBefore(moreEl, candEl.nextSibling);
+    function setGrid(on){ imeGrid = !!on; const ime = root.querySelector(".ime"); const topEl = candEl.parentNode; topEl.style.minHeight = imeGrid ? topEl.offsetHeight + "px" : "";
+      if(imeGrid){ const cr0 = candEl.getBoundingClientRect(), pr = preEl.getBoundingClientRect(), br = body.getBoundingClientRect(); const cr = { left: cr0.left, width: cr0.width, top: pr.bottom + 2, right: cr0.right }; candEl.style.left = cr.left + "px"; candEl.style.width = cr.width + "px"; candEl.style.top = cr.top + "px"; candEl.style.height = Math.max(120, br.bottom - cr.top) + "px"; }
+      else { candEl.style.left = candEl.style.width = candEl.style.top = candEl.style.height = ""; }
+      ime.classList.toggle("candGrid", imeGrid); moreEl.classList.toggle("on", imeGrid);
+      if(imeGrid){ const cr = candEl.getBoundingClientRect(); moreEl.style.left = (cr.right - 36) + "px"; moreEl.style.top = (cr.top + 6) + "px"; moreEl.style.right = moreEl.style.bottom = "auto"; } else { moreEl.style.left = moreEl.style.top = moreEl.style.right = moreEl.style.bottom = ""; } }
+    let imeGrid = false;
+    moreEl.addEventListener("click", ()=>{ setGrid(!imeGrid); opt.fx("key"); });
     let dictReady = false;
     load(opt.dictUrl).then(()=>{ dictReady = true; refresh(); }).catch(()=>{ candEl.innerHTML = `<span class="hint">字典載入失敗，請檢查網路後重開聊天室</span>`; });
 
@@ -180,7 +203,11 @@ const IME = (function(){
         const all = []; for(const ps of partialSyls(st.cur)) for(const c of lookup([ps])) all.push(c);
         all.sort((a,b)=>b.f-a.f); for(const c of all.slice(0,120)) add(c.w, 0, true);
       }
-      return out.slice(0,150);
+      // 選過的字往前排（只在同樣長度的那一組裡面往前，不會把整句的轉換擠掉）
+      const rk = c => c.takeCur ? [...S.slice(0, c.n), P + "*"] : S.slice(0, c.n);
+      const scored = out.map((c, i) => ({ c, i, l: learnScore(rk(c), c.w) }));
+      scored.sort((a, b) => (b.l > 0) - (a.l > 0) || (a.l > 0 && b.l > 0 ? (b.c.n + (b.c.takeCur?1:0)) - (a.c.n + (a.c.takeCur?1:0)) || b.l - a.l : 0) || a.i - b.i);
+      return scored.map(x => x.c).slice(0,150);
     }
     function refresh(){
       setTimeout(updateProbs, 0);
@@ -202,10 +229,13 @@ const IME = (function(){
         const pk=candEl.querySelector(".pastek"); if(pk) pk.addEventListener("click", async ()=>{ try{ const t = await navigator.clipboard.readText(); if(t){ opt.commit(t); opt.fx("pick", Math.min(4,[...t].length)); } }catch(e){ pk.textContent = "沒辦法貼上"; } });
         return; }
       candEl.innerHTML = cs.map((c,i)=>`<button data-i="${i}">${esc(c.w)}</button>`).join("") || `<span class="hint">沒有這個音，按 ⌫ 修改</span>`;
-      candEl.scrollLeft = 0;
-      candEl.querySelectorAll("button").forEach(b=>{ b.addEventListener("pointerdown", ()=>pop(b)); b.addEventListener("click", ()=>pick(cs[+b.dataset.i])); });
+      candEl.scrollLeft = 0; candEl.scrollTop = 0;
+      candEl.querySelectorAll("button[data-i]").forEach(b=>{ b.addEventListener("pointerdown", ()=>pop(b)); b.addEventListener("click", ()=>pick(cs[+b.dataset.i])); });
+      if(moreEl) moreEl.hidden = cs.length < 5;
     }
     function pick(c){
+      learnAdd(c.takeCur ? [...st.syl.slice(0, c.n), curStr() + "*"] : st.syl.slice(0, c.n), c.w);
+      setGrid(false);
       opt.commit(c.w);
       st.syl = st.syl.slice(c.n); if(c.takeCur) st.cur = {i:"",m:"",f:""};
       if(!composing()) setAssoc(c.w);
@@ -233,6 +263,7 @@ const IME = (function(){
       lastSpaceAt = now; opt.commit(" "); opt.fx("key"); autoCap();
     }
     function back(){
+      if(imeGrid) setGrid(false);
       if(curStr()){ if(st.cur.f) st.cur.f=""; else if(st.cur.m) st.cur.m=""; else st.cur.i=""; }
       else if(st.syl.length){ const last = parseSyl(st.syl.pop()); st.cur = {i:last.i,m:last.m,f:last.f}; }
       else { opt.backspace(); }
