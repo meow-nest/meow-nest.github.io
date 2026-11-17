@@ -488,7 +488,7 @@ App.registerGame({
       else x.streak = 0;
       x.hist = (x.hist||[]).concat([{ w:x.word, ok, by:x.drawer, secs }]).slice(-20);
     }
-    function celebrate(){ SFX.match(); ctx.burst(); }
+    function celebrate(){ SFX.match(); ctx.burst(); if(ctx.lvPlay) ctx.lvPlay("draw"); }
     async function finish(ok, why){ await ctx.update("draw", x=>{ if(!x || x.phase!=="draw") return undefined; if(MP) settleMP(x, why); else settle(x, ok, why); return x; }); }
     async function start(i){
       SFX.select();

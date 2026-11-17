@@ -791,7 +791,7 @@ App.registerGame({
       const qtext = Qn.type==="t" ? Qn.text.replace("{T}", tName) : Qn.text;
       const byTag = Qn.by ? `<div class="muted" style="font-size:12px;margin-top:6px">✏️ ${esc(ctx.nameOf(Qn.by))} 出的題</div>` : "";
       const sub = Qn.type==="t" ? (Qn.target===me ? "照實回答你自己的答案" : `猜猜看 ${tName} 會選哪個？`) : "選你心中的答案，看看是不是想到一起！";
-      let html = `${ctx.lvRank ? `<div class="mqLv"><span>${ctx.ttlHtml ? ctx.ttlHtml(s.hearts||0, true) : esc(ctx.lvInfo(s.hearts||0).name)}</span><span class="mqBtns">${ctx.lvBook ? `<button class="mqRk mqBk">${Pix.icon("star")}稱號</button>` : ""}<button class="mqRk">${Pix.icon("crown")}排行榜</button></span></div>` : ""}${tag}${byTag}<div style="font-size:20px;margin:12px 0 4px;line-height:1.5">${esc(qtext)}</div><div class="muted" style="font-size:13px;margin-bottom:14px">${esc(sub)}</div>
+      let html = `${ctx.lvRank ? `<div class="mqLv"><span>${ctx.ttlHtml ? ctx.ttlHtml(s.hearts||0, true) : esc(ctx.lvInfo(s.hearts||0).name)}</span><small class="mqDay">今天 ${(()=>{ const td = new Date(Date.now()+8*3600e3).toISOString().slice(0,10); return s.hd && s.hd.d===td ? s.hd.n||0 : 0; })()}/20</small><span class="mqBtns">${ctx.lvBook ? `<button class="mqRk mqBk">${Pix.icon("star")}稱號</button>` : ""}<button class="mqRk">${Pix.icon("crown")}排行榜</button></span></div>` : ""}${tag}${byTag}<div style="font-size:20px;margin:12px 0 4px;line-height:1.5">${esc(qtext)}</div><div class="muted" style="font-size:13px;margin-bottom:14px">${esc(sub)}</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">` +
         Qn.opts.map((o,i)=>{
           const bg = done && i===mi && i===ti ? "var(--mintL)" : i===mi ? "var(--pinkL)" : "var(--card)";
@@ -833,11 +833,13 @@ App.registerGame({
       const r = s.round, me = ctx.me.uid, p = ctx.partner();
       const ns = await ctx.update("moqi", st=>{
         if(!st || st.round!==r) return undefined;
-        if(!skip && p){ const a=st.ans[me], b=st.ans[p.user_id]; if(a&&b&&a.r===r&&b.r===r){ const m = a.c===b.c?1:0; st.hist=(st.hist||[]).slice(-29); st.hist.push({r,m}); st.hearts=(st.hearts||0)+m; } }
+        if(!skip && p){ const a=st.ans[me], b=st.ans[p.user_id]; if(a&&b&&a.r===r&&b.r===r){ const m = a.c===b.c?1:0; st.hist=(st.hist||[]).slice(-29); st.hist.push({r,m}); const td = new Date(Date.now()+8*3600e3).toISOString().slice(0,10), cnt = st.hd && st.hd.d===td ? (st.hd.n||0) : 0; const give = m && cnt < 20 ? 1 : 0; st.hearts=(st.hearts||0)+give; st.hd = { d:td, n:cnt+give }; if(m && !give) capHit = true; } }
         const cur = st.q || pickQ(st, [], ctx.players(), bankFor(ctx.mode())); if(cur && cur.cid){ st.cp = (st.cp||[]).concat(cur.cid).slice(-500); } else { st.bi = (st.bi||0)+1; if(cur && cur.bank && cur.hk != null){ st.qs = cur.qs; st.th = cur.hk; } } st.round = r+1; st.ans = {}; st.q = pickQ(st, custom, ctx.players(), bankFor(ctx.mode())); return st;
       });
       if(ns){ s = ns; draw(); }
+      if(capHit){ capHit = false; ctx.toast && ctx.toast("今天的親密小魚乾拿滿 20 條了，明天再來～"); }
     }
+    let capHit = false;
     function openMaker(){
       editing = true;
       const p = ctx.partner(); const pn = p ? p.name : "ta";

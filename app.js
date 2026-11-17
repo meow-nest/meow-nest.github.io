@@ -1207,6 +1207,21 @@ const App = (function(){
     tryShow(0);
   }
 
+  // ---------- 親密小魚乾的其他拿法（更新 50）：簽到、一起玩、連續 7 天 ----------
+  async function lvCheckin(){
+    if(!partner()) return;
+    let r; try{ r = await B.rpc("lv_checkin"); }catch(e){ return; }
+    if(!r || !r.got) return;
+    const t = r.week ? `兩個人連續 ${r.streak} 天都有來！親密小魚乾 +${r.got}` : `兩個人今天都來了！親密小魚乾 +${r.got}`;
+    setTimeout(()=>{ toast(`${icon("fish")} ${t}`); SFX.coin && SFX.coin(); }, 2500);
+  }
+  let lvPlayBusy = false;
+  ctx.lvPlay = async (game) => {
+    if(lvPlayBusy || !partner()) return; lvPlayBusy = true;
+    try{ const r = await B.rpc("lv_play", { p_game: String(game || "").slice(0, 20) }); if(r && r.ok) setTimeout(()=>toast(`${icon("fish")} 一起玩遊戲，親密小魚乾 +1（今天 ${r.n}/3）`), 1200); }catch(e){}
+    lvPlayBusy = false;
+  };
+
   // ---------- 稱號圖鑑：從 Lv1 到最高級的樣子 ----------
   function lvBook(){
     const s = stateCache.moqi && stateCache.moqi.state, h = s ? (s.hearts || 0) : 0, cur = lvOf(h);
@@ -1214,9 +1229,13 @@ const App = (function(){
       const need = lvNeed(n), got = h >= need;
       return `<div class="lbRow ${n === cur ? "cur" : ""} ${got ? "got" : ""}"><div class="lbT">${ttlHtml(need, roomWing)}</div>
         <small>${n === cur ? `<b>你們在這裡！</b>` : got ? "已經解鎖" : `需要 ${need} 條小魚乾・還差 ${need - h} 條`}${n === 12 ? "<br>之後每一級都是傳說喵，一直升下去" : ""}</small></div>`; }).join("");
-    const o = modal(`<div class="lrHd">${icon("star")}<h3>稱號圖鑑</h3></div><div class="k" style="text-align:center">默契大考驗答得一樣就會得到小魚乾，慢慢升級～<br>Lv7 開始會長出小翅膀（到設定選小天使或小惡魔）</div>
+    const o = modal(`<div class="lrHd">${icon("star")}<h3>稱號圖鑑</h3></div><div class="lbHow" id="lbHow"><b>怎麼拿親密小魚乾</b>
+        <span>默契大考驗答得一樣 +1<i id="lbM">每天最多 20</i></span><span>兩個人當天都打開小窩 +2<i id="lbB"></i></span><span>一起玩你畫我猜猜對 +1<i id="lbP">每天最多 3</i></span><span>連續 7 天兩個人都有來 +5<i id="lbS"></i></span></div>
+      <div class="k" style="text-align:center">Lv7 開始會長出小翅膀（到設定選小天使或小惡魔）</div>
       <div class="lbList">${rows}</div><button class="btn sub" id="lbOk" style="width:100%;margin-top:8px">關閉</button>`, "svModal lbModal");
     o.querySelector("#lbOk").addEventListener("click", ()=>o.remove());
+    B.rpc("lv_status").then(r=>{ if(!r || !o.isConnected) return; const q = id => o.querySelector(id);
+      q("#lbM").textContent = `今天 ${r.moqi||0}/20`; q("#lbB").textContent = r.both ? "今天 ✓" : "今天還沒"; q("#lbP").textContent = `今天 ${r.play||0}/3`; q("#lbS").textContent = `已連續 ${r.streak||0} 天`; }).catch(()=>{});
     const c = o.querySelector(".lbRow.cur"); if(c) setTimeout(()=>c.scrollIntoView({ block:"center" }), 60);
   }
   ctx.lvBook = () => lvBook();
@@ -3130,6 +3149,7 @@ const App = (function(){
     onState("pins", ()=>drawPinBar());
     setTimeout(()=>maybeNews(justCreated), 1600);
     setTimeout(()=>maybeSurvey().catch(()=>{}), 4500);
+    setTimeout(()=>lvCheckin().catch(()=>{}), 1500);
     bdLoad().then(()=>setTimeout(()=>maybeBday().catch(()=>{}), 2500)).catch(()=>{});
     setTimeout(checkFb, 2400);
     setInterval(refreshTiles, 60000);

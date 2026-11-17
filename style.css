@@ -3354,3 +3354,8 @@ body[data-theme="night"] .lbRow,body[data-theme="night"] .lbRow.got,body[data-th
 .ttlW .tfx.h1{left:-14px}.ttlW .tfx.h2{right:-16px;animation-delay:1.2s}
 @keyframes ttlHt{0%{opacity:0;transform:translateY(0)}20%{opacity:1}100%{opacity:0;transform:translateY(-22px)}}
 @media (prefers-reduced-motion:reduce){.ttlW.fl .twg svg,.ttlW .tfx{animation:none}.ttlW .tfx.h1,.ttlW .tfx.h2{display:none}}
+
+.lbHow{display:flex;flex-direction:column;gap:3px;background:#fff6d6;border:2px solid #e8b93a;border-radius:10px;padding:8px 10px;margin-top:8px;font-size:13px}
+.lbHow b{font-weight:400;text-align:center;margin-bottom:2px}.lbHow span{display:flex;justify-content:space-between;gap:6px}.lbHow i{font-style:normal;color:var(--muted);font-size:12px;white-space:nowrap}
+.mqDay{color:var(--muted);font-size:12px;margin-left:auto;margin-right:6px}
+body[data-theme="night"] .lbHow{background:var(--paper)}
