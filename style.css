@@ -3360,12 +3360,14 @@ body[data-theme="night"] .lbRow,body[data-theme="night"] .lbRow.got,body[data-th
 .mqDay{color:var(--muted);font-size:12px;margin-left:auto;margin-right:6px}
 body[data-theme="night"] .lbHow{background:var(--paper)}
 
-/* 首頁今日簽到小卡 */
-.ckCard{padding:10px 12px}
-.ckHd{display:flex;align-items:center;gap:6px;font-size:16px;flex-wrap:wrap}.ckHd svg{width:18px;height:auto}.ckHd small{flex-basis:100%;font-size:12px;color:var(--muted)}
-.ckRow{display:flex;align-items:center;justify-content:center;gap:10px;margin:8px 0 6px}
-.ckCat{display:flex;flex-direction:column;align-items:center;gap:1px;opacity:.55}.ckCat.ok{opacity:1}
-.ckS{width:52px;height:52px;display:block}.ckS svg{width:100%;height:100%}.ckCat b{font-weight:400;font-size:13px}.ckCat i{font-style:normal;font-size:12px;color:var(--muted)}.ckCat.ok i{color:#2f9467}
-.ckHeart svg{width:22px;height:auto}
-.ckWeek{display:flex;justify-content:center;gap:5px}.ckWeek i{width:22px;height:22px;border:2px solid var(--line);background:var(--card);display:grid;place-items:center}.ckWeek i.on{background:var(--pink);border-color:var(--pinkT)}.ckWeek i svg{width:16px;height:auto}
-.ckTxt{text-align:center;font-size:13px;color:var(--muted);margin-top:6px}.ckTxt b{font-weight:400;color:var(--pinkT)}
+/* 首頁今日簽到小卡：便條紙＋粉色小翅膀印章 */
+.box.ckCard{position:relative;background:#fffdf5;padding:16px 12px 10px;transform:rotate(-.6deg);margin-top:16px}
+.ckCard:before{content:"";position:absolute;top:-10px;left:50%;width:70px;height:16px;margin-left:-35px;background:rgba(255,183,201,.75);transform:rotate(2deg)}
+.ckT{text-align:center;font-size:17px}.ckT small{display:block;font-size:12px;color:var(--muted)}
+.ckCats{display:flex;justify-content:center;align-items:flex-end;gap:4px;margin:6px 0 2px}.ckC{width:58px;display:block}.ckC svg{width:100%;height:auto;display:block}.ckC.no{filter:grayscale(1) opacity(.45)}
+.ckH{width:20px;margin-bottom:22px}.ckH svg{width:100%;height:auto}
+.ckLab{display:flex;justify-content:center;gap:28px;font-size:12px}.ckLab b{font-weight:400;color:#2f9467}.ckLab i{font-style:normal;color:#b9a593}
+.ckPaws{display:flex;justify-content:center;gap:6px;margin-top:8px}.ckPaws span{width:30px;height:30px;border:2px dashed #e3cdb9;border-radius:50%;display:grid;place-items:center}
+.ckPaws span.on{border:2px solid #ff8fab;background:#ffeef3}.ckPaws span svg{width:24px;height:auto}.ckPaws span.gift{border-style:solid;border-color:#e8b93a;background:#fff6d6}.ckPaws span.gift svg{width:18px}
+.ckS{text-align:center;font-size:12px;color:var(--muted);margin-top:6px}.ckS b{font-weight:400;color:var(--pinkT)}
+body[data-theme="night"] .box.ckCard{background:var(--card)}

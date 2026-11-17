@@ -1209,15 +1209,19 @@ const App = (function(){
 
   // ---------- 首頁「今日簽到」小卡 ----------
   let CK = null;
+  // 印章：粉色小翅膀（天使翅膀左右各一隻）
+  let WING_STAMP = null;
+  const wingStamp = () => WING_STAMP || (WING_STAMP = pix(ANGEL_W1.map(r => r.split("").reverse().join("") + ".." + r), { O:"#ff7fa6", W:"#ffffff" }, { pad:1 }));
   function ckHtml(){
     const p = partner(); if(!p) return "";
     const ins = (CK && CK.in) || [], meIn = ins.includes(me.uid) || !CK, taIn = ins.includes(p.user_id);
     const st = (CK && CK.streak) || 0, both = CK && CK.both, inWeek = both ? ((st - 1) % 7) + 1 : st % 7, left = 7 - inWeek;
-    const cat = (c, nm, ok) => `<span class="ckCat ${ok?"ok":""}"><span class="ckS">${sprite(c||"orange", ok?"happy":"sleep")}</span><b>${esc(nm)}</b><i>${ok?"來了 ✓":"還沒來"}</i></span>`;
-    return `<div class="ckHd">${icon("star")}今日簽到<small>${both ? "今天親密小魚乾 +2 拿到了！" : "兩個人今天都打開小窩，親密小魚乾 +2"}</small></div>
-      <div class="ckRow">${cat(me.cat, me.name, meIn)}<span class="ckHeart">${icon("heart")}</span>${cat(p.cat, p.name, taIn)}</div>
-      <div class="ckWeek">${Array.from({length:7},(_,i)=>`<i class="${i<inWeek?"on":""}">${i===6?icon("gift"):""}</i>`).join("")}</div>
-      <div class="ckTxt">已連續 <b>${st}</b> 天${left === 0 && both ? "・今天拿到 7 天大獎 +5！" : `・再 <b>${left}</b> 天拿 7 天大獎 +5`}</div>`;
+    const cat = (c, ok) => `<span class="ckC ${ok?"":"no"}">${sprite(c||"orange", ok?"happy":"sleep")}</span>`;
+    return `<div class="ckT">今日簽到<small>${both ? "今天親密小魚乾 +2 拿到了！" : "兩個人今天都來，親密小魚乾 +2"}</small></div>
+      <div class="ckCats">${cat(me.cat, meIn)}<span class="ckH">${icon("heart")}</span>${cat(p.cat, taIn)}</div>
+      <div class="ckLab">${meIn ? `<b>${esc(me.name)} 來了</b>` : `<i>${esc(me.name)} 還沒來</i>`}${taIn ? `<b>${esc(p.name)} 來了</b>` : `<i>${esc(p.name)} 還沒來</i>`}</div>
+      <div class="ckPaws">${Array.from({length:7},(_,i)=>`<span class="${i<inWeek?"on":""} ${i===6?"gift":""}">${i===6 ? icon("gift") : i<inWeek ? wingStamp() : ""}</span>`).join("")}</div>
+      <div class="ckS">已連續 <b>${st}</b> 天${left === 0 && both ? "・今天拿到 7 天大獎 +5！" : `・再 <b>${left}</b> 天拿大獎 +5`}</div>`;
   }
   async function ckRefresh(){
     try{ const r = await B.rpc("lv_status"); if(r && Array.isArray(r.in)){ CK = r; const el = $("ckCard"); if(el) el.innerHTML = ckHtml(); } }catch(e){}
