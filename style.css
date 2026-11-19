@@ -3610,3 +3610,16 @@ body[data-theme="night"] .box.ckCard{background:var(--card)}
 .admModes button{font:inherit;font-size:13px;border:2px solid var(--line);background:var(--card);color:var(--ink);padding:2px 8px;display:flex;align-items:center;gap:4px}
 .admModes button small{font-size:11px;color:var(--muted)}
 .admModes button.on{background:var(--pinkL);color:var(--pinkT)}.admModes button.on small{color:var(--pinkT)}
+
+/* 星星罐：滿了／選星星刪掉 */
+.srFull{text-align:center;background:var(--pinkL);color:var(--pinkT);border:2px dashed var(--pinkT);padding:8px;margin:4px 0;font-size:14px;line-height:1.5}
+.srDelBar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:6px 0}
+.srDelBar span{flex:1 0 100%;text-align:center;font-size:14px}
+.srDelBar .btn{flex:1;padding:6px 4px;font-size:14px;margin:0}
+.srDelBar .srDelGo{background:#e0627c;color:#fff}
+.srDelBar .srDelGo:disabled{opacity:.45}
+.srList .srChk{display:none;width:18px;height:18px;flex:none;border:2px solid var(--line);background:#fff;margin-right:2px}
+.srList.pick .srChk{display:block}
+.srList.pick [data-id]{cursor:pointer}
+.srList [data-id].on{background:var(--pinkL)}
+.srList [data-id].on .srChk{background:#e0627c;border-color:#b8435c;box-shadow:inset 0 0 0 3px #fff}
