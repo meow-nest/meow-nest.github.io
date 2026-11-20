@@ -1948,10 +1948,14 @@ const App = (function(){
     const fld = caretField($o("scBody"), 500); let kbx = null;
     const cnt = () => { $o("scCnt").textContent = `${fld.value.length}/500`; };
     fld.el.addEventListener("input", cnt);
-    const showKb = on => { $o("scKb").classList.toggle("hidden", !on); o.classList.toggle("kbOn", on);
+    // 鍵盤打開時：鍵盤貼在螢幕最下面（整排都按得到），上面的對話框縮短、可以捲動，打字的框捲到看得到的地方
+    const fit = () => { const k = $o("scKb"); if(!k || k.classList.contains("hidden")) return; o.style.setProperty("--kbh", k.offsetHeight + "px");
+      const box = o.querySelector(".cmBox"), t = $o("scBody"); if(box && t) box.scrollTop = Math.max(0, t.offsetTop - box.offsetTop - 40); };
+    const showKb = on => { $o("scKb").classList.toggle("hidden", !on); o.classList.toggle("kbOn", on); if(on) requestAnimationFrame(() => requestAnimationFrame(fit));
       if(on && !kbx) kbx = IME.mount($o("scKb"), { dictUrl:"zhuyin.txt", prefs: kbPrefs, haptic: ()=>{ if(kbVib()) haptic(); }, textBefore: ()=>fld.before(), anim: ()=>store.get("mw_anim")||"jelly", art: kbArt(), phrases: QK[MI().qk], kaomoji: window.KAOMOJI, enterLabel:"換行",
         commit: t => { fld.insert(t); cnt(); }, backspace: () => { fld.del(); cnt(); }, send: () => { fld.insert("\n"); cnt(); }, hide: () => showKb(false),
-        fx: (k) => { if(!kbSound()) return; if(k==="del") SFX.del(); else SFX.key(); } }); };
+        fx: (k) => { if(!kbSound()) return; if(k==="del") SFX.del(); else SFX.key(); } }); if(on) setTimeout(fit, 120); };
+    window.addEventListener("resize", fit);
     fld.el.addEventListener("click", () => showKb(true));
     o.querySelector(".scQ").addEventListener("click", () => { if(kbx && kbx.composing()) kbx.flush(); showKb(false); });
     [dI, tI].forEach(x => x.addEventListener("focus", () => { if(kbx && kbx.composing()) kbx.flush(); showKb(false); }));
