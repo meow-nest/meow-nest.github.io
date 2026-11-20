@@ -3431,9 +3431,9 @@ body[data-theme="night"] .box.ckCard{background:var(--card)}
 .ttlW.s40 .twg.l{left:-34px;transform:translateY(-46%) scaleX(-1)}.ttlW.s40 .twg.r{right:-34px}
 .ttlW.s40 .twi{position:relative;display:block}
 .ttlW.s40 .twg:before{content:"";position:absolute;left:-10%;top:5%;width:110%;height:90%;border-radius:50%;background:radial-gradient(closest-side,var(--gl),transparent);opacity:.55;z-index:-1}
-.ttlW.s40 .wp{display:block;transform-origin:1% 46%;will-change:transform}.ttlW.s40 .wp.u{position:absolute;inset:0;animation:s40Up 1.8s ease-in-out infinite}.ttlW.s40 .wp.d{position:relative;animation:s40Dn 1.8s ease-in-out .12s infinite}
-@keyframes s40Up{0%,100%{transform:rotate(2deg)}45%{transform:rotate(-12deg) scale(1.03)}}
-@keyframes s40Dn{0%,100%{transform:rotate(-1deg)}45%{transform:rotate(6deg) scaleY(1.03)}}
+.ttlW.s40 .wp{display:block;transform-origin:1% 46%;will-change:transform}.ttlW.s40 .wp.u{position:absolute;inset:0;animation:s40Up 1.8s ease-in-out infinite}.ttlW.s40 .wp.d{position:relative;animation:s40Dn 1.8s ease-in-out .06s infinite}
+@keyframes s40Up{0%,100%{transform:rotate(1deg)}45%{transform:rotate(-10deg) scale(1.02)}}
+@keyframes s40Dn{0%,100%{transform:rotate(0deg)}45%{transform:rotate(3deg) scaleY(1.02)}}
 .ttlW.s40 .twi img{width:100%;height:auto;display:block;image-rendering:pixelated}
 .ttlW.s40 .wp.u .shn{--wm:var(--wmu)}.ttlW.s40 .wp.d .shn{--wm:var(--wmd)}
 .ttlW.s40 .shn{position:absolute;inset:0;overflow:hidden;-webkit-mask:var(--wm) center/100% 100% no-repeat;mask:var(--wm) center/100% 100% no-repeat}
