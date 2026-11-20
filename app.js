@@ -632,7 +632,7 @@ const App = (function(){
     const autoSize = () => { txt.style.height="44px"; txt.style.height=Math.min(110,txt.scrollHeight)+"px"; if(chatUpdSend) chatUpdSend(); };
     const showKb = (on) => {
       $("kbd").classList.toggle("hidden", !on); document.body.classList.toggle("kbd", on);
-      if(on){ $("stk").classList.add("hidden"); if(!kb) kb = IME.mount($("kbd"), { dictUrl:"zhuyin.txt", prefs: kbPrefs, haptic: ()=>{ if(kbVib()) haptic(); }, textBefore: ()=>txt.value.slice(0, txt.selectionStart==null ? txt.value.length : txt.selectionStart), mascot: sprite(me.cat||"orange","loaf"), anim: ()=>store.get("mw_anim")||"jelly", art: kbArt(), phrases: QK[MI().qk], kaomoji: window.KAOMOJI,
+      if(on){ $("stk").classList.add("hidden"); if(!kb) kb = IME.mount($("kbd"), { dictUrl:"zhuyin.txt", prefs: kbPrefs, haptic: ()=>{ if(kbVib()) haptic(); }, field: ()=>$("txt"), textBefore: ()=>txt.value.slice(0, txt.selectionStart==null ? txt.value.length : txt.selectionStart), mascot: sprite(me.cat||"orange","loaf"), anim: ()=>store.get("mw_anim")||"jelly", art: kbArt(), phrases: QK[MI().qk], kaomoji: window.KAOMOJI,
         commit: t => { insertAt(t); autoSize(); },
         backspace: () => { delBefore(); autoSize(); },
         send: () => sendText(), toSys: () => toSys(), hide: () => showKb(false),
@@ -1903,18 +1903,17 @@ const App = (function(){
     const p = partner(); if(!p) return;
     let text = "";
     const o = modal(`<div class="ltPaper"><div class="ltTo">給 ${esc(p.name)}：</div><div class="ltWrap"><textarea class="ltBody" id="ltBody" placeholder="想說的話，寫在這裡…"></textarea></div><div class="ltFrom">—— ${esc(me.name)}</div></div>
-      <div class="ltBtns"><button class="btn sub" id="ltCancel">取消</button><button class="btn" id="ltSend">💌 寄出</button></div><div id="ltKb" class="ltKb"></div>`, "letter");
+      <div class="ltBtns"><button class="btn sub" id="ltCancel">取消</button><button class="btn" id="ltSend">💌 寄出</button></div>`, "letter");
     const fld = caretField(o.querySelector("#ltBody"), 800);
     fld.el.addEventListener("input", ()=>{ text = fld.value; });
-    const paint = () => {};
-    const kbx = IME.mount(o.querySelector("#ltKb"), { dictUrl:"zhuyin.txt", prefs: kbPrefs, haptic: ()=>{ if(kbVib()) haptic(); }, textBefore: ()=>fld.before(), anim: ()=>store.get("mw_anim")||"jelly", art: kbArt(), phrases: QK[MI().qk], kaomoji: window.KAOMOJI, enterLabel:"換行",
-      commit: t => fld.insert(t), backspace: () => fld.del(),
-      send: () => fld.insert("\n"), fx: (k,n) => { if(!kbSound()) return; if(k==="del") SFX.del(); else SFX.key(); } });
-    o.querySelector("#ltCancel").addEventListener("click", ()=>o.remove());
+    // 鍵盤跟聊天室一樣貼在螢幕最下面；設定成手機鍵盤的人就用手機鍵盤
+    const kbx = dockKeyboard(fld, { enterLabel:"換行", onEnter: () => fld.insert("\n") });
+    setTimeout(() => kbx.open(), 60);
+    o.querySelector("#ltCancel").addEventListener("click", ()=>{ kbx.close(); o.remove(); });
     o.querySelector("#ltSend").addEventListener("click", async ()=>{
       if(kbx.composing()) kbx.flush();
       const t = text.trim(); if(!t){ toast("先寫點什麼吧"); return; }
-      o.remove();
+      kbx.close(); o.remove();
       try{ const row = await B.send("💌 寫了一封信給你", "letter", me.name, me.cat, t); addMessage(row); SFX.send(); toast(`${sprite(me.cat||"orange","love")} 信寄出去了！`); }catch(e){ toast("寄信失敗，請再試一次"); }
     });
   }
@@ -1943,22 +1942,16 @@ const App = (function(){
         <div class="scWhen"><input type="date" id="scD" min="${ymd(new Date())}" max="${ymd(maxD)}"><input type="time" id="scT"></div>
         <div class="scPrev" id="scPrev"></div>
         <button class="btn scGo" id="scGo">排好了</button>
-      </div><div id="scKb" class="ltKb scKb hidden"></div>`, "schedM");
+      </div>`, "schedM");
     const $o = id => o.querySelector("#"+id), dI = $o("scD"), tI = $o("scT");
-    const fld = caretField($o("scBody"), 500); let kbx = null;
+    const fld = caretField($o("scBody"), 500);
     const cnt = () => { $o("scCnt").textContent = `${fld.value.length}/500`; };
     fld.el.addEventListener("input", cnt);
-    // 鍵盤打開時：鍵盤貼在螢幕最下面（整排都按得到），上面的對話框縮短、可以捲動，打字的框捲到看得到的地方
-    const fit = () => { const k = $o("scKb"); if(!k || k.classList.contains("hidden")) return; o.style.setProperty("--kbh", k.offsetHeight + "px");
-      const box = o.querySelector(".cmBox"), t = $o("scBody"); if(box && t) box.scrollTop = Math.max(0, t.offsetTop - box.offsetTop - 40); };
-    const showKb = on => { $o("scKb").classList.toggle("hidden", !on); o.classList.toggle("kbOn", on); if(on) requestAnimationFrame(() => requestAnimationFrame(fit));
-      if(on && !kbx) kbx = IME.mount($o("scKb"), { dictUrl:"zhuyin.txt", prefs: kbPrefs, haptic: ()=>{ if(kbVib()) haptic(); }, textBefore: ()=>fld.before(), anim: ()=>store.get("mw_anim")||"jelly", art: kbArt(), phrases: QK[MI().qk], kaomoji: window.KAOMOJI, enterLabel:"換行",
-        commit: t => { fld.insert(t); cnt(); }, backspace: () => { fld.del(); cnt(); }, send: () => { fld.insert("\n"); cnt(); }, hide: () => showKb(false),
-        fx: (k) => { if(!kbSound()) return; if(k==="del") SFX.del(); else SFX.key(); } }); if(on) setTimeout(fit, 120); };
-    window.addEventListener("resize", fit);
-    fld.el.addEventListener("click", () => showKb(true));
-    o.querySelector(".scQ").addEventListener("click", () => { if(kbx && kbx.composing()) kbx.flush(); showKb(false); });
-    [dI, tI].forEach(x => x.addEventListener("focus", () => { if(kbx && kbx.composing()) kbx.flush(); showKb(false); }));
+    // 鍵盤貼在螢幕最下面（設定成手機鍵盤的人就用手機鍵盤）；點時間的地方會先收起鍵盤
+    const kbx = dockKeyboard(fld, { enterLabel:"換行", onEnter: () => { fld.insert("\n"); cnt(); } });
+    const showKb = on => { if(on) kbx.open(); else { if(kbx.composing()) kbx.flush(); kbx.close(); } };
+    o.querySelector(".scQ").addEventListener("click", () => showKb(false));
+    [dI, tI].forEach(x => x.addEventListener("focus", () => showKb(false)));
     const setWhen = d => { when = d; dI.value = ymd(d); tI.value = hm(d); paintPrev(); };
     const paintPrev = () => { const ok = when && when - Date.now() > 55e3 && when <= maxD;
       $o("scPrev").innerHTML = !when ? "請選日期和時間" : ok ? `會在 <b>${schWhen(when)}</b> 傳出` : when <= Date.now() + 55e3 ? `<span class="bad">這個時間已經過了，選晚一點</span>` : `<span class="bad">最多只能排一年內</span>`;
@@ -1982,10 +1975,10 @@ const App = (function(){
         try{ await B.rpc("sched_cancel", { p_id: +b.dataset.cx }); toast("取消了"); }catch(e){ toast("取消失敗，請再試一次"); } paintList(); }));
     }
     paintList();
-    $o("scX").addEventListener("click", () => o.remove());
+    $o("scX").addEventListener("click", () => { kbx.close(); o.remove(); });
     let busy = false;
     $o("scGo").addEventListener("click", async () => {
-      if(busy) return; if(kbx && kbx.composing()) kbx.flush();
+      if(busy) return; if(kbx.composing()) kbx.flush();
       const t = fld.value.trim(); if(!t){ toast("先寫點什麼吧"); return; }
       readWhen(); if(!when){ toast("請選日期和時間"); return; }
       if(when - Date.now() < 55e3){ toast(SCH_ERR.too_soon); return; } if(when > maxD){ toast(SCH_ERR.too_late); return; }
@@ -2347,12 +2340,14 @@ const App = (function(){
       if(dock && dock.fld === fld) { fld.focus(); return; }
       if(dock) dock.close();
       const host = document.createElement("div"); host.className = "dockKbHost"; document.body.appendChild(host);
-      const kb = IME.mount(host, { dictUrl:"zhuyin.txt", prefs: kbPrefs, haptic: ()=>{ if(kbVib()) haptic(); }, textBefore: ()=>fld.before(), mascot: sprite(me.cat||"orange","loaf"),
+      const kb = IME.mount(host, { dictUrl:"zhuyin.txt", prefs: kbPrefs, haptic: ()=>{ if(kbVib()) haptic(); }, textBefore: ()=>fld.before(), field: ()=>fld.el, mascot: sprite(me.cat||"orange","loaf"),
         anim: ()=>store.get("mw_anim")||"jelly", art: kbArt(), phrases: o.phrases || QK[MI().qk], kaomoji: window.KAOMOJI, enterLabel: o.enterLabel || "完成",
         commit: t => fld.insert(t), backspace: () => fld.del(), send: () => { if(o.onEnter) o.onEnter(); else close(); },
         hide: () => close(), toSys: () => { store.set("mw_sysKb", "1"); close(); applyMode(); try{ fld.el.focus(); }catch(e){} toast("換成手機鍵盤了，想換回來按框框旁邊的 ⌨"); },
         fx: (k) => { if(!kbSound()) return; if(k==="del") SFX.del(); else SFX.key(); } });
       dock = { host, kb, fld, close };
+      // 打字的框被關掉了（例如對話框關了），鍵盤也跟著收起來
+      const watch = setInterval(() => { if(!dock || dock.fld !== fld){ clearInterval(watch); return; } if(!fld.el.isConnected){ clearInterval(watch); close(); } }, 400);
       document.body.classList.add("dockKb");
       requestAnimationFrame(() => { document.body.style.setProperty("--dockH", host.offsetHeight + "px"); fld.focus();
         const r = fld.el.getBoundingClientRect(), top = window.innerHeight - host.offsetHeight; if(r.bottom > top - 8) window.scrollBy({ top: r.bottom - top + 16, behavior: "smooth" }); });

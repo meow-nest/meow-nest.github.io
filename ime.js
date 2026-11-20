@@ -164,6 +164,25 @@ const IME = (function(){
       return best;
     }
     const textBefore = () => (opt.textBefore ? String(opt.textBefore()||"") : null);
+    // 正在打字的框（給「空白鍵滑動移游標」用）：主程式有給 opt.field 就用它，不然用目前選到的輸入框
+    const fieldEl = () => { const f = opt.field ? opt.field() : document.activeElement; return f && (f.tagName === "TEXTAREA" || f.tagName === "INPUT") ? f : null; };
+    function moveCaret(n){
+      const el = fieldEl(); if(!el || !n) return false; const len = el.value.length;
+      let a = el.selectionStart == null ? len : el.selectionStart; const chars = [...el.value];
+      // 照「字」移動（emoji 不會被切半）：把 UTF-16 位置換成第幾個字
+      let ci = 0, u = 0; while(ci < chars.length && u < a){ u += chars[ci].length; ci++; }
+      ci = Math.max(0, Math.min(chars.length, ci + n)); const pos = chars.slice(0, ci).join("").length;
+      try{ el.setSelectionRange(pos, pos); el._touched = true; if(document.activeElement !== el) el.focus({ preventScroll:true }); }catch(e){}
+      if(el._caretUpdate) el._caretUpdate(); return true;
+    }
+    // 刪掉前面一整段：往前刪到上一個空白、標點或換行（最多 40 個字）
+    function deleteChunk(){
+      const t = textBefore(); if(t === null){ opt.backspace(); return; }
+      const ch = [...t]; let n = 0;
+      while(n < ch.length && /\s/.test(ch[ch.length-1-n])) n++;
+      while(n < ch.length && n < 40 && !/[\s，。！？、；：,.!?;:~～…「」『』()（）]/.test(ch[ch.length-1-n])) n++;
+      if(n === 0) n = 1; for(let i = 0; i < n; i++) opt.backspace();
+    }
     function setAssoc(text){ assoc = null; if(mode!=="zh" || !dict) return; const ch = [...String(text||"")].pop(); if(!ch || !/[\u3400-\u9fff]/.test(ch)) return; if(!assocIdx) buildAssoc(); const l = assocIdx.get(ch); assoc = l && l.length ? l : null; }
     function autoCap(){ if(mode!=="en" || caps) return; const t = textBefore(); if(t===null) return; const want = t==="" || /[.!?]\s$/.test(t) || /\n$/.test(t); if(want!==shift){ shift = want; draw(); } }
     function recentAdd(t){ let r = []; try{ r = JSON.parse(LS_.get("mw_recent_ins")||"[]"); }catch(e){} r = [t].concat(r.filter(x=>x!==t)).slice(0,24); LS_.set("mw_recent_ins", JSON.stringify(r)); }
@@ -174,6 +193,11 @@ const IME = (function(){
     root.innerHTML = `<div class="ime"><span class="ear l"></span><span class="ear r"></span>${opt.mascot?`<span class="mascot">${opt.mascot}</span>`:""}<div class="ime-top"><div class="pre" id="imePre"></div><div class="cands" id="imeCands"></div></div><div class="ime-body" id="imeBody"></div></div>`;
     const imeEl = root.querySelector(".ime");
     const preEl = root.querySelector("#imePre"), candEl = root.querySelector("#imeCands"), body = root.querySelector("#imeBody");
+    // 在鍵盤最上面那條往下滑＝收起鍵盤（跟手機鍵盤一樣）
+    if(opt.hide && imeEl){ let sy = null, sx = 0;
+      imeEl.addEventListener("pointerdown", e => { const top = imeEl.getBoundingClientRect().top; sy = e.clientY - top < 70 ? e.clientY : null; sx = e.clientX; }, true);
+      imeEl.addEventListener("pointermove", e => { if(sy == null) return; if(e.clientY - sy > 46 && Math.abs(e.clientX - sx) < 40){ sy = null; if(composing()) commitAll(); opt.hide(); } }, true);
+      imeEl.addEventListener("pointerup", () => { sy = null; }, true); }
     // 「更多字」：把候選字攤開成好幾排，蓋在鍵盤上面，不用一直往右滑
     const moreEl = document.createElement("button"); moreEl.className = "imeMore"; moreEl.type = "button"; moreEl.hidden = true; moreEl.innerHTML = "<i></i>";
     candEl.parentNode.insertBefore(moreEl, candEl.nextSibling);
@@ -345,7 +369,23 @@ const IME = (function(){
             b._lt = setTimeout(()=>{ b._lp = true; if(opt.haptic) opt.haptic(); if(alt.length===1) bubble(b, alt[0]); else altRow(b, alt); }, 380);
             return;
           }
+          // 空白鍵：按著左右滑＝移動游標；沒有滑就放開時打空白（跟手機鍵盤一樣）
+          if(b.dataset.a==="space" && !composing() && !curStr()){
+            try{ b.setPointerCapture(e.pointerId); }catch(_){}
+            const x0 = e.clientX; let moved = 0, used = 0;
+            const mv = ev => { const steps = Math.trunc((ev.clientX - x0)/12); if(Math.abs(ev.clientX - x0) > 10) moved = 1; if(steps !== used){ if(moveCaret(steps - used)){ if(opt.haptic && Math.abs(steps - used) >= 1) opt.haptic(); } used = steps; b.classList.add("sliding"); } };
+            const up = () => { b.removeEventListener("pointermove", mv); b.removeEventListener("pointerup", up); b.removeEventListener("pointercancel", up); b.classList.remove("sliding"); if(!moved) act(b); };
+            b.addEventListener("pointermove", mv); b.addEventListener("pointerup", up); b.addEventListener("pointercancel", up);
+            return;
+          }
           act(b);
+          if(b.dataset.a==="back"){ // 往左滑＝刪一整段
+            try{ b.setPointerCapture(e.pointerId); }catch(_){}
+            const x0 = e.clientX; let done = false;
+            const mv = ev => { if(done || ev.clientX - x0 > -36) return; done = true; clearTimeout(rep.t); clearTimeout(rep.i); deleteChunk(); opt.fx("del"); if(opt.haptic) opt.haptic(); refresh(); updEnter(); };
+            const end = () => { b.removeEventListener("pointermove", mv); b.removeEventListener("pointerup", end); b.removeEventListener("pointercancel", end); };
+            b.addEventListener("pointermove", mv); b.addEventListener("pointerup", end); b.addEventListener("pointercancel", end);
+          }
           if(b.dataset.a==="back"){ // hold to keep deleting, faster after a while
             clearTimeout(rep.t); clearInterval(rep.i);
             const stop = ()=>{ clearTimeout(rep.t); clearInterval(rep.i); b.removeEventListener("pointerup", stop); b.removeEventListener("pointercancel", stop); b.removeEventListener("pointerleave", stop); };
