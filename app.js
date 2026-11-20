@@ -608,6 +608,7 @@ const App = (function(){
     else if(m.kind==="voice") bub = voiceHtml(m, mine);
     else if(m.kind==="image") bub = `<span class="pic"><img data-media="${esc(m.media||"")}" ${imgCache[m.media]?`src="${esc(imgCache[m.media])}"`:""} alt="照片"></span>`;
     else if(m.kind==="poke") bub = `<div class="bub">戳了${mine?"對方":"你"}一下 🐾</div>`;
+    else if(isSched(m)) bub = `<div class="bub schBub"><span class="schTag">${icon("hourglass")}定時訊息</span>${esc(m.body)}</div>`;
     else bub = `<div class="bub ${quote?"rqBub":""}">${quote}${esc(m.body)}</div>`;
     const p = partner(); let read = mine && p && (p.last_read||0) >= m.id;
     if(isFam() && mine){ const n = others().filter(x => (x.last_read||0) >= m.id).length; read = n ? (others().length > 1 ? `已讀 ${n}` : "已讀") : ""; } else if(read) read = "已讀";
@@ -617,7 +618,7 @@ const App = (function(){
   let kb = null;
   function viewChat(v){
     { let tt = $("topTools"); if(!tt){ tt = document.createElement("div"); tt.id = "topTools"; $("top").appendChild(tt); }
-      tt.innerHTML = v.id==="view" ? `<div class="tl"><button class="ctB find" id="bSearch" title="搜尋訊息">${icon("search")}<span>搜尋</span></button></div><div class="tr"><button class="ctB voice" id="bCallA" title="語音通話">${icon("phone")}<span>語音</span></button><button class="ctB video" id="bCallV" title="視訊通話">${icon("vcam")}<span>視訊</span></button></div>` : ""; }
+      tt.innerHTML = v.id==="view" ? `<div class="tl"><button class="ctB find" id="bSearch" title="搜尋訊息">${icon("search")}<span>搜尋</span></button>${others().length ? `<button class="ctB sched" id="bSched" title="定時訊息">${icon("hourglass")}<span>定時</span></button>` : ""}</div><div class="tr"><button class="ctB voice" id="bCallA" title="語音通話">${icon("phone")}<span>語音</span></button><button class="ctB video" id="bCallV" title="視訊通話">${icon("vcam")}<span>視訊</span></button></div>` : ""; }
     v.innerHTML = `<div class="box chat"><div class="chatTruce">${truceBar()}${busyBar()}</div><div class="pinBar hidden"></div><div class="lw"><div class="list" id="list"></div></div>
       <div class="stickers hidden" id="stk"><button data-s="poke" class="pokeBtn" title="戳一下">${icon("paw")}<b>戳一下</b></button>${myStk().map(x=>`<button data-s="${x[0]}" class="${x[2]?"bdS":""}">${stickerHtml(x[0], me.cat||"orange")}</button>`).join("")}</div>
       <div class="combo hidden" id="combo"></div>
@@ -660,6 +661,7 @@ const App = (function(){
     txt.addEventListener("input", e=>{ if(!sysKb) return; autoSize(); if(e.inputType && e.inputType.startsWith("delete")) typeFx("del"); else typeFx("key"); });
     txt.addEventListener("keydown", e=>{ if(sysKb && e.key==="Enter" && !e.shiftKey && !e.isComposing && e.keyCode!==229){ e.preventDefault(); sendText(); } });
     $("bStk").addEventListener("click", ()=>{ showKb(false); $("stk").classList.toggle("hidden"); });
+    if($("bSched")) $("bSched").addEventListener("click", ()=>{ SFX.tap(); showKb(false); schedWriter(); });
     if($("bSearch")){ $("bSearch").addEventListener("click", ()=>{ SFX.tap(); showKb(false); openSearch(); });
       $("bCallA").addEventListener("click", ()=>{ showKb(false); startCall(false); });
       $("bCallV").addEventListener("click", ()=>{ showKb(false); startCall(true); }); }
@@ -840,6 +842,7 @@ const App = (function(){
   }
   // replies are stored in the (otherwise unused) media column of text/sticker messages: {"r":id,"n":name,"t":preview}
   let replyTo = null;
+  const isSched = m => m && m.kind==="text" && m.media === '{"sch":1}';   // 定時訊息（伺服器時間到才送出的）
   function replyOf(m){ if(!m || !m.media || (m.kind!=="text" && m.kind!=="sticker") || m.media[0]!=="{") return null; try{ const o = JSON.parse(m.media); return o && o.r ? o : null; }catch(e){ return null; } }
   function startReply(m){
     replyTo = { r:m.id, n:m.sender===me.uid ? (me.name||"我") : (m.name||nameOf(m.sender)), t:msgPreview(m).slice(0,60) };
@@ -1913,6 +1916,80 @@ const App = (function(){
       const t = text.trim(); if(!t){ toast("先寫點什麼吧"); return; }
       o.remove();
       try{ const row = await B.send("💌 寫了一封信給你", "letter", me.name, me.cat, t); addMessage(row); SFX.send(); toast(`${sprite(me.cat||"orange","love")} 信寄出去了！`); }catch(e){ toast("寄信失敗，請再試一次"); }
+    });
+  }
+  // ---- 定時訊息：寫好、選時間，時間到伺服器自動用自己的名字傳出去（送出前只有自己看得到）----
+  const WD = ["日","一","二","三","四","五","六"];
+  const schWhen = d => { const h = d.getHours(), part = h < 5 ? "凌晨" : h < 11 ? "早上" : h < 13 ? "中午" : h < 18 ? "下午" : "晚上";
+    const today = new Date(); today.setHours(0,0,0,0); const dd = new Date(d); dd.setHours(0,0,0,0); const diff = Math.round((dd - today)/864e5);
+    const day = diff === 0 ? "今天" : diff === 1 ? "明天" : diff === 2 ? "後天" : `${d.getMonth()+1}/${d.getDate()}（${WD[d.getDay()]}）`;
+    return `${day} ${part} ${h}:${String(d.getMinutes()).padStart(2,"0")}`; };
+  const SCH_ERR = { too_soon:"時間要選 1 分鐘以後喔", too_late:"最多只能排一年內的訊息", too_many:"已經排了 30 則了，等它們送出或取消一些再排",
+    no_partner:"小窩裡還沒有其他人", empty:"先寫點什麼吧", too_long:"訊息太長了（最多 500 字）", not_member:"請重新整理再試一次" };
+  async function schedWriter(){
+    if(!others().length) return;
+    const to = others().length > 1 ? "大家" : esc(partner() ? partner().name : "對方");
+    const pad = n => String(n).padStart(2,"0"), ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`, hm = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    let when = new Date(Date.now() + 36e5); when.setMinutes(Math.ceil(when.getMinutes()/5)*5, 0, 0);
+    const maxD = new Date(Date.now() + 365*864e5);
+    const o = modal(`<div class="scHd"><span class="scHi">${icon("hourglass")}</span><b>定時訊息</b><button class="scX" id="scX">關閉</button></div>
+      <p class="scK">寫好訊息、選好時間，時間到會自動傳給${to}。<br>送出前只有你看得到，可以隨時取消。</p>
+      <div class="scList" id="scList"><div class="scEmpty">讀取中…</div></div>
+      <div class="scNew">
+        <div class="scLbl">要說的話</div>
+        <div class="scTxtW"><textarea id="scBody" class="scTxt" placeholder="點這裡打字…" maxlength="500" inputmode="none"></textarea><span class="scCnt" id="scCnt">0/500</span></div>
+        <div class="scLbl">什麼時候傳</div>
+        <div class="scQ"><button data-q="1h">1 小時後</button><button data-q="tn">今晚 22:00</button><button data-q="m8">明天早上 8:00</button><button data-q="m0">明天 0:00</button></div>
+        <div class="scWhen"><input type="date" id="scD" min="${ymd(new Date())}" max="${ymd(maxD)}"><input type="time" id="scT"></div>
+        <div class="scPrev" id="scPrev"></div>
+        <button class="btn scGo" id="scGo">排好了</button>
+      </div><div id="scKb" class="ltKb scKb hidden"></div>`, "schedM");
+    const $o = id => o.querySelector("#"+id), dI = $o("scD"), tI = $o("scT");
+    const fld = caretField($o("scBody"), 500); let kbx = null;
+    const cnt = () => { $o("scCnt").textContent = `${fld.value.length}/500`; };
+    fld.el.addEventListener("input", cnt);
+    const showKb = on => { $o("scKb").classList.toggle("hidden", !on); o.classList.toggle("kbOn", on);
+      if(on && !kbx) kbx = IME.mount($o("scKb"), { dictUrl:"zhuyin.txt", prefs: kbPrefs, haptic: ()=>{ if(kbVib()) haptic(); }, textBefore: ()=>fld.before(), anim: ()=>store.get("mw_anim")||"jelly", art: kbArt(), phrases: QK[MI().qk], kaomoji: window.KAOMOJI, enterLabel:"換行",
+        commit: t => { fld.insert(t); cnt(); }, backspace: () => { fld.del(); cnt(); }, send: () => { fld.insert("\n"); cnt(); }, hide: () => showKb(false),
+        fx: (k) => { if(!kbSound()) return; if(k==="del") SFX.del(); else SFX.key(); } }); };
+    fld.el.addEventListener("click", () => showKb(true));
+    o.querySelector(".scQ").addEventListener("click", () => { if(kbx && kbx.composing()) kbx.flush(); showKb(false); });
+    [dI, tI].forEach(x => x.addEventListener("focus", () => { if(kbx && kbx.composing()) kbx.flush(); showKb(false); }));
+    const setWhen = d => { when = d; dI.value = ymd(d); tI.value = hm(d); paintPrev(); };
+    const paintPrev = () => { const ok = when && when - Date.now() > 55e3 && when <= maxD;
+      $o("scPrev").innerHTML = !when ? "請選日期和時間" : ok ? `會在 <b>${schWhen(when)}</b> 傳出` : when <= Date.now() + 55e3 ? `<span class="bad">這個時間已經過了，選晚一點</span>` : `<span class="bad">最多只能排一年內</span>`;
+      o.querySelectorAll(".scQ button").forEach(b => b.classList.remove("on")); };
+    const readWhen = () => { if(!dI.value || !tI.value){ when = null; paintPrev(); return; } const [y,mo,da] = dI.value.split("-").map(Number), [h,mi] = tI.value.split(":").map(Number); when = new Date(y, mo-1, da, h, mi, 0, 0); paintPrev(); };
+    dI.addEventListener("change", readWhen); tI.addEventListener("change", readWhen); tI.addEventListener("input", readWhen);
+    o.querySelectorAll(".scQ button").forEach(b => b.addEventListener("click", () => { const n = new Date(); let d;
+      if(b.dataset.q === "1h"){ d = new Date(Date.now() + 36e5); d.setSeconds(0, 0); }
+      else if(b.dataset.q === "tn"){ d = new Date(n); d.setHours(22, 0, 0, 0); if(d - n < 6e4) d.setDate(d.getDate() + 1); }
+      else if(b.dataset.q === "m8"){ d = new Date(n); d.setDate(d.getDate() + 1); d.setHours(8, 0, 0, 0); }
+      else { d = new Date(n); d.setDate(d.getDate() + 1); d.setHours(0, 0, 0, 0); }
+      SFX.tap(); setWhen(d); b.classList.add("on"); }));
+    setWhen(when);
+    async function paintList(){
+      const L = $o("scList"); if(!L) return; let rows = [];
+      try{ rows = await B.rpc("sched_list", {}) || []; }catch(e){ L.innerHTML = `<div class="scEmpty">讀不到排好的訊息（網路或伺服器還沒更新）</div>`; return; }
+      L.innerHTML = rows.length ? `<div class="scLbl">排好、還沒送出的（${rows.length}）</div>` + rows.map(r => `<div class="scIt"><div class="scItT">${icon("hourglass")}<b>${schWhen(new Date(r.at))}</b></div><div class="scItB">${esc(r.body)}</div><button class="scCx" data-cx="${r.id}">取消</button></div>`).join("")
+        : `<div class="scEmpty">還沒有排好的訊息</div>`;
+      L.querySelectorAll("[data-cx]").forEach(b => b.addEventListener("click", async () => {
+        if(!b._sure){ b._sure = 1; b.textContent = "確定取消？"; b.classList.add("sure"); setTimeout(() => { if(b.isConnected){ b._sure = 0; b.textContent = "取消"; b.classList.remove("sure"); } }, 3000); return; }
+        try{ await B.rpc("sched_cancel", { p_id: +b.dataset.cx }); toast("取消了"); }catch(e){ toast("取消失敗，請再試一次"); } paintList(); }));
+    }
+    paintList();
+    $o("scX").addEventListener("click", () => o.remove());
+    let busy = false;
+    $o("scGo").addEventListener("click", async () => {
+      if(busy) return; if(kbx && kbx.composing()) kbx.flush();
+      const t = fld.value.trim(); if(!t){ toast("先寫點什麼吧"); return; }
+      readWhen(); if(!when){ toast("請選日期和時間"); return; }
+      if(when - Date.now() < 55e3){ toast(SCH_ERR.too_soon); return; } if(when > maxD){ toast(SCH_ERR.too_late); return; }
+      busy = true;
+      try{ await B.rpc("sched_add", { p_body: t, p_at: when.toISOString() }); SFX.send(); toast(`${sprite(me.cat||"orange","love")} 排好了！${schWhen(when)} 會傳出去`);
+        fld.value = ""; cnt(); showKb(false); paintList(); }
+      catch(e){ const k = Object.keys(SCH_ERR).find(k => String(e && e.message || e).includes(k)); toast(k ? SCH_ERR[k] : "排程失敗，請再試一次"); }
+      busy = false;
     });
   }
   const openedLetters = new Set(JSON.parse(store.get("mw_letters")||"[]"));
