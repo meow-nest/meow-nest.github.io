@@ -65,7 +65,7 @@
 
   // ---------- 世界 ----------
   // 世界：飄在天空的白雲島（主島＋幾塊小雲朵踏腳石），下面是雲海
-  const W = 56, H = 18, D = 56, GY = 6;   // GY：主島上面的高度
+  const W = 56, H = 28, D = 56, GY = 6;   // GY：主島上面的高度
   function makeWorld(){
     const v = new Uint8Array(W*H*D), at = (x,y,z) => x + W*(z + D*y);
     const set = (x,y,z,b) => { if(x>=0&&x<W&&y>=0&&y<H&&z>=0&&z<D) v[at(x,y,z)] = b; };
@@ -197,9 +197,10 @@
     const CFG = loadCfg();
     const root = document.createElement("div"); root.className = "p3d";
     root.innerHTML = `<canvas class="p3dC"></canvas><div class="p3dL" id="p3dL"></div>
-      <div class="p3dTop"><button class="p3dX" id="p3dX"><span class="p3dBack"></span><span>離開</span></button><span class="p3dT">喵喵方塊島</span><span class="p3dF" id="p3dF" hidden></span><span class="p3dFps" id="p3dFps" hidden></span><button class="p3dX p3dGear" id="p3dGear">${o.icon ? `<span class="p3dIc">${o.icon("gear")}</span>` : ""}<span>設定</span></button></div>
+      <div class="p3dTop"><button class="p3dX" id="p3dX"><span class="p3dBack"></span><span>離開</span></button><span class="p3dT">喵喵方塊島</span><span class="p3dF" id="p3dF" hidden></span><span class="p3dFps" id="p3dFps" hidden></span><button class="p3dX p3dBuildT" id="p3dBuildT">${o.icon ? `<span class="p3dIc">${o.icon("home")}</span>` : ""}<span>蓋房子</span></button><button class="p3dX p3dGear" id="p3dGear">${o.icon ? `<span class="p3dIc">${o.icon("gear")}</span>` : ""}<span>設定</span></button></div>
       <div class="p3dSet" id="p3dSet" hidden></div>
-      <div class="p3dTalk" id="p3dTalk" hidden></div><div class="p3dClock" id="p3dClock"></div>
+      <div class="p3dTalk" id="p3dTalk" hidden></div>
+      <div class="p3dBuild" id="p3dBuild" hidden><div class="p3dTool" id="p3dTool"><button data-t="put" class="on">放方塊</button><button data-t="dig">挖方塊</button></div><button class="p3dUndo" id="p3dUndo">復原</button><div class="p3dBar" id="p3dBar"></div><div class="p3dBHint" id="p3dBHint">點畫面上的方塊：放在那一面／挖掉它</div></div><div class="p3dClock" id="p3dClock"></div>
       <div class="p3dHint" id="p3dHint">左下搖桿走路・右邊拖曳轉鏡頭</div>
       <div class="p3dRot" id="p3dRot"><div class="p3dRotPh"><i></i></div><div>把手機轉橫的玩</div><button id="p3dRotX">直的也沒關係</button></div>
       <div class="p3dJoy" id="p3dJoy"><i></i></div>
@@ -231,6 +232,9 @@
 
     // 世界的網格（不透明一份、半透明一份；超過 65535 個點就分成好幾塊）
     const world = makeWorld();
+    // 自己蓋的方塊（存在手機 localStorage mw_cube_edits：{"x,y,z": 方塊種類}）
+    let EDITS = {}; try{ EDITS = JSON.parse(localStorage.getItem("mw_cube_edits") || "{}") || {}; }catch(e){}
+    for(const k in EDITS){ const [x, y, z] = k.split(",").map(Number); if(y > 0 && y < H) world.set(x, y, z, EDITS[k]); }
     const FACES = [ // 法線、四個角、哪一面材質(0上1側2下)、亮度
       { n:[0,1,0], c:[[0,1,1],[1,1,1],[1,1,0],[0,1,0]], t:0, l:1 }, { n:[0,-1,0], c:[[0,0,0],[1,0,0],[1,0,1],[0,0,1]], t:2, l:.55 },
       { n:[1,0,0], c:[[1,0,1],[1,0,0],[1,1,0],[1,1,1]], t:1, l:.8 }, { n:[-1,0,0], c:[[0,0,0],[0,0,1],[0,1,1],[0,1,0]], t:1, l:.8 },
@@ -368,9 +372,11 @@
     joy.addEventListener("pointermove", jm);
     const jEnd = e => { if(e.pointerId !== J.id) return; J.id = null; J.x = J.y = 0; knob.style.transform = ""; };
     joy.addEventListener("pointerup", jEnd); joy.addEventListener("pointercancel", jEnd); joy.addEventListener("lostpointercapture", jEnd);
-    cv.addEventListener("pointerdown", e => { if(dragId !== null) return; dragId = e.pointerId; lx = e.clientX; ly = e.clientY; try{ cv.setPointerCapture(e.pointerId); }catch(_){} hideHint(); });
-    cv.addEventListener("pointermove", e => { if(e.pointerId !== dragId) return; cam.yaw -= (e.clientX - lx)*.0085*CFG.sens; cam.pitch = Math.max(.08, Math.min(1.25, cam.pitch + (e.clientY - ly)*.006*CFG.sens*(CFG.invY ? -1 : 1))); lx = e.clientX; ly = e.clientY; });
-    const cEnd = e => { if(e.pointerId === dragId) dragId = null; }; cv.addEventListener("pointerup", cEnd); cv.addEventListener("pointercancel", cEnd); cv.addEventListener("lostpointercapture", cEnd);
+    let tap0 = null;   // 蓋房子模式：快速點一下（沒有拖曳）＝放／挖方塊
+    cv.addEventListener("pointerdown", e => { if(dragId !== null) return; dragId = e.pointerId; lx = e.clientX; ly = e.clientY; tap0 = { x:e.clientX, y:e.clientY, t:performance.now(), m:0 }; try{ cv.setPointerCapture(e.pointerId); }catch(_){} hideHint(); });
+    cv.addEventListener("pointermove", e => { if(e.pointerId !== dragId) return; if(tap0) tap0.m = Math.max(tap0.m, Math.hypot(e.clientX - tap0.x, e.clientY - tap0.y)); cam.yaw -= (e.clientX - lx)*.0085*CFG.sens; cam.pitch = Math.max(.08, Math.min(1.25, cam.pitch + (e.clientY - ly)*.006*CFG.sens*(CFG.invY ? -1 : 1))); lx = e.clientX; ly = e.clientY; });
+    const cEnd = e => { if(e.pointerId !== dragId) return; dragId = null;
+      if(e.type === "pointerup" && buildOn && tap0 && tap0.m < 10 && performance.now() - tap0.t < 400) buildAt(e.clientX, e.clientY); tap0 = null; }; cv.addEventListener("pointerup", cEnd); cv.addEventListener("pointercancel", cEnd); cv.addEventListener("lostpointercapture", cEnd);
     const GK = { w:1, a:1, s:1, d:1, arrowup:1, arrowdown:1, arrowleft:1, arrowright:1, " ":1 };
     const kd = e => { const k = (e.key || "").toLowerCase(); if(!GK[k]) return; e.preventDefault(); if(k === " "){ if(!e.repeat) jump(); } else K[k] = true; hideHint(); },
           ku = e => { const k = (e.key || "").toLowerCase(); if(GK[k]) K[k] = false; };
@@ -439,6 +445,82 @@
     });
     paintAct();
 
+    // ---------- 蓋房子 ----------
+    const PALETTE = [B.PLANK, B.LOG, B.BRICK, B.STONE, B.GLASS, B.WOOL, B.ROOF, B.LEAF, B.GRASS, B.SAND, B.CLOUD, B.DIRT];
+    const BNAME = { [B.PLANK]:"木板", [B.LOG]:"原木", [B.BRICK]:"磚塊", [B.STONE]:"石頭", [B.GLASS]:"玻璃", [B.WOOL]:"毛毯", [B.ROOF]:"屋瓦", [B.LEAF]:"樹葉", [B.GRASS]:"草地", [B.SAND]:"沙子", [B.CLOUD]:"雲朵", [B.DIRT]:"泥土" };
+    const buildEl = root.querySelector("#p3dBuild"), barEl = root.querySelector("#p3dBar");
+    let buildOn = false, tool = "put", pick = B.PLANK, lastCam = null; const undo = [], fx = [];
+    // 方塊小圖示：用材質畫一個小小的立體方塊（上面＋左右兩面）
+    function blockIcon(b){
+      const c = document.createElement("canvas"), N = 16, S2 = 44; c.width = c.height = S2; const g = c.getContext("2d"); g.imageSmoothingEnabled = false;
+      const t = BT[b].t, tile = k => [(k % 8)*N, Math.floor(k / 8)*N];
+      const face = (k, m, dark) => { const [sx, sy] = tile(k); g.save(); g.setTransform(...m); g.drawImage(atlas.cv, sx, sy, N, N, 0, 0, N, N); if(dark){ g.fillStyle = `rgba(0,0,0,${dark})`; g.fillRect(0, 0, N, N); } g.restore(); };
+      const k = 1/N;
+      face(t[0], [20*k, 10*k, -20*k, 10*k, 22, 2], 0);       // 上面
+      face(t[1], [20*k, 10*k, 0, 20*k, 2, 12], .16);         // 左面
+      face(t[1], [20*k, -10*k, 0, 20*k, 22, 22], .32);       // 右面
+      return c.toDataURL();
+    }
+    // 方塊列：一頁 6 個，用 ◀ ▶ 換頁（不用左右捲動，比較好按）
+    let barPg = 0; const PER = 6, ICONS = {};
+    function paintBar(){
+      const pages = Math.ceil(PALETTE.length/PER); barPg = Math.max(0, Math.min(pages - 1, barPg));
+      const nav = (d, on) => `<button class="p3dPg" data-pg="${d}" ${on ? "" : "disabled"}>${d < 0 ? "◀" : "▶"}</button>`;
+      barEl.innerHTML = nav(-1, barPg > 0) + PALETTE.slice(barPg*PER, barPg*PER + PER).map(b => `<button data-b="${b}" class="${b === pick ? "on" : ""}"><img src="${ICONS[b] || (ICONS[b] = blockIcon(b))}" alt=""><i>${BNAME[b]}</i></button>`).join("") + nav(1, barPg < pages - 1);
+      barEl.querySelectorAll("[data-pg]").forEach(x => x.addEventListener("click", () => { barPg += +x.dataset.pg; paintBar(); }));
+      barEl.querySelectorAll("[data-b]").forEach(x => x.addEventListener("click", () => { pick = +x.dataset.b; tool = "put"; paintTool(); paintBar(); CFG.sound && o.sfx && o.sfx.tap && o.sfx.tap(); }));
+    }
+    function paintTool(){ buildEl.querySelectorAll("[data-t]").forEach(x => x.classList.toggle("on", x.dataset.t === tool)); root.classList.toggle("dig", tool === "dig"); }
+    buildEl.querySelectorAll("[data-t]").forEach(x => x.addEventListener("click", () => { tool = x.dataset.t; paintTool(); }));
+    function setBuild(on){
+      buildOn = on; buildEl.hidden = !on; root.classList.toggle("building", on); endTalk && endTalk();
+      root.querySelector("#p3dBuildT span:last-child").textContent = on ? "蓋好了" : "蓋房子";
+      if(on){ paintBar(); paintTool(); hideHint(); }
+    }
+    root.querySelector("#p3dBuildT").addEventListener("click", () => setBuild(!buildOn));
+    // 從畫面上的一點射出去，找到第一個碰到的方塊（一格一格走，DDA）
+    function pickRay(cx, cy){
+      if(!lastCam) return null; const r = cv.getBoundingClientRect(), nx = ((cx - r.left)/r.width)*2 - 1, ny = 1 - ((cy - r.top)/r.height)*2;
+      const { eye, tgt } = lastCam, f = nrm(sub(tgt, eye)), rt = nrm(cross(f, [0,1,0])), up = cross(rt, f), th = Math.tan(CFG.fov*Math.PI/360), asp = r.width/r.height;
+      const d = nrm([f[0] + rt[0]*nx*th*asp + up[0]*ny*th, f[1] + rt[1]*nx*th*asp + up[1]*ny*th, f[2] + rt[2]*nx*th*asp + up[2]*ny*th]);
+      let x = Math.floor(eye[0]), y = Math.floor(eye[1]), z = Math.floor(eye[2]); const st = d.map(v => v > 0 ? 1 : -1);
+      const tD = d.map(v => Math.abs(1/(v || 1e-9))); const tM = [0,1,2].map(i => { const p = eye[i], c = [x,y,z][i]; return (d[i] > 0 ? (c + 1 - p) : (p - c))*tD[i]; });
+      let face = null, t = 0;
+      for(let k = 0; k < 80 && t < 16; k++){
+        const b = world.get(x, y, z); if(b && b !== B.WATER) return { x, y, z, face, dist:t };
+        const i = tM[0] < tM[1] ? (tM[0] < tM[2] ? 0 : 2) : (tM[1] < tM[2] ? 1 : 2); t = tM[i]; tM[i] += tD[i];
+        if(i === 0){ x += st[0]; face = [-st[0],0,0]; } else if(i === 1){ y += st[1]; face = [0,-st[1],0]; } else { z += st[2]; face = [0,0,-st[2]]; }
+        if(y < -2 || y > H + 2) break;
+      }
+      return null;
+    }
+    const inBody = (e, x, y, z, w, h) => x + 1 > e.x - w && x < e.x + w && z + 1 > e.z - w && z < e.z + w && y + 1 > e.y && y < e.y + h;
+    function setBlock(x, y, z, b, rec){
+      const prev = world.get(x, y, z) || 0; if(prev === b) return false; world.set(x, y, z, b); EDITS[`${x},${y},${z}`] = b;
+      if(rec) undo.push({ x, y, z, prev, b }); if(undo.length > 60) undo.shift();
+      try{ localStorage.setItem("mw_cube_edits", JSON.stringify(EDITS)); }catch(e){}
+      buildWorld(); return true;
+    }
+    function burst(x, y, z, b){ const c = TILES[BT[b].t[1]].p; for(let k = 0; k < 10; k++) fx.push({ x:x + .5, y:y + .5, z:z + .5, vx:(Math.random() - .5)*3, vy:1.5 + Math.random()*2.5, vz:(Math.random() - .5)*3, life:.6 + Math.random()*.3, c:c[k % c.length] }); }
+    const flash = { t:0 };
+    function buildAt(cx, cy){
+      const h = pickRay(cx, cy); if(!h){ o.toast && o.toast("點近一點的方塊"); return; }
+      if(tool === "dig"){
+        if(h.y <= 0){ o.toast && o.toast("最底下的雲不能挖喔"); return; }
+        if(Math.hypot(h.x + .5 - player.x, h.y + .5 - (player.y + .7), h.z + .5 - player.z) > 7){ o.toast && o.toast("太遠了，走近一點"); return; }
+        const b = world.get(h.x, h.y, h.z); if(setBlock(h.x, h.y, h.z, 0, true)){ burst(h.x, h.y, h.z, b); Object.assign(flash, { t:.25, x:h.x, y:h.y, z:h.z }); CFG.sound && o.sfx && o.sfx.tap && o.sfx.tap(); }
+      } else {
+        if(!h.face){ return; } const x = h.x + h.face[0], y = h.y + h.face[1], z = h.z + h.face[2];
+        if(y <= 0 || y >= H - 1 || x < 0 || z < 0 || x >= W || z >= D){ o.toast && o.toast("這裡不能放"); return; }
+        if(Math.hypot(x + .5 - player.x, y + .5 - (player.y + .7), z + .5 - player.z) > 7){ o.toast && o.toast("太遠了，走近一點"); return; }
+        const cur = world.get(x, y, z); if(cur && cur !== B.WATER) return;
+        if(inBody(player, x, y, z, .28, 1.45) || pets.some(p => inBody(p, x, y, z, .25*p.s, .8*p.s))){ o.toast && o.toast("會壓到人或小貓喔"); return; }
+        if(setBlock(x, y, z, pick, true)){ Object.assign(flash, { t:.25, x, y, z }); CFG.sound && o.sfx && o.sfx.tap && o.sfx.tap(); }
+      }
+    }
+    root.querySelector("#p3dUndo").addEventListener("click", () => { const u = undo.pop(); if(!u){ o.toast && o.toast("沒有可以復原的了"); return; }
+      world.set(u.x, u.y, u.z, u.prev); EDITS[`${u.x},${u.y},${u.z}`] = u.prev; try{ localStorage.setItem("mw_cube_edits", JSON.stringify(EDITS)); }catch(e){} buildWorld(); });
+
     // ---------- 設定畫面 ----------
     const clockEl = root.querySelector("#p3dClock"), fpsEl = root.querySelector("#p3dFps"), setEl = root.querySelector("#p3dSet"); let fpsN = 0, fpsT = performance.now();
     const CAMD = { s:3.6, m:5, l:6.6 };
@@ -474,8 +556,13 @@
         ${row("音效", "", tog("sound"))}
         ${row("小貓的名字", "", tog("names"))}
         <button class="p3dReset" id="p3dReset">恢復預設</button>
+        <button class="p3dReset" id="p3dWipe">把島恢復原狀（清掉自己蓋的方塊）</button>
       </div>`;
       setEl.querySelector("#p3dSetX").onclick = () => { setEl.hidden = true; };
+      const wipe = setEl.querySelector("#p3dWipe");
+      wipe.onclick = () => { if(!wipe._sure){ wipe._sure = 1; wipe.textContent = "確定嗎？再按一次就會清掉"; setTimeout(() => { if(wipe.isConnected){ wipe._sure = 0; wipe.textContent = "把島恢復原狀（清掉自己蓋的方塊）"; } }, 3000); return; }
+        try{ localStorage.removeItem("mw_cube_edits"); }catch(e){} const fresh = makeWorld(); for(const k in EDITS){ const [x, y, z] = k.split(",").map(Number); world.set(x, y, z, fresh.get(x, y, z) || 0); }
+        EDITS = {}; undo.length = 0; buildWorld(); wipe._sure = 0; wipe.textContent = "已經恢復原狀了"; };
       setEl.querySelector("#p3dReset").onclick = () => { Object.assign(CFG, DEF); applyCfg(); paintSet(); };
       setEl.querySelectorAll(".p3dSeg").forEach(g => g.querySelectorAll("button").forEach(b => b.onclick = () => {
         const k = g.dataset.k, raw = b.dataset.v, v = raw === "true" ? true : raw === "false" ? false : (/^[\d.]+$/.test(raw) ? +raw : raw);
@@ -656,7 +743,7 @@
       let dist = cam.dist; const dir = [Math.sin(cam.yaw)*Math.cos(cam.pitch), Math.sin(cam.pitch), Math.cos(cam.yaw)*Math.cos(cam.pitch)];
       for(let d = .25; d <= cam.dist; d += .1){ const bx = tgt[0]+dir[0]*d, by = tgt[1]+dir[1]*d, bz = tgt[2]+dir[2]*d;
         if(solid(bx, by, bz) || solid(bx, by + .15, bz) || solid(bx, by - .15, bz)){ dist = Math.max(.3, d - .3); break; } }
-      const eye = [tgt[0]+dir[0]*dist, tgt[1]+dir[1]*dist, tgt[2]+dir[2]*dist];
+      const eye = [tgt[0]+dir[0]*dist, tgt[1]+dir[1]*dist, tgt[2]+dir[2]*dist]; lastCam = { eye, tgt };
       const V = lookAt(eye, tgt, [0,1,0]), P = persp(CFG.fov*Math.PI/180, cv.width/cv.height, .05, Math.max(CFG.view + 12, STAR > .02 ? 90 : 0));
 
       gl.viewport(0, 0, cv.width, cv.height); gl.clearColor(SKY[0], SKY[1], SKY[2], 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -670,6 +757,9 @@
       world.flowers.forEach(f => { box(chain(T(f.x, f.y + .14, f.z), S(.05,.28,.05)), "#4f9e48"); box(chain(T(f.x, f.y + .32, f.z), RY(.8), S(.16,.12,.16)), f.c); });
       if(dist > .6) drawKid(player, t);   // 鏡頭被擠到頭裡面時先不畫自己
       pets.forEach(p => drawCat(p, t));
+      // 挖方塊噴出來的小碎塊、剛放好的方塊閃一下
+      for(let k = fx.length - 1; k >= 0; k--){ const f = fx[k]; f.life -= dt; if(f.life <= 0){ fx.splice(k, 1); continue; } f.vy -= 12*dt; f.x += f.vx*dt; f.y += f.vy*dt; f.z += f.vz*dt; box(chain(T(f.x, f.y, f.z), S(.12, .12, .12)), f.c); }
+      if(flash.t > 0){ flash.t -= dt; gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); box(chain(T(flash.x + .5, flash.y + .5, flash.z + .5), S(1.04, 1.04, 1.04)), "#ffffff", flash.t*2); gl.disable(gl.BLEND); }
       // 雲海和飄來飄去的雲（白白的大方塊，半透明）
       gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.uniform1f(U("mode"), 1); bind(cube);
       if(CFG.clouds) CLOUDS.forEach(c => { const x = ((c.x + t*c.v) % 140 + 140) % 140 - 42; for(const [ox, oy, oz, sx, sy, sz] of c.parts) box(chain(T(x+ox, c.y+oy, c.z+oz), S(sx, sy, sz)), "#ffffff", c.a); });

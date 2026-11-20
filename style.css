@@ -3834,3 +3834,25 @@ body.p3dOn #toast{z-index:9100}
 .p3d[data-ui="c"] .p3dJump{border:3px solid #5a3a42;background:#fff8ee;box-shadow:inset 0 -5px 0 #ead8c8,inset 0 3px 0 #fff,0 4px 0 rgba(60,30,40,.3)}
 .p3d[data-ui="c"] .p3dJoy i{border:3px solid #5a3a42;background:#ffd0dd;box-shadow:inset 0 -4px 0 #ffa6be,inset 0 3px 0 #fff}
 .p3d[data-ui="c"] .p3dClock{background:#5a3a42;color:#fff;border-radius:0;padding:1px 8px}
+/* 喵喵方塊島：蓋房子 */
+.p3d.building .p3dAct,.p3d.building .p3dTalk{display:none!important}
+.p3d .p3dBuildT.on,.p3d.building .p3dBuildT{background:#ff8fb0;color:#fff}
+.p3dBuild{position:absolute;inset:0;pointer-events:none;z-index:6}
+.p3dBuild[hidden]{display:none}
+.p3dBuild>*{pointer-events:auto}
+.p3dBar{position:absolute;left:50%;bottom:calc(10px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;align-items:center;gap:4px;padding:6px;background:#fff8ee;box-shadow:0 0 0 3px #5a3a42,5px 5px 0 3px rgba(60,30,40,.25);scrollbar-width:none;touch-action:pan-x}
+.p3dBar::-webkit-scrollbar{display:none}
+.p3dBar .p3dPg{width:26px;align-self:stretch;font-size:13px;color:#5a3a42;justify-content:center}.p3dBar .p3dPg:disabled{opacity:.25}
+.p3dBar button{flex:0 0 auto;width:52px;padding:3px 0 2px;background:transparent;border:2px solid transparent;font:inherit;font-size:11px;color:#4a3038;display:flex;flex-direction:column;align-items:center;gap:1px}
+.p3dBar button img{width:36px;height:36px;image-rendering:pixelated}
+.p3dBar button i{font-style:normal}
+.p3dBar button.on{border-color:#5a3a42;background:#ffd0dd;box-shadow:inset 0 -3px 0 #ffa6be}
+@media (orientation:portrait){ .p3dBar{bottom:calc(170px + env(safe-area-inset-bottom))} .p3dBar button{width:44px} .p3dBar button img{width:32px;height:32px} }
+.p3dTool{position:absolute;right:calc(18px + env(safe-area-inset-right));bottom:calc(122px + env(safe-area-inset-bottom));display:flex;border:3px solid #5a3a42;background:#fff8ee;box-shadow:4px 4px 0 rgba(60,30,40,.3)}
+.p3dTool button{font:inherit;font-size:14px;padding:8px 12px;background:transparent;border:0;color:#4a3038}
+.p3dTool button+button{border-left:3px solid #5a3a42}
+.p3dTool button.on{background:#ff8fb0;color:#fff;box-shadow:inset 0 -3px 0 #e06890}
+.p3d.dig .p3dTool button[data-t=dig].on{background:#8a6a5a;box-shadow:inset 0 -3px 0 #6a4a3a}
+.p3dUndo{position:absolute;right:calc(18px + env(safe-area-inset-right));bottom:calc(178px + env(safe-area-inset-bottom));font:inherit;font-size:13px;padding:5px 12px;border:3px solid #5a3a42;background:#fff8ee;color:#4a3038;box-shadow:inset 0 -3px 0 #ead8c8,3px 3px 0 rgba(60,30,40,.3)}
+.p3dBHint{position:absolute;left:50%;top:calc(66px + env(safe-area-inset-top));transform:translateX(-50%);font-size:12px;color:#fff;background:rgba(40,28,36,.55);padding:3px 12px;border-radius:8px;pointer-events:none!important;white-space:nowrap}
+.p3d{overflow:clip}
