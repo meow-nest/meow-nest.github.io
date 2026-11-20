@@ -3803,7 +3803,7 @@ body.p3dOn #toast{z-index:9100}
 .p3dClock:empty{display:none}
 .p3d.dark .p3dT{color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.5)}
 
-/* ===== 喵喵方塊島：介面（data-ui = a 奶油柔和／b 毛玻璃／c 精緻像素）===== */
+/* ===== 喵喵方塊島：介面（站長選了 C 精緻像素）===== */
 .p3d .p3dIc{display:inline-block;width:18px;line-height:0;vertical-align:middle}.p3d .p3dIc svg{width:100%;height:auto;display:block}
 .p3d .p3dBack{display:inline-block;width:0;height:0;border-top:6px solid transparent;border-bottom:6px solid transparent;border-right:8px solid currentColor;margin-right:6px;vertical-align:middle}
 .p3d .p3dX{display:inline-flex;align-items:center;gap:5px}
@@ -3818,38 +3818,7 @@ body.p3dOn #toast{z-index:9100}
 .p3d .p3dTr{margin-top:6px}
 .p3d .p3dClock{display:flex;align-items:center;gap:5px}.p3d .p3dClock .p3dIc{width:14px}
 
-/* A：奶油柔和 */
-.p3d[data-ui="a"] .p3dTalkIn{background:linear-gradient(180deg,#fffdf9,#fff3ea);border:1.5px solid rgba(190,140,130,.28);border-radius:22px;box-shadow:0 14px 34px rgba(70,30,45,.22),inset 0 1px 0 #fff;padding:20px 22px 12px;color:#4a3038}
-.p3d[data-ui="a"] .p3dTalkNm{left:18px;top:-15px;border:0;border-radius:999px;padding:4px 14px;background:linear-gradient(180deg,#ffa3bf,#ff7ea4);color:#fff;box-shadow:0 4px 10px rgba(255,110,150,.4);display:flex;align-items:center}
-.p3d[data-ui="a"] .p3dTalkNm .p3dHs i:not(.on){filter:brightness(3) grayscale(1);opacity:.55}
-.p3d[data-ui="a"] .p3dMeow{font-size:22px;color:#4a3038;letter-spacing:2px}
-.p3d[data-ui="a"] .p3dTr{font-size:14px;color:#9a7f88;padding-left:10px;border-left:3px solid #ffc4d4}
-.p3d[data-ui="a"] .p3dDots,.p3d[data-ui="a"] .p3dNext{color:#ff86a8}
-.p3d[data-ui="a"] .p3dAct .p3dNm{background:rgba(255,255,255,.88);color:#4a3038;border-radius:999px;padding:4px 12px;box-shadow:0 4px 12px rgba(60,30,40,.15)}
-.p3d[data-ui="a"] .p3dActB button{border:0;border-radius:999px;padding:10px 18px;min-width:0;font-size:15px;box-shadow:0 6px 16px rgba(60,30,40,.2),inset 0 1px 0 rgba(255,255,255,.7)}
-.p3d[data-ui="a"] .p3dActB button:first-child{background:linear-gradient(180deg,#fff,#fff1ea);color:#4a3038}
-.p3d[data-ui="a"] .p3dActB button+button{background:linear-gradient(180deg,#ffa3bf,#ff7ea4);color:#fff}
-.p3d[data-ui="a"] .p3dActB button:active{transform:translateY(2px) scale(.97);box-shadow:0 2px 6px rgba(60,30,40,.2)}
-.p3d[data-ui="a"] .p3dX{border:0;border-radius:999px;padding:7px 14px;background:rgba(255,255,255,.85);color:#4a3038;box-shadow:0 4px 12px rgba(60,30,40,.15)}
-.p3d[data-ui="a"] .p3dJump{border:0;background:radial-gradient(circle at 40% 30%,#fff,#ffe1ea);color:#c2557a;box-shadow:0 8px 20px rgba(60,30,40,.22),inset 0 -3px 0 rgba(255,130,160,.25)}
-.p3d[data-ui="a"] .p3dJoy{background:rgba(255,255,255,.22);border:2px solid rgba(255,255,255,.75);box-shadow:0 6px 18px rgba(60,30,40,.12)}
-.p3d[data-ui="a"] .p3dJoy i{border:0;background:radial-gradient(circle at 40% 30%,#fff,#ffd6e2);box-shadow:0 6px 14px rgba(60,30,40,.25)}
-.p3d[data-ui="a"] .p3dClock{background:rgba(255,255,255,.75);color:#4a3038;border-radius:999px;padding:2px 10px}
 
-/* B：毛玻璃 */
-.p3d[data-ui="b"] .p3dTalkIn{background:rgba(255,255,255,.5);-webkit-backdrop-filter:blur(16px) saturate(1.5);backdrop-filter:blur(16px) saturate(1.5);border:1px solid rgba(255,255,255,.75);border-radius:24px;box-shadow:0 16px 40px rgba(30,20,40,.2);padding:20px 22px 12px;color:#2e2430}
-.p3d[data-ui="b"] .p3dTalkNm{left:18px;top:-14px;border:1px solid rgba(255,255,255,.4);border-radius:999px;padding:4px 14px;background:rgba(46,36,48,.72);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#fff;display:flex;align-items:center}
-.p3d[data-ui="b"] .p3dMeow{font-size:22px;letter-spacing:2px}
-.p3d[data-ui="b"] .p3dTr{font-size:14px;color:#5a4c58}
-.p3d[data-ui="b"] .p3dDots,.p3d[data-ui="b"] .p3dNext{color:#2e2430}
-.p3d[data-ui="b"] .p3dAct .p3dNm{background:rgba(46,36,48,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#fff;border-radius:999px;padding:4px 12px}
-.p3d[data-ui="b"] .p3dActB button{border:1px solid rgba(255,255,255,.75);border-radius:18px;padding:10px 18px;min-width:0;font-size:15px;background:rgba(255,255,255,.5);-webkit-backdrop-filter:blur(14px) saturate(1.4);backdrop-filter:blur(14px) saturate(1.4);color:#2e2430;box-shadow:0 8px 22px rgba(30,20,40,.18)}
-.p3d[data-ui="b"] .p3dActB button+button{background:rgba(255,140,175,.72);color:#fff}
-.p3d[data-ui="b"] .p3dX{border:1px solid rgba(255,255,255,.7);border-radius:999px;padding:7px 14px;background:rgba(255,255,255,.45);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);color:#2e2430;box-shadow:0 6px 16px rgba(30,20,40,.12)}
-.p3d[data-ui="b"] .p3dJump{border:1px solid rgba(255,255,255,.8);background:rgba(255,255,255,.4);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);color:#2e2430;box-shadow:0 8px 22px rgba(30,20,40,.18)}
-.p3d[data-ui="b"] .p3dJoy{background:rgba(255,255,255,.18);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.7)}
-.p3d[data-ui="b"] .p3dJoy i{border:1px solid rgba(255,255,255,.9);background:rgba(255,255,255,.75);box-shadow:0 6px 14px rgba(30,20,40,.2)}
-.p3d[data-ui="b"] .p3dClock{background:rgba(255,255,255,.4);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#2e2430;border-radius:999px;padding:2px 10px}
 
 /* C：精緻像素（紙張感、雙層框、切角） */
 .p3d[data-ui="c"] .p3dTalkIn{background:#fff8ee;border:0;box-shadow:0 0 0 3px #5a3a42,0 0 0 6px #fff8ee,0 0 0 9px #5a3a42,8px 10px 0 9px rgba(60,30,40,.25);padding:18px 20px 10px;color:#4a3038;clip-path:none;margin:9px}

@@ -178,7 +178,7 @@
     mid:  { scale:.8,  view:60, clouds:true,  fps:60 },
     high: { scale:1,   view:90, clouds:true,  fps:0 },
   };
-  const DEF = { ui:"a", time:"real", q:"mid", scale:.8, view:60, clouds:true, fps:60, fog:true, fov:60, showFps:false,
+  const DEF = { time:"real", q:"mid", scale:.8, view:60, clouds:true, fps:60, fog:true, fov:60, showFps:false,
     sens:1, invY:false, joy:"m", autoCam:true, camD:"m", sound:true, names:true };
   function loadCfg(){ let c = {}; try{ c = JSON.parse(localStorage.getItem("mw_cube_set") || "{}") || {}; }catch(e){} return Object.assign({}, DEF, c); }
   function saveCfg(c){ try{ localStorage.setItem("mw_cube_set", JSON.stringify(c)); }catch(e){} }
@@ -443,7 +443,7 @@
     const clockEl = root.querySelector("#p3dClock"), fpsEl = root.querySelector("#p3dFps"), setEl = root.querySelector("#p3dSet"); let fpsN = 0, fpsT = performance.now();
     const CAMD = { s:3.6, m:5, l:6.6 };
     function applyCfg(first){
-      root.dataset.joy = CFG.joy; root.dataset.ui = window.__cubeUI || CFG.ui || "a"; fpsEl.hidden = !CFG.showFps; cam.dist = CAMD[CFG.camD] || 5;
+      root.dataset.joy = CFG.joy; root.dataset.ui = "c";   // 站長選了 C 精緻像素 fpsEl.hidden = !CFG.showFps; cam.dist = CAMD[CFG.camD] || 5;
       if(!first){ resize(); saveCfg(CFG); }
     }
     const seg = (k, opts) => `<div class="p3dSeg" data-k="${k}">${opts.map(([v, t]) => `<button data-v="${v}" class="${String(CFG[k]) === String(v) ? "on" : ""}">${t}</button>`).join("")}</div>`;
@@ -455,7 +455,6 @@
       setEl.innerHTML = `<div class="p3dSetIn">
         <div class="p3dSetHd"><b>設定</b><button id="p3dSetX">完成</button></div>
         <div class="p3dSec">畫面</div>
-        ${row("介面風格", "對話框和按鈕的樣子（試用中，選好會改成固定的）", seg("ui", [["a","奶油"],["b","毛玻璃"],["c","像素"]]))}
         ${row("畫質", "一次調整下面幾項；手機會燙或卡就選「順暢」", seg("q", [["low","順暢"],["mid","平衡"],["high","精緻"],["custom","自訂"]]))}
         ${row("解析度", "越高越清楚，但比較耗電", slider("scale", .5, 1, .05, FMT.scale))}
         ${row("視野距離", "看得多遠", slider("view", 30, 90, 5, FMT.view))}
