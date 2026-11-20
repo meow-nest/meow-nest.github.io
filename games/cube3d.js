@@ -105,8 +105,8 @@
 
   // ---------- 著色器 ----------
   const VS = `attribute vec3 p; attribute vec3 n; attribute vec2 uv; attribute float sh;
-  uniform mat4 M, V, P; varying vec2 vuv; varying float vsh, vfog; varying vec3 vn, vvn;
-  void main(){ vec4 w = M*vec4(p,1.); vec4 e = V*w; vfog = clamp((-e.z - 26.)/34., 0., 1.); vuv = uv; vsh = sh; vn = normalize(mat3(M)*n); vvn = mat3(V)*vn; gl_Position = P*e; }`;
+  uniform mat4 M, V, P; uniform vec2 fogR; varying vec2 vuv; varying float vsh, vfog; varying vec3 vn, vvn;
+  void main(){ vec4 w = M*vec4(p,1.); vec4 e = V*w; vfog = clamp((-e.z - fogR.x)/(fogR.y - fogR.x), 0., 1.); vuv = uv; vsh = sh; vn = normalize(mat3(M)*n); vvn = mat3(V)*vn; gl_Position = P*e; }`;
   const FS = `precision mediump float; varying vec2 vuv; varying float vsh, vfog; varying vec3 vn, vvn;
   uniform sampler2D tex; uniform float mode, alpha; uniform vec3 col, sky;
   void main(){
@@ -171,6 +171,17 @@
     return `<svg viewBox="0 0 18 26" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">${r}</svg>`;
   }
 
+  // ---------- 設定（存在自己手機 localStorage mw_cube_set）----------
+  const QUALITY = {
+    low:  { scale:.6,  view:40, clouds:false, fps:30 },
+    mid:  { scale:.8,  view:60, clouds:true,  fps:60 },
+    high: { scale:1,   view:90, clouds:true,  fps:0 },
+  };
+  const DEF = { q:"mid", scale:.8, view:60, clouds:true, fps:60, fog:true, fov:60, showFps:false,
+    sens:1, invY:false, joy:"m", autoCam:true, camD:"m", sound:true, names:true };
+  function loadCfg(){ let c = {}; try{ c = JSON.parse(localStorage.getItem("mw_cube_set") || "{}") || {}; }catch(e){} return Object.assign({}, DEF, c); }
+  function saveCfg(c){ try{ localStorage.setItem("mw_cube_set", JSON.stringify(c)); }catch(e){} }
+
   let cur = null;   // 同時只能開一個
   // 尾巴的樣子（站長選了 4 垂垂勾勾；其他留著以後可以當造型選項）：c = 身體座標的控制點（往後是 -z），n = 幾節方塊，r(u) = 每節粗細
   const TAILS = {
@@ -182,9 +193,11 @@
   function open(o){
     if(cur) return cur;
     let last = performance.now(), raf = 0, dead = false, t0 = last, offAll = () => {};
+    const CFG = loadCfg();
     const root = document.createElement("div"); root.className = "p3d";
     root.innerHTML = `<canvas class="p3dC"></canvas><div class="p3dL" id="p3dL"></div>
-      <div class="p3dTop"><button class="p3dX" id="p3dX">◀ 離開</button><span class="p3dT">喵喵方塊島</span><span class="p3dF" id="p3dF" hidden></span></div>
+      <div class="p3dTop"><button class="p3dX" id="p3dX">◀ 離開</button><span class="p3dT">喵喵方塊島</span><span class="p3dF" id="p3dF" hidden></span><span class="p3dFps" id="p3dFps" hidden></span><button class="p3dX p3dGear" id="p3dGear">設定</button></div>
+      <div class="p3dSet" id="p3dSet" hidden></div>
       <div class="p3dHint" id="p3dHint">左下搖桿走路・右邊拖曳轉鏡頭</div>
       <div class="p3dRot" id="p3dRot"><div class="p3dRotPh"><i></i></div><div>把手機轉橫的玩</div><button id="p3dRotX">直的也沒關係</button></div>
       <div class="p3dJoy" id="p3dJoy"><i></i></div>
@@ -343,13 +356,13 @@
     const joy = root.querySelector("#p3dJoy"), knob = joy.querySelector("i"), J = { id:null, x:0, y:0, cx:0, cy:0 }, K = {};
     let dragId = null, lx = 0, ly = 0, hintHid = false;
     const hideHint = () => { if(hintHid) return; hintHid = true; const h = root.querySelector("#p3dHint"); if(h) h.classList.add("hide"); };
-    joy.addEventListener("pointerdown", e => { e.preventDefault(); try{ joy.setPointerCapture(e.pointerId); }catch(_){} const r = joy.getBoundingClientRect(); J.id = e.pointerId; J.cx = r.left + r.width/2; J.cy = r.top + r.height/2; jm(e); hideHint(); });
-    const jm = e => { if(e.pointerId !== J.id) return; let dx = e.clientX - J.cx, dy = e.clientY - J.cy; const R = 46, l = Math.hypot(dx, dy); if(l > R){ dx *= R/l; dy *= R/l; } J.x = dx/R; J.y = dy/R; knob.style.transform = `translate(${dx}px,${dy}px)`; };
+    joy.addEventListener("pointerdown", e => { e.preventDefault(); try{ joy.setPointerCapture(e.pointerId); }catch(_){} const r = joy.getBoundingClientRect(); J.id = e.pointerId; J.cx = r.left + r.width/2; J.cy = r.top + r.height/2; J.R = r.width*.37; jm(e); hideHint(); });
+    const jm = e => { if(e.pointerId !== J.id) return; let dx = e.clientX - J.cx, dy = e.clientY - J.cy; const R = J.R || 46, l = Math.hypot(dx, dy); if(l > R){ dx *= R/l; dy *= R/l; } J.x = dx/R; J.y = dy/R; knob.style.transform = `translate(${dx}px,${dy}px)`; };
     joy.addEventListener("pointermove", jm);
     const jEnd = e => { if(e.pointerId !== J.id) return; J.id = null; J.x = J.y = 0; knob.style.transform = ""; };
     joy.addEventListener("pointerup", jEnd); joy.addEventListener("pointercancel", jEnd); joy.addEventListener("lostpointercapture", jEnd);
     cv.addEventListener("pointerdown", e => { if(dragId !== null) return; dragId = e.pointerId; lx = e.clientX; ly = e.clientY; try{ cv.setPointerCapture(e.pointerId); }catch(_){} hideHint(); });
-    cv.addEventListener("pointermove", e => { if(e.pointerId !== dragId) return; cam.yaw -= (e.clientX - lx)*.0085; cam.pitch = Math.max(.08, Math.min(1.25, cam.pitch + (e.clientY - ly)*.006)); lx = e.clientX; ly = e.clientY; });
+    cv.addEventListener("pointermove", e => { if(e.pointerId !== dragId) return; cam.yaw -= (e.clientX - lx)*.0085*CFG.sens; cam.pitch = Math.max(.08, Math.min(1.25, cam.pitch + (e.clientY - ly)*.006*CFG.sens*(CFG.invY ? -1 : 1))); lx = e.clientX; ly = e.clientY; });
     const cEnd = e => { if(e.pointerId === dragId) dragId = null; }; cv.addEventListener("pointerup", cEnd); cv.addEventListener("pointercancel", cEnd); cv.addEventListener("lostpointercapture", cEnd);
     const GK = { w:1, a:1, s:1, d:1, arrowup:1, arrowdown:1, arrowleft:1, arrowright:1, " ":1 };
     const kd = e => { const k = (e.key || "").toLowerCase(); if(!GK[k]) return; e.preventDefault(); if(k === " "){ if(!e.repeat) jump(); } else K[k] = true; hideHint(); },
@@ -363,7 +376,7 @@
     let jumpBuf = 0;   // 按跳的時候還差一點點才落地／剛走出邊緣，也算數
     function jump(){ jumpBuf = .15; }
     function tryJump(dt){ if(jumpBuf <= 0) return; jumpBuf -= dt;
-      if(player.onG || (player.air || 0) < .1 && player.vy <= 0){ player.vy = 7.2; player.onG = false; player.air = 1; jumpBuf = 0; o.sfx && o.sfx.tap && o.sfx.tap(); } }
+      if(player.onG || (player.air || 0) < .1 && player.vy <= 0){ player.vy = 7.2; player.onG = false; player.air = 1; jumpBuf = 0; CFG.sound && o.sfx && o.sfx.tap && o.sfx.tap(); } }
     root.querySelector("#p3dJump").addEventListener("pointerdown", e => { e.preventDefault(); jump(); });
     root.querySelector("#p3dX").addEventListener("click", close);
     root.querySelector("#p3dRotX").addEventListener("click", () => { root.classList.add("rotOk"); });
@@ -383,14 +396,65 @@
       const p = pets[near]; if(!p || busy) return; busy = true; setTimeout(() => { busy = false; }, 700);
       p.love = 2.2; p.hop = .6; p.tx = null; p.wait = 2.5; p.pets = (p.pets || 0) + 1;
       player.yaw = Math.atan2(p.x - player.x, p.z - player.z); player.petT = .5;   // 轉向小貓
-      o.sfx && o.sfx.meow && o.sfx.meow(1.2); hideHint();
+      CFG.sound && o.sfx && o.sfx.meow && o.sfx.meow(1.2); hideHint();
     });
     paintAct();
 
+    // ---------- 設定畫面 ----------
+    const fpsEl = root.querySelector("#p3dFps"), setEl = root.querySelector("#p3dSet"); let fpsN = 0, fpsT = performance.now();
+    const CAMD = { s:3.6, m:5, l:6.6 };
+    function applyCfg(first){
+      root.dataset.joy = CFG.joy; fpsEl.hidden = !CFG.showFps; cam.dist = CAMD[CFG.camD] || 5;
+      if(!first){ resize(); saveCfg(CFG); }
+    }
+    const seg = (k, opts) => `<div class="p3dSeg" data-k="${k}">${opts.map(([v, t]) => `<button data-v="${v}" class="${String(CFG[k]) === String(v) ? "on" : ""}">${t}</button>`).join("")}</div>`;
+    const tog = k => seg(k, [["true","開"],["false","關"]]);
+    const slider = (k, mn, mx, st, fmt) => `<div class="p3dRng"><input type="range" data-k="${k}" min="${mn}" max="${mx}" step="${st}" value="${CFG[k]}"><b data-f="${k}">${fmt(CFG[k])}</b></div>`;
+    const FMT = { scale:v => Math.round(v*100) + "%", view:v => v + " 格", fov:v => v + "°", sens:v => Math.round(v*100) + "%" };
+    const row = (t, d, c) => `<div class="p3dRow"><div><div class="p3dRt">${t}</div>${d ? `<div class="p3dRd">${d}</div>` : ""}</div>${c}</div>`;
+    function paintSet(){
+      setEl.innerHTML = `<div class="p3dSetIn">
+        <div class="p3dSetHd"><b>設定</b><button id="p3dSetX">完成</button></div>
+        <div class="p3dSec">畫面</div>
+        ${row("畫質", "一次調整下面幾項；手機會燙或卡就選「順暢」", seg("q", [["low","順暢"],["mid","平衡"],["high","精緻"],["custom","自訂"]]))}
+        ${row("解析度", "越高越清楚，但比較耗電", slider("scale", .5, 1, .05, FMT.scale))}
+        ${row("視野距離", "看得多遠", slider("view", 30, 90, 5, FMT.view))}
+        ${row("幀率上限", "越高越順，30 比較省電", seg("fps", [["30","30"],["60","60"],["0","不限"]]))}
+        ${row("飄浮的雲", "", tog("clouds"))}
+        ${row("遠方的霧", "關掉的話遠處會直接切掉", tog("fog"))}
+        ${row("視角", "畫面看出去的寬度", slider("fov", 50, 90, 5, FMT.fov))}
+        ${row("顯示 FPS", "左上角顯示每秒幾張畫面", tog("showFps"))}
+        <div class="p3dSec">操作</div>
+        ${row("轉鏡頭靈敏度", "", slider("sens", .3, 2, .1, FMT.sens))}
+        ${row("鏡頭上下反過來", "", tog("invY"))}
+        ${row("鏡頭距離", "", seg("camD", [["s","近"],["m","中"],["l","遠"]]))}
+        ${row("鏡頭自動轉到背後", "走路時鏡頭慢慢跟到角色後面", tog("autoCam"))}
+        ${row("搖桿大小", "", seg("joy", [["s","小"],["m","中"],["l","大"]]))}
+        <div class="p3dSec">聲音和其他</div>
+        ${row("音效", "", tog("sound"))}
+        ${row("小貓的名字", "", tog("names"))}
+        <button class="p3dReset" id="p3dReset">恢復預設</button>
+      </div>`;
+      setEl.querySelector("#p3dSetX").onclick = () => { setEl.hidden = true; };
+      setEl.querySelector("#p3dReset").onclick = () => { Object.assign(CFG, DEF); applyCfg(); paintSet(); };
+      setEl.querySelectorAll(".p3dSeg").forEach(g => g.querySelectorAll("button").forEach(b => b.onclick = () => {
+        const k = g.dataset.k, raw = b.dataset.v, v = raw === "true" ? true : raw === "false" ? false : (/^[\d.]+$/.test(raw) ? +raw : raw);
+        if(k === "q"){ CFG.q = v; if(QUALITY[v]) Object.assign(CFG, QUALITY[v]); }
+        else { CFG[k] = v; if(["fps","clouds"].includes(k)) CFG.q = "custom"; }
+        CFG.sound && o.sfx && o.sfx.tap && o.sfx.tap(); applyCfg(); paintSet(); }));
+      setEl.querySelectorAll("input[type=range]").forEach(r => {
+        r.oninput = () => { const k = r.dataset.k; CFG[k] = +r.value; setEl.querySelector(`[data-f="${k}"]`).textContent = FMT[k](CFG[k]);
+          if(["scale","view"].includes(k)){ CFG.q = "custom"; setEl.querySelectorAll('[data-k="q"] button').forEach(b => b.classList.toggle("on", b.dataset.v === "custom")); }
+          applyCfg(); };
+      });
+    }
+    root.querySelector("#p3dGear").addEventListener("click", () => { release(); paintSet(); setEl.hidden = false; hideHint(); });
+    setEl.addEventListener("pointerdown", e => e.stopPropagation());
+
     // ---------- 畫面 ----------
     const labels = root.querySelector("#p3dL");
-    function resize(){ const dpr = Math.min(window.devicePixelRatio || 1, 2); cv.width = Math.round(root.clientWidth*dpr); cv.height = Math.round(root.clientHeight*dpr); }
-    resize(); window.addEventListener("resize", resize);
+    function resize(){ const dpr = Math.min(window.devicePixelRatio || 1, 2)*CFG.scale; cv.width = Math.round(root.clientWidth*dpr); cv.height = Math.round(root.clientHeight*dpr); }
+    applyCfg(true); resize(); window.addEventListener("resize", resize);
     offAll = () => { window.removeEventListener("resize", resize); window.removeEventListener("keydown", kd); window.removeEventListener("keyup", ku); window.removeEventListener("blur", release); document.removeEventListener("visibilitychange", vis); };
     const SKY = hexc("#cdeaff");
     let boundC = 36; const bind0 = bind; bind = m => { boundC = m.c; bind0(m); };
@@ -508,7 +572,9 @@
       return out; })();
     function frame(now){
       if(dead) return; raf = requestAnimationFrame(frame);
+      if(CFG.fps && now - last < 1000/CFG.fps - 2) return;   // 幀率上限：還沒到時間就先不畫（比較省電、不會燙）
       const dt = Math.min(.05, (now - last)/1000); last = now; const t = (now - t0)/1000;
+      if(CFG.showFps){ fpsN++; if(now - fpsT > 500){ fpsEl.textContent = Math.round(fpsN*1000/(now - fpsT)) + " FPS"; fpsN = 0; fpsT = now; } }
       // 玩家移動（搖桿方向跟著鏡頭）
       let ix = J.x, iz = J.y;
       if(K.w || K.arrowup) iz = -1; if(K.s || K.arrowdown) iz = 1; if(K.a || K.arrowleft) ix = -1; if(K.d || K.arrowright) ix = 1;
@@ -520,7 +586,7 @@
       tryJump(dt); if(player.petT > 0) player.petT -= dt;
       move(player, mx, mz, dt, .28, 1.45); player._dt = dt; player.spd = mag; player.walk += dt*mag;
       // 鏡頭慢慢轉到玩家背後（有在走、而且沒在拖曳時）
-      if(mag > .2 && dragId === null){ let d = (player.yaw + Math.PI) - cam.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); cam.yaw += d*Math.min(1, dt*1.4); }
+      if(CFG.autoCam && mag > .2 && dragId === null){ let d = (player.yaw + Math.PI) - cam.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); cam.yaw += d*Math.min(1, dt*1.4); }
       // 寵物貓：到處閒晃，你靠近時會轉過來看你
       near = -1; let nd = 2.4;
       pets.forEach(p => {
@@ -542,11 +608,11 @@
       for(let d = .25; d <= cam.dist; d += .1){ const bx = tgt[0]+dir[0]*d, by = tgt[1]+dir[1]*d, bz = tgt[2]+dir[2]*d;
         if(solid(bx, by, bz) || solid(bx, by + .15, bz) || solid(bx, by - .15, bz)){ dist = Math.max(.3, d - .3); break; } }
       const eye = [tgt[0]+dir[0]*dist, tgt[1]+dir[1]*dist, tgt[2]+dir[2]*dist];
-      const V = lookAt(eye, tgt, [0,1,0]), P = persp(1.05, cv.width/cv.height, .05, 90);
+      const V = lookAt(eye, tgt, [0,1,0]), P = persp(CFG.fov*Math.PI/180, cv.width/cv.height, .05, CFG.view + 12);
 
       gl.viewport(0, 0, cv.width, cv.height); gl.clearColor(SKY[0], SKY[1], SKY[2], 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       gl.enable(gl.DEPTH_TEST); gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK); gl.frontFace(gl.CCW);
-      gl.uniformMatrix4fv(U("V"), false, V); gl.uniformMatrix4fv(U("P"), false, P); gl.uniform3fv(U("sky"), SKY);
+      gl.uniformMatrix4fv(U("V"), false, V); gl.uniformMatrix4fv(U("P"), false, P); gl.uniform2f(U("fogR"), CFG.fog ? CFG.view*.45 : 1e4, CFG.fog ? CFG.view : 1e4 + 1); gl.uniform3fv(U("sky"), SKY);
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tex); gl.uniform1i(U("tex"), 0);
       gl.uniform1f(U("mode"), 0); gl.uniform1f(U("alpha"), 1); gl.uniformMatrix4fv(U("M"), false, I4());
       chunks[0].forEach(m => { bind(m); gl.drawElements(gl.TRIANGLES, m.c, gl.UNSIGNED_SHORT, 0); });
@@ -557,7 +623,7 @@
       pets.forEach(p => drawCat(p, t));
       // 雲海和飄來飄去的雲（白白的大方塊，半透明）
       gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.uniform1f(U("mode"), 1); bind(cube);
-      CLOUDS.forEach(c => { const x = ((c.x + t*c.v) % 140 + 140) % 140 - 42; for(const [ox, oy, oz, sx, sy, sz] of c.parts) box(chain(T(x+ox, c.y+oy, c.z+oz), S(sx, sy, sz)), "#ffffff", c.a); });
+      if(CFG.clouds) CLOUDS.forEach(c => { const x = ((c.x + t*c.v) % 140 + 140) % 140 - 42; for(const [ox, oy, oz, sx, sy, sz] of c.parts) box(chain(T(x+ox, c.y+oy, c.z+oz), S(sx, sy, sz)), "#ffffff", c.a); });
       gl.disable(gl.BLEND);
       // 水和玻璃最後畫（半透明）
       gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); gl.disable(gl.CULL_FACE);
@@ -569,7 +635,7 @@
       let html = "";
       const cs = npc;
       pets.forEach(p => { const c = cs[p.i]; if(!c) return; const q = project(p.x, p.y + 1.15*p.s + .25, p.z, V, P); if(!q || q[2] > 16) return;
-        html += `<div class="p3dNmTag${p.i === near ? " on" : ""}" style="transform:translate(${q[0]}px,${q[1]}px) translate(-50%,-100%)">${o.esc(c.name)}</div>`;
+        if(CFG.names) html += `<div class="p3dNmTag${p.i === near ? " on" : ""}" style="transform:translate(${q[0]}px,${q[1]}px) translate(-50%,-100%)">${o.esc(c.name)}</div>`;
         if(p.love > 0){ const k = 2.2 - p.love; html += `<div class="p3dHeart" style="transform:translate(${q[0]}px,${q[1] - 18 - k*26}px) translate(-50%,-100%);opacity:${Math.min(1, p.love)}">${o.icon ? o.icon("heart") : "♥"}</div>`; } });
       if(labels._h !== html){ labels._h = html; labels.innerHTML = html; }
     }
