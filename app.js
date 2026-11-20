@@ -3192,7 +3192,12 @@ const App = (function(){
   async function doInstall(){
     SFX.tap();
     if(inAppBrowser) return showInAppTip();
-    if(installEvt){ try{ installEvt.prompt(); const r = await installEvt.userChoice; if(r && r.outcome === "accepted"){ installEvt = null; return; } }catch(e){} }
+    if(installEvt){ try{
+      const ev = installEvt; ev.prompt();
+      // 有些手機（例如小米）瀏覽器不會跳出安裝視窗，userChoice 就永遠不會回來；3.5 秒沒反應就改顯示文字說明
+      const r = await Promise.race([ev.userChoice, new Promise(res=>setTimeout(()=>res(null), 3500))]);
+      if(r && r.outcome === "accepted"){ installEvt = null; return; }
+    }catch(e){} }
     showInstallGuide();
   }
   async function copyUrl(){ const u = location.origin + location.pathname; try{ await navigator.clipboard.writeText(u); toast("網址複製好了！打開 Chrome 或 Safari 貼上就好"); }catch(e){ toast(u, 6000); } }
