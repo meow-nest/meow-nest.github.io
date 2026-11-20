@@ -172,6 +172,13 @@
   }
 
   let cur = null;   // 同時只能開一個
+  // 尾巴的樣子（站長選了 4 垂垂勾勾；其他留著以後可以當造型選項）：c = 身體座標的控制點（往後是 -z），n = 幾節方塊，r(u) = 每節粗細
+  const TAILS = {
+    1: { name:"彎彎問號", n:7, c:[[0,.6,-.16],[0,.56,-.3],[0,.63,-.45],[0,.8,-.54],[0,1.0,-.55],[0,1.13,-.48],[0,1.19,-.38]], r:u => .1 - u*.015 },
+    2: { name:"翹翹直尾巴", n:5, c:[[0,.6,-.16],[0,.68,-.3],[0,.8,-.42],[0,.94,-.52],[0,1.08,-.58],[0,1.2,-.6]], r:u => .1 - u*.01 },
+    3: { name:"胖胖短尾巴", n:3, c:[[0,.6,-.16],[0,.62,-.3],[0,.7,-.42],[0,.82,-.48]], r:u => .15 - u*.02 },
+    4: { name:"垂垂勾勾", n:6, c:[[0,.6,-.16],[0,.48,-.3],[0,.36,-.42],[0,.3,-.56],[0,.36,-.7],[0,.5,-.76]], r:u => .095 - u*.01 },
+  };
   function open(o){
     if(cur) return cur;
     let last = performance.now(), raf = 0, dead = false, t0 = last, offAll = () => {};
@@ -418,6 +425,9 @@
     // 從 a 到 b 的方塊（給尾巴、頭髮一節一節畫）
     function segBox(a, b, r, col){ const d = sub(b, a), L = Math.hypot(...d) || 1e-6, y = d.map(v => v/L); let x = nrm(cross(Math.abs(y[1]) < .95 ? [0,1,0] : [1,0,0], y)); const z = cross(x, y);
       box([x[0]*r,x[1]*r,x[2]*r,0, y[0]*(L+.02),y[1]*(L+.02),y[2]*(L+.02),0, z[0]*r,z[1]*r,z[2]*r,0, (a[0]+b[0])/2,(a[1]+b[1])/2,(a[2]+b[2])/2,1], col); }
+    // 一節方塊（尾巴用）：方向跟著身體的左右，不會亂轉；長度多一點點，接頭重疊不會有縫
+    function blockSeg(a, b, r, col, side){ const d = sub(b, a), L = Math.hypot(...d) || 1e-6, y = d.map(v => v/L); const z = nrm(cross(side, y)), x = cross(y, z), Lx = L + r*.9;
+      box([x[0]*r,x[1]*r,x[2]*r,0, y[0]*Lx,y[1]*Lx,y[2]*Lx,0, z[0]*r,z[1]*r,z[2]*r,0, (a[0]+b[0])/2,(a[1]+b[1])/2,(a[2]+b[2])/2,1], col); }
     // 會晃的繩子（尾巴、雙馬尾）：一節一節的點，用慣性＋重力＋「想回到原本形狀」的力，走路、轉身、跳起來都會晃
     const toW = (e, lx, ly, lz) => { const c = Math.cos(e.yaw), s = Math.sin(e.yaw); return [e.x + lx*c + lz*s, e.y + ly, e.z - lx*s + lz*c]; };
     function rope(e, key, n, len, base, dirs, stiff, dt){
@@ -451,21 +461,17 @@
       // 手（反方向擺）＋手掌；摸摸時右手往前伸
       for(const [ax, k] of [[-.34, -1], [.34, 1]]){ const reach = k > 0 && e.petT > 0 ? Math.sin(e.petT/.5*Math.PI)*1.3 : 0, r = chain(T(0,.98,0), RX(sw*k*.9*(reach ? 0 : 1) - reach)); at(ax,-.2,0, .16,.46,.18, a.pj, r); at(ax,-.42,0, .17,.07,.19, a.lt, r); }
       // 尾巴
-      // 毛茸茸的貓尾巴：從屁股往後、再往上翹成問號的形狀，尾巴尖是白的；
-      // 會跟著走路一彈一彈、轉身時往反方向甩（彈簧），站著時慢慢左右搖
+      // 方塊貓尾巴：一格一格的方塊接起來（接頭互相重疊，不會有縫），會跟著走路彈、轉身甩、站著慢慢搖
       { const dt = e._dt || .016, dyaw = Math.atan2(Math.sin(e.yaw - (e._ty ?? e.yaw)), Math.cos(e.yaw - (e._ty ?? e.yaw))); e._ty = e.yaw;
         const want = Math.max(-.9, Math.min(.9, -dyaw/Math.max(dt, .001)*.09)) + Math.sin(t*1.7)*.22 + Math.sin(e.walk*10)*.1*(e.spd || 0);
         e._tv = ((e._tv || 0) + (want - (e._tw || 0))*60*dt)*Math.pow(.02, dt); e._tw = (e._tw || 0) + e._tv*dt;
-        const lift = (e.spd || 0)*.08 + (e.onG ? 0 : .1);
-        const C = [[0,.6,-.16],[0,.56,-.3],[0,.62,-.45],[0,.8,-.55],[0,1.0,-.56],[0,1.13,-.5],[0,1.2,-.4]];
-        const pts = C.map(([x, y, z], i) => { const u = i/(C.length-1), sw = e._tw*Math.pow(u, 1.2)*.55; return toW(e, x + sw, y + lift*u, z - Math.abs(sw)*.25*u); });
-        const sm = smooth(pts, 6), L = sm.length, R = u => (u < .08 ? .055 + u*.2 : .072 - Math.max(0, u - .55)*.06);
-        const base = a.mark === "stripe" ? a.pj : (a.dk === a.pj ? a.lt : a.dk), ring = a.mark === "stripe" ? a.dk : null;
-        // 分段上色：條紋貓有一圈一圈的深色、尾巴尖白白的
-        const cut = [[0, .3, base], [.3, .38, ring || base], [.38, .52, base], [.52, .6, ring || base], [.6, .8, base], [.8, 1.0001, a.lt]];
-        for(const [u0, u1, col] of cut){ const i0 = Math.floor(u0*(L-1)), i1 = Math.min(L-1, Math.ceil(u1*(L-1))); if(i1 - i0 < 1) continue;
-          tube(sm.slice(i0, i1+1), k => R((i0 + k*(i1-i0))/(L-1)), col, true); }
-        const tip = sm[L-1]; bind(ball); gl.uniform1f(U("mode"), 2); box(chain(T(tip[0], tip[1], tip[2]), S(.105,.105,.105)), a.lt); gl.uniform1f(U("mode"), 1); bind(cube); }
+        const TS = TAILS[o.tail || 4], lift = (e.spd || 0)*.06 + (e.onG ? 0 : .08);
+        const pts = TS.c.map(([x, y, z], i) => { const u = i/(TS.c.length-1), sw = e._tw*Math.pow(u, 1.2)*.5; return toW(e, x + sw, y + lift*u, z - Math.abs(sw)*.2*u); });
+        const sm = smooth(pts, 8), n = TS.n, q = []; for(let k = 0; k <= n; k++) q.push(sm[Math.round(k/n*(sm.length-1))]);
+        const side = [Math.cos(e.yaw), 0, -Math.sin(e.yaw)];
+        const base = a.mark === "stripe" ? a.pj : (a.dk === a.pj ? a.lt : a.dk), ring = a.mark === "stripe" ? a.dk : base;
+        for(let k = 0; k < n; k++){ const r = TS.r(k/(n-1)), col = k === n-1 ? a.lt : (a.mark === "stripe" && k % 2 === 1 ? ring : base);
+          blockSeg(q[k], q[k+1], r, col, side); } }
       // 頭：臉、頭髮、貓耳帽子
       const hd = chain(T(0,1.27,0));   // 頭不搖（頭髮是另外畫的，要對齊）
       at(0,0,0, .48,.46,.46, a.skin, hd);
