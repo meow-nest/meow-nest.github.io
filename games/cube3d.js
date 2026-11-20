@@ -469,7 +469,7 @@
         const pts = TS.c.map(([x, y, z], i) => { const u = i/(TS.c.length-1), sw = e._tw*Math.pow(u, 1.2)*.5; return toW(e, x + sw, y + lift*u, z - Math.abs(sw)*.2*u); });
         const sm = smooth(pts, 8), n = TS.n, q = []; for(let k = 0; k <= n; k++) q.push(sm[Math.round(k/n*(sm.length-1))]);
         const side = [Math.cos(e.yaw), 0, -Math.sin(e.yaw)];
-        const base = a.mark === "stripe" ? a.pj : (a.dk === a.pj ? a.lt : a.dk), ring = a.mark === "stripe" ? a.dk : base;
+        const base = a.mark === "calico" ? a.dk : a.pj, ring = a.mark === "stripe" ? a.dk : base;   // 尾巴跟睡衣同色（三花是黑尾巴）
         for(let k = 0; k < n; k++){ const r = TS.r(k/(n-1)), col = k === n-1 ? a.lt : (a.mark === "stripe" && k % 2 === 1 ? ring : base);
           blockSeg(q[k], q[k+1], r, col, side); } }
       // 頭：臉、頭髮、貓耳帽子
