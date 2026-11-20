@@ -1,5 +1,5 @@
 // 喵喵小窩 service worker：負責跳通知、點通知打開 App
-const CACHE = "meow-pub-v218";
+const CACHE = "meow-pub-v219";
 const SHELL = ["./", "index.html"];   // 其他檔案用到時才存（帶版本號，存在 ASSET 裡，更新時沒改到的不用重新下載）
 const ASSET = "meow-pub-assets";
 
@@ -23,10 +23,20 @@ self.addEventListener("fetch", e => {
   e.respondWith(net().catch(() => caches.match(e.request, { ignoreSearch: true })));
 });
 
+// 推播診斷：手機一收到推播就記下時間，設定頁會顯示「最近一次收到推播」，用來分辨「沒送到手機」還是「送到了但沒顯示」
+async function diag(fn) {
+  try {
+    const c = await caches.open(ASSET), req = new Request(self.registration.scope + "__diag/push");
+    const old = await c.match(req).then(r => r ? r.json() : {}).catch(() => ({}));
+    await c.put(req, new Response(JSON.stringify(fn(old || {})), { headers: { "Content-Type": "application/json" } }));
+  } catch (_) {}
+}
+
 self.addEventListener("push", e => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (_) { d = { title: "喵喵小窩", body: e.data ? e.data.text() : "" }; }
   e.waitUntil((async () => {
+    await diag(o => ({ recv: Date.now(), shown: 0, err: "", n: (o.n || 0) + 1 }));
     // always show it: iPhone/Chrome may cancel the subscription if a push shows nothing.
     // (the app closes these by itself when it's open)
     const kind = String(d.tag || "").replace(/^meow-/, "") || "text";
@@ -37,7 +47,7 @@ self.addEventListener("push", e => {
     let title = d.title || "喵喵小窩";
     if (kind !== "game") { const who = title.replace(/\s*🐾$/, ""); title = `${who} ${love ? "💗" : (DECO[kind] || "🐾")}`; }
     const VIB = { poke:[90,60,90,60,160], voice:[120,60,120], letter:[60,40,60,40,200] };
-    await self.registration.showNotification(title, {
+    try { await self.registration.showNotification(title, {
       body,
       icon: `icons/n/${love ? "love" : (ICON[kind] ? kind : "text")}.png`,
       badge: "icons/badge-96.png",
@@ -46,7 +56,8 @@ self.addEventListener("push", e => {
       timestamp: Date.now(),
       vibrate: VIB[kind] || [60, 40, 60],
       data: { url: d.url || "./#chat" },
-    });
+    }); } catch (err) { await diag(o => ({ ...o, err: String((err && err.message) || err) })); throw err; }
+    await diag(o => ({ ...o, shown: Date.now() }));
   })());
 });
 

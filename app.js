@@ -3036,7 +3036,7 @@ const App = (function(){
       <div class="box set"><h2>聊天背景</h2><div class="walls" id="wls">${WALLS.map(([id,n])=>`<button data-w="${id}" class="${(store.get("mw_wall")||"paws")===id?"on":""}"><span class="wv" data-wall="${id}"><span class="chat"><span class="list"></span></span></span>${n}</button>`).join("")}</div>
         <div class="k">「我的照片」可以選一張你們的合照當背景（只存在這支手機）。</div></div>
       <div class="box set"><h2>通知</h2><div class="k">${ps==="on"?(isSolo()?"✅ 已開啟：記事提醒時間到了手機會跳通知":"✅ 已開啟：ta 傳訊息時你的手機會跳通知"):ps==="denied"?"❌ 通知被封鎖了，請到手機的瀏覽器設定裡允許通知":ps==="ios-home"?"📱 iPhone 要先把這個網頁「加入主畫面」，從主畫面圖示打開後才能開通知":ps==="unsupported"?"這個瀏覽器不支援通知，請用 Chrome（Android）或 Safari 加入主畫面（iPhone）":"還沒開啟"}</div>
-        ${ps!=="on"&&ps!=="unsupported"&&ps!=="ios-home"?`<button class="btn mint" id="bPush2">開啟通知</button>`:""}${ps==="on"?`<button class="btn mint" id="bSelfTest" style="margin-bottom:8px">🔔 傳一則測試通知給自己</button>${isSolo()?"":`<button class="btn sub" id="bTest">傳一則測試訊息給 ta</button>`}`:""}<button class="btn sub" id="bPushHelp" style="margin-top:8px">🤔 收不到通知？看這裡</button></div>
+        ${ps!=="on"&&ps!=="unsupported"&&ps!=="ios-home"?`<button class="btn mint" id="bPush2">開啟通知</button>`:""}${ps==="on"?`<button class="btn mint" id="bSelfTest" style="margin-bottom:8px">🔔 傳一則測試通知給自己</button>${isSolo()?"":`<button class="btn sub" id="bTest">傳一則測試訊息給 ta</button>`}`:""}${store.get("mw_diag")==="1"?'<div class="k" id="pdg" style="margin:8px 0 0;cursor:pointer"></div>':""}<button class="btn sub" id="bPushHelp" style="margin-top:8px">🤔 收不到通知？看這裡</button></div>
       <div class="box set"><h2>邀請碼</h2><div class="code" style="text-align:center">${esc(B.code||"")}</div><div class="k">${pw()}打開網址後輸入這組碼就能加入。換手機時，用同一個名字再輸入一次即可。</div><button class="btn sub" id="bInv2">傳邀請連結</button></div>
       ${moveBox()}
       ${lockBox()}
@@ -3069,6 +3069,7 @@ const App = (function(){
       else toast("要先在 Supabase 跑 update_9_memo.sql，才能傳測試通知給自己喔", 6000);
       setTimeout(()=>{ if(bst.isConnected) bst.disabled = false; }, 60000);
     });
+    const pdg=$("pdg"); if(pdg){ pdg.addEventListener("click", ()=>showPushDiag(pdg)); showPushDiag(pdg); }
     const bph=$("bPushHelp"); if(bph) bph.addEventListener("click", ()=>showPushHelp());
     const bt=$("bTest"); if(bt) bt.addEventListener("click", ()=>{ sendMsg("（測試通知）喵～收到了嗎？","text"); toast("已送出，看看 ta 的手機有沒有跳通知"); });
     $("bInv2").addEventListener("click", shareInvite); bindLockBox();
@@ -3143,6 +3144,7 @@ const App = (function(){
         } else if(body && !(n.nodeType===3 && !n.textContent.trim())) body.appendChild(n);
       });
     });
+    { const h = v.querySelector('.setHd[data-t="通知"]'); if(h){ let n=0, tm=0; h.addEventListener("click", ()=>{ n++; clearTimeout(tm); tm=setTimeout(()=>n=0, 2500); if(n>=5){ n=0; store.set("mw_diag", store.get("mw_diag")==="1" ? "0" : "1"); render(); } }); } }   // 連點「通知」標題 5 次：顯示／隱藏推播診斷（只有需要查問題的人才會知道）
     v.addEventListener("click", ()=>setTimeout(()=>v.querySelectorAll(".setHd").forEach(h=>h._paint && h._paint()), 60));
   }
   function previewAnim(btn){
@@ -3210,6 +3212,18 @@ const App = (function(){
     const o = modal(`<h3>📲 把喵喵小窩下載到手機</h3><p class="k" style="margin:0 0 8px">下載後會出現在手機桌面，打開就像一般的 App，也才收得到通知。</p>${steps}
       <button class="btn" id="igOk" style="width:100%;margin-top:10px">好</button>`, "inst");
     o.querySelector("#igOk").addEventListener("click", ()=>o.remove());
+  }
+  async function showPushDiag(el){   // 設定頁：顯示這支手機「最近一次收到推播」的時間（sw.js 收到時記錄）
+    try{
+      if(!("serviceWorker" in navigator) || !("caches" in window)){ el.textContent = ""; return; }
+      const reg = await navigator.serviceWorker.ready;
+      const c = await caches.open("meow-pub-assets");
+      const r = await c.match(new Request(reg.scope + "__diag/push"));
+      const d = r ? await r.json() : null;
+      const f = t => { const x = new Date(t), p = n => String(n).padStart(2,"0"); return `${x.getMonth()+1}/${x.getDate()} ${p(x.getHours())}:${p(x.getMinutes())}:${p(x.getSeconds())}`; };
+      if(!d || !d.recv){ el.innerHTML = "📡 這支手機還沒有收到過推播的紀錄<br><span style='opacity:.7'>（更新後才開始記錄。請 ta 傳一則訊息，把 App 關掉等一下，再回來點這行看看）</span>"; return; }
+      el.innerHTML = `📡 最近一次收到推播：<b>${f(d.recv)}</b>（共 ${d.n||1} 則）<br>` + (d.err ? `⚠️ 收到了但顯示失敗：${esc(d.err)}` : d.shown ? `✅ 已顯示 ${f(d.shown)}` : "⚠️ 收到了但還沒顯示成功") + `<br><span style='opacity:.7'>點這行可以重新整理</span>`;
+    }catch(e){ el.textContent = ""; }
   }
   function pushState(){
     if(!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) return isIOS && !standalone ? "ios-home" : "unsupported";
