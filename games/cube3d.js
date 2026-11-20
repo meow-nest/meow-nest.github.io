@@ -178,7 +178,7 @@
     mid:  { scale:.8,  view:60, clouds:true,  fps:60 },
     high: { scale:1,   view:90, clouds:true,  fps:0 },
   };
-  const DEF = { time:"real", q:"mid", scale:.8, view:60, clouds:true, fps:60, fog:true, fov:60, showFps:false,
+  const DEF = { ui:"a", time:"real", q:"mid", scale:.8, view:60, clouds:true, fps:60, fog:true, fov:60, showFps:false,
     sens:1, invY:false, joy:"m", autoCam:true, camD:"m", sound:true, names:true };
   function loadCfg(){ let c = {}; try{ c = JSON.parse(localStorage.getItem("mw_cube_set") || "{}") || {}; }catch(e){} return Object.assign({}, DEF, c); }
   function saveCfg(c){ try{ localStorage.setItem("mw_cube_set", JSON.stringify(c)); }catch(e){} }
@@ -197,7 +197,7 @@
     const CFG = loadCfg();
     const root = document.createElement("div"); root.className = "p3d";
     root.innerHTML = `<canvas class="p3dC"></canvas><div class="p3dL" id="p3dL"></div>
-      <div class="p3dTop"><button class="p3dX" id="p3dX">◀ 離開</button><span class="p3dT">喵喵方塊島</span><span class="p3dF" id="p3dF" hidden></span><span class="p3dFps" id="p3dFps" hidden></span><button class="p3dX p3dGear" id="p3dGear">設定</button></div>
+      <div class="p3dTop"><button class="p3dX" id="p3dX"><span class="p3dBack"></span><span>離開</span></button><span class="p3dT">喵喵方塊島</span><span class="p3dF" id="p3dF" hidden></span><span class="p3dFps" id="p3dFps" hidden></span><button class="p3dX p3dGear" id="p3dGear">${o.icon ? `<span class="p3dIc">${o.icon("gear")}</span>` : ""}<span>設定</span></button></div>
       <div class="p3dSet" id="p3dSet" hidden></div>
       <div class="p3dTalk" id="p3dTalk" hidden></div><div class="p3dClock" id="p3dClock"></div>
       <div class="p3dHint" id="p3dHint">左下搖桿走路・右邊拖曳轉鏡頭</div>
@@ -393,6 +393,8 @@
     let near = -1, busy = false;
     // ---------- 熟悉度（存在自己手機 mw_cube_vil）：每天第一次聊天、第一次摸摸各 +1 ----------
     const FL = ["陌生", "認識", "朋友", "好朋友"];
+    const IC = n => o.icon ? `<span class="p3dIc">${o.icon(n)}</span>` : "";
+    const hearts = lv => `<span class="p3dHs" title="${FL[lv]}">${[0,1,2].map(k => `<i class="${k < lv ? "on" : ""}">${o.icon ? o.icon("heart") : ""}</i>`).join("")}</span>`;
     let VIL = {}; try{ VIL = JSON.parse(localStorage.getItem("mw_cube_vil") || "{}") || {}; }catch(e){}
     const today = () => { const d = new Date(); return d.getFullYear()*10000 + (d.getMonth()+1)*100 + d.getDate(); };
     const friendLv = id => { const f = (VIL[id] && VIL[id].f) || 0; return f >= 12 ? 3 : f >= 5 ? 2 : f >= 1 ? 1 : 0; };
@@ -402,7 +404,7 @@
       if(near < 0){ act.innerHTML = ""; return; }
       const c = npc[near]; if(!c){ act.innerHTML = ""; return; }
       const p = pets[near], lv = FL[friendLv(c.id)];
-      act.innerHTML = `<span class="p3dNm">${o.esc(c.name)}<i>${lv}</i></span><div class="p3dActB"><button data-a="talk">聊天</button><button data-a="pet">摸摸</button></div>`;
+      act.innerHTML = `<div class="p3dNm"><b>${o.esc(c.name)}</b>${hearts(friendLv(c.id))}<small>${lv}</small></div><div class="p3dActB"><button data-a="talk">${IC("chat")}<span>聊天</span></button><button data-a="pet">${IC("paw")}<span>摸摸</span></button></div>`;
       void p;
     }
     // ---------- 聊天：喵喵叫＋翻譯，點一下下一句 ----------
@@ -411,8 +413,9 @@
     function showLine(){
       const p = pets[talkIdx], c = p && p.v; if(!c){ endTalk(); return; }
       const line = talkLines[talkK], meow = TK ? TK.meowOf(line, TK.hash(c.id + line)) : "喵～";
-      talkEl.innerHTML = `<div class="p3dTalkIn"><div class="p3dTalkNm">${o.esc(c.name)}<i>${FL[talkLv]}</i></div><div class="p3dMeow">${o.esc(meow)}</div><div class="p3dTr">（${o.esc(line)}）</div><span class="p3dNext">${talkK < talkLines.length-1 ? "▼" : "完"}</span></div>`;
-      talkEl.hidden = false; p.hop = .6; p.love = Math.max(p.love, .01);
+      const dots = talkLines.length > 1 ? `<span class="p3dDots">${talkLines.map((_, k) => `<i class="${k === talkK ? "on" : ""}"></i>`).join("")}</span>` : "";
+      talkEl.innerHTML = `<div class="p3dTalkIn"><div class="p3dTalkNm"><b>${o.esc(c.name)}</b>${hearts(talkLv)}</div><div class="p3dMeow">${o.esc(meow)}</div><div class="p3dTr">${o.esc(line)}</div><div class="p3dTalkFt">${dots}<span class="p3dNext">${talkK < talkLines.length-1 ? "點一下繼續" : "點一下結束"}</span></div></div>`;
+      talkEl.hidden = false; act.style.visibility = "hidden"; p.hop = .6; p.love = Math.max(p.love, .01);
       CFG.sound && o.sfx && o.sfx.meow && o.sfx.meow((c.pitch || 1)*(p.sleep > .5 ? .8 : 1));
     }
     function startTalk(i){
@@ -421,7 +424,7 @@
       if(p.sleep <= .5) addFriend(c.id, "t");
       talkIdx = i; talkK = 0; p.tx = null; p.wait = 4; player.yaw = Math.atan2(p.x - player.x, p.z - player.z); showLine();
     }
-    function endTalk(){ talkIdx = -1; talkEl.hidden = true; talkEl.innerHTML = ""; }
+    function endTalk(){ talkIdx = -1; talkEl.hidden = true; talkEl.innerHTML = ""; act.style.visibility = ""; }
     talkEl.addEventListener("pointerdown", e => { e.preventDefault(); e.stopPropagation(); if(talkK < talkLines.length-1){ talkK++; showLine(); } else endTalk(); });
     // 摸摸：用 pointerdown 比較靈敏；摸完 .7 秒內再按不會一直叫
     act.addEventListener("pointerdown", e => {
@@ -440,7 +443,7 @@
     const clockEl = root.querySelector("#p3dClock"), fpsEl = root.querySelector("#p3dFps"), setEl = root.querySelector("#p3dSet"); let fpsN = 0, fpsT = performance.now();
     const CAMD = { s:3.6, m:5, l:6.6 };
     function applyCfg(first){
-      root.dataset.joy = CFG.joy; fpsEl.hidden = !CFG.showFps; cam.dist = CAMD[CFG.camD] || 5;
+      root.dataset.joy = CFG.joy; root.dataset.ui = window.__cubeUI || CFG.ui || "a"; fpsEl.hidden = !CFG.showFps; cam.dist = CAMD[CFG.camD] || 5;
       if(!first){ resize(); saveCfg(CFG); }
     }
     const seg = (k, opts) => `<div class="p3dSeg" data-k="${k}">${opts.map(([v, t]) => `<button data-v="${v}" class="${String(CFG[k]) === String(v) ? "on" : ""}">${t}</button>`).join("")}</div>`;
@@ -452,6 +455,7 @@
       setEl.innerHTML = `<div class="p3dSetIn">
         <div class="p3dSetHd"><b>設定</b><button id="p3dSetX">完成</button></div>
         <div class="p3dSec">畫面</div>
+        ${row("介面風格", "對話框和按鈕的樣子（試用中，選好會改成固定的）", seg("ui", [["a","奶油"],["b","毛玻璃"],["c","像素"]]))}
         ${row("畫質", "一次調整下面幾項；手機會燙或卡就選「順暢」", seg("q", [["low","順暢"],["mid","平衡"],["high","精緻"],["custom","自訂"]]))}
         ${row("解析度", "越高越清楚，但比較耗電", slider("scale", .5, 1, .05, FMT.scale))}
         ${row("視野距離", "看得多遠", slider("view", 30, 90, 5, FMT.view))}
@@ -646,7 +650,7 @@
       });
       if(talkIdx >= 0 && pets[talkIdx] && Math.hypot(pets[talkIdx].x - player.x, pets[talkIdx].z - player.z) > 3.6) endTalk();   // 走遠了就不聊了
       if(near !== act._near){ act._near = near; paintAct(); }
-      if(clockEl._m !== Math.floor(hr*60)){ clockEl._m = Math.floor(hr*60); const H = Math.floor(hr), M = Math.floor((hr - H)*60); clockEl.textContent = CFG.time === "day" ? "" : `${H < 5 || H >= 19 ? "晚上" : H < 11 ? "早上" : H < 13 ? "中午" : H < 17 ? "下午" : "傍晚"} ${H}:${String(M).padStart(2, "0")}`; }
+      if(clockEl._m !== Math.floor(hr*60)){ clockEl._m = Math.floor(hr*60); const H = Math.floor(hr), M = Math.floor((hr - H)*60); clockEl.innerHTML = CFG.time === "day" ? "" : `${o.icon ? `<span class="p3dIc">${o.icon(H >= 6 && H < 18 ? "sun" : "moon")}</span>` : ""}${H < 5 || H >= 19 ? "晚上" : H < 11 ? "早上" : H < 13 ? "中午" : H < 17 ? "下午" : "傍晚"} ${H}:${String(M).padStart(2, "0")}`; }
 
       // 鏡頭：在玩家後上方，被方塊擋住就拉近
       const tgt = [player.x, player.y + 1.35, player.z];
