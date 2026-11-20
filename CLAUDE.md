@@ -1,0 +1,113 @@
+# 喵喵小窩・給 Claude 的接手說明
+
+這份是寫給「接手幫站長改網站的 Claude」看的。站長不會寫程式，所有修改、測試、發布都由你做；需要動資料庫時，由你寫 SQL、站長自己貼到 Supabase 執行。
+
+## 站長的習慣（一定要遵守）
+
+- 用**繁體中文（台灣）**回覆，站長用 Redmi 手機看，回覆要短、好讀。
+- **發布前一定要等站長說「發吧」**。改好先在本機測試、截圖給她看，說明改了什麼，問她要不要發。
+- 有使用者看得到的改動時，順便提一則「更新通知」的文字給她看（她同意才加進 changelog.js）。修 bug、站長後台的改動不用通知。
+- 需要跑 SQL 時：把 SQL 放進 `supabase/update_NN_名稱.sql`，推上去後給她 **GitHub 檔案連結**（請她按右上角複製按鈕），和 Supabase 的 SQL 頁面：
+  https://supabase.com/dashboard/project/rtwgkdqekhzshuvkoxig/sql/new
+  跳出 RLS 警告時，請她按黃色的 **Run without RLS**。很短的 SQL（例如查資料）可以直接放在 code block 裡。
+- 如果前端要用到新的 SQL，一定提醒她**先跑 SQL 再讓大家更新**。
+- 她很在意好不好看：不喜歡醜、平、粗糙的設計。被退件好幾次時，請她給參考圖照著做。遊戲裡**不要用 emoji 當圖示**，用像素圖（`Pix.icon`、`Pix.sprite`）。
+- 誠實說明測試方式：是本機 Postgres ＋ 模擬手機（假後端）測的，不是真的線上資料。
+
+## 安全規則（不能違反）
+
+- **絕對不要**跟站長要 Supabase 的 service_role／secret key、資料庫密碼、任何帳號密碼；她貼給你也不要用、提醒她換掉。
+- 這是**公開倉庫**：不要把任何小窩的邀請碼、使用者資料、站長的個人資料（名字、信箱、GitHub 帳號）寫進檔案或 commit。
+- commit 的作者維持 `Claude <noreply@anthropic.com>`（站長希望不要顯示她的身分），不要設定成她的 git 帳號。
+- 只推到這個倉庫（meow-nest/meow-nest.github.io）。
+- 不要畫任何有版權的角色或品牌。股票遊戲是虛構的、不能做成賭博或成癮的設計。
+- VAPID 私鑰不存在任何地方，不要找也不要產生新的覆蓋。
+
+## 網站架構
+
+純前端 PWA，放在 GitHub Pages（main 分支根目錄），網址 https://meow-nest.github.io/ 。後端是 Supabase（匿名登入 + Postgres + Realtime）。
+
+| 檔案 | 內容 |
+|---|---|
+| `index.html` | 頁面骨架，載入所有 js/css（網址後面的 `?v=` 由 bump.py 自動產生） |
+| `start.js` | 啟動 `App.start()` |
+| `config.js` | Supabase 網址和公開金鑰（publishable key 本來就是公開的） |
+| `data.js` | 後端包裝 `B`：登入、成員、訊息、遊戲存檔（`B.casState`）、`B.rpc`；`window.__mock` 存在時改走測試用假後端 |
+| `app.js` | 主程式：首頁、聊天、設定、站長後台、等級稱號、更新通知、遊戲外框和 `ctx` |
+| `pixel.js` | 像素貓 `Pix.sprite(貓, 表情)`、圖示 `Pix.icon`、顏色 `PAL`、特別的貓（博士貓 star、壽星貓 bd1–9、睡衣小貓 pj） |
+| `games/*.js` | 每個遊戲一個檔案，用 `App.registerGame({ id, name, desc, mount(el, ctx), unmount() })` 註冊 |
+| `gameart.js` | 遊戲大廳的卡片圖 |
+| `ime.js` | 內建注音鍵盤（詞庫 `zhuyin.txt`） |
+| `changelog.js` | 更新通知（`window.CHANGELOG`，最新的放最上面） |
+| `style.css` | 全部樣式；字型是俐方體11號（`fonts/Cubic_11.woff2`），「畫」字另外用 `fonts/cubic_fix.woff` 補 |
+| `sw.js` | Service Worker 快取，版本號 `meow-pub-vNNN` 由 bump.py 加一 |
+| `about.html` | 網站聲明 |
+| `supabase/` | `setup.sql` + `update_NN_*.sql`，`all.sql` = 全部依序合在一起 |
+| `tools/bump.py` | 發布前跑，更新檔案版本號 |
+| `tools/test/` | 本機測試工具（見下面） |
+
+小窩模式：`couple` 情侶、`bestie` 閨蜜、`bro` 兄弟、`family` 家人（最多 6 人）、`solo` 單人。遊戲用 `ctx.partner()` 拿對方，家人模式會切換對象。
+
+遊戲裡常用的 `ctx`：`me`、`partner()`、`sprite`、`icon`、`SFX`、`toast`、`esc`、`getState(game)`、`update(game, fn)`（樂觀鎖寫存檔）、`onState(game, cb)`（即時同步）、`rpc(fn, args)`、`notifyPartner(text)`、`mode()`。
+
+## 資料庫
+
+- 每個人用匿名登入，`members(user_id, couple_id, name, cat)` 記錄誰在哪個小窩；`my_couple()` 回傳目前登入者的小窩。
+- 表格都開了 RLS，大部分寫入都透過 `security definer` 的函式（RPC），函式裡自己檢查 `auth.uid()`／`my_couple()`。新函式記得 `revoke ... from public, anon` 再 `grant execute ... to authenticated`。
+- `game_state(couple_id, game, version, state)` 是遊戲共用存檔，用 `cas_state()` 寫（版本號比對）。**每份存檔上限 20KB**，會一直累積的資料（例如星星罐 `star_jar`）要另外開表格。
+- 有防作弊的 trigger（例如 `member_cat_guard` 檢查特別的貓有沒有資格用、`lv_week_track` 記每週升級）。
+- 站長小窩是 `couples.is_owner = true`，前端會顯示站長後台。
+
+### 加新的 SQL
+
+1. 新檔案 `supabase/update_NN_名稱.sql`，NN 接著目前最大的號碼（目前到 **63**）。開頭用中文註解說這次做什麼。要能重複執行（`if not exists`、`create or replace`）。
+2. 加進 all.sql：`printf '\n' >> supabase/all.sql && cat supabase/update_NN_名稱.sql >> supabase/all.sql`
+3. 先在本機 Postgres 測過，再推上去給站長連結。
+
+## 發布流程
+
+```bash
+python3 tools/bump.py          # 更新 ?v= 和 sw.js 版本
+git add -A
+git -c user.name="Claude" -c user.email="noreply@anthropic.com" commit -m "做了什麼（中文）"
+git push origin main           # GitHub Pages 約 1 分鐘後更新
+```
+
+更新通知：在 `changelog.js` 的 `window.CHANGELOG = [` 下一行插入
+`{ id:"新的id", date:"2026/11/20", icon:"star", title:"標題", items:["重點一","重點二"] },`
+（id 不能重複；icon 用 `Pix.icon` 有的名字）。
+
+## 本機測試
+
+環境需要 Node + Playwright（`npm root -g` 裡有 playwright）、Python、PostgreSQL。
+
+1. **開網頁伺服器**（在倉庫的上一層）：`python3 -m http.server 8765 --directory ..`
+2. **模擬手機**：`NODE_PATH=$(npm root -g) node tools/test/example.js` —— 兩個瀏覽器分別開小窩、加入，截圖到 `/tmp`。`tools/test/harness.js` 是假後端（`DB` 物件），邀請碼固定 `AB12CD`。問卷、通知的彈窗可以用 `document.querySelectorAll('.careModal').forEach(m=>m.remove())` 關掉；被蓋住的按鈕用 `page.evaluate(()=>el.click())` 點。
+3. **測 SQL**：
+   ```bash
+   service postgresql start
+   su postgres -c "createdb t"
+   su postgres -c "psql -q -d t -f tools/test/pg_stub.sql"   # 假裝 Supabase 的 auth、storage
+   su postgres -c "psql -q -d t -f supabase/all.sql"         # pg_cron 那幾行報錯可以忽略
+   ```
+   （檔案要放在 postgres 讀得到的地方，例如先 `cp` 到 `/tmp` 再 `chmod 644`。）
+   在 SQL 裡用 `select set_config('t.uid', '<uuid>', false);` 假裝某個人登入（uuid 要先 `insert into auth.users(id)`）。
+   測試頁面設定 `page.__pg = '<uuid>'` 時，harness 會把 rpc 直接打到本機 Postgres 的資料庫 `t`。
+4. 截圖給站長看效果，手機尺寸 390 寬。
+
+## 兩個 Claude 一起改（很重要）
+
+站長會用兩個 Claude 帳號輪流或同時改這個網站，所以：
+
+- **開始改之前先 `git pull`**，看 `git log --oneline -10` 知道另一個 Claude 最近做了什麼。不要假設倉庫還是你上次看到的樣子。
+- **新的 SQL 號碼用倉庫裡最新的那個 +1**（看 `ls supabase/`），推之前再 pull 一次確認號碼沒被用掉。
+- **推之前**：`git pull --rebase origin main`，有衝突就自己解決並重新測試，不要蓋掉另一個 Claude 的改動。
+- 有衝突、或發現另一個 Claude 改壞東西時，先跟站長說明，不要自己大改別人的功能。
+- 做完一件事，在 commit 訊息寫清楚（中文），另一個 Claude 才看得懂。
+- 每次發布後，把下面「目前的狀態」更新一下（例如最新的 SQL 號碼、正在進行的事）。
+
+## 目前的狀態（2026/11/20）
+
+- 最新的 SQL 是 update_63（星星罐獨立表格）。站長說過 11/22（日）回來繼續更新。
+- 睡衣小貓：11/30 前看到「站長去充電」通知的人自動領（`gift_got`、`claim_gift`）。
+- 等級稱號：Lv40 之後有天使／惡魔翅膀（惡魔 6 種顏色），排行榜有本週／總排行，站長小窩可以展示但不參加排行。
