@@ -108,19 +108,20 @@
   uniform mat4 M, V, P; uniform vec2 fogR; varying vec2 vuv; varying float vsh, vfog; varying vec3 vn, vvn;
   void main(){ vec4 w = M*vec4(p,1.); vec4 e = V*w; vfog = clamp((-e.z - fogR.x)/(fogR.y - fogR.x), 0., 1.); vuv = uv; vsh = sh; vn = normalize(mat3(M)*n); vvn = mat3(V)*vn; gl_Position = P*e; }`;
   const FS = `precision mediump float; varying vec2 vuv; varying float vsh, vfog; varying vec3 vn, vvn;
-  uniform sampler2D tex; uniform float mode, alpha; uniform vec3 col, sky;
+  uniform sampler2D tex; uniform float mode, alpha; uniform vec3 col, sky, tint;
   void main(){
     vec3 c; float a = alpha;
     if(mode < .5){ vec4 t = texture2D(tex, vuv); if(t.a < .08) discard; c = t.rgb*vsh; a *= t.a; }
     else if(mode < 1.5){ float d = dot(normalize(vn), normalize(vec3(-.4,.9,.5))); float l = d > .4 ? 1. : d > -.1 ? .86 : .72; c = col*l; }
     else { vec3 N = normalize(vn); float d = dot(N, normalize(vec3(-.4,.9,.5))); c = col*(.66 + .4*max(d, 0.)) + vec3(.05)*pow(max(d, 0.), 12.); }   // 平滑的光（頭髮）
-    gl_FragColor = vec4(mix(c, sky, vfog), a);
+    gl_FragColor = vec4(mix(c*tint, sky, vfog), a);
   }`;
 
   // ---------- 貓的樣子（用小方塊拼） ----------
   const CAT = {
     orange:{ b:"#f2a65a", d:"#d9823a", l:"#fff2e0" }, white:{ b:"#f6f2ea", d:"#e2d8c8", l:"#ffffff" }, black:{ b:"#3a3540", d:"#26222c", l:"#5a5560" },
     gray:{ b:"#a8aeb8", d:"#8a909a", l:"#d8dce2" }, calico:{ b:"#f6f2ea", d:"#f2a65a", l:"#3a3540" },
+    cream:{ b:"#f4dcb0", d:"#e0bd88", l:"#fff6e6" }, brown:{ b:"#9a6a48", d:"#74492e", l:"#f2e2d0" }, silver:{ b:"#d4d8de", d:"#9aa2ae", l:"#ffffff" },
   };
   const catKey = c => CAT[c] ? c : /bd|star|pj/.test(String(c)) ? "orange" : "orange";
 
@@ -177,7 +178,7 @@
     mid:  { scale:.8,  view:60, clouds:true,  fps:60 },
     high: { scale:1,   view:90, clouds:true,  fps:0 },
   };
-  const DEF = { q:"mid", scale:.8, view:60, clouds:true, fps:60, fog:true, fov:60, showFps:false,
+  const DEF = { time:"real", q:"mid", scale:.8, view:60, clouds:true, fps:60, fog:true, fov:60, showFps:false,
     sens:1, invY:false, joy:"m", autoCam:true, camD:"m", sound:true, names:true };
   function loadCfg(){ let c = {}; try{ c = JSON.parse(localStorage.getItem("mw_cube_set") || "{}") || {}; }catch(e){} return Object.assign({}, DEF, c); }
   function saveCfg(c){ try{ localStorage.setItem("mw_cube_set", JSON.stringify(c)); }catch(e){} }
@@ -198,6 +199,7 @@
     root.innerHTML = `<canvas class="p3dC"></canvas><div class="p3dL" id="p3dL"></div>
       <div class="p3dTop"><button class="p3dX" id="p3dX">◀ 離開</button><span class="p3dT">喵喵方塊島</span><span class="p3dF" id="p3dF" hidden></span><span class="p3dFps" id="p3dFps" hidden></span><button class="p3dX p3dGear" id="p3dGear">設定</button></div>
       <div class="p3dSet" id="p3dSet" hidden></div>
+      <div class="p3dTalk" id="p3dTalk" hidden></div><div class="p3dClock" id="p3dClock"></div>
       <div class="p3dHint" id="p3dHint">左下搖桿走路・右邊拖曳轉鏡頭</div>
       <div class="p3dRot" id="p3dRot"><div class="p3dRotPh"><i></i></div><div>把手機轉橫的玩</div><button id="p3dRotX">直的也沒關係</button></div>
       <div class="p3dJoy" id="p3dJoy"><i></i></div>
@@ -318,7 +320,12 @@
     // ---------- 角色 ----------
     const player = { x:world.spawn[0], y:world.spawn[1], z:world.spawn[2], vy:0, yaw:Math.PI, walk:0, onG:false, av:avOf(o.avatar), s:1 };
     const npc = o.npcs || [];
-    const pets = npc.map((c, i) => { const a = i*2.2 + .6; return { i, x:world.house.x + Math.cos(a)*2, y:world.floor + 1, z:world.house.z + Math.sin(a)*1.6, vy:0, yaw:a, walk:0, onG:false, col:CAT[catKey(c.color)], s:.55 + (c.scale||.6)*.45, tx:null, tz:null, wait:Math.random()*2, love:0, home:[world.house.x + Math.cos(a)*2, world.floor + 1, world.house.z + Math.sin(a)*1.6] }; });
+    // 小貓村民：每隻在島上有自己的家（繞著貓屋一圈），白天在家附近閒晃，晚上回家睡覺
+    const pets = npc.map((c, i) => { const a = i/npc.length*Math.PI*2 + .4, r = 8 + (i % 2)*2.2;
+      let hx = world.house.x + Math.cos(a)*r, hz = world.house.z + Math.sin(a)*r; const ty = world.topY(Math.floor(hx), Math.floor(hz));
+      if(ty < world.floor - 2){ hx = world.house.x + Math.cos(a)*5; hz = world.house.z + Math.sin(a)*5; }
+      const hy = world.topY(Math.floor(hx), Math.floor(hz)) + 1;
+      return { i, x:hx, y:hy, z:hz, vy:0, yaw:a, walk:0, onG:false, col:CAT[catKey(c.color)], s:.55 + (c.scale||.6)*.45, tx:null, tz:null, wait:Math.random()*2, love:0, home:[hx, hy, hz], v:c, sleep:0 }; });
     const cam = { yaw:0, pitch:.38, dist:5 };   // 一開始站在貓屋前面、看著貓屋
 
     // 方塊碰撞：角色是一個 寬 w、高 h 的盒子
@@ -384,24 +391,53 @@
     // 靠近寵物貓時出現「餵牠／摸摸」
     const act = root.querySelector("#p3dAct"), foodEl = root.querySelector("#p3dF");
     let near = -1, busy = false;
+    // ---------- 熟悉度（存在自己手機 mw_cube_vil）：每天第一次聊天、第一次摸摸各 +1 ----------
+    const FL = ["陌生", "認識", "朋友", "好朋友"];
+    let VIL = {}; try{ VIL = JSON.parse(localStorage.getItem("mw_cube_vil") || "{}") || {}; }catch(e){}
+    const today = () => { const d = new Date(); return d.getFullYear()*10000 + (d.getMonth()+1)*100 + d.getDate(); };
+    const friendLv = id => { const f = (VIL[id] && VIL[id].f) || 0; return f >= 12 ? 3 : f >= 5 ? 2 : f >= 1 ? 1 : 0; };
+    function addFriend(id, kind){ const v = VIL[id] || (VIL[id] = { f:0 }), d = today(); if(v[kind] === d) return; v[kind] = d; v.f = (v.f || 0) + 1; try{ localStorage.setItem("mw_cube_vil", JSON.stringify(VIL)); }catch(e){} act._near = -2; }
     function paintAct(){
       void foodEl;
       if(near < 0){ act.innerHTML = ""; return; }
       const c = npc[near]; if(!c){ act.innerHTML = ""; return; }
-      act.innerHTML = `<span class="p3dNm">${o.esc(c.name)}</span><button data-a="pet">摸摸</button>`;
+      const p = pets[near], lv = FL[friendLv(c.id)];
+      act.innerHTML = `<span class="p3dNm">${o.esc(c.name)}<i>${lv}</i></span><div class="p3dActB"><button data-a="talk">聊天</button><button data-a="pet">摸摸</button></div>`;
+      void p;
     }
+    // ---------- 聊天：喵喵叫＋翻譯，點一下下一句 ----------
+    const talkEl = root.querySelector("#p3dTalk"), TK = window.CubeTalk;
+    let talkIdx = -1, talkLines = [], talkK = 0, talkN = 0, talkLv = 0, curHr = 12;
+    function showLine(){
+      const p = pets[talkIdx], c = p && p.v; if(!c){ endTalk(); return; }
+      const line = talkLines[talkK], meow = TK ? TK.meowOf(line, TK.hash(c.id + line)) : "喵～";
+      talkEl.innerHTML = `<div class="p3dTalkIn"><div class="p3dTalkNm">${o.esc(c.name)}<i>${FL[talkLv]}</i></div><div class="p3dMeow">${o.esc(meow)}</div><div class="p3dTr">（${o.esc(line)}）</div><span class="p3dNext">${talkK < talkLines.length-1 ? "▼" : "完"}</span></div>`;
+      talkEl.hidden = false; p.hop = .6; p.love = Math.max(p.love, .01);
+      CFG.sound && o.sfx && o.sfx.meow && o.sfx.meow((c.pitch || 1)*(p.sleep > .5 ? .8 : 1));
+    }
+    function startTalk(i){
+      const p = pets[i], c = p && p.v; if(!c) return; talkLv = friendLv(c.id);
+      talkLines = TK ? TK.talk(c, { me:o.meName, friend:friendLv(c.id), sleeping:p.sleep > .5, hour:curHr, day:today(), n:talkN++ }) : ["喵～"];
+      if(p.sleep <= .5) addFriend(c.id, "t");
+      talkIdx = i; talkK = 0; p.tx = null; p.wait = 4; player.yaw = Math.atan2(p.x - player.x, p.z - player.z); showLine();
+    }
+    function endTalk(){ talkIdx = -1; talkEl.hidden = true; talkEl.innerHTML = ""; }
+    talkEl.addEventListener("pointerdown", e => { e.preventDefault(); e.stopPropagation(); if(talkK < talkLines.length-1){ talkK++; showLine(); } else endTalk(); });
     // 摸摸：用 pointerdown 比較靈敏；摸完 .7 秒內再按不會一直叫
     act.addEventListener("pointerdown", e => {
       const b = e.target.closest("button"); if(!b) return; e.preventDefault(); e.stopPropagation();
       const p = pets[near]; if(!p || busy) return; busy = true; setTimeout(() => { busy = false; }, 700);
+      if(b.dataset.a === "talk"){ hideHint(); startTalk(near); return; }
+      addFriend(p.v && p.v.id, "p"); p.sleep = 0;
+      if(TK && p.v){ talkLv = friendLv(p.v.id); talkLines = [TK.petLine(p.v)]; talkIdx = near; talkK = 0; showLine(); clearTimeout(p._pt); p._pt = setTimeout(() => { if(talkIdx === p.i && talkLines.length === 1) endTalk(); }, 2200); }
       p.love = 2.2; p.hop = .6; p.tx = null; p.wait = 2.5; p.pets = (p.pets || 0) + 1;
       player.yaw = Math.atan2(p.x - player.x, p.z - player.z); player.petT = .5;   // 轉向小貓
-      CFG.sound && o.sfx && o.sfx.meow && o.sfx.meow(1.2); hideHint();
+      if(!TK) CFG.sound && o.sfx && o.sfx.meow && o.sfx.meow(1.2); hideHint();
     });
     paintAct();
 
     // ---------- 設定畫面 ----------
-    const fpsEl = root.querySelector("#p3dFps"), setEl = root.querySelector("#p3dSet"); let fpsN = 0, fpsT = performance.now();
+    const clockEl = root.querySelector("#p3dClock"), fpsEl = root.querySelector("#p3dFps"), setEl = root.querySelector("#p3dSet"); let fpsN = 0, fpsT = performance.now();
     const CAMD = { s:3.6, m:5, l:6.6 };
     function applyCfg(first){
       root.dataset.joy = CFG.joy; fpsEl.hidden = !CFG.showFps; cam.dist = CAMD[CFG.camD] || 5;
@@ -423,6 +459,7 @@
         ${row("飄浮的雲", "", tog("clouds"))}
         ${row("遠方的霧", "關掉的話遠處會直接切掉", tog("fog"))}
         ${row("視角", "畫面看出去的寬度", slider("fov", 50, 90, 5, FMT.fov))}
+        ${row("島上的時間", "跟現實一樣：晚上會變暗、小貓會回家睡覺", seg("time", [["real","跟現實一樣"],["day","永遠白天"]]))}
         ${row("顯示 FPS", "左上角顯示每秒幾張畫面", tog("showFps"))}
         <div class="p3dSec">操作</div>
         ${row("轉鏡頭靈敏度", "", slider("sens", .3, 2, .1, FMT.sens))}
@@ -456,25 +493,30 @@
     function resize(){ const dpr = Math.min(window.devicePixelRatio || 1, 2)*CFG.scale; cv.width = Math.round(root.clientWidth*dpr); cv.height = Math.round(root.clientHeight*dpr); }
     applyCfg(true); resize(); window.addEventListener("resize", resize);
     offAll = () => { window.removeEventListener("resize", resize); window.removeEventListener("keydown", kd); window.removeEventListener("keyup", ku); window.removeEventListener("blur", release); document.removeEventListener("visibilitychange", vis); };
-    const SKY = hexc("#cdeaff");
+    // 天空和光線跟著時間變：早上淡藍、中午亮藍、傍晚橘粉、晚上深藍（有星星）
+    let SKY = hexc("#cdeaff"), TINT = [1,1,1], STAR = 0;
+    const KEYS = [[0,"#1e2748",[.5,.55,.78],1],[5,"#2a3358",[.55,.6,.8],1],[6.5,"#f6c9b0",[.95,.85,.82],.2],[8,"#cdeaff",[1,1,1],0],[16.5,"#cdeaff",[1,1,1],0],[18,"#f7b8a0",[1,.86,.78],0],[19.3,"#6a5a8c",[.72,.68,.86],.5],[21,"#1e2748",[.5,.55,.78],1],[24,"#1e2748",[.5,.55,.78],1]];
+    function dayLight(h){ let k = 0; while(k < KEYS.length-2 && h >= KEYS[k+1][0]) k++; const A = KEYS[k], B = KEYS[k+1], u = Math.max(0, Math.min(1, (h - A[0])/(B[0] - A[0] || 1)));
+      const ca = hexc(A[1]), cb = hexc(B[1]); SKY = ca.map((v, i) => v + (cb[i] - v)*u); TINT = A[2].map((v, i) => v + (B[2][i] - v)*u); STAR = A[3] + (B[3] - A[3])*u; }
+    const STARS = (() => { const q = rng(99), out = []; for(let k = 0; k < 90; k++){ const a = q()*Math.PI*2, e = .15 + q()*1.2; out.push([Math.cos(a)*Math.cos(e)*70, Math.sin(e)*70, Math.sin(a)*Math.cos(e)*70, .25 + q()*.35]); } return out; })();
     let boundC = 36; const bind0 = bind; bind = m => { boundC = m.c; bind0(m); };
     function box(m, col, a = 1){ gl.uniformMatrix4fv(U("M"), false, m); gl.uniform3fv(U("col"), hexc(col)); gl.uniform1f(U("alpha"), a); gl.drawElements(gl.TRIANGLES, boundC, gl.UNSIGNED_SHORT, 0); }
     function drawCat(e, t){
       const k = e.col, s = e.s, sw = Math.sin(e.walk*10)*.5*Math.min(1, e.spd || 0), hop = e.hop ? Math.sin((.6 - e.hop)/.6*Math.PI)*.35 : 0;
-      const W0 = chain(T(e.x, e.y + hop, e.z), RY(e.yaw), S(s, s, s));
+      const sl = e.sleep || 0, W0 = chain(T(e.x, e.y + hop - sl*.12*s, e.z), RY(e.yaw), S(s, s, s));
       const at = (x,y,z, sx,sy,sz, col, r) => box(chain(W0, r || I4(), T(x,y,z), S(sx,sy,sz)), col);
       const wk = e.spd || 0, ph = e.walk*10;
       at(0,.33,0, .42,.3,.74, k.b);                                  // 身體（矮矮長長）
       at(0,.2,0, .34,.05,.56, k.l);                                   // 肚子
       if(k === CAT.calico){ at(.1,.485,.08, .24,.03,.3, "#3a3540"); at(-.1,.485,-.16, .24,.03,.26, "#f2a65a"); }
       else { at(0,.485,.08, .3,.02,.06, k.d); at(0,.485,-.1, .3,.02,.06, k.d); }   // 背上的條紋
-      const hd = chain(T(0,.56,.36), RX(Math.sin(t*1.7 + e.x)*.06));
+      const hd = chain(T(0,.56 - sl*.1,.36), RX(sl > .5 ? .25 : Math.sin(t*1.7 + e.x)*.06));   // 睡覺時頭低低的
       at(0,0,0, .46,.38,.36, k.b, hd);                                // 頭
       at(0,-.1,.16, .26,.14,.08, k.l, hd);                            // 嘴邊白白的
       for(const sx of [-1, 1]){
         at(sx*.14,.24,-.02, .12,.12,.08, k.b, hd); at(sx*.14,.31,-.02, .06,.06,.06, k.b, hd);    // 尖尖的耳朵
         at(sx*.14,.25,.025, .06,.07,.02, "#ffb3c6", hd);                                        // 耳朵裡面
-        at(sx*.11,.03,.185, .08,.1,.02, "#2b2430", hd); at(sx*.09,.06,.196, .03,.03,.01, "#ffffff", hd);   // 眼睛＋亮點
+        if(sl > .5) at(sx*.11,.0,.185, .09,.02,.02, "#2b2430", hd); else { at(sx*.11,.03,.185, .08,.1,.02, "#2b2430", hd); at(sx*.09,.06,.196, .03,.03,.01, "#ffffff", hd); }   // 眼睛＋亮點（睡著是一條線）
         for(const wy of [-.08,-.12]) at(sx*.21,wy,.18, .14,.012,.012, "#ffffff", hd);             // 鬍鬚
       }
       at(0,-.05,.205, .06,.04,.02, "#ff8fa8", hd);                    // 鼻子
@@ -574,6 +616,7 @@
       if(dead) return; raf = requestAnimationFrame(frame);
       if(CFG.fps && now - last < 1000/CFG.fps - 2) return;   // 幀率上限：還沒到時間就先不畫（比較省電、不會燙）
       const dt = Math.min(.05, (now - last)/1000); last = now; const t = (now - t0)/1000;
+      const hr = window.__cubeHour != null ? window.__cubeHour : CFG.time === "day" ? 13 : (() => { const d = new Date(); return d.getHours() + d.getMinutes()/60; })(), night = hr >= 22 || hr < 6; curHr = hr; dayLight(hr); const dark = STAR > .4; if(root._dk !== dark){ root._dk = dark; root.classList.toggle("dark", dark); }
       if(CFG.showFps){ fpsN++; if(now - fpsT > 500){ fpsEl.textContent = Math.round(fpsN*1000/(now - fpsT)) + " FPS"; fpsN = 0; fpsT = now; } }
       // 玩家移動（搖桿方向跟著鏡頭）
       let ix = J.x, iz = J.y;
@@ -591,16 +634,19 @@
       near = -1; let nd = 2.4;
       pets.forEach(p => {
         const dp = Math.hypot(p.x - player.x, p.z - player.z);
+        const atHome = Math.hypot(p.x - p.home[0], p.z - p.home[2]) < .7; p.sleep = night && atHome && talkIdx !== p.i ? Math.min(1, p.sleep + dt) : Math.max(0, p.sleep - dt*2);
         if(dp < nd && Math.abs(p.y - player.y) < 1.2 && !solid((p.x+player.x)/2, player.y + .5, (p.z+player.z)/2)){ nd = dp; near = p.i; }   // 隔著牆、高低差太多不算
         if(dp < .55 && dp > 1e-4){ const k = (.55 - dp)/dp*.5, ox = p.x, oz = p.z; p.x -= (player.x - p.x)*k; p.z -= (player.z - p.z)*k; if(hits(p.x, p.y, p.z, .25*p.s, .8*p.s)){ p.x = ox; p.z = oz; } }   // 不會穿過小貓，會把牠輕輕擠開
         let vx = 0, vz = 0;
-        if(dp < 2.4){ const want = Math.atan2(player.x - p.x, player.z - p.z); let d = want - p.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); p.yaw += d*Math.min(1, dt*6); p.tx = null; }
-        else if(p.tx == null){ p.wait -= dt; if(p.wait <= 0){ const a = Math.random()*Math.PI*2, r = 1.5 + Math.random()*4; const nx = player.x*.25 + p.x*.75 + Math.cos(a)*r, nz = player.z*.25 + p.z*.75 + Math.sin(a)*r; if(world.topY(Math.floor(nx), Math.floor(nz)) >= world.floor - 1){ p.tx = nx; p.tz = nz; } else p.wait = .5; } }
+        if(p.sleep > .5){ /* 睡著了，不動 */ } else if(dp < 2.4){ const want = Math.atan2(player.x - p.x, player.z - p.z); let d = want - p.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); p.yaw += d*Math.min(1, dt*6); p.tx = null; }
+        else if(p.tx == null){ p.wait -= dt; if(p.wait <= 0){ const a = Math.random()*Math.PI*2, r = night ? 0 : 1 + Math.random()*3.5; const nx = p.home[0] + Math.cos(a)*r, nz = p.home[2] + Math.sin(a)*r; if(world.topY(Math.floor(nx), Math.floor(nz)) >= world.floor - 1){ p.tx = nx; p.tz = nz; } else p.wait = .5; } }
         else { const dx = p.tx - p.x, dz = p.tz - p.z, l = Math.hypot(dx, dz); if(l < .3){ p.tx = null; p.wait = 1.5 + Math.random()*3.5; } else if(!ground(p.x + dx/l*.5, p.z + dz/l*.5, p.y)){ p.tx = null; p.wait = .8; } else { vx = dx/l*1.6; vz = dz/l*1.6; const want = Math.atan2(vx, vz); let d = want - p.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); p.yaw += d*Math.min(1, dt*6); } }
         const ox = p.x, oz = p.z; move(p, vx, vz, dt, .25*p.s, .8*p.s); if(p.tx != null && Math.hypot(p.x-ox, p.z-oz) < .001 && (vx || vz)){ p.tx = null; p.wait = 1; }
         p.spd = Math.min(1, Math.hypot(vx, vz)/1.6); p.walk += dt*p.spd; if(p.love > 0) p.love -= dt; if(p.hop > 0) p.hop = Math.max(0, p.hop - dt);
       });
+      if(talkIdx >= 0 && pets[talkIdx] && Math.hypot(pets[talkIdx].x - player.x, pets[talkIdx].z - player.z) > 3.6) endTalk();   // 走遠了就不聊了
       if(near !== act._near){ act._near = near; paintAct(); }
+      if(clockEl._m !== Math.floor(hr*60)){ clockEl._m = Math.floor(hr*60); const H = Math.floor(hr), M = Math.floor((hr - H)*60); clockEl.textContent = CFG.time === "day" ? "" : `${H < 5 || H >= 19 ? "晚上" : H < 11 ? "早上" : H < 13 ? "中午" : H < 17 ? "下午" : "傍晚"} ${H}:${String(M).padStart(2, "0")}`; }
 
       // 鏡頭：在玩家後上方，被方塊擋住就拉近
       const tgt = [player.x, player.y + 1.35, player.z];
@@ -608,11 +654,11 @@
       for(let d = .25; d <= cam.dist; d += .1){ const bx = tgt[0]+dir[0]*d, by = tgt[1]+dir[1]*d, bz = tgt[2]+dir[2]*d;
         if(solid(bx, by, bz) || solid(bx, by + .15, bz) || solid(bx, by - .15, bz)){ dist = Math.max(.3, d - .3); break; } }
       const eye = [tgt[0]+dir[0]*dist, tgt[1]+dir[1]*dist, tgt[2]+dir[2]*dist];
-      const V = lookAt(eye, tgt, [0,1,0]), P = persp(CFG.fov*Math.PI/180, cv.width/cv.height, .05, CFG.view + 12);
+      const V = lookAt(eye, tgt, [0,1,0]), P = persp(CFG.fov*Math.PI/180, cv.width/cv.height, .05, Math.max(CFG.view + 12, STAR > .02 ? 90 : 0));
 
       gl.viewport(0, 0, cv.width, cv.height); gl.clearColor(SKY[0], SKY[1], SKY[2], 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       gl.enable(gl.DEPTH_TEST); gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK); gl.frontFace(gl.CCW);
-      gl.uniformMatrix4fv(U("V"), false, V); gl.uniformMatrix4fv(U("P"), false, P); gl.uniform2f(U("fogR"), CFG.fog ? CFG.view*.45 : 1e4, CFG.fog ? CFG.view : 1e4 + 1); gl.uniform3fv(U("sky"), SKY);
+      gl.uniformMatrix4fv(U("V"), false, V); gl.uniformMatrix4fv(U("P"), false, P); gl.uniform2f(U("fogR"), CFG.fog ? CFG.view*.45 : 1e4, CFG.fog ? CFG.view : 1e4 + 1); gl.uniform3fv(U("tint"), TINT); gl.uniform3fv(U("sky"), SKY);
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tex); gl.uniform1i(U("tex"), 0);
       gl.uniform1f(U("mode"), 0); gl.uniform1f(U("alpha"), 1); gl.uniformMatrix4fv(U("M"), false, I4());
       chunks[0].forEach(m => { bind(m); gl.drawElements(gl.TRIANGLES, m.c, gl.UNSIGNED_SHORT, 0); });
@@ -624,6 +670,9 @@
       // 雲海和飄來飄去的雲（白白的大方塊，半透明）
       gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.uniform1f(U("mode"), 1); bind(cube);
       if(CFG.clouds) CLOUDS.forEach(c => { const x = ((c.x + t*c.v) % 140 + 140) % 140 - 42; for(const [ox, oy, oz, sx, sy, sz] of c.parts) box(chain(T(x+ox, c.y+oy, c.z+oz), S(sx, sy, sz)), "#ffffff", c.a); });
+      if(STAR > .02){ gl.uniform3fv(U("tint"), [1,1,1]); gl.uniform2f(U("fogR"), 1e4, 1e4 + 1); gl.depthMask(false);
+        STARS.forEach(([x, y, z, r], k) => box(chain(T(eye[0] + x, eye[1] + y - 8, eye[2] + z), S(r, r, r)), "#fff8d8", STAR*(.55 + .45*Math.sin(t*1.3 + k)))); gl.depthMask(true);
+        gl.uniform3fv(U("tint"), TINT); gl.uniform2f(U("fogR"), CFG.fog ? CFG.view*.45 : 1e4, CFG.fog ? CFG.view : 1e4 + 1); }
       gl.disable(gl.BLEND);
       // 水和玻璃最後畫（半透明）
       gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); gl.disable(gl.CULL_FACE);
@@ -636,6 +685,7 @@
       const cs = npc;
       pets.forEach(p => { const c = cs[p.i]; if(!c) return; const q = project(p.x, p.y + 1.15*p.s + .25, p.z, V, P); if(!q || q[2] > 16) return;
         if(CFG.names) html += `<div class="p3dNmTag${p.i === near ? " on" : ""}" style="transform:translate(${q[0]}px,${q[1]}px) translate(-50%,-100%)">${o.esc(c.name)}</div>`;
+        if(p.sleep > .5) html += `<div class="p3dZz" style="transform:translate(${q[0] + 18}px,${q[1] - 16 - (t*14 % 18)}px) translate(-50%,-100%);opacity:${1 - (t*14 % 18)/18}">Z<small>z</small></div>`;
         if(p.love > 0){ const k = 2.2 - p.love; html += `<div class="p3dHeart" style="transform:translate(${q[0]}px,${q[1] - 18 - k*26}px) translate(-50%,-100%);opacity:${Math.min(1, p.love)}">${o.icon ? o.icon("heart") : "♥"}</div>`; } });
       if(labels._h !== html){ labels._h = html; labels.innerHTML = html; }
     }

@@ -3781,3 +3781,24 @@ body.p3dOn #toast{z-index:9100}
 .p3dRng input{width:120px;accent-color:var(--pink)}
 .p3dRng b{font-weight:400;font-size:13px;min-width:42px;text-align:right}
 .p3dReset{display:block;margin:18px auto 4px;font:inherit;font-size:14px;color:var(--ink);background:#fff;border:3px solid var(--line);box-shadow:3px 3px 0 var(--shadow);padding:6px 16px}
+
+/* 喵喵方塊島：聊天、時間 */
+.p3dActB{display:flex;gap:8px}
+.p3dAct .p3dActB button+button{background:var(--pink);color:var(--onPink)}
+.p3dAct .p3dActB button:first-child{background:var(--card);color:var(--ink)}
+.p3dAct .p3dNm i{font-style:normal;font-size:11px;margin-left:6px;opacity:.85}
+.p3dTalk{position:absolute;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(560px,calc(100% - 330px));min-width:240px;z-index:8}
+.p3dTalk[hidden]{display:none}
+@media (orientation:portrait){ .p3dTalk{width:calc(100% - 24px);bottom:calc(170px + env(safe-area-inset-bottom))} }
+.p3dTalkIn{position:relative;background:var(--card,#fffaf3);border:3px solid var(--line);box-shadow:4px 4px 0 var(--shadow);padding:10px 14px 12px;color:var(--ink);animation:p3dPop .18s ease-out}
+@keyframes p3dPop{from{transform:translateY(8px) scale(.97);opacity:0}to{transform:none;opacity:1}}
+.p3dTalkNm{position:absolute;left:10px;top:-16px;background:var(--pink);color:var(--onPink);border:3px solid var(--line);padding:1px 10px;font-size:14px}
+.p3dTalkNm i{font-style:normal;font-size:11px;margin-left:6px;opacity:.9}
+.p3dMeow{font-size:20px;margin-top:6px;letter-spacing:1px}
+.p3dTr{font-size:14px;color:#8a7078;margin-top:4px;line-height:1.45}
+.p3dNext{position:absolute;right:10px;bottom:6px;font-size:12px;color:var(--pinkT,#c25a7a);animation:p3dBob 1s ease-in-out infinite}
+@keyframes p3dBob{50%{transform:translateY(3px)}}
+.p3dZz{position:absolute;left:0;top:0;font-size:16px;color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.35)}.p3dZz small{font-size:11px}
+.p3dClock{position:absolute;left:50%;top:calc(40px + env(safe-area-inset-top));transform:translateX(-50%);font-size:12px;color:#fff;background:rgba(40,28,36,.45);padding:1px 10px;border-radius:8px;pointer-events:none}
+.p3dClock:empty{display:none}
+.p3d.dark .p3dT{color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.5)}
