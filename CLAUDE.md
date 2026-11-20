@@ -113,4 +113,6 @@ git push origin main           # GitHub Pages 約 1 分鐘後更新
 - 推播診斷（隱藏功能）：sw.js 收到推播時會記下時間（快取 `meow-pub-assets` 的 `__diag/push`），設定頁連點「通知」標題 5 次會顯示「最近一次收到推播」（`mw_diag`），用來查某支手機收不到背景通知（小米／紅米 Redmi Note 14 還在查）。一般使用者看不到，不用發更新通知。
 - 「下載 App」按鈕：Chrome 的安裝視窗沒跳出來（小米常見）時，3.5 秒後改顯示文字說明（`doInstall`）。已裝好的 App（standalone）設定頁不會有這顆按鈕。
 - 默契大考驗題庫：擴充題在 `games/moqi_more.js`（G 共用、P 二選一、C/B/M/F 情侶／閨蜜／兄弟／家人專屬），每個模式都超過 5000 題。G 和 P 不能有 `ROMANCE` 裡的字（包含「親」「兩人」）。家人模式改用 `BANK_FAM`（以前會用到情侶題庫）。新增題目時加在 moqi_more.js 就好，出題順序用雜湊排，加題不會讓已出過的題目重複。
+- 首頁像翻書（`homePagesHtml`／`homePagesBind`）：第 1 頁是小窩（稱號、簽到、小魚乾、小按鈕、提醒橫幅），內容少時用 `fitFirst()` 撐滿一個畫面；第 2 頁起是遊戲，一頁 6 個（`G_PER`），每頁最上面是「跟其他小窩的朋友一起玩」。左右滑或下方 ◀ ●○○ ▶ 換頁，記在 sessionStorage `mw_hpg`。翻頁動畫 `H_FX = "slide"`（style.css 還留著 fade/book/bounce/pixel/paw 可以換）。
+- 置頂遊戲：每個人存在自己手機 localStorage `mw_pins`，遊戲第 1 頁右上「置頂設定」。
 - 等級稱號：Lv40 之後有天使／惡魔翅膀（惡魔 6 種顏色），排行榜有本週／總排行，站長小窩可以展示但不參加排行。

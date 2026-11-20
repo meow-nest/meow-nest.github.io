@@ -363,6 +363,67 @@ const App = (function(){
     o.querySelector("#fpOk").addEventListener("click", () => o.remove());
   }
   const famHides = g => isFam() && others().length > 1 && (g.id === "moqi");   // 默契大考驗要兩個人一起答，家人版第二階段再做
+  // 首頁像翻書：第 1 頁是小窩（稱號、簽到、小按鈕…到「跟其他小窩的朋友一起玩」），第 2 頁起是遊戲，一頁 4 個
+  // 左右滑或按下面的 ◀ ▶ 換頁；記住看到第幾頁，從遊戲回來會停在同一頁
+  const G_PER = 6;
+  const H_FX = "slide";   // 翻頁動畫：slide 滑動、fade 淡入縮放、book 翻書、bounce 彈跳、pixel 像素擦、paw 貓掌拍
+  let pinEdit = false;
+  const gPins = () => { try{ const a = JSON.parse(localStorage.getItem("mw_pins") || "[]"); return Array.isArray(a) ? a.filter(x=>typeof x==="string").slice(0, 40) : []; }catch(e){ return []; } };
+  const gPinToggle = id => { const a = gPins(), k = a.indexOf(id); if(k >= 0) a.splice(k, 1); else a.push(id); try{ localStorage.setItem("mw_pins", JSON.stringify(a)); }catch(e){} };
+  let hPage = 0; try{ hPage = +sessionStorage.getItem("mw_hpg") || 0; }catch(e){}
+  function homePagesHtml(top, cards, note){
+    const gp = []; for(let i = 0; i < cards.length; i += G_PER) gp.push(cards.slice(i, i + G_PER));
+    const pages = [top].concat(gp.map((pg, k) => `<div class="gHead"><span>遊戲 <b>${k+1}</b> / ${gp.length}</span>${k===0 ? `<button class="gPinBtn${pinEdit?" on":""}" id="gPinEd">${pinEdit ? "完成" : "置頂設定"}</button>` : ""}</div>${PT.ok ? ptEntryHtml() : ""}<div class="games gPage${pinEdit?" pinEdit":""}">${pg.join("")}</div>${k === gp.length-1 ? note : ""}`));
+    return `<div class="hPages" id="hPages">${pages.map((h, k)=>`<section class="hPg${k===0?" first":""}" data-p="${k}">${h}</section>`).join("")}</div>`
+      + `<div class="hPgBar" id="hPgBar"><button class="hArr" id="hPrev" aria-label="上一頁">◀</button><span class="hDots">${pages.map((_, k)=>`<i data-pg="${k}" class="${k===0?"home":""}"></i>`).join("")}</span><button class="hArr" id="hNext" aria-label="下一頁"></button></div>`;
+  }
+  // 第 1 頁撐滿一個畫面：內容少（例如已經開通知、沒有提醒）時，各區塊平均拉開，下面不會空一大塊
+  function fitFirst(){
+    const p = document.querySelector("#view .hPg.first"), bar = $("hPgBar"), nav = $("nav");
+    if(!p || !p.classList.contains("on")) return;
+    p.style.minHeight = "";
+    const top = p.getBoundingClientRect().top + window.scrollY, navH = nav && !nav.classList.contains("hidden") ? nav.offsetHeight : 0;
+    const barH = bar ? bar.offsetHeight + 22 : 0, avail = window.innerHeight - top - navH - barH - 32;
+    if(avail > p.offsetHeight) p.style.minHeight = avail + "px";
+  }
+  window.addEventListener("resize", ()=>{ if(route === "home") fitFirst(); });
+  function homePagesBind(v){
+    const box = $("hPages"); if(!box) return;
+    const pgs = [...box.children], n = pgs.length;
+    if(hPage >= n) hPage = 0;
+    const show = (k, dir) => {
+      k = Math.max(0, Math.min(n - 1, k)); const prev = hPage, changed = k !== prev; hPage = k;
+      try{ sessionStorage.setItem("mw_hpg", k); }catch(e){}
+      const fx = H_FX, anim = changed && dir && !matchMedia("(prefers-reduced-motion: reduce)").matches;
+      pgs.forEach((p, i) => { p.classList.toggle("on", i === k); p.classList.remove("fxIn", "fxOut", "fwd", "back"); p.style.top = ""; });
+      box.className = "hPages";
+      if(anim){
+        // 翻頁動畫：舊的那頁疊在上面播「離開」，新的那頁播「進來」；動畫種類看 H_FX
+        const old = pgs[prev], d = dir > 0 ? "fwd" : "back";
+        box.classList.add("anim", "fx-" + fx);
+        old.classList.add("fxOut", d); old.style.top = "0px";
+        void pgs[k].offsetWidth; pgs[k].classList.add("fxIn", d);
+        clearTimeout(box._t); box._t = setTimeout(()=>{ old.classList.remove("fxOut", "fwd", "back"); old.style.top = ""; pgs[k].classList.remove("fxIn", "fwd", "back"); box.className = "hPages"; }, 560);
+        window.scrollTo(0, 0);
+      }
+      document.querySelectorAll("#hPgBar .hDots i").forEach((d, i) => d.classList.toggle("on", i === k));
+      const pv = $("hPrev"), nx = $("hNext");
+      if(pv) pv.disabled = k === 0;
+      if(nx){ nx.disabled = k === n - 1; nx.textContent = k === 0 ? "遊戲 ▶" : "▶"; nx.classList.toggle("wide", k === 0); }
+      document.body.classList.toggle("hOnGames", k > 0); document.body.classList.toggle("compact", k > 0);
+      fitFirst();
+      if(k === 0 && pinEdit){ pinEdit = false; }
+    };
+    $("hPrev").addEventListener("click", () => { SFX.tap(); show(hPage - 1, -1); });
+    $("hNext").addEventListener("click", () => { SFX.tap(); show(hPage + 1, 1); });
+    document.querySelectorAll("#hPgBar .hDots i").forEach(d => d.addEventListener("click", () => { SFX.tap(); const k = +d.dataset.pg; show(k, k > hPage ? 1 : -1); }));
+    // 手指左右滑：橫向移動夠多、而且比上下移動多才算翻頁（上下滑還是正常捲動）
+    let sx = 0, sy = 0, st = 0, ok = false;
+    box.addEventListener("touchstart", e => { const t = e.touches[0]; sx = t.clientX; sy = t.clientY; st = Date.now(); ok = !e.target.closest("input,textarea,.noSwipe"); }, { passive:true });
+    box.addEventListener("touchend", e => { if(!ok) return; const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+      if(Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5 && Date.now() - st < 800){ show(hPage + (dx < 0 ? 1 : -1), dx < 0 ? 1 : -1); } }, { passive:true });
+    show(hPage, 0);
+  }
   function viewHome(v, force){
     if(isAdmin && !force) return viewAdmin(v);
     const p = partner();
@@ -378,15 +439,17 @@ const App = (function(){
     const canAlone = g => g.solo || ALONE.includes(g.id);
     const gl = games.filter(g=>!g.hidden && (!isSolo() || g.solo) && !famHides(g));
     if(waitingTa) gl.sort((a,b)=>(canAlone(b)?1:0)-(canAlone(a)?1:0));
-    if(PT.ok) html += ptEntryHtml();
-    html += `<div class="games">` + gl.map(g=>g.wip && !isAdmin ? `<div class="gcard soon wip" data-wip="1"><span class="gi">${window.GameArt && GameArt[g.id] ? `<span class="ga">${GameArt[g.id]()}</span>` : g.icon()}</span><span class="gn">${esc(g.name)}</span><span class="gd">🚧 待開發中</span></div>` : `<button class="gcard${waitingTa && !canAlone(g) ? " needTa" : ""}" data-g="${g.id}"><span class="gi">${window.GameArt && GameArt[g.id] ? `<span class="ga">${GameArt[g.id]()}</span>` : g.icon()}</span><span class="gn">${esc(g.name)}</span><span class="gd">${esc(g.desc)}</span>${waitingTa && !canAlone(g) ? `<span class="gb gWait">等 ta 加入</span>` : g.wip?`<span class="gb">🚧 測試中</span>`:g.badge&&g.badge()?`<span class="gb">${esc(g.badge())}</span>`:""}</button>`).join("")
-      + `<div class="gcard soon"><span class="gi">${sprite("gray","sleep",{soft:true})}</span><span class="gn">新遊戲</span><span class="gd">敬請期待…</span></div></div><p class="gNote">本站遊戲純屬娛樂，不是賭博。貓幣、股市資金等都是虛擬的，不能儲值、不能換成現金或獎品。</p>`;
+    // 置頂（每個人存在自己的手機）：照置頂的先後排在最前面
+    const pins = gPins(); gl.sort((a,b)=>{ const x = pins.indexOf(a.id), y = pins.indexOf(b.id); return (x<0?1e9:x) - (y<0?1e9:y); });
+    const gCards = gl.map(g=>g.wip && !isAdmin ? `<div class="gcard soon wip" data-wip="1"><span class="gi">${window.GameArt && GameArt[g.id] ? `<span class="ga">${GameArt[g.id]()}</span>` : g.icon()}</span><span class="gn">${esc(g.name)}</span><span class="gd">🚧 待開發中</span></div>` : `<button class="gcard${waitingTa && !canAlone(g) ? " needTa" : ""}${pins.includes(g.id) ? " pinned" : ""}" data-g="${g.id}">${pins.includes(g.id) || pinEdit ? `<span class="gPin">${pins.includes(g.id) ? "置頂" : "＋置頂"}</span>` : ""}<span class="gi">${window.GameArt && GameArt[g.id] ? `<span class="ga">${GameArt[g.id]()}</span>` : g.icon()}</span><span class="gn">${esc(g.name)}</span><span class="gd">${esc(g.desc)}</span>${waitingTa && !canAlone(g) ? `<span class="gb gWait">等 ta 加入</span>` : g.wip?`<span class="gb">🚧 測試中</span>`:g.badge&&g.badge()?`<span class="gb">${esc(g.badge())}</span>`:""}</button>`).concat(`<div class="gcard soon"><span class="gi">${sprite("gray","sleep",{soft:true})}</span><span class="gn">新遊戲</span><span class="gd">敬請期待…</span></div>`);
+    const gNote = `<p class="gNote">本站遊戲純屬娛樂，不是賭博。貓幣、股市資金等都是虛擬的，不能儲值、不能換成現金或獎品。</p>`;
     if(fbUnread > 0) html = html.replace('<div id="truceHome">', `<div class="box banner fbBan" id="fbBan"><span class="bi">📮</span><div style="flex:1">站長回覆你的回報了！</div><button class="btn" id="bFbH">看看</button></div><div id="truceHome">`);
-    v.innerHTML = html;
+    v.innerHTML = homePagesHtml(html, gCards, gNote);
     renderMeter(); if(p) ckRefresh(); if(isFam()) famBind(v);
     const bfh=$("bFbH"); if(bfh) bfh.addEventListener("click", ()=>askFeedback());
-    v.querySelectorAll("[data-g]").forEach(b=>b.addEventListener("click",()=>go("game-"+b.dataset.g)));
-    ptEntryBind();
+    v.querySelectorAll("[data-g]").forEach(b=>b.addEventListener("click",()=>{ if(pinEdit){ SFX.tap(); gPinToggle(b.dataset.g); render(); return; } go("game-"+b.dataset.g); }));
+    const pe = $("gPinEd"); if(pe) pe.addEventListener("click", ()=>{ SFX.tap(); pinEdit = !pinEdit; render(); if(pinEdit) toast("點遊戲就能置頂或取消置頂，好了按「完成」", 3500); });
+    ptEntryBind(); homePagesBind(v);
     v.querySelectorAll("[data-wip]").forEach(b=>b.addEventListener("click",()=>{ SFX.tap(); toast("🚧 這個遊戲還在開發中，敬請期待～"); }));
     bindTiles();
     const bi=$("bInv"); if(bi) bi.addEventListener("click", shareInvite);
@@ -1575,7 +1638,7 @@ const App = (function(){
   }
   async function ptRefresh(){
     let r; try{ r = await B.rpc("party_mine"); }catch(e){ if(!PT.loaded){ PT.loaded = true; PT.err = ptErr(e); ptPaint(); } return; }
-    PT.loaded = true; PT.err = ""; if(!PT.ok){ PT.ok = true; const gs = document.querySelector("#view .games"); if(gs && !$("bParty")){ gs.insertAdjacentHTML("beforebegin", ptEntryHtml()); ptEntryBind(); } }
+    PT.loaded = true; PT.err = ""; if(!PT.ok){ PT.ok = true; document.querySelectorAll('#view .hPg:not(.first) .gHead').forEach(h=>{ if(!h.nextElementSibling || !h.nextElementSibling.classList.contains("ptEntry")) h.insertAdjacentHTML("afterend", ptEntryHtml()); }); ptEntryBind(); }
     const old = PT.room;
     if(!r){ if(old && PT.view) toast("房間已經關掉了"); PT.room = null; }
     else if(old && old.id === r.id){
@@ -1634,8 +1697,8 @@ const App = (function(){
     presence: list => { PT.online = new Set(list); ptPaintBar(); },
     status: ok => { if(ok) ptRefresh(); },
   };
-  const ptEntryHtml = () => `<button class="box ptEntry" id="bParty"><span class="ptEI">${icon("star")}</span><span><b>跟其他小窩的朋友一起玩</b><small>${PT.room ? `你在房間裡・房間碼 ${esc(PT.room.code)}` : "你畫我猜、喵喵撞球・開房間就能一起玩"}</small></span><em>▶</em></button>`;
-  function ptEntryBind(){ const bp = $("bParty"); if(bp) bp.addEventListener("click", ()=>{ SFX.tap(); go("party"); }); }
+  const ptEntryHtml = () => `<button class="box ptEntry"><span class="ptEI">${icon("star")}</span><span><b>跟其他小窩的朋友一起玩</b><small>${PT.room ? `你在房間裡・房間碼 ${esc(PT.room.code)}` : "你畫我猜、喵喵撞球・開房間就能一起玩"}</small></span><em>▶</em></button>`;
+  function ptEntryBind(){ document.querySelectorAll("#view .ptEntry").forEach(bp=>{ if(bp._b) return; bp._b = 1; bp.addEventListener("click", ()=>{ SFX.tap(); go("party"); }); }); }
   function ptConnect(){ const id = PT.room && PT.view ? PT.room.id : null; if(id === PT.conn) return; PT.conn = id; PT.online = new Set();
     if(id){ if(B.partyConnect) B.partyConnect(id, ptHandlers); } else if(B.partyClose) B.partyClose(); }
   function ptUnmount(){ const m = PT.mounted; if(!m) return; PT.mounted = null; try{ m.g.unmount && m.g.unmount(); }catch(e){ console.error(e); } PT.subs = []; PT.bcs = []; PT.msubs = []; PT.rs = {}; document.querySelectorAll(".rqBar").forEach(x => x.remove()); }
