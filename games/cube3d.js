@@ -200,7 +200,7 @@
       <div class="p3dTop"><button class="p3dX" id="p3dX"><span class="p3dBack"></span><span>離開</span></button><span class="p3dT">喵喵方塊島</span><span class="p3dF" id="p3dF" hidden></span><span class="p3dFps" id="p3dFps" hidden></span><button class="p3dX p3dBuildT" id="p3dBuildT">${o.icon ? `<span class="p3dIc">${o.icon("home")}</span>` : ""}<span>蓋房子</span></button><button class="p3dX p3dGear" id="p3dGear">${o.icon ? `<span class="p3dIc">${o.icon("gear")}</span>` : ""}<span>設定</span></button></div>
       <div class="p3dSet" id="p3dSet" hidden></div>
       <div class="p3dTalk" id="p3dTalk" hidden></div>
-      <div class="p3dBuild" id="p3dBuild" hidden><div class="p3dTool" id="p3dTool"><button data-t="put" class="on">放方塊</button><button data-t="dig">挖方塊</button></div><button class="p3dUndo" id="p3dUndo">復原</button><div class="p3dBar" id="p3dBar"></div><div class="p3dBHint" id="p3dBHint">點畫面上的方塊：放在那一面／挖掉它</div></div><div class="p3dClock" id="p3dClock"></div>
+      <div class="p3dBuild" id="p3dBuild" hidden><div class="p3dTool" id="p3dTool"><button data-t="put" class="on">放方塊</button><button data-t="dig">挖方塊</button></div><button class="p3dUndo" id="p3dUndo">復原</button><div class="p3dBar" id="p3dBar"></div><div class="p3dBHint" id="p3dBHint">點畫面上的方塊：放在那一面／挖掉它</div><div class="p3dCnt" id="p3dCnt"></div></div><div class="p3dClock" id="p3dClock"></div>
       <div class="p3dHint" id="p3dHint">左下搖桿走路・右邊拖曳轉鏡頭</div>
       <div class="p3dRot" id="p3dRot"><div class="p3dRotPh"><i></i></div><div>把手機轉橫的玩</div><button id="p3dRotX">直的也沒關係</button></div>
       <div class="p3dJoy" id="p3dJoy"><i></i></div>
@@ -233,8 +233,17 @@
     // 世界的網格（不透明一份、半透明一份；超過 65535 個點就分成好幾塊）
     const world = makeWorld();
     // 自己蓋的方塊（存在手機 localStorage mw_cube_edits：{"x,y,z": 方塊種類}）
+    // 上限：一座島最多改 MAX_EDITS 格（放或挖都算一格；改回原本的樣子就不算），以後存到伺服器時每座島大約 12 KB 以內
+    const MAX_EDITS = 3000, ORIG = makeWorld();
     let EDITS = {}; try{ EDITS = JSON.parse(localStorage.getItem("mw_cube_edits") || "{}") || {}; }catch(e){}
-    for(const k in EDITS){ const [x, y, z] = k.split(",").map(Number); if(y > 0 && y < H) world.set(x, y, z, EDITS[k]); }
+    let nEdit = 0;
+    for(const k in EDITS){ const [x, y, z] = k.split(",").map(Number);
+      if(!(y > 0 && y < H) || (ORIG.get(x, y, z) || 0) === EDITS[k] || nEdit >= MAX_EDITS){ delete EDITS[k]; continue; } world.set(x, y, z, EDITS[k]); nEdit++; }
+    const saveEdits = () => { try{ localStorage.setItem("mw_cube_edits", JSON.stringify(EDITS)); }catch(e){} };
+    // 記一格的改變：改回原本的就刪掉，回傳 false 代表超過上限
+    function editCell(x, y, z, b){ const k = `${x},${y},${z}`, orig = ORIG.get(x, y, z) || 0;
+      if(b === orig){ if(k in EDITS){ delete EDITS[k]; nEdit--; } return true; }
+      if(!(k in EDITS)){ if(nEdit >= MAX_EDITS) return false; nEdit++; } EDITS[k] = b; return true; }
     const FACES = [ // 法線、四個角、哪一面材質(0上1側2下)、亮度
       { n:[0,1,0], c:[[0,1,1],[1,1,1],[1,1,0],[0,1,0]], t:0, l:1 }, { n:[0,-1,0], c:[[0,0,0],[1,0,0],[1,0,1],[0,0,1]], t:2, l:.55 },
       { n:[1,0,0], c:[[1,0,1],[1,0,0],[1,1,0],[1,1,1]], t:1, l:.8 }, { n:[-1,0,0], c:[[0,0,0],[0,0,1],[0,1,1],[0,1,0]], t:1, l:.8 },
@@ -470,12 +479,13 @@
       barEl.querySelectorAll("[data-pg]").forEach(x => x.addEventListener("click", () => { barPg += +x.dataset.pg; paintBar(); }));
       barEl.querySelectorAll("[data-b]").forEach(x => x.addEventListener("click", () => { pick = +x.dataset.b; tool = "put"; paintTool(); paintBar(); CFG.sound && o.sfx && o.sfx.tap && o.sfx.tap(); }));
     }
+    function paintCount(){ const el = root.querySelector("#p3dCnt"); if(!el) return; el.textContent = `已經蓋了 ${nEdit} / ${MAX_EDITS} 格`; el.classList.toggle("full", nEdit >= MAX_EDITS*.9); }
     function paintTool(){ buildEl.querySelectorAll("[data-t]").forEach(x => x.classList.toggle("on", x.dataset.t === tool)); root.classList.toggle("dig", tool === "dig"); }
     buildEl.querySelectorAll("[data-t]").forEach(x => x.addEventListener("click", () => { tool = x.dataset.t; paintTool(); }));
     function setBuild(on){
       buildOn = on; buildEl.hidden = !on; root.classList.toggle("building", on); endTalk && endTalk();
       root.querySelector("#p3dBuildT span:last-child").textContent = on ? "蓋好了" : "蓋房子";
-      if(on){ paintBar(); paintTool(); hideHint(); }
+      if(on){ paintBar(); paintTool(); paintCount(); hideHint(); }
     }
     root.querySelector("#p3dBuildT").addEventListener("click", () => setBuild(!buildOn));
     // 從畫面上的一點射出去，找到第一個碰到的方塊（一格一格走，DDA）
@@ -496,10 +506,11 @@
     }
     const inBody = (e, x, y, z, w, h) => x + 1 > e.x - w && x < e.x + w && z + 1 > e.z - w && z < e.z + w && y + 1 > e.y && y < e.y + h;
     function setBlock(x, y, z, b, rec){
-      const prev = world.get(x, y, z) || 0; if(prev === b) return false; world.set(x, y, z, b); EDITS[`${x},${y},${z}`] = b;
+      const prev = world.get(x, y, z) || 0; if(prev === b) return false;
+      if(!editCell(x, y, z, b)){ o.toast && o.toast(`這座島已經改了 ${MAX_EDITS} 格，蓋滿了～挖掉一些自己蓋的方塊或按復原，就能再蓋`); return false; }
+      world.set(x, y, z, b); paintCount();
       if(rec) undo.push({ x, y, z, prev, b }); if(undo.length > 60) undo.shift();
-      try{ localStorage.setItem("mw_cube_edits", JSON.stringify(EDITS)); }catch(e){}
-      buildWorld(); return true;
+      saveEdits(); buildWorld(); return true;
     }
     function burst(x, y, z, b){ const c = TILES[BT[b].t[1]].p; for(let k = 0; k < 10; k++) fx.push({ x:x + .5, y:y + .5, z:z + .5, vx:(Math.random() - .5)*3, vy:1.5 + Math.random()*2.5, vz:(Math.random() - .5)*3, life:.6 + Math.random()*.3, c:c[k % c.length] }); }
     const flash = { t:0 };
@@ -519,7 +530,8 @@
       }
     }
     root.querySelector("#p3dUndo").addEventListener("click", () => { const u = undo.pop(); if(!u){ o.toast && o.toast("沒有可以復原的了"); return; }
-      world.set(u.x, u.y, u.z, u.prev); EDITS[`${u.x},${u.y},${u.z}`] = u.prev; try{ localStorage.setItem("mw_cube_edits", JSON.stringify(EDITS)); }catch(e){} buildWorld(); });
+      if(!editCell(u.x, u.y, u.z, u.prev)){ undo.push(u); o.toast && o.toast("蓋滿了，不能復原這一步"); return; }
+      world.set(u.x, u.y, u.z, u.prev); saveEdits(); paintCount(); buildWorld(); });
 
     // ---------- 設定畫面 ----------
     const clockEl = root.querySelector("#p3dClock"), fpsEl = root.querySelector("#p3dFps"), setEl = root.querySelector("#p3dSet"); let fpsN = 0, fpsT = performance.now();
@@ -561,8 +573,8 @@
       setEl.querySelector("#p3dSetX").onclick = () => { setEl.hidden = true; };
       const wipe = setEl.querySelector("#p3dWipe");
       wipe.onclick = () => { if(!wipe._sure){ wipe._sure = 1; wipe.textContent = "確定嗎？再按一次就會清掉"; setTimeout(() => { if(wipe.isConnected){ wipe._sure = 0; wipe.textContent = "把島恢復原狀（清掉自己蓋的方塊）"; } }, 3000); return; }
-        try{ localStorage.removeItem("mw_cube_edits"); }catch(e){} const fresh = makeWorld(); for(const k in EDITS){ const [x, y, z] = k.split(",").map(Number); world.set(x, y, z, fresh.get(x, y, z) || 0); }
-        EDITS = {}; undo.length = 0; buildWorld(); wipe._sure = 0; wipe.textContent = "已經恢復原狀了"; };
+        try{ localStorage.removeItem("mw_cube_edits"); }catch(e){} for(const k in EDITS){ const [x, y, z] = k.split(",").map(Number); world.set(x, y, z, ORIG.get(x, y, z) || 0); }
+        EDITS = {}; nEdit = 0; undo.length = 0; buildWorld(); wipe._sure = 0; wipe.textContent = "已經恢復原狀了"; };
       setEl.querySelector("#p3dReset").onclick = () => { Object.assign(CFG, DEF); applyCfg(); paintSet(); };
       setEl.querySelectorAll(".p3dSeg").forEach(g => g.querySelectorAll("button").forEach(b => b.onclick = () => {
         const k = g.dataset.k, raw = b.dataset.v, v = raw === "true" ? true : raw === "false" ? false : (/^[\d.]+$/.test(raw) ? +raw : raw);
