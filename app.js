@@ -301,7 +301,9 @@ const App = (function(){
     // Lv9 起翅膀會拍動＋小星星閃閃；Lv11 起再多愛心飄上去
     const fx = t >= 9 ? `<span class="tfx s1">${icon("twk",{O:"#ffd36b"})}</span><span class="tfx s2">${icon("twk",{O:"#ff9ec4"})}</span><span class="tfx s3">${icon("twk",{O:WING_EDGE[t]})}</span>`
       + (t >= 11 ? `<span class="tfx h1">${icon("heart")}</span><span class="tfx h2">${icon("heart")}</span>` : "") : "";
-    return `<span class="ttlW hw ${wing === "devil" ? "dv" : ""} ${t >= 9 ? "fl" : ""}"><span class="twg l">${w}</span><span class="twg r">${w}</span>${badge}${fx}</span>`;
+    // 小惡魔：名牌上面長一對小惡魔角（跟 Lv40 同一個角），也不會有天使光環
+    const hrn = wing === "devil" ? `<span class="hrn l">${D40H}</span><span class="hrn r">${D40H}</span>` : "";
+    return `<span class="ttlW hw ${wing === "devil" ? "dv" : ""} ${t >= 9 ? "fl" : ""}"><span class="twg l">${w}</span><span class="twg r">${w}</span>${badge}${hrn}${fx}</span>`;
   }
   ctx.ttlHtml = (h, sm) => ttlHtml(h, roomWing, sm);
   // 會動的稱號只在畫面上看得到的時候才動，排行榜、圖鑑一次很多個也不會卡
