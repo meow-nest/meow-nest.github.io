@@ -179,10 +179,13 @@
     root.innerHTML = `<canvas class="p3dC"></canvas><div class="p3dL" id="p3dL"></div>
       <div class="p3dTop"><button class="p3dX" id="p3dX">◀ 離開</button><span class="p3dT">喵喵方塊島</span><span class="p3dF" id="p3dF" hidden></span></div>
       <div class="p3dHint" id="p3dHint">左下搖桿走路・右邊拖曳轉鏡頭</div>
+      <div class="p3dRot" id="p3dRot"><div class="p3dRotPh"><i></i></div><div>把手機轉橫的玩</div><button id="p3dRotX">直的也沒關係</button></div>
       <div class="p3dJoy" id="p3dJoy"><i></i></div>
       <div class="p3dBtns"><div class="p3dAct" id="p3dAct"></div><button class="p3dJump" id="p3dJump">跳</button></div>`;
     document.body.appendChild(root); document.body.classList.add("p3dOn");
-    try{ if(root.requestFullscreen && !document.fullscreenElement) root.requestFullscreen({ navigationUI:"hide" }).catch(()=>{}); }catch(e){}
+    // 全螢幕＋轉成橫的（Android 可以鎖橫向；鎖不了的手機就顯示「轉橫的玩」的小提示）
+    const lockLand = () => { try{ const so = screen.orientation; if(so && so.lock) return so.lock("landscape").catch(() => {}); }catch(e){} return Promise.resolve(); };
+    try{ if(root.requestFullscreen && !document.fullscreenElement) root.requestFullscreen({ navigationUI:"hide" }).then(lockLand).catch(lockLand); else lockLand(); }catch(e){}
     const cv = root.querySelector(".p3dC");
     const gl = cv.getContext("webgl", { antialias:true, alpha:false });
     const fail = msg => { root.innerHTML = `<div class="p3dErr">${msg}<br><button class="btn" id="p3dX">回去</button></div>`; root.querySelector("#p3dX").onclick = close; cur = { close }; return cur; };
@@ -356,6 +359,7 @@
       if(player.onG || (player.air || 0) < .1 && player.vy <= 0){ player.vy = 7.2; player.onG = false; player.air = 1; jumpBuf = 0; o.sfx && o.sfx.tap && o.sfx.tap(); } }
     root.querySelector("#p3dJump").addEventListener("pointerdown", e => { e.preventDefault(); jump(); });
     root.querySelector("#p3dX").addEventListener("click", close);
+    root.querySelector("#p3dRotX").addEventListener("click", () => { root.classList.add("rotOk"); });
 
     // 靠近寵物貓時出現「餵牠／摸摸」
     const act = root.querySelector("#p3dAct"), foodEl = root.querySelector("#p3dF");
@@ -447,9 +451,21 @@
       // 手（反方向擺）＋手掌；摸摸時右手往前伸
       for(const [ax, k] of [[-.34, -1], [.34, 1]]){ const reach = k > 0 && e.petT > 0 ? Math.sin(e.petT/.5*Math.PI)*1.3 : 0, r = chain(T(0,.98,0), RX(sw*k*.9*(reach ? 0 : 1) - reach)); at(ax,-.2,0, .16,.46,.18, a.pj, r); at(ax,-.42,0, .17,.07,.19, a.lt, r); }
       // 尾巴
-      { const tc = a.dk === a.pj ? a.lt : a.dk, sw2 = Math.sin(t*2.1)*.25;
-        const pts = rope(e, "tail", 8, .075, [0,.6,-.17], i => [Math.sin(sw2)*.3*(i/7), -.35 + i*.2, -1], .16, e._dt || .016);
-        for(let i = 1; i < pts.length; i++) segBox(pts[i-1], pts[i], .095 - i*.004, i >= pts.length-2 ? a.lt : (i % 3 === 0 && a.mark === "stripe" ? a.dk : (a.mark === "stripe" ? a.pj : tc))); }
+      // 毛茸茸的貓尾巴：從屁股往後、再往上翹成問號的形狀，尾巴尖是白的；
+      // 會跟著走路一彈一彈、轉身時往反方向甩（彈簧），站著時慢慢左右搖
+      { const dt = e._dt || .016, dyaw = Math.atan2(Math.sin(e.yaw - (e._ty ?? e.yaw)), Math.cos(e.yaw - (e._ty ?? e.yaw))); e._ty = e.yaw;
+        const want = Math.max(-.9, Math.min(.9, -dyaw/Math.max(dt, .001)*.09)) + Math.sin(t*1.7)*.22 + Math.sin(e.walk*10)*.1*(e.spd || 0);
+        e._tv = ((e._tv || 0) + (want - (e._tw || 0))*60*dt)*Math.pow(.02, dt); e._tw = (e._tw || 0) + e._tv*dt;
+        const lift = (e.spd || 0)*.08 + (e.onG ? 0 : .1);
+        const C = [[0,.6,-.16],[0,.56,-.3],[0,.62,-.45],[0,.8,-.55],[0,1.0,-.56],[0,1.13,-.5],[0,1.2,-.4]];
+        const pts = C.map(([x, y, z], i) => { const u = i/(C.length-1), sw = e._tw*Math.pow(u, 1.2)*.55; return toW(e, x + sw, y + lift*u, z - Math.abs(sw)*.25*u); });
+        const sm = smooth(pts, 6), L = sm.length, R = u => (u < .08 ? .055 + u*.2 : .072 - Math.max(0, u - .55)*.06);
+        const base = a.mark === "stripe" ? a.pj : (a.dk === a.pj ? a.lt : a.dk), ring = a.mark === "stripe" ? a.dk : null;
+        // 分段上色：條紋貓有一圈一圈的深色、尾巴尖白白的
+        const cut = [[0, .3, base], [.3, .38, ring || base], [.38, .52, base], [.52, .6, ring || base], [.6, .8, base], [.8, 1.0001, a.lt]];
+        for(const [u0, u1, col] of cut){ const i0 = Math.floor(u0*(L-1)), i1 = Math.min(L-1, Math.ceil(u1*(L-1))); if(i1 - i0 < 1) continue;
+          tube(sm.slice(i0, i1+1), k => R((i0 + k*(i1-i0))/(L-1)), col, true); }
+        const tip = sm[L-1]; bind(ball); gl.uniform1f(U("mode"), 2); box(chain(T(tip[0], tip[1], tip[2]), S(.105,.105,.105)), a.lt); gl.uniform1f(U("mode"), 1); bind(cube); }
       // 頭：臉、頭髮、貓耳帽子
       const hd = chain(T(0,1.27,0));   // 頭不搖（頭髮是另外畫的，要對齊）
       at(0,0,0, .48,.46,.46, a.skin, hd);
@@ -557,6 +573,7 @@
     }   // build 結束
     function close(){
       if(dead) return; dead = true; cancelAnimationFrame(raf); offAll(); cur = null;
+      try{ if(screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); }catch(e){}
       try{ if(document.fullscreenElement) document.exitFullscreen().catch(()=>{}); }catch(e){}
       document.body.classList.remove("p3dOn"); root.remove();
       try{ const ext = gl && gl.getExtension("WEBGL_lose_context"); if(ext) ext.loseContext(); }catch(e){}

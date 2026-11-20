@@ -3749,3 +3749,11 @@ body.p3dOn #toast{z-index:9100}
 .cbHc{display:flex;justify-content:center;gap:10px;margin:2px 0 6px}
 .cbHc button{width:30px;height:30px;border-radius:50%;border:3px solid var(--line);cursor:pointer;padding:0}
 .cbHc button.on{box-shadow:0 0 0 3px var(--pink)}
+
+/* 喵喵方塊島：直的拿手機時提示轉橫的（鎖得了橫向的手機不會看到） */
+.p3dRot{display:none;position:absolute;inset:0;z-index:5;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(40,28,36,.72);color:#fff;font-size:17px;text-align:center}
+@media (orientation:portrait){ .p3d:not(.rotOk) .p3dRot{display:flex} }
+.p3dRotPh{width:46px;height:78px;border:4px solid #fff;border-radius:8px;position:relative;animation:p3dRot 2.2s ease-in-out infinite}
+.p3dRotPh i{position:absolute;left:50%;bottom:5px;width:10px;height:4px;margin-left:-5px;background:#fff}
+@keyframes p3dRot{0%,25%{transform:rotate(0)}55%,100%{transform:rotate(-90deg)}}
+.p3dRot button{font:inherit;font-size:14px;color:#fff;background:transparent;border:2px solid rgba(255,255,255,.7);padding:6px 14px;margin-top:6px}
