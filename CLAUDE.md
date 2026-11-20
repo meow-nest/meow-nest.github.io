@@ -60,7 +60,7 @@
 
 ### 加新的 SQL
 
-1. 新檔案 `supabase/update_NN_名稱.sql`，NN 接著目前最大的號碼（目前到 **63**）。開頭用中文註解說這次做什麼。要能重複執行（`if not exists`、`create or replace`）。
+1. 新檔案 `supabase/update_NN_名稱.sql`，NN 接著目前最大的號碼（目前到 **64**）。開頭用中文註解說這次做什麼。要能重複執行（`if not exists`、`create or replace`）。
 2. 加進 all.sql：`printf '\n' >> supabase/all.sql && cat supabase/update_NN_名稱.sql >> supabase/all.sql`
 3. 先在本機 Postgres 測過，再推上去給站長連結。
 
@@ -108,7 +108,7 @@ git push origin main           # GitHub Pages 約 1 分鐘後更新
 
 ## 目前的狀態（2026/11/20）
 
-- 最新的 SQL 是 update_63（星星罐獨立表格）。站長說過 11/22（日）回來繼續更新。
+- 最新的 SQL 是 update_64（定時訊息，站長已經跑過）。站長說過 11/22（日）回來繼續更新。
 - 睡衣小貓：11/30 前看到「站長去充電」通知的人自動領（`gift_got`、`claim_gift`）。
 - 推播診斷（隱藏功能）：sw.js 收到推播時會記下時間（快取 `meow-pub-assets` 的 `__diag/push`），設定頁連點「通知」標題 5 次會顯示「最近一次收到推播」（`mw_diag`），用來查某支手機收不到背景通知（小米／紅米 Redmi Note 14 還在查）。一般使用者看不到，不用發更新通知。
 - 「下載 App」按鈕：Chrome 的安裝視窗沒跳出來（小米常見）時，3.5 秒後改顯示文字說明（`doInstall`）。已裝好的 App（standalone）設定頁不會有這顆按鈕。
@@ -116,4 +116,5 @@ git push origin main           # GitHub Pages 約 1 分鐘後更新
 - 首頁像翻書（`homePagesHtml`／`homePagesBind`）：第 1 頁是小窩（稱號、簽到、小魚乾、小按鈕、提醒橫幅），內容少時用 `fitFirst()` 撐滿一個畫面；第 2 頁起是遊戲，一頁 6 個（`G_PER`），每頁最上面是「跟其他小窩的朋友一起玩」。左右滑或下方 ◀ ●○○ ▶ 換頁，記在 sessionStorage `mw_hpg`。翻頁動畫 `H_FX = "slide"`（style.css 還留著 fade/book/bounce/pixel/paw 可以換）。
 - 置頂遊戲：每個人存在自己手機 localStorage `mw_pins`，遊戲第 1 頁右上「置頂設定」。
 - 喵喵方塊島（3D 遊戲，開發中）：`games/cube3d.js` 引擎＋`games/cube.js` 開始畫面。**還沒加進 index.html**，站長用獨立試玩頁 `cube-test.html` 測。第 1 階段（走路、搖桿、跳、摸小貓、睡衣／髮型／髮色）完成；之後：放方塊蓋房子、看得到另一半、探索撿東西。頭髮站長選的是方塊瀏海（雙馬尾是彎彎的髮絲）。遊戲名稱和文字不能出現 Minecraft。**站長說：方塊島試玩頁（cube-test.html 和它用到的 cube3d.js／cube.js／方塊島樣式）改好就直接推，推完再跟她說**；但加進小窩正式上線（index.html、gameart.js、更新通知）還是要等她說「發吧」。已經有：8 隻小貓村民（`games/cube_talk.js`：喵語＋翻譯、熟悉度 `mw_cube_vil`）、真實時間白天晚上、遊戲內設定（`mw_cube_set`）、蓋房子（點方塊放／挖、方塊列、復原，存在手機 `mw_cube_edits`，還沒存到伺服器）。介面風格站長選 C 精緻像素。正式上線時：index.html 加三個 script（cube_talk.js、cube3d.js、cube.js）、gameart.js 加 cube 卡片圖（本機改過但還沒推）、刪 cube-test.html。
+- 定時訊息（11/20 上線）：聊天頁左上「定時」（`schedWriter`）。`sched_msgs` 表不開權限，用 `sched_add`／`sched_list`／`sched_cancel`；pg_cron `meow-sched` 每分鐘跑 `fire_sched()`，用寫的人的名字插入 messages（kind `text`、media `{"sch":1}`，前端 `isSched` 顯示「定時訊息」標籤），推播照舊。送出前只有自己看得到；500 字、1 分鐘後～1 年內、每人最多 30 則；單人小窩沒有按鈕。
 - 等級稱號：Lv40 之後有天使／惡魔翅膀（惡魔 6 種顏色），排行榜有本週／總排行，站長小窩可以展示但不參加排行。
