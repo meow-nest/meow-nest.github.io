@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<!-- 喵喵方塊島的「試玩頁」：還沒放進小窩，只有知道網址的人打得開。正式上線後可以刪掉這頁。 -->
+<meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#f6eee3">
+<title>喵喵方塊島（試玩）</title>
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css?v=t1">
+<style>
+  body{margin:0;min-height:100vh;background:var(--bg,#f6eee3)}
+  .tWrap{max-width:460px;margin:0 auto;padding:calc(14px + env(safe-area-inset-top)) 12px 40px}
+  .tBadge{text-align:center;font-size:13px;color:#8a6a70;margin:4px 0 10px}
+</style>
+</head>
+<body>
+<div class="tWrap"><div class="tBadge">試玩版・還沒放進小窩（只有知道這個網址的人打得開）</div><div id="game"></div></div>
+<script src="pixel.js?v=t1"></script>
+<script>
+  // 假的 App：只拿遊戲的 mount 來用
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  let GAME = null; window.App = { registerGame(g){ GAME = g; } };
+  // 簡單的音效（喵、點一下）
+  const SFX = (() => { let c = null; const ensure = () => { try{ c = c || new (window.AudioContext || window.webkitAudioContext)(); if(c.state === "suspended") c.resume(); }catch(e){} return c; };
+    const tone = (f, d, v = .15) => { const a = ensure(); if(!a) return; const t = a.currentTime, o = a.createOscillator(), g = a.createGain(); o.type = "triangle"; o.frequency.value = f; g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + d + .02); };
+    const meow = (p = 1) => { const a = ensure(); if(!a) return; const t = a.currentTime, d = .42, o = a.createOscillator(), g = a.createGain(), bp = a.createBiquadFilter(); o.type = "sawtooth"; bp.type = "bandpass"; bp.Q.value = 2.2;
+      o.frequency.setValueAtTime(520*p, t); o.frequency.linearRampToValueAtTime(820*p, t+.12); o.frequency.linearRampToValueAtTime(600*p, t+d); bp.frequency.setValueAtTime(900, t); bp.frequency.linearRampToValueAtTime(2200, t+.12);
+      g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.45, t+.05); g.gain.exponentialRampToValueAtTime(.0001, t+d); o.connect(bp); bp.connect(g); g.connect(a.destination); o.start(t); o.stop(t+d+.05); };
+    return { tap: () => tone(880, .08), meow }; })();
+  const toast = msg => { const d = document.createElement("div"); d.textContent = msg; d.style.cssText = "position:fixed;left:50%;bottom:40px;transform:translateX(-50%);background:rgba(60,40,50,.85);color:#fff;padding:8px 14px;border-radius:10px;z-index:9999"; document.body.appendChild(d); setTimeout(() => d.remove(), 2500); };
+</script>
+<script src="games/cube3d.js?v=t1"></script>
+<script src="games/cube.js?v=t1"></script>
+<script>
+  const ctx = { me:{ name:"我", cat:"orange" }, partner: () => null, sprite: Pix.sprite, icon: Pix.icon, esc, SFX, toast };
+  if(GAME) GAME.mount(document.getElementById("game"), ctx);
+</script>
+</body>
+</html>

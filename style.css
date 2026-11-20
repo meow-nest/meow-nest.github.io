@@ -3702,3 +3702,50 @@ body[data-theme="night"] .box.ckCard{background:var(--card)}
 .hPgBar .hDots i.home{border-radius:50%}
 .hPgBar .hDots i.on{background:var(--pink);width:18px}
 body.kbd .hPgBar,body.ingame .hPgBar{display:none}
+
+/* 喵喵方塊島 3D（games/cube3d.js）：全螢幕 */
+body.p3dOn{overflow:hidden}
+body.p3dOn #toast{z-index:9100}
+.p3d{position:fixed;inset:0;z-index:9000;background:#bfe6ff;touch-action:none;user-select:none;-webkit-user-select:none;overflow:hidden}
+.p3dC{position:absolute;inset:0;width:100%;height:100%;display:block}
+.p3dL{position:absolute;inset:0;pointer-events:none}
+.p3dNmTag{position:absolute;left:0;top:0;font-size:13px;color:#fff;background:rgba(60,40,50,.62);padding:2px 8px;border-radius:8px;white-space:nowrap}
+.p3dNmTag.on{background:var(--pink);color:var(--onPink)}
+.p3dHeart{position:absolute;left:0;top:0;width:22px;line-height:0}.p3dHeart svg{width:100%;height:auto;display:block}
+.p3dTop{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 12px 8px;pointer-events:none}
+.p3dTop>*{pointer-events:auto}
+.p3dX{font:inherit;font-size:14px;color:var(--ink);background:var(--card);border:3px solid var(--line);box-shadow:3px 3px 0 var(--shadow);padding:5px 10px;cursor:pointer}
+.p3dT{flex:1;text-align:center;font-size:17px;color:#3a2a30;text-shadow:0 1px 0 #fff}
+.p3dF{display:flex;align-items:center;gap:4px;background:var(--card);border:3px solid var(--line);padding:3px 8px;font-size:14px}.p3dF svg{width:20px;height:auto}.p3dF b{font-weight:400;color:var(--pinkT)}
+.p3dHint{position:absolute;left:50%;top:calc(64px + env(safe-area-inset-top));transform:translateX(-50%);font-size:13px;color:#fff;background:rgba(60,40,50,.6);padding:4px 12px;border-radius:10px;transition:opacity .6s;pointer-events:none;white-space:nowrap}
+.p3dHint.hide{opacity:0}
+.p3dJoy{position:absolute;left:calc(22px + env(safe-area-inset-left));bottom:calc(26px + env(safe-area-inset-bottom));width:124px;height:124px;border-radius:50%;background:rgba(90,60,80,.16);border:3px solid rgba(90,60,80,.4);touch-action:none}
+.p3dJoy i{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:var(--pinkL,#ffe3ea);border:3px solid var(--line);box-shadow:0 3px 0 rgba(0,0,0,.18)}
+.p3dBtns{position:absolute;right:calc(18px + env(safe-area-inset-right));bottom:calc(30px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:flex-end;gap:12px}
+.p3dJump{width:74px;height:74px;border-radius:50%;font:inherit;font-size:18px;color:var(--ink);background:var(--pinkL,#ffe3ea);border:3px solid var(--line);box-shadow:0 4px 0 rgba(0,0,0,.2);touch-action:none}
+.p3dJump:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.2)}
+.p3dAct{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.p3dAct .p3dNm{font-size:13px;color:#fff;background:rgba(60,40,50,.62);padding:2px 8px;border-radius:8px}
+.p3dAct button{font:inherit;font-size:16px;min-width:96px;padding:9px 14px;color:var(--onPink);background:var(--pink);border:3px solid var(--line);box-shadow:3px 3px 0 var(--shadow)}
+.p3dAct button+button{background:var(--mint,#7cc8a4);color:#fff}
+.p3dAct button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--shadow)}
+.p3dErr{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;font-size:16px;text-align:center}
+/* 喵喵方塊島的開始畫面 */
+.cbStart{text-align:center;padding:16px 14px}
+.cbStart .cbArt{display:flex;justify-content:center;margin:4px 0 8px}.cbStart .cbArt .ga{position:relative;display:block;width:150px;height:118px}
+.cbStart h3{margin:4px 0 6px;font-weight:400;font-size:20px}
+.cbStart .k{line-height:1.7}
+.cbStart #cbGo{width:70%;margin:10px auto 6px;font-size:18px}
+.cbStart .cbNote{font-size:12px;opacity:.75}
+.p3dF[hidden]{display:none}
+.cbPickT{margin:10px 0 6px;font-size:15px;color:var(--pinkT)}
+.cbPick{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 2px 6px}
+.cbPick button{font:inherit;color:var(--ink);background:var(--card);border:3px solid var(--shadow);border-radius:10px;padding:8px 4px 6px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
+.cbPick button svg{width:46px;height:auto;display:block}
+.cbPick button i{font-style:normal;font-size:12px}
+.cbPick button.on{border-color:var(--pink);background:var(--pinkL);box-shadow:0 0 0 3px #ffd0dd}
+.cbMe{display:flex;justify-content:center;margin:6px 0 2px}.cbMe svg{width:72px;height:auto;display:block;filter:drop-shadow(2px 3px 0 rgba(90,59,46,.18))}
+.cbPick.hs{grid-template-columns:repeat(4,1fr)}.cbPick.hs button svg{width:36px}
+.cbHc{display:flex;justify-content:center;gap:10px;margin:2px 0 6px}
+.cbHc button{width:30px;height:30px;border-radius:50%;border:3px solid var(--line);cursor:pointer;padding:0}
+.cbHc button.on{box-shadow:0 0 0 3px var(--pink)}
