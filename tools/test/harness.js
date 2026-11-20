@@ -32,7 +32,8 @@ async function op(page, name, a){
     case 'bc': { setTimeout(()=>emit({t:'bc',coupleId:a.cid,from:a.uid,payload:a.payload}),20); return true; }
     case 'adminStats': return {total:1,max:300,people:1,waiting:0,modes:{solo:1},active1:1,active7:1,new7:1,idle60:0,msgs7:0,db:1048576,unread:0};
     case 'adminFeedback': return []; case 'adminUsers': return [];
-    case 'rpc': if(page.__pg && !/^(stock_|claw_)/.test(a.fn||'')){  // 有設定 page.__pg：rpc 直接打本機 Postgres（資料庫 t） const fs=require('fs'), cp=require('child_process');
+    case 'rpc': if(page.__pg && !/^(stock_|claw_)/.test(a.fn||'')){  // 有設定 page.__pg：rpc 直接打本機 Postgres（資料庫 t）
+      const fs=require('fs'), cp=require('child_process');
       const map=v=>{ for(const pg of pages) if(pg.__uid && v===pg.__uid) return pg.__pg; return v; };
       const lit=v=>v===null||v===undefined?'null':typeof v==='number'?String(v):"'"+String(map(v)).replace(/'/g,"''")+"'";
       const args=Object.entries(a.args||{}).map(([k,v])=>k+' => '+lit(v)).join(', ');

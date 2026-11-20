@@ -275,6 +275,7 @@ body[data-kb="matcha"]{--kb-bg:#eef2df;--kb-dot:rgba(120,150,60,.12);--kb-top:#f
 /* inside a game: no bottom tabs (back button + chat bubble instead) */
 body.ingame #nav{display:none}
 body.ingame{padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+body.ingame:not(.solo):not(.admsolo){padding-bottom:calc(88px + env(safe-area-inset-bottom))}   /* 遊戲底部留空間，滑到最下面時不會被右下角的聊天按鈕蓋住 */
 body.ingame .fab{bottom:calc(18px + env(safe-area-inset-bottom))}
 body.ingame .gtop{position:sticky;top:0;z-index:6}
 /* fight */
