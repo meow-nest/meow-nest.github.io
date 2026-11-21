@@ -39,8 +39,8 @@
     ["薰衣草", null, "cross"], ["紅果子", "#8cc68c", "face"], ["柳葉", "#93c990", "hang"], ["竹葉", null, "rand"], ["橄欖葉", "#aabb94", "face"],
     ["蒲公英", null, "rand"], ["星星葉", "#93c990", "face"], ["貓掌葉", "#93c990", "face"], ["雲朵葉", "#d6f0cc", "face"], ["水彩葉", null, "rand"],
     ["線稿葉", "#f4fbf0", "face"], ["扶桑花", "#6fae72", "face"], ["檸檬樹", "#7fbf7a", "face"], ["紫藤", "#93c990", "hang"], ["雪頂葉", "#8cc68c", "face"],
-    ["繡球・粉紅", "#f2b0c4", "face"], ["繡球・天空藍", "#9cbff0", "face"], ["繡球・紫色", "#b896e0", "face"], ["繡球・白綠", "#dfeed2", "face"], ["繡球・粉藍紫混色", "#c8bfe8", "face"],
-    ["繡球・大朵", "#b8c8ee", "face"], ["繡球・小碎花", "#b8c8ee", "face"], ["繡球・帶葉子", "#8cc68c", "face"], ["繡球・和紙淡色", "#dfe2ee", "face"], ["繡球・彩虹", "#e8dcf0", "face"], ["繡球・圓球花團", "#b8c8ee", "rand"],
+    ["素雅繡球・粉紅", "#efb3c5", "face"], ["素雅繡球・天空藍", "#a3c0ea", "face"], ["素雅繡球・紫色", "#bba0e0", "face"], ["素雅繡球・白綠", "#e6eedc", "face"], ["素雅繡球・和紙淡粉", "#eed8de", "face"], ["素雅繡球・藍紫", "#adb0e6", "face"],
+    ["素雅繡球・粉藍紫", "#c9c0e6", "face"], ["花球・粉紅", "#efb3c5", "face"], ["花球・天空藍", "#a3c0ea", "face"], ["花球・紫色", "#bba0e0", "face"], ["花球・白綠", "#e6eedc", "face"],
   ];
   const FOL_INNER = [...new Set(FOL_STYLES.map(x => x[1]).filter(Boolean))];
   function makeAtlas(){
@@ -157,29 +157,20 @@
     })();
     FP.forEach((f, k) => { const ox = ((22 + k) % COLS)*N, oy = Math.floor((22 + k) / COLS)*N; g.save(); g.translate(ox, oy); g.beginPath(); g.rect(0, 0, N, N); g.clip(); g.clearRect(0, 0, N, N); f(); g.restore(); });
     // 繡球花的 11 種變化（材質格 52～62）：[花的顏色們, 小花數量, 小花大小, 有沒有葉子, 排法]
+    // 素雅版：一團一團圓圓的花球，小花用很淡的顏色畫，遠看是乾淨的一團、近看才看得到小花
     const HYD = [
-      [["#f7b6c8", "#f9c4d4", "#f2a2b8"], 18, 1, 0, "spiral"],          // 粉紅
-      [["#8fb8f0", "#a6c8f6", "#7aa6e8"], 18, 1, 0, "spiral"],          // 天空藍
-      [["#b48ee0", "#c4a2ea", "#a37ad6"], 18, 1, 0, "spiral"],          // 紫色
-      [["#f4f8ee", "#e6f2da", "#ffffff"], 18, 1, 0, "spiral"],          // 白綠
-      [["#f7b6c8", "#a6c8f6", "#c4a2ea"], 18, 1, 0, "mix"],             // 粉藍紫混色
-      [["#a8c8f2", "#b9a8ee", "#c8d8fa"], 9, 1.55, 0, "spiral"],        // 大朵
-      [["#a8c8f2", "#b9a8ee", "#c8d8fa"], 34, .7, 0, "spiral"],         // 小碎花
-      [["#a8c8f2", "#b9a8ee", "#c8d8fa"], 14, 1, 1, "spiral"],          // 帶大葉子
-      [["#d6dcef", "#e4d6ea", "#dfe8f2"], 18, 1, 0, "spiral"],          // 和紙淡色
-      [["#f7a7b8", "#ffe08a", "#a8d8ff", "#cdb4f0", "#a8e6c4"], 18, 1, 0, "mix"],   // 彩虹
-      [["#a8c8f2", "#b9a8ee", "#c8d8fa"], 22, .9, 0, "ball"],           // 一顆一顆圓球花團
+      [["#f4b9ca"], "calm"], [["#a9c6ef"], "calm"], [["#c1a6e6"], "calm"], [["#eef4e6"], "calm"], [["#f3dde3"], "calm"], [["#b3b6ec"], "calm"],
+      [["#f4b9ca", "#a9c6ef", "#c1a6e6"], "calm"], [["#f4b9ca"], "plain"], [["#a9c6ef"], "plain"], [["#c1a6e6"], "plain"], [["#eef4e6"], "plain"],
     ];
-    HYD.forEach(([cols, n, sz, lv, lay], k) => { const ox = ((52 + k) % COLS)*N, oy = Math.floor((52 + k) / COLS)*N; g.save(); g.translate(ox, oy); g.beginPath(); g.rect(0, 0, N, N); g.clip(); g.clearRect(0, 0, N, N);
-      const E2 = (x, y, rx, ry, a, c) => { g.save(); g.translate(x, y); g.rotate(a); g.beginPath(); g.ellipse(0, 0, rx, ry, 0, 0, Math.PI*2); g.fillStyle = c; g.fill(); g.restore(); };
-      if(lv) for(const [x, y, a] of [[14, 48, -.8], [50, 46, .8]]){ g.save(); g.translate(x, y); g.rotate(a); g.beginPath(); g.ellipse(0, 0, 9, 14, 0, 0, Math.PI*2); g.fillStyle = "#7fbf7a"; g.fill(); g.strokeStyle = "rgba(255,255,255,.4)"; g.lineWidth = 1; g.beginPath(); g.moveTo(0, -12); g.lineTo(0, 12); g.stroke(); g.restore(); }
-      const floret = (x, y, s, c) => {   // 一朵小花：底下一點點影子、四片花瓣中間深外面淺、白白的花心
-        g.beginPath(); g.arc(x + .8*s, y + 1.3*s, 6*s, 0, Math.PI*2); g.fillStyle = "rgba(70,50,100,.05)"; g.fill();
-        for(let j = 0; j < 4; j++){ const an = j*1.57 + .4, px = x + Math.cos(an)*3.2*s, py = y + Math.sin(an)*3.2*s; g.save(); g.translate(px, py); g.rotate(an); const gr = g.createRadialGradient(-2.4*s, 0, .2, 0, 0, 3.6*s); gr.addColorStop(0, mixC(c, "#5a4a80", .07)); gr.addColorStop(1, mixC(c, "#ffffff", .35)); g.beginPath(); g.ellipse(0, 0, 3.5*s, 2.5*s, 0, 0, Math.PI*2); g.fillStyle = gr; g.fill(); g.restore(); }
-        g.beginPath(); g.arc(x, y, 1.1*s, 0, Math.PI*2); g.fillStyle = "#fffbe8"; g.fill(); };
-      const mixC = (a, b, k) => { const p = h => [1,3,5].map(i => parseInt(h.substr(i,2),16)), A = p(a), B2 = p(b); return "#" + A.map((v,i) => Math.round(v + (B2[i]-v)*k).toString(16).padStart(2,"0")).join(""); };
-      if(lay === "ball"){ for(const [cx, cy, rr] of [[22, 24, 13], [44, 28, 12], [32, 46, 13]]){ g.beginPath(); g.arc(cx, cy, rr, 0, Math.PI*2); g.fillStyle = cols[2]; g.fill(); for(let j = 0; j < 9; j++){ const an = j*2.4, d = Math.sqrt(j/9)*rr*.75; floret(cx + Math.cos(an)*d, cy + Math.sin(an)*d, .62, cols[j % 2]); } } }
-      else for(let j = 0; j < n; j++){ const an = j*2.4, d = Math.sqrt(j/n)*25; floret(32 + Math.cos(an)*d, 32 + Math.sin(an)*d, sz, lay === "mix" ? cols[(j*7) % cols.length] : cols[j % cols.length]); }
+    HYD.forEach(([cols, lay], k) => { const ox = ((52 + k) % COLS)*N, oy = Math.floor((52 + k) / COLS)*N; g.save(); g.translate(ox, oy); g.beginPath(); g.rect(0, 0, N, N); g.clip(); g.clearRect(0, 0, N, N);
+      const mixC = (a, b, t) => { const p = h => [1,3,5].map(i => parseInt(h.substr(i,2),16)), A = p(a), B2 = p(b); return "#" + A.map((v,i) => Math.round(v + (B2[i]-v)*t).toString(16).padStart(2,"0")).join(""); };
+      [[22, 23, 15], [43, 27, 14], [31, 45, 15]].forEach(([cx, cy, rr], h) => { const c = cols[h % cols.length];
+        // 花球本體：圓圓的、上面亮一點
+        g.beginPath(); for(let j2 = 0; j2 <= 28; j2++){ const an = j2/28*Math.PI*2, q2 = rr*(.94 + .06*Math.sin(an*5 + h)); g.lineTo(cx + Math.cos(an)*q2, cy + Math.sin(an)*q2); } g.closePath();
+        const gr = g.createRadialGradient(cx - rr*.35, cy - rr*.4, 1, cx, cy, rr*1.05); gr.addColorStop(0, mixC(c, "#ffffff", .3)); gr.addColorStop(1, mixC(c, "#6a5a88", .06)); g.fillStyle = gr; g.fill();
+        if(lay === "calm"){ for(let j2 = 0; j2 < 7; j2++){ const an = j2*2.4 + h, d = Math.sqrt((j2 + .5)/7)*rr*.7, fx = cx + Math.cos(an)*d, fy = cy + Math.sin(an)*d;
+          for(let p2 = 0; p2 < 4; p2++){ const a3 = p2*1.5708 + .5 + h; g.save(); g.translate(fx + Math.cos(a3)*2.6, fy + Math.sin(a3)*2.6); g.rotate(a3); g.beginPath(); g.ellipse(0, 0, 2.9, 2.1, 0, 0, Math.PI*2); g.fillStyle = mixC(c, "#ffffff", .22); g.fill(); g.restore(); }
+          g.beginPath(); g.arc(fx, fy, .9, 0, Math.PI*2); g.fillStyle = mixC(c, "#ffffff", .5); g.fill(); } } });
       g.restore(); });
 
     // 顏色格（材質格 52 切成 8×8 小格，給 30 款樹葉裡面那層用）
@@ -239,10 +230,10 @@
   uniform mat4 M, V, P; uniform vec2 fogR; varying vec2 vuv; varying float vsh, vfog; varying vec3 vn, vvn;
   void main(){ vec4 w = M*vec4(p,1.); vec4 e = V*w; vfog = clamp((-e.z - fogR.x)/(fogR.y - fogR.x), 0., 1.); vuv = uv; vsh = sh; vn = normalize(mat3(M)*n); vvn = mat3(V)*vn; gl_Position = P*e; }`;
   const FS = `precision mediump float; varying vec2 vuv; varying float vsh, vfog; varying vec3 vn, vvn;
-  uniform sampler2D tex; uniform float mode, alpha; uniform vec3 col, sky, tint;
+  uniform sampler2D tex; uniform float mode, alpha, cut; uniform vec3 col, sky, tint;
   void main(){
     vec3 c; float a = alpha;
-    if(mode < .5){ vec4 t = texture2D(tex, vuv); if(t.a < .08) discard; c = t.rgb*vsh; a *= t.a; }
+    if(mode < .5){ vec4 t = texture2D(tex, vuv); if(t.a < cut) discard; c = t.rgb*vsh; a *= t.a; }
     else if(mode < 1.5){ float d = dot(normalize(vn), normalize(vec3(-.4,.9,.5))); float l = d > .4 ? 1. : d > -.1 ? .86 : .72; c = col*l; }
     else if(mode < 2.5){ vec3 N = normalize(vn); float d = dot(N, normalize(vec3(-.4,.9,.5))); c = col*(.66 + .4*max(d, 0.)) + vec3(.05)*pow(max(d, 0.), 12.); }
     else { vec3 N = normalize(vn); float d = dot(N, normalize(vec3(-.4,.9,.5))); c = col*(.9 + .1*max(d, 0.)); }   // 雲：亮亮白白的，下面不會變灰   // 平滑的光（頭髮）
@@ -350,6 +341,7 @@
     const shd = (t, s) => { const x = gl.createShader(t); gl.shaderSource(x, s); gl.compileShader(x); if(!gl.getShaderParameter(x, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(x)); return x; };
     const PR = gl.createProgram(); gl.attachShader(PR, shd(gl.VERTEX_SHADER, VS)); gl.attachShader(PR, shd(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(PR); gl.useProgram(PR);
     const UL = {}, U = n => UL[n] || (UL[n] = gl.getUniformLocation(PR, n));
+    gl.uniform1f(U("cut"), .08);
     const AL = { p:gl.getAttribLocation(PR,"p"), n:gl.getAttribLocation(PR,"n"), uv:gl.getAttribLocation(PR,"uv"), sh:gl.getAttribLocation(PR,"sh") };
     const buf = (a, t = gl.ARRAY_BUFFER, A = Float32Array) => { const b = gl.createBuffer(); gl.bindBuffer(t, b); gl.bufferData(t, new A(a), gl.STATIC_DRAW); return b; };
     const mesh = (P, N, UV, SH, I) => ({ p:buf(P), n:buf(N), uv:buf(UV), sh:buf(SH), i:buf(I, gl.ELEMENT_ARRAY_BUFFER, Uint16Array), c:I.length });
@@ -503,9 +495,9 @@
       const open = FACES.filter(f => !isF(x+f.n[0], y+f.n[1], z+f.n[2]));
       if(mode === "face" || mode === "hang"){
         for(const f of open){ const [nx, ny, nz] = f.n; const nb = world.get(x+nx, y+ny, z+nz); if(nb && !BT[nb].clear && !shaped(x+nx, y+ny, z+nz)) continue;
-          if(swUV) quad(f.c.map(c => [x + c[0], y + c[1], z + c[2]]), swUV, f.l*.92);   // 裡面那層貼齊方塊，格子之間不會有縫
+          if(swUV) quad(f.c.map(c => [x + c[0], y + c[1], z + c[2]]), swUV, Math.min(1.05, f.l + .05));   // 裡面那層貼齊方塊，格子之間不會有縫
           if(mode === "hang" && ny === 1) continue;
-          const t1 = nx ? [0, 1, 0] : [1, 0, 0], t2 = cross(f.n, t1), nC = mode === "hang" ? 2 : 5;
+          const t1 = nx ? [0, 1, 0] : [1, 0, 0], t2 = cross(f.n, t1), nC = mode === "hang" ? 2 : sel >= 30 ? 3 : 5;
           // 樹冠邊邊：往外斜斜地多放一把，讓輪廓圓一點、不會方方的
           if(mode === "face") for(const tg of [t1, t2, t1.map(v => -v), t2.map(v => -v)]){ if(isF(x + tg[0], y + tg[1], z + tg[2])) continue; const dg = nrm([f.n[0] + tg[0], f.n[1] + tg[1], f.n[2] + tg[2]]), cc = [x + .5 + (f.n[0] + tg[0])*.46, y + .5 + (f.n[1] + tg[1])*.46, z + .5 + (f.n[2] + tg[2])*.46], ex = nrm(cross(dg, tg)), a2 = q()*6.28, ca = Math.cos(a2), sa = Math.sin(a2), ey0 = cross(dg, ex);
             card(cc, ex.map((v, i) => v*ca + ey0[i]*sa), ey0.map((v, i) => v*ca - ex[i]*sa), .42 + q()*.1, Math.min(1.05, f.l + .05)); }
@@ -1271,7 +1263,7 @@
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tex); gl.uniform1i(U("tex"), 0);
       gl.uniform1f(U("mode"), 0); gl.uniform1f(U("alpha"), 1); gl.uniformMatrix4fv(U("M"), false, I4());
       chunks[0].forEach(m => { bind(m); gl.drawElements(gl.TRIANGLES, m.c, gl.UNSIGNED_SHORT, 0); });
-      gl.disable(gl.CULL_FACE); (chunks[2] || []).forEach(m => { bind(m); gl.drawElements(gl.TRIANGLES, m.c, gl.UNSIGNED_SHORT, 0); }); gl.enable(gl.CULL_FACE);   // 樹葉、櫻花（兩面都畫）
+      gl.disable(gl.CULL_FACE); gl.uniform1f(U("cut"), .55); (chunks[2] || []).forEach(m => { bind(m); gl.drawElements(gl.TRIANGLES, m.c, gl.UNSIGNED_SHORT, 0); }); gl.uniform1f(U("cut"), .08); gl.enable(gl.CULL_FACE);   // 透明邊切乾淨，不會有黑黑的毛邊   // 樹葉、櫻花（兩面都畫）
       // 貓、花
       gl.uniform1f(U("mode"), 1); bind(cube);
       const puff = (m, col, a = 1) => { bind(ball); gl.uniform1f(U("mode"), 2); gl.disable(gl.CULL_FACE); box(m, col, a); gl.enable(gl.CULL_FACE); bind(cube); gl.uniform1f(U("mode"), 1); };
