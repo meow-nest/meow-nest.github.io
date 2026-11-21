@@ -1738,6 +1738,40 @@ const App = (function(){
   function ptUnmount(){ const m = PT.mounted; if(!m) return; PT.mounted = null; try{ m.g.unmount && m.g.unmount(); }catch(e){ console.error(e); } PT.subs = []; PT.bcs = []; PT.msubs = []; PT.psubs = []; PT.rs = {}; document.querySelectorAll(".rqBar").forEach(x => x.remove()); }
   function ptLeaveView(){ if(!PT.view) return; PT.view = false; ptUnmount(); ptConnect(); ptPollSet(); }
   // 配對中：每 4 秒問一次伺服器（也順便告訴伺服器「我還在等」），配到人就開始
+  // 現在在等連線的喵友（更新 69）：大廳開著時每 5 秒更新一次，點一位就直接一起玩
+  async function ptWaitTick(){
+    clearTimeout(PT.wt);
+    if(!PT.view || PT.room || !$("ptWaitL")) return;
+    if(document.visibilityState === "visible"){
+      try{ PT.waiting = await B.rpc("party_waiting"); PT.wErr = ""; }
+      catch(e){ PT.wErr = /party_waiting|function|schema cache/i.test(String(e && e.message || e)) ? "db" : "net"; }
+      ptWaitPaint();
+    }
+    PT.wt = setTimeout(ptWaitTick, 5000);
+  }
+  function ptWaitPaint(){
+    const L = $("ptWaitL"); if(!L) return;
+    const xs = Array.isArray(PT.waiting) ? PT.waiting : null, n = $("ptWaitN");
+    const by = {}; (xs || []).forEach(x => { by[x.game] = (by[x.game] || 0) + 1; });
+    document.querySelectorAll("[data-pm]").forEach(b => { let t = b.querySelector(".ptWB"); const c = by[b.dataset.pm] || 0;
+      if(!c){ if(t) t.remove(); return; } if(!t){ t = document.createElement("i"); t.className = "ptWB"; b.appendChild(t); } t.textContent = `${c} 人在等`; });
+    if(n) n.textContent = xs && xs.length ? `${xs.length} 位` : "";
+    if(PT.wErr === "db"){ L.innerHTML = `<div class="k" style="text-align:center;padding:6px">資料庫還沒加上這個功能（更新 69）</div>`; return; }
+    if(!xs){ return; }
+    if(!xs.length){ L.innerHTML = `<div class="ptWaitE">${sprite(me.cat || "orange", "sleep")}<span>現在沒有人在等～<br>按上面的遊戲開始找，別人就會看到你喔</span></div>`; return; }
+    const ago = t => t < 60 ? "剛剛" : `${Math.floor(t / 60)} 分鐘`;
+    L.innerHTML = xs.map(x => { const g = ptGame(x.game);
+      return `<div class="ptWR">${sprite(x.cat || "white", "happy")}<span><b>${esc(x.name)}</b><small>想玩「${esc(g ? g.name : x.game)}」・等了${ago(x.since)}</small></span><button class="btn" data-meet="${esc(x.room)}">一起玩</button></div>`; }).join("");
+    L.querySelectorAll("[data-meet]").forEach(b => b.addEventListener("click", () => ptMeet(b.dataset.meet)));
+  }
+  async function ptMeet(room){
+    if(PT.busy) return; PT.busy = true; SFX.tap();
+    try{ const r = await B.rpc("party_meet", { p_room: room });
+      if(r && r.error){ toast(r.error === "gone" ? "ta 已經跟別人玩了，或不等了<br>換一位喵友試試吧" : r.error === "banned" ? "你暫時不能使用隨機配對<br>有問題可以到設定寫信給站長" : r.error === "too_many" ? "配對太多次了，休息一下再來吧" : "沒有成功，再試一次", 3000); }
+      else if(r){ PT.room = r; SFX.match(); }
+    }catch(e){ toast(ptErr(e), 4000); }
+    PT.busy = false; ptPaint(); if(!PT.room) ptWaitTick();
+  }
   function ptPollSet(){ const want = PT.view && ptPub() && ptMembers().length < 2;
     if(want && !PT.poll){ PT.poll = setInterval(() => { if(document.visibilityState === "visible") ptRefresh(); }, 4000); }
     if(!want && PT.poll){ clearInterval(PT.poll); PT.poll = 0; } }
@@ -1853,6 +1887,8 @@ const App = (function(){
       ptUnmount();
       const pend = (()=>{ try{ return localStorage.getItem("mw_ptJoin") || ""; }catch(e){ return ""; } })();
       const matchBox = `<div class="box ptBox ptMatchBox"><div class="ptHead">${sprite(me.cat || "orange", "happy")}<p><b>找陌生的喵友一起玩</b><br>隨機配對其他小窩的人</p></div>
+        <h3 class="ptH ptWaitH">現在在等連線的喵友<small id="ptWaitN"></small></h3><div class="ptWaitL" id="ptWaitL"><div class="k" style="text-align:center;padding:6px">看看有誰在等…</div></div>
+        <h3 class="ptH">或是選一個遊戲開始找</h3>
         <div class="ptGames">${MATCH_GAMES.map(id => { const g = ptGame(id); if(!g) return ""; return `<button class="gcard" data-pm="${id}"><span class="gi">${window.GameArt && GameArt[id] ? `<span class="ga">${GameArt[id]()}</span>` : g.icon()}</span><span class="gn">${esc(g.name)}</span><span class="gd">隨機配對</span></button>`; }).join("")}</div>
         <div class="k ptNote">喵友只看得到你的貓咪和「喵友」編號，看不到你的暱稱<br>不能打字聊天，只能用固定的短句・遇到怪怪的人可以按「檢舉」</div>
         <button class="btn sub ptBlkB" id="ptBlk" style="width:100%">我檢舉過的喵友</button></div>`;
@@ -1864,6 +1900,7 @@ const App = (function(){
       a.querySelectorAll("[data-pc]").forEach(b => b.addEventListener("click", () => ptCreate(b.dataset.pc)));
       a.querySelectorAll("[data-pm]").forEach(b => b.addEventListener("click", () => ptMatch(b.dataset.pm)));
       { const bb = a.querySelector("#ptBlk"); if(bb) bb.addEventListener("click", ptBlocks); }
+      ptWaitPaint(); ptWaitTick();
       const inp = a.querySelector("#ptCode");
       inp.addEventListener("input", () => { const v = inp.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6); if(v !== inp.value) inp.value = v; });
       inp.addEventListener("keydown", e => { if(e.key === "Enter") ptJoin(inp.value); });

@@ -3945,3 +3945,14 @@ body.dockKb .careModal .ltWrap .ltBody{height:clamp(56px,calc(100dvh - var(--doc
 .admPrR ul{margin:4px 0 6px 18px;padding:0;font-size:13px;color:var(--muted)}
 .admPrR .btn{width:100%;margin:0;padding:6px;font-size:14px}
 .admPrBan{background:#e0627c;color:#fff}
+
+/* 現在在等連線的喵友（更新 69） */
+.ptWaitH{display:flex;align-items:baseline;gap:8px;margin-top:4px}.ptWaitH small{font-size:13px;color:var(--pinkT)}
+.ptWaitL{display:grid;gap:6px;max-height:330px;overflow:auto}
+.ptWR{display:flex;align-items:center;gap:8px;border:2px solid var(--line);background:var(--card);box-shadow:2px 2px 0 var(--shadow);padding:4px 6px}
+.ptWR svg{width:40px;height:auto;flex:none}
+.ptWR span{flex:1;min-width:0}.ptWR b{font-weight:400;display:block}.ptWR small{display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ptWR .btn{width:auto;margin:0;padding:6px 12px;font-size:14px;flex:none}
+.ptWaitE{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);padding:4px 2px}.ptWaitE svg{width:44px;height:auto;flex:none}
+.ptGames .gcard{position:relative}
+.ptWB{position:absolute;top:6px;right:6px;font-style:normal;font-size:11px;background:#e0627c;color:#fff;border:2px solid var(--line);padding:1px 5px;animation:ptHop 1.2s steps(2) infinite}
