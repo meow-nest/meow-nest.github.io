@@ -1336,6 +1336,67 @@
         case 19: ball(0, -Hh*.2, 0, R*.8, Hh*.62, R*.75, C.a); for(let k = 0; k < 4; k++){ const a = -1.05 + k*.7; ball(Math.sin(a)*R*.78, Hh*.55 + Math.cos(a)*Hh*.08 - Math.abs(a)*.15, 0, R*.3, R*.32, R*.3, C.b); } ball(0, -Hh*.25, R*.62, R*.42, R*.32, .1, sak ? "#ffffff" : "#f7b6c8"); break;   // 20 貓掌樹
       }
     }
+    // ---------- 家具（不是方塊做的，用圓角、圓球、管子組起來）：FURN 是清單，drawFurn 畫一件 ----------
+    const FURN = [
+      ["cattree", "貓跳台", "貓咪用品"], ["catbed", "貓窩", "貓咪用品"], ["bowl", "食盆", "貓咪用品"], ["teaser", "逗貓棒罐", "貓咪用品"], ["cbox", "紙箱", "貓咪用品"],
+      ["bed", "小床", "臥室"], ["lamp", "檯燈", "臥室"], ["wardrobe", "衣櫃", "臥室"], ["rug", "圓地毯", "臥室"], ["nstand", "床頭櫃", "臥室"],
+      ["sofa", "沙發", "客廳"], ["ltable", "矮桌", "客廳"], ["cushion", "坐墊", "客廳"], ["plant", "盆栽", "客廳"], ["tv", "小電視", "客廳"],
+      ["swing", "鞦韆", "庭院"], ["bench", "長椅", "庭院"], ["slamp", "路燈", "庭院"], ["frack", "花架", "庭院"], ["pond", "小池塘", "庭院"],
+    ];
+    function drawFurn(id, x, y, z, rot, t){
+      const M0 = chain(T(x, y, z), RY(rot || 0));
+      const P = (lx, ly, lz) => mulPt(M0, [lx, ly, lz]);
+      const bx = (lx, ly, lz, sx, sy, sz, c, r) => box(chain(M0, T(lx, ly, lz), r || I4(), S(sx, sy, sz)), c);
+      const el = (lx, ly, lz, rx, ry, rz, c, r) => { bind(ball); gl.uniform1f(U("mode"), 2); gl.disable(gl.CULL_FACE); box(chain(M0, T(lx, ly, lz), r || I4(), S(rx*2, ry*2, rz*2)), c); gl.enable(gl.CULL_FACE); bind(cube); gl.uniform1f(U("mode"), 1); };
+      const tb = (pts, r0, r1, c) => tube(pts.map(p => P(...p)), u => r0 + (r1 - r0)*u, c, true);
+      const cyl = (lx, y0, lz, r, h, c) => tb([[lx, y0, lz], [lx, y0 + h*.5, lz], [lx, y0 + h, lz]], r, r, c);
+      const disc = (lx, ly, lz, r, th, c) => el(lx, ly, lz, r, th, r, c);
+      // 圓角的長方塊：中間一塊、四邊用圓管包起來
+      const rbox = (lx, ly, lz, sx, sy, sz, c, rr = .06) => { bx(lx, ly, lz, sx - rr*2, sy, sz, c); bx(lx, ly, lz, sx, sy - rr*2, sz - rr*2, c); bx(lx, ly, lz, sx - rr*2, sy - rr*2, sz, c);
+        for(const [a, b] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]){ tb([[lx + a*(sx/2 - rr), ly - sy/2 + rr, lz + b*(sz/2 - rr)], [lx + a*(sx/2 - rr), ly + sy/2 - rr, lz + b*(sz/2 - rr)]], rr, rr, c);
+          tb([[lx - sx/2 + rr, ly + a*(sy/2 - rr), lz + b*(sz/2 - rr)], [lx + sx/2 - rr, ly + a*(sy/2 - rr), lz + b*(sz/2 - rr)]], rr, rr, c);
+          tb([[lx + a*(sx/2 - rr), ly + b*(sy/2 - rr), lz - sz/2 + rr], [lx + a*(sx/2 - rr), ly + b*(sy/2 - rr), lz + sz/2 - rr]], rr, rr, c); } };
+      const W = "#d9b48a", WD = "#b88a5e", PK = "#f2a7bd", PKL = "#f9cfdb", CR = "#fff4e6", SG = "#a8c89a", SGD = "#86ad7c", BL = "#a9c6ef", GD = "#e8c46a";
+      switch(id){
+        case "cattree": { for(const [px, pz, h] of [[-.25, -.15, 1.5], [.25, .15, .95]]) cyl(px, 0, pz, .07, h, "#e6cfa6");
+          rbox(0, .04, 0, .9, .08, .7, PKL); disc(-.25, 1.52, -.15, .3, .07, PK); disc(.25, .98, .15, .27, .06, PK); el(-.25, 1.6, -.15, .22, .06, .22, CR);
+          tb([[-.25, 1.25, -.15], [.05, 1.15, -.1], [.1, 1.02, -.05]], .02, .015, "#f6d06a"); el(.1, .98, -.05, .05, .05, .05, PK); break; }
+        case "catbed": el(0, .1, 0, .42, .12, .36, PK); el(0, .16, 0, .32, .06, .26, CR); tb(Array.from({ length: 25 }, (_, k) => [Math.cos(k/24*Math.PI*2)*.38, .2, Math.sin(k/24*Math.PI*2)*.32]), .08, .08, PK); break;
+        case "bowl": for(const [px, c, fill] of [[-.17, PK, "#d9a066"], [.17, BL, "#bfe3ff"]]){ tb([[px, .02, 0], [px, .1, 0]], .14, .16, c); disc(px, .1, 0, .13, .015, fill); } el(0, .005, 0, .4, .01, .22, CR); break;
+        case "teaser": tb([[0, 0, 0], [0, .3, 0]], .13, .13, "#f6d06a"); disc(0, .3, 0, .12, .01, "#c9935e");
+          for(const [a, c] of [[0, PK], [2.1, BL], [4.2, SG]]){ const ex = Math.cos(a)*.35, ez = Math.sin(a)*.35, sw = Math.sin(t*2 + a)*.05; tb([[Math.cos(a)*.05, .25, Math.sin(a)*.05], [ex*.6 + sw, .7, ez*.6], [ex + sw, .9, ez]], .012, .008, "#a0703f"); el(ex + sw, .9, ez, .06, .1, .06, c); } break;
+        case "cbox": { const c = "#e2bf86", cd = "#c9a06a"; bx(0, .22, 0, .7, .44, .6, c); bx(0, .44, 0, .64, .02, .54, cd);
+          for(const [a, d] of [[0, 1], [0, -1]]){ bx(0, .5, d*.36, .7, .02, .18, c, RX(d*.6)); void a; } bx(0, .26, .301, .2, .08, .01, PK); break; }
+        case "bed": { rbox(0, .18, 0, 1, .2, 1.9, W, .05); for(const [px, pz] of [[-.44, -.9], [.44, -.9], [-.44, .9], [.44, .9]]) cyl(px, 0, pz, .05, .1, WD);
+          rbox(0, .55, -.95, 1, .9, .1, W, .05); el(0, .36, .05, .48, .1, .9, CR); el(0, .44, -.62, .32, .1, .18, PKL); el(0, .42, .35, .5, .08, .55, PK); break; }
+        case "lamp": disc(0, .02, 0, .16, .03, WD); tb([[0, .02, 0], [0, .5, 0]], .025, .025, GD); tb([[0, .45, 0], [0, .72, 0]], .2, .12, CR); el(0, .5, 0, .08, .08, .08, "#fff6c8"); break;
+        case "wardrobe": { rbox(0, .85, 0, .9, 1.7, .55, W, .05); bx(-.225, .9, .276, .4, 1.45, .01, "#e4c39a"); bx(.225, .9, .276, .4, 1.45, .01, "#e4c39a");
+          for(const sx of [-1, 1]) el(sx*.06, .95, .29, .025, .05, .025, GD); el(0, 1.75, 0, .4, .05, .25, PKL); break; }
+        case "rug": el(0, .01, 0, .8, .012, .8, PKL); tb(Array.from({ length: 33 }, (_, k) => [Math.cos(k/32*Math.PI*2)*.62, .02, Math.sin(k/32*Math.PI*2)*.62]), .02, .02, PK); for(let k = 0; k < 5; k++){ const a = k*1.2566; el(Math.cos(a)*.3, .02, Math.sin(a)*.3, .08, .01, .08, CR); } break;
+        case "nstand": rbox(0, .28, 0, .5, .5, .42, W, .05); bx(0, .3, .212, .4, .14, .01, "#e4c39a"); el(0, .3, .225, .03, .03, .02, GD); for(const [px, pz] of [[-.2, -.16], [.2, -.16], [-.2, .16], [.2, .16]]) cyl(px, 0, pz, .03, .05, WD); el(.1, .58, 0, .08, .08, .08, BL); break;
+        case "sofa": { rbox(0, .25, 0, 1.6, .26, .75, SG, .1); el(0, .45, .05, .75, .1, .3, "#b8d6aa"); rbox(0, .6, -.3, 1.6, .55, .18, SG, .09);
+          for(const sx of [-1, 1]) rbox(sx*.74, .45, 0, .16, .44, .75, SG, .07); for(const sx of [-1, 1]) el(sx*.4, .65, -.15, .2, .16, .07, sx < 0 ? PKL : CR);
+          for(const [px, pz] of [[-.7, -.3], [.7, -.3], [-.7, .3], [.7, .3]]) cyl(px, 0, pz, .035, .12, WD); break; }
+        case "ltable": el(0, .34, 0, .55, .04, .55, W); for(let k = 0; k < 4; k++){ const a = k*1.5708 + .785; tb([[Math.cos(a)*.32, 0, Math.sin(a)*.32], [Math.cos(a)*.3, .32, Math.sin(a)*.3]], .035, .03, WD); }
+          tb([[.12, .38, .05], [.12, .5, .05]], .06, .07, CR); disc(-.15, .39, -.1, .12, .015, CR); el(-.15, .42, -.1, .05, .03, .05, PK); break;
+        case "cushion": el(0, .1, 0, .38, .12, .38, PKL); el(0, .2, 0, .08, .03, .08, PK); for(let k = 0; k < 4; k++){ const a = k*1.5708 + .785; el(Math.cos(a)*.36, .1, Math.sin(a)*.36, .05, .05, .05, PK); } break;
+        case "plant": tb([[0, 0, 0], [0, .4, 0]], .16, .21, "#e8a07a"); disc(0, .4, 0, .19, .02, "#8a5a3a");
+          for(let k = 0; k < 7; k++){ const a = k*.8976, h = .7 + (k % 3)*.15, sw = Math.sin(t*1.3 + k)*.03; tb([[0, .4, 0], [Math.cos(a)*.1 + sw, .4 + h*.6, Math.sin(a)*.1], [Math.cos(a)*.3 + sw, .4 + h, Math.sin(a)*.3]], .015, .01, SGD); el(Math.cos(a)*.3 + sw, .4 + h, Math.sin(a)*.3, .09, .04, .13, k % 2 ? SG : "#9ed08f", RY(-a)); } break;
+        case "tv": { rbox(0, .25, 0, .9, .5, .4, W, .05); rbox(0, .82, 0, .78, .55, .12, "#e9e1ef", .06); bx(0, .82, .062, .64, .42, .01, "#7fa9c9");
+          el(-.15, .9, .07, .06, .02, .01, "#ffffff"); for(const sx of [-1, 1]) tb([[sx*.12, 1.08, 0], [sx*.25, 1.3, -.02]], .012, .01, "#c9c0d8"); break; }
+        case "swing": { for(const sx of [-1, 1]){ tb([[sx*.6, 0, -.3], [sx*.6, 1.8, 0]], .05, .05, W); tb([[sx*.6, 0, .3], [sx*.6, 1.8, 0]], .05, .05, W); }
+          tb([[-.65, 1.8, 0], [.65, 1.8, 0]], .05, .05, WD); const sw = Math.sin(t*1.2)*.15; for(const sx of [-1, 1]) tb([[sx*.3, 1.78, 0], [sx*.3, .5, sw]], .01, .01, "#d6c9b0");
+          rbox(0, .48, sw, .75, .06, .3, PK, .03); break; }
+        case "bench": { rbox(0, .42, 0, 1.4, .07, .4, W, .03); rbox(0, .78, -.18, 1.4, .3, .06, W, .03); for(const sx of [-1, 1]){ tb([[sx*.6, 0, .15], [sx*.6, .42, .15]], .04, .04, "#7a6a7a"); tb([[sx*.6, 0, -.15], [sx*.6, .95, -.2]], .04, .04, "#7a6a7a"); } break; }
+        case "slamp": disc(0, .03, 0, .2, .04, "#7a6a7a"); tb([[0, 0, 0], [0, 2.1, 0]], .045, .035, "#7a6a7a"); tb([[0, 2.1, 0], [.15, 2.25, 0], [.3, 2.2, 0]], .03, .03, "#7a6a7a");
+          tb([[.3, 2.18, 0], [.3, 1.98, 0]], .07, .14, "#ffeec0"); el(.3, 2.02, 0, .07, .07, .07, "#fff6c8"); tb([[.3, 2.22, 0], [.3, 2.16, 0]], .02, .16, "#7a6a7a"); break;
+        case "frack": { for(const [ly, w] of [[.3, 1], [.7, .85], [1.1, .7]]) rbox(0, ly, -(1.1 - ly)*.12, w, .05, .26, W, .02); for(const sx of [-1, 1]) tb([[sx*.5, 0, .12], [sx*.36, 1.2, -.02]], .03, .03, WD);
+          const cols = [PK, "#ffe08a", BL, "#cdb4f0", "#f28b82"]; let k = 0; for(const [ly, w] of [[.3, 1], [.7, .85], [1.1, .7]]) for(let i = 0; i < 3; i++){ const px = (i - 1)*w*.32, pz = -(1.1 - ly)*.12; tb([[px, ly + .03, pz], [px, ly + .15, pz]], .06, .075, "#e8a07a");
+            el(px, ly + .22, pz, .07, .06, .07, cols[k++ % cols.length]); } break; }
+        case "pond": { el(0, .02, 0, .95, .03, .7, "#9a9ab0"); el(0, .035, 0, .82, .02, .58, "#a8d6ee"); for(let k = 0; k < 9; k++){ const a = k*.698; el(Math.cos(a)*.92, .07, Math.sin(a)*.68, .14, .08, .11, k % 2 ? "#c6c3d4" : "#b8b5c8"); }
+          disc(.25, .05, .1, .14, .008, "#8fc48a"); el(.27, .07, .08, .04, .03, .04, PK); const fx = Math.cos(t*.8)*.35, fz = Math.sin(t*.8)*.2; el(fx, .04, fz, .07, .025, .04, "#f2a65a", RY(-t*.8)); break; }
+      }
+    }
     function frame(now){
       if(dead) return; raf = requestAnimationFrame(frame);
       if(CFG.fps && now - last < 1000/CFG.fps - 2) return;   // 幀率上限：還沒到時間就先不畫（比較省電、不會燙）
@@ -1381,7 +1442,7 @@
       // 鏡頭：跟著玩家但有一點點緩衝（上下比較慢，跳上一格、跳起來時不會抖）
       { const ty = player.y + (player.visY || 0) + 1.35, C = cam.t || (cam.t = [player.x, ty, player.z]), kx = Math.min(1, dt*16), ky = Math.min(1, dt*(player.onG ? 9 : 4));
         C[0] += (player.x - C[0])*kx; C[2] += (player.z - C[2])*kx; C[1] += (ty - C[1])*ky; if(Math.hypot(player.x - C[0], player.z - C[2]) > 3 || Math.abs(ty - C[1]) > 4){ C[0] = player.x; C[1] = ty; C[2] = player.z; } }
-      const tgt = cam.t.slice();
+      const tgt = (window.__camT || cam.t).slice();   // __camT：測試截圖用
       let dist = cam.dist; const dir = [Math.sin(cam.yaw)*Math.cos(cam.pitch), Math.sin(cam.pitch), Math.cos(cam.yaw)*Math.cos(cam.pitch)];
       for(let d = .25; d <= cam.dist; d += .1){ const bx = tgt[0]+dir[0]*d, by = tgt[1]+dir[1]*d, bz = tgt[2]+dir[2]*d;
         if(solid(bx, by, bz) || solid(bx, by + .15, bz) || solid(bx, by - .15, bz)){ dist = Math.max(.3, d - .3); break; } }
@@ -1409,9 +1470,10 @@
         box(chain(T(f.x, f.y + .12*s, f.z), S(.035, .24*s, .035)), "#7cbf6e"); box(chain(T(f.x + .05, f.y + .08*s, f.z), RY(f.a), RZ(.6), S(.1*s, .02, .05*s)), "#8fd080");
         for(let k = 0; k < 5; k++){ const a = f.a + k*Math.PI*2/5; puff(chain(T(f.x + Math.cos(a)*.055*s, f.y + .27*s, f.z + Math.sin(a)*.055*s), S(.075*s, .035*s, .075*s)), f.c); }
         puff(chain(T(f.x, f.y + .285*s, f.z), S(.05*s, .04*s, .05*s)), f.c === "#ffe08a" ? "#f2a65a" : "#ffd36b"); });
-      if(dist > .6) drawKid(player, t);   // 鏡頭被擠到頭裡面時先不畫自己
+      if(dist > .6 && !window.__camT) drawKid(player, t);   // 鏡頭被擠到頭裡面時先不畫自己
       pets.forEach(p => drawCat(p, t));
       if(yarn) drawBall();
+      (window.__furn || []).forEach(f => drawFurn(f.id, f.x, f.y, f.z, f.r, t));   // 家具（之後會改成玩家擺的）
       // 挖方塊噴出來的小碎塊、剛放好的方塊閃一下
       for(let k = fx.length - 1; k >= 0; k--){ const f = fx[k]; f.life -= dt; if(f.life <= 0){ fx.splice(k, 1); continue; } f.vy -= 12*dt; f.x += f.vx*dt; f.y += f.vy*dt; f.z += f.vz*dt; box(chain(T(f.x, f.y, f.z), S(.12, .12, .12)), f.c); }
       if(flash.t > 0){ flash.t -= dt; gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); box(chain(T(flash.x + .5, flash.y + .5, flash.z + .5), S(1.04, 1.04, 1.04)), "#ffffff", flash.t*2); gl.disable(gl.BLEND); }
@@ -1447,7 +1509,7 @@
     }
     raf = requestAnimationFrame(frame);
 
-    return { close, _state:{ player, pets, cam, world, rebuild: buildWorld } };
+    return { close, _state:{ player, pets, cam, world, rebuild: buildWorld, FURN } };
     }   // build 結束
     function close(){
       if(dead) return; dead = true; cancelAnimationFrame(raf); offAll(); cur = null;
