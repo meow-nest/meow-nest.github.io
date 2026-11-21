@@ -751,7 +751,7 @@
     function move1(e, mx, mz, dt, w, h){
       const step = (ax, v) => { if(!v) return; const nx = e.x + (ax === 0 ? v : 0), nz = e.z + (ax === 2 ? v : 0);
         if(!hits(nx, e.y, nz, w, h)) { e.x = nx; e.z = nz; return; }
-        if(e.onG && !hits(nx, e.y+1.05, nz, w, h) && !hits(e.x, e.y+1.05, e.z, w, h)){ e.vy = 7; e.onG = false; return; }   // 自動跳上一格（跳高 1.2 格，確定跳得上去）
+        if(e.onG && !hits(nx, e.y+1.05, nz, w, h) && !hits(e.x, e.y+1.05, e.z, w, h)){ if(e === player && !hits(nx, e.y+1, nz, w, h)){ e.y += 1; e.x = nx; e.z = nz; e.visY = (e.visY || 0) - 1; return; } e.vy = 7; e.onG = false; return; }   // 玩家：直接滑上一格（畫面慢慢跟上，不會一直跳）   // 自動跳上一格（跳高 1.2 格，確定跳得上去）
         // 差一點點對準門口／縫隙時，自動往旁邊滑進去（不用很準也走得進門）
         const px = ax === 0 ? 0 : 1, pz = ax === 0 ? 1 : 0, sp = Math.abs(v);
         for(const off of [.08, .16, .24, .32, .4, .5]) for(const sg of [-1, 1]){ const ox = px*off*sg, oz = pz*off*sg;
@@ -1212,7 +1212,7 @@
     // 穿貓咪睡衣的方塊人（大概 1.45 格高）
     function drawKid(e, t){
       const a = e.av, wk = e.spd || 0, ph = e.walk*9, sw = Math.sin(ph)*.6*wk, hop = e.onG ? 0 : .04;
-      const W0 = chain(T(e.x, e.y + hop + Math.abs(Math.sin(ph))*.03*wk, e.z), RY(e.yaw));
+      const W0 = chain(T(e.x, e.y + (e.visY || 0) + hop + Math.abs(Math.sin(ph))*.05*wk, e.z), RY(e.yaw), RX(.1*wk), RZ(Math.sin(ph)*.035*wk));   // 走路時身體微微往前傾、左右晃
       const at = (x,y,z, sx,sy,sz, col, r) => box(chain(W0, r || I4(), T(x,y,z), S(sx,sy,sz)), col);
       // 腳（前後擺）＋白色腳掌
       for(const [lx, k] of [[-.12, 1], [.12, -1]]){ const r = chain(T(0,.46,0), RX(sw*k)); at(lx,-.23,0, .2,.44,.22, a.pj, r); at(lx,-.43,.02, .21,.06,.24, a.lt, r); }
@@ -1350,7 +1350,10 @@
         const dx = (rx*ix - fx*iz), dz = (rz*ix - fz*iz), l = Math.hypot(dx, dz) || 1; mx = dx/l*sp; mz = dz/l*sp;
         const want = Math.atan2(mx, mz); let d = want - player.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); player.yaw += d*Math.min(1, dt*12); }
       tryJump(dt); if(player.petT > 0) player.petT -= dt; idleT = mag > .08 ? 0 : idleT + dt;
-      move(player, mx, mz, dt, .28, 1.45); player._dt = dt; player.spd = mag; player.walk += dt*mag;
+      // 走路有起步和停下來的緩衝（不會一按就全速、一放就急停）
+      { const k = Math.min(1, dt*(mag > .08 ? 9 : 12)); player.vx = (player.vx || 0) + (mx - (player.vx || 0))*k; player.vz = (player.vz || 0) + (mz - (player.vz || 0))*k; if(Math.hypot(player.vx, player.vz) < .02) player.vx = player.vz = 0; }
+      move(player, player.vx, player.vz, dt, .28, 1.45); player._dt = dt; const sp2 = Math.min(1, Math.hypot(player.vx, player.vz)/4.2); player.spd = sp2; player.walk += dt*(sp2*1.05 + (sp2 > .02 ? .15 : 0));
+      if(player.visY){ player.visY *= Math.pow(.0005, dt); if(Math.abs(player.visY) < .01) player.visY = 0; }
       // 鏡頭慢慢轉到玩家背後（有在走、而且沒在拖曳時）
       if(CFG.autoCam && mag > .2 && dragId === null){ let d = (player.yaw + Math.PI) - cam.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); cam.yaw += d*Math.min(1, dt*1.4); }
       // 寵物貓：到處閒晃，你靠近時會轉過來看你
@@ -1374,10 +1377,14 @@
       if(clockEl._m !== Math.floor(hr*60)){ clockEl._m = Math.floor(hr*60); const H = Math.floor(hr), M = Math.floor((hr - H)*60); clockEl.innerHTML = CFG.time === "day" ? "" : `${o.icon ? `<span class="p3dIc">${o.icon(H >= 6 && H < 18 ? "sun" : "moon")}</span>` : ""}${H < 5 || H >= 19 ? "晚上" : H < 11 ? "早上" : H < 13 ? "中午" : H < 17 ? "下午" : "傍晚"} ${H}:${String(M).padStart(2, "0")}`; }
 
       // 鏡頭：在玩家後上方，被方塊擋住就拉近
-      const tgt = [player.x, player.y + 1.35, player.z];
+      // 鏡頭：跟著玩家但有一點點緩衝（上下比較慢，跳上一格、跳起來時不會抖）
+      { const ty = player.y + (player.visY || 0) + 1.35, C = cam.t || (cam.t = [player.x, ty, player.z]), kx = Math.min(1, dt*16), ky = Math.min(1, dt*(player.onG ? 9 : 4));
+        C[0] += (player.x - C[0])*kx; C[2] += (player.z - C[2])*kx; C[1] += (ty - C[1])*ky; if(Math.hypot(player.x - C[0], player.z - C[2]) > 3 || Math.abs(ty - C[1]) > 4){ C[0] = player.x; C[1] = ty; C[2] = player.z; } }
+      const tgt = cam.t.slice();
       let dist = cam.dist; const dir = [Math.sin(cam.yaw)*Math.cos(cam.pitch), Math.sin(cam.pitch), Math.cos(cam.yaw)*Math.cos(cam.pitch)];
       for(let d = .25; d <= cam.dist; d += .1){ const bx = tgt[0]+dir[0]*d, by = tgt[1]+dir[1]*d, bz = tgt[2]+dir[2]*d;
         if(solid(bx, by, bz) || solid(bx, by + .15, bz) || solid(bx, by - .15, bz)){ dist = Math.max(.3, d - .3); break; } }
+      { const cur = cam.cd == null ? dist : cam.cd; cam.cd = dist < cur ? Math.max(dist, cur - dt*30) : cur + (dist - cur)*Math.min(1, dt*3); dist = Math.min(dist, cam.cd); }   // 被擋住馬上拉近、沒擋住慢慢退回去（不會一直跳來跳去）
       const eye = [tgt[0]+dir[0]*dist, tgt[1]+dir[1]*dist, tgt[2]+dir[2]*dist]; lastCam = { eye, tgt };
       const V = lookAt(eye, tgt, [0,1,0]), P = persp(CFG.fov*Math.PI/180, cv.width/cv.height, .05, Math.max(CFG.view + 12, STAR > .02 ? 90 : 0));
 
