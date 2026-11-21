@@ -48,7 +48,14 @@
     ["薰衣草淡紫", "#d2c2ec", "face"], ["粉藍兩色", "#cfc0e0", "face"], ["粉紫兩色", "#dcb4d8", "face"], ["奶油黃", "#f2e6c2", "face"],
     ["方塊櫻花", "#f2a7bd", "block"], ["方塊櫻花・淡粉", "#f6bfcf", "block"], ["方塊櫻花・夾綠葉", "#f2a7bd", "block"],
   ];
-  const FOL_INNER = [...new Set(FOL_STYLES.map(x => x[1]).filter(Boolean))];
+  const FOL_INNER = [...new Set(FOL_STYLES.map(x => x[1]).filter(Boolean).concat(["#f9dde5", "#e98aa6"]))];
+  // 茂密櫻花的樣子：[名字, 花的材質格兩張, 裡面那層顏色, 形狀]
+  const SAK_STYLES = [
+    ["圓圓大樹", [87, 88], "#f6c4d2", "round"], ["大傘（又寬又扁）", [87, 88], "#f6c4d2", "umbrella"], ["垂枝櫻（花一串串垂下來）", [87, 88], "#f6c4d2", "weep"],
+    ["高高橢圓", [87, 88], "#f6c4d2", "oval"], ["雲朵（好幾團）", [87, 88], "#f6c4d2", "cloud"], ["兩層", [87, 88], "#f6c4d2", "tier"],
+    ["圓圓大樹・淡白", [89, 88], "#f9dde5", "round"], ["圓圓大樹・深粉", [90, 87], "#e98aa6", "round"], ["垂枝櫻・淡白", [89, 88], "#f9dde5", "weep"], ["雲朵・深粉", [90, 87], "#e98aa6", "cloud"],
+  ];
+  const SAK_PICK = 0;
   function makeAtlas(){
     const N = 64, COLS = 16, cv = document.createElement("canvas"); cv.width = cv.height = N*COLS; const g = cv.getContext("2d");
     const hx = h => [1,3,5].map(i => parseInt(h.substr(i,2),16)), mix = (a, b, k) => { const x = hx(a), y = hx(b); return "#" + x.map((v,i) => Math.round(v + (y[i]-v)*k).toString(16).padStart(2,"0")).join(""); };
@@ -213,11 +220,11 @@
       for(let s2 = 0; s2 < 6; s2++){ const x = 6 + s2*10.5, L = 26 + rq()*30; for(let y = 4; y < L; y += 6){ const rr = 4.2 - y/L*1.6; for(let p2 = 0; p2 < 5; p2++){ const a = p2*1.2566 + y; g.beginPath(); g.ellipse(x + Math.cos(a)*rr*.5, y + Math.sin(a)*rr*.5, rr*.5, rr*.36, a, 0, Math.PI*2); g.fillStyle = ["#f6b8cb", "#f9cbd8", "#ef9fb7"][(y + s2) % 3]; g.fill(); } } }
       g.restore(); }
     // 真的櫻花（材質格 87、88）：一叢十幾朵五瓣小花，有正面、側面、花苞，花瓣根部比較粉、尖端白白的，花心深粉、細細的花蕊
-    [0, 1].forEach(k => { const ox = ((87 + k) % COLS)*N, oy = Math.floor((87 + k) / COLS)*N, rq = rng(900 + k); g.save(); g.translate(ox, oy); g.beginPath(); g.rect(0, 0, N, N); g.clip(); g.clearRect(0, 0, N, N);
+    [0, 1, 2, 3].forEach(k => { const ox = ((87 + k) % COLS)*N, oy = Math.floor((87 + k) / COLS)*N, rq = rng(900 + k); g.save(); g.translate(ox, oy); g.beginPath(); g.rect(0, 0, N, N); g.clip(); g.clearRect(0, 0, N, N);
       const flower = (x, y, rr, a, squash, white) => { g.save(); g.translate(x, y); g.rotate(a); g.scale(1, squash);
         for(let p2 = 0; p2 < 5; p2++){ g.save(); g.rotate(p2*1.2566); const L = rr, W2 = rr*.52;
           g.beginPath(); g.moveTo(0, 0); g.bezierCurveTo(W2, -L*.2, W2*1.1, -L*.8, W2*.3, -L); g.quadraticCurveTo(0, -L*.86, -W2*.3, -L); g.bezierCurveTo(-W2*1.1, -L*.8, -W2, -L*.2, 0, 0); g.closePath();
-          const gr = g.createLinearGradient(0, 0, 0, -L); gr.addColorStop(0, white ? "#f7c4d3" : "#f3a5bc"); gr.addColorStop(.5, white ? "#fdeef2" : "#fbd3de"); gr.addColorStop(1, white ? "#fffbfc" : "#fff1f5"); g.fillStyle = gr; g.fill();
+          const gr = g.createLinearGradient(0, 0, 0, -L); if(k === 3){ gr.addColorStop(0, "#e2668c"); gr.addColorStop(.5, "#f093ae"); gr.addColorStop(1, "#fbc8d6"); } else { gr.addColorStop(0, white ? "#f7c4d3" : "#f3a5bc"); gr.addColorStop(.5, white ? "#fdeef2" : "#fbd3de"); gr.addColorStop(1, white ? "#fffbfc" : "#fff1f5"); } g.fillStyle = gr; g.fill();
           g.strokeStyle = "rgba(220,140,165,.25)"; g.lineWidth = .5; g.stroke(); g.restore(); }
         g.fillStyle = "#d9637f"; g.beginPath(); g.arc(0, 0, rr*.2, 0, Math.PI*2); g.fill();
         g.strokeStyle = "#f2a0b8"; g.lineWidth = .45; for(let s3 = 0; s3 < 8; s3++){ const an = s3*.785; g.beginPath(); g.moveTo(0, 0); g.lineTo(Math.cos(an)*rr*.45, Math.sin(an)*rr*.45); g.stroke(); g.fillStyle = "#f6d06a"; g.beginPath(); g.arc(Math.cos(an)*rr*.47, Math.sin(an)*rr*.47, .65, 0, Math.PI*2); g.fill(); }
@@ -226,7 +233,7 @@
       g.strokeStyle = "rgba(150,110,95,.55)"; g.lineWidth = .9; g.beginPath(); g.moveTo(4, 60); g.quadraticCurveTo(24, 40, 30, 30); g.moveTo(22, 44); g.quadraticCurveTo(40, 42, 54, 46); g.stroke();
       for(let j = 0; j < 4; j++){ const x = 10 + rq()*44, y = 10 + rq()*44; g.save(); g.translate(x, y); g.rotate(rq()*6.28); g.beginPath(); g.ellipse(0, 0, 2.2, 3.6, 0, 0, Math.PI*2); g.fillStyle = "#e0718f"; g.fill(); g.restore(); }   // 花苞
       if(k) for(let j = 0; j < 3; j++){ const x = 8 + rq()*48, y = 8 + rq()*48; g.save(); g.translate(x, y); g.rotate(rq()*6.28); g.beginPath(); g.ellipse(0, 0, 2.5, 5, 0, 0, Math.PI*2); g.fillStyle = "#a86a5a"; g.fill(); g.restore(); }   // 紅紅的嫩葉
-      const F = []; for(let j = 0; j < 14; j++) F.push([8 + rq()*48, 8 + rq()*48, 5 + rq()*4.5, rq()*6.28, rq() < .3 ? .45 + rq()*.3 : 1, rq() < .45]);
+      const F = []; for(let j = 0; j < 14; j++) F.push([8 + rq()*48, 8 + rq()*48, 5 + rq()*4.5, rq()*6.28, rq() < .3 ? .45 + rq()*.3 : 1, k === 2 ? true : k === 3 ? false : rq() < .45]);
       F.sort((a, b) => a[2] - b[2]).forEach(f => flower(...f));
       g.restore(); });
     // 顏色格（材質格 52 切成 8×8 小格，給 30 款樹葉裡面那層用）
@@ -547,14 +554,14 @@
     // 樹葉、櫻花：每一格放幾片「一叢葉子／一叢小花」的透明貼圖，方向亂亂的，疊起來就是蓬蓬的樹冠（不是方塊）
     let FOL = null, sakList = [];
     // ---------- 真的櫻花樹：連在一起的櫻花方塊算一棵樹，長出彎彎的樹枝，枝頭開一叢一叢的花（樹冠不是方塊，會透光） ----------
-    function emitSakura(){ const F = FOL, key = (x,y,z) => x + "," + y + "," + z, at = new Set(sakList.map(p => key(...p))), seen = new Set();
+    function emitSakura(){ const SS = SAK_STYLES[window.__sak != null ? window.__sak : SAK_PICK] || SAK_STYLES[0], [TA, TB] = SS[1], shape = SS[3]; const F = FOL, key = (x,y,z) => x + "," + y + "," + z, at = new Set(sakList.map(p => key(...p))), seen = new Set();
       const quad = (pts, uv, l) => { const base = F.P.length/3, nv = nrm(cross(sub(pts[1], pts[0]), sub(pts[2], pts[0]))); for(const p of pts){ F.P.push(...p); F.N.push(...nv); F.SH.push(l); } F.UV.push(...uv); F.I.push(base, base+1, base+2, base, base+2, base+3); };
       const [b0,b1,b2,b3] = tileUV(5);   // 樹皮
       const branch = (pts, r0, r1) => { const n = 6; for(let i = 0; i < pts.length - 1; i++){ const A = pts[i], Bp = pts[i+1], d = nrm(sub(Bp, A)), u = nrm(cross(Math.abs(d[1]) < .9 ? [0,1,0] : [1,0,0], d)), v = cross(d, u), ra = r0 + (r1 - r0)*i/(pts.length - 1), rb = r0 + (r1 - r0)*(i+1)/(pts.length - 1);
           for(let k = 0; k < n; k++){ const a0 = k/n*Math.PI*2, a1 = (k+1)/n*Math.PI*2, o = (a, rr) => [Math.cos(a)*u[0]*rr + Math.sin(a)*v[0]*rr, Math.cos(a)*u[1]*rr + Math.sin(a)*v[1]*rr, Math.cos(a)*u[2]*rr + Math.sin(a)*v[2]*rr];
             const p00 = A.map((c, j) => c + o(a0, ra)[j]), p01 = A.map((c, j) => c + o(a1, ra)[j]), p10 = Bp.map((c, j) => c + o(a0, rb)[j]), p11 = Bp.map((c, j) => c + o(a1, rb)[j]);
             quad([p00, p01, p11, p10], [b0,b3, b2,b3, b2,b1, b0,b1], .8); } } };
-      const clump = (c, rad, n, q, bright) => { for(let k = 0; k < n; k++){ const [u0,v0,u1,v1] = tileUV(q() < .5 ? 87 : 88), off = [ (q() - .5)*2*rad, (q() - .35)*1.4*rad, (q() - .5)*2*rad ], cc = c.map((v, j) => v + off[j]);
+      const clump = (c, rad, n, q, bright) => { for(let k = 0; k < n; k++){ const [u0,v0,u1,v1] = tileUV(q() < .5 ? TA : TB), off = [ (q() - .5)*2*rad, (q() - .35)*1.4*rad, (q() - .5)*2*rad ], cc = c.map((v, j) => v + off[j]);
           const nv = nrm([q()*2 - 1, q()*1.2 - .2, q()*2 - 1]), ex = nrm(cross(Math.abs(nv[1]) < .9 ? [0,1,0] : [1,0,0], nv)), ey = cross(nv, ex), sz = .4 + q()*.26;
           quad([[-1,-1],[1,-1],[1,1],[-1,1]].map(([a, b]) => cc.map((v, j) => v + (ex[j]*a + ey[j]*b)*sz)), [u0,v1, u1,v1, u1,v0, u0,v0], Math.min(1.08, bright + off[1]*.12)); } };
       for(const s0 of sakList){ const k0 = key(...s0); if(seen.has(k0)) continue; const comp = [], st = [s0]; seen.add(k0);
@@ -571,14 +578,25 @@
           for(let j = 0; j < 2; j++){ const a2 = a + (j ? .6 : -.6) + (q() - .5)*.3, E2 = [E[0] + Math.cos(a2)*(.6 + q()*.5), E[1] + .3 + q()*.6, E[2] + Math.sin(a2)*(.6 + q()*.5)];
             branch([E, E2], .05, .025); clump(E2, .7, 18, q, 1.02); } }
         const Cy = bot + h*.6, Ry = h*.5 + .3;
-        // 樹冠裡面：兩層扁扁的圓球（裡面一層粉粉的實心、外面一層是花的貼圖），用很少的面就能看起來很茂密
-        const ell = (sx, sy, sz, uvF, l, sg = 10) => { for(let i = 0; i < sg; i++) for(let j = 0; j < sg/2; j++){ const P4 = [[i, j], [i+1, j], [i+1, j+1], [i, j+1]].map(([a, b]) => { const th = a/sg*Math.PI*2, ph = -Math.PI/2 + b/(sg/2)*Math.PI*.85; return [cx + Math.cos(th)*Math.cos(ph)*sx, Cy + Math.sin(ph)*sy, cz + Math.sin(th)*Math.cos(ph)*sz]; });
+        const swatch = (() => { const k2 = Math.max(0, FOL_INNER.indexOf(SS[2])), s0 = 1/atlas.COLS, bu = (127 % atlas.COLS)*s0, bv = Math.floor(127 / atlas.COLS)*s0, cu = bu + ((k2 % 8)*8 + 4)/(atlas.N*atlas.COLS), cv2 = bv + (Math.floor(k2 / 8)*8 + 4)/(atlas.N*atlas.COLS); return [cu,cv2, cu,cv2, cu,cv2, cu,cv2]; })();
+        const tUV = t => { const [u0,v0,u1,v1] = tileUV(t); return [u0,v1, u1,v1, u1,v0, u0,v0]; }, UA = tUV(TA), UB = tUV(TB);
+        // 一團花：裡面實心一層、外面花貼圖一層，再散一些花叢（面數很少，不會卡）
+        const ell = (C, sx, sy, sz, uvF, l, sg = 10) => { for(let i = 0; i < sg; i++) for(let j = 0; j < sg/2; j++){ const P4 = [[i, j], [i+1, j], [i+1, j+1], [i, j+1]].map(([a, b]) => { const th = a/sg*Math.PI*2, ph = -Math.PI/2 + b/(sg/2)*Math.PI*.85; return [C[0] + Math.cos(th)*Math.cos(ph)*sx, C[1] + Math.sin(ph)*sy, C[2] + Math.sin(th)*Math.cos(ph)*sz]; });
           quad(P4, uvF(i, j), l*(.9 + .12*(j/(sg/2)))); } };
-        { const k2 = FOL_INNER.indexOf("#f6c4d2"), s0 = 1/atlas.COLS, bu = (127 % atlas.COLS)*s0, bv = Math.floor(127 / atlas.COLS)*s0, cu = bu + ((Math.max(0, k2) % 8)*8 + 4)/(atlas.N*atlas.COLS), cv2 = bv + (Math.floor(Math.max(0, k2) / 8)*8 + 4)/(atlas.N*atlas.COLS);
-          ell(Rx*.72, Ry*.7, Rz*.72, () => [cu,cv2, cu,cv2, cu,cv2, cu,cv2], .88);
-          ell(Rx*.86, Ry*.84, Rz*.86, (i, j) => { const [u0,v0,u1,v1] = tileUV((i + j) % 2 ? 87 : 88); return [u0,v1, u1,v1, u1,v0, u0,v0]; }, 1, 12); }
-        for(let i = 0; i < 46; i++){ const a = q()*Math.PI*2, e = q()*1.6 - .55, rr = .7 + q()*.32, ce = Math.cos(e);   // 整個樹冠（扁扁的半球）表面和裡面都補滿花
-          clump([cx + Math.cos(a)*ce*Rx*rr, Cy + Math.sin(e)*Ry*rr, cz + Math.sin(a)*ce*Rz*rr], .6, 12, q, .96 + Math.sin(e)*.1); }   // 樹頂補幾叢
+        const clumpT = (c, rad, n, bright) => { for(let k = 0; k < n; k++){ const uv = q() < .5 ? UA : UB, off = [(q() - .5)*2*rad, (q() - .35)*1.4*rad, (q() - .5)*2*rad], cc = c.map((v, j) => v + off[j]);
+          const nv = nrm([q()*2 - 1, q()*1.2 - .2, q()*2 - 1]), ex = nrm(cross(Math.abs(nv[1]) < .9 ? [0,1,0] : [1,0,0], nv)), ey = cross(nv, ex), sz = .4 + q()*.26;
+          quad([[-1,-1],[1,-1],[1,1],[-1,1]].map(([a, b]) => cc.map((v, j) => v + (ex[j]*a + ey[j]*b)*sz)), uv, Math.min(1.08, bright + off[1]*.12)); } };
+        const lobe = (C, sx, sy, sz, n) => { ell(C, sx*.5, sy*.5, sz*.5, () => swatch, .8); ell(C, sx*.7, sy*.68, sz*.7, (i, j) => (i + j) % 2 ? UB : UA, .86, 10); ell(C, sx*.86, sy*.84, sz*.86, (i, j) => (i + j) % 2 ? UA : UB, 1, 12);
+          for(let i = 0; i < n; i++){ const a = q()*Math.PI*2, e = q()*1.6 - .55, rr = .7 + q()*.32, ce = Math.cos(e); clumpT([C[0] + Math.cos(a)*ce*sx*rr, C[1] + Math.sin(e)*sy*rr, C[2] + Math.sin(a)*ce*sz*rr], .6, 12, .96 + Math.sin(e)*.1); } };
+        const hangs = (C, sx, sz, yb, n, L) => { const [h0,h1,h2,h3] = tileUV(86); for(let i = 0; i < n; i++){ const a = q()*Math.PI*2, rr = .35 + q()*.6, px = C[0] + Math.cos(a)*sx*rr, pz = C[2] + Math.sin(a)*sz*rr, ln = L*(.6 + q()*.6), a2 = q()*3.14, ex = [Math.cos(a2)*.45, 0, Math.sin(a2)*.45];
+          quad([[px - ex[0], yb - ln, pz - ex[2]], [px + ex[0], yb - ln, pz + ex[2]], [px + ex[0], yb + .1, pz + ex[2]], [px - ex[0], yb + .1, pz - ex[2]]], [h0,h3, h2,h3, h2,h1, h0,h1], .96); } };
+        const C0 = [cx, Cy, cz];
+        if(shape === "round") lobe(C0, Rx, Ry, Rz, 46);
+        else if(shape === "umbrella"){ const C = [cx, Cy + Ry*.25, cz]; lobe(C, Rx*1.35, Ry*.62, Rz*1.35, 52); }
+        else if(shape === "oval"){ lobe([cx, Cy + Ry*.2, cz], Rx*.82, Ry*1.3, Rz*.82, 44); }
+        else if(shape === "weep"){ lobe(C0, Rx*1.05, Ry*.85, Rz*1.05, 40); hangs(C0, Rx*1.05, Rz*1.05, Cy - Ry*.45, 34, Ry*1.3); }
+        else if(shape === "cloud"){ lobe([cx, Cy + Ry*.25, cz], Rx*.7, Ry*.7, Rz*.7, 16); for(let i = 0; i < 4; i++){ const a = i*1.5708 + q()*.5; lobe([cx + Math.cos(a)*Rx*.55, Cy - Ry*.1 + q()*.4, cz + Math.sin(a)*Rz*.55], Rx*.55, Ry*.55, Rz*.55, 10); } }
+        else if(shape === "tier"){ lobe([cx, Cy - Ry*.3, cz], Rx*1.15, Ry*.5, Rz*1.15, 26); lobe([cx, Cy + Ry*.55, cz], Rx*.75, Ry*.5, Rz*.75, 20); }
       }
     }
     const FOL_PICK = -1;   // 站長選好的樹葉款式（-1 = 還沒選，用乾淨版）；window.__fol 可以暫時換來看
