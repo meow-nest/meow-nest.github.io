@@ -353,6 +353,62 @@ const App = (function(){
       ${list.length < FAM_MAX ? `<button class="famCat add" id="famAdd"><span class="fcS"><span class="fcPlus">+</span></span><b>邀請</b></button>` : ""}</div>
       ${others().length > 1 ? `<div class="k famTip">點家人的貓咪，就能換成跟 ta 一起玩雙人遊戲</div>` : ""}`;
   }
+  // ---- 家人模式觀戰：家人之間正在下的棋，其他家人可以點進去看（只能看不能下）----
+  const WATCHABLE = ["gomoku","chess","banqi","pool"];   // 海戰有藏起來的船，不開放觀戰
+  let WATCH = null, famLiveT = 0;
+  function famLiveParse(rows){
+    const myP = String(me.uid).slice(0, 8);
+    return (rows || []).map(r => { const i = String(r.game).indexOf(":"); if(i < 0) return null;
+      const g = r.game.slice(0, i), ids = r.game.slice(i + 1).split("-"); if(ids.length !== 2 || ids.includes(myP) || !WATCHABLE.includes(g)) return null;
+      const ms = ids.map(x => members.find(m => String(m.user_id).slice(0, 8) === x)); if(ms.some(m => !m)) return null;
+      return { key: r.game, g, a: ms[0], b: ms[1], at: r.updated_at }; }).filter(Boolean)
+      .sort((x, y) => String(y.at).localeCompare(String(x.at)));
+  }
+  async function famLiveLoad(){
+    clearTimeout(famLiveT);
+    const el = $("famLive"); if(!el || !isFam() || route !== "home" || others().length < 2 || !B.liveGames) return;
+    if(document.visibilityState === "visible"){
+      let rows = null; try{ rows = await B.liveGames(WATCHABLE, 20); }catch(e){}
+      const box = $("famLive"); if(!box) return;
+      if(rows){ const xs = famLiveParse(rows);
+        box.innerHTML = xs.length ? `<div class="box famLive"><h3>家人正在玩<small>點進去觀戰</small></h3>${xs.slice(0, 4).map(x => { const g = games.find(z => z.id === x.g);
+          return `<button class="flRow" data-wk="${esc(x.key)}"><span class="flCats">${sprite(x.a.cat || "orange", "happy")}<i>VS</i>${sprite(x.b.cat || "white", "happy")}</span><span class="flTxt"><b>${esc(x.a.name)} 和 ${esc(x.b.name)}</b><small>正在玩「${esc(g ? g.name : x.g)}」</small></span><em>去看</em></button>`; }).join("")}</div>` : "";
+        box.querySelectorAll("[data-wk]").forEach(b => b.addEventListener("click", () => { const x = xs.find(z => z.key === b.dataset.wk); if(!x) return; SFX.tap(); WATCH = x; go("watch"); }));
+      }
+    }
+    famLiveT = setTimeout(famLiveLoad, 15000);
+  }
+  function viewWatch(v){
+    const W = WATCH, g = W && games.find(z => z.id === W.g);
+    if(!W || !g || !isFam()){ go("home"); return; }
+    const a = members.find(m => m.user_id === W.a.user_id) || W.a, b = members.find(m => m.user_id === W.b.user_id) || W.b;
+    v.innerHTML = `<div class="gtop"><button class="btn sub" id="bBack">◀ 回小窩</button><span class="gname">觀戰・${esc(g.name)}</span></div>
+      <div class="box wBar"><span class="flCats">${sprite(a.cat || "orange", "happy")}<i>VS</i>${sprite(b.cat || "white", "happy")}</span><span class="flTxt"><b>${esc(a.name)} 和 ${esc(b.name)}</b><small>只能看，不能幫忙下喔・畫面是從 ${esc(a.name)} 那邊看的</small></span><button class="btn sub" id="wCheer">加油</button></div>
+      <div id="gArea" class="watching"></div>`;
+    $("bBack").addEventListener("click", () => go("home"));
+    $("wCheer").addEventListener("click", () => { const t = Date.now(); if(t - (WATCH.cheerAt || 0) < 8000){ toast("加油收到了，等一下再喊～"); return; } WATCH.cheerAt = t; SFX.heart();
+      B.bcast({ t: "famCheer", from: me.uid, to: [a.user_id, b.user_id], g: g.id }); toast(`你幫 ${esc(a.name)} 和 ${esc(b.name)} 加油了！`); });
+    // 觀戰用的 ctx：用 A 的角度顯示，所有寫入都擋掉
+    const c = Object.create(ctx), aM = { uid: a.user_id, name: a.name, cat: a.cat };
+    Object.defineProperty(c, "me", { get: () => aM });
+    c.spectate = true;
+    c.partner = () => ({ user_id: b.user_id, name: b.name, cat: b.cat });
+    c.players = () => [a.user_id, b.user_id].sort();
+    c.getState = gid => gid === g.id ? getState(W.key) : getState(gid);
+    c.onState = (gid, h) => gid === g.id ? onState(W.key, h) : (() => {});
+    c.update = async () => null;
+    c.notifyPartner = async () => {};
+    c.restartable = () => () => {}; c.askRestart = async () => {};
+    c.broadcast = () => {}; c.onBroadcast = () => () => {};
+    c.lvPlay = () => {};
+    curGame = g;
+    try{ g.mount($("gArea"), c); }catch(e){ console.error(e); $("gArea").innerHTML = `<div class="box"><div class="k">這個遊戲現在沒辦法觀戰</div></div>`; }
+    // 遊戲裡寫「你」的地方改成名字（畫面是從 A 那邊看的）
+    const ga = $("gArea"), RE = [[/輪到你了/g, `輪到${a.name}了`], [/你贏了/g, `${a.name}贏了`], [/你輸了/g, `${b.name}贏了`], [/等 ?(.{1,10}?) ?下棋/g, `輪到${b.name}了`], [/^你$/, a.name], [/決定你的隊伍/g, `決定${a.name}的隊伍`]];
+    const fix = () => { const w = document.createTreeWalker(ga, NodeFilter.SHOW_TEXT); let n; while((n = w.nextNode())){ let t = n.nodeValue, o = t; for(const [r, x] of RE) t = t.replace(r, x); if(t !== o) n.nodeValue = t; } };
+    fix(); const mo = new MutationObserver(() => { mo.disconnect(); fix(); mo.observe(ga, { childList: true, subtree: true, characterData: true }); });
+    mo.observe(ga, { childList: true, subtree: true, characterData: true });
+  }
   function famBind(root){
     root.querySelectorAll("[data-bud]").forEach(b => b.addEventListener("click", () => { SFX.tap(); setBuddy(b.dataset.bud); }));
     const a = root.querySelector("#famAdd"); if(a) a.addEventListener("click", () => { SFX.tap(); shareInvite(); });
@@ -427,7 +483,7 @@ const App = (function(){
   function viewHome(v, force){
     if(isAdmin && !force) return viewAdmin(v);
     const p = partner();
-    let html = `<div class="title">喵喵<b>小窩</b>${isBestie()||isSolo()||isFam()?`<span class="modeTag">${modeArt(roomMode)}${MI().name}</span>`:""}</div><div class="ttlRow" id="ttlRow"></div>${isFam() ? `<div class="box famBox" id="famBox">${famHtml()}</div>` : ""}<div id="truceHome">${truceBar()}</div><div class="hStat${p ? "" : " one"}">${p ? `<div class="box ckCard" id="ckCard">${ckHtml()}</div>` : ""}<button class="box fishCard" id="meter"></button></div><div class="hTiles" id="hTiles">${homeTiles()}</div>`;
+    let html = `<div class="title">喵喵<b>小窩</b>${isBestie()||isSolo()||isFam()?`<span class="modeTag">${modeArt(roomMode)}${MI().name}</span>`:""}</div><div class="ttlRow" id="ttlRow"></div>${isFam() ? `<div id="famLive"></div><div class="box famBox" id="famBox">${famHtml()}</div>` : ""}<div id="truceHome">${truceBar()}</div><div class="hStat${p ? "" : " one"}">${p ? `<div class="box ckCard" id="ckCard">${ckHtml()}</div>` : ""}<button class="box fishCard" id="meter"></button></div><div class="hTiles" id="hTiles">${homeTiles()}</div>`;
     if(!p && !isSolo()) html += `<div class="box banner warn waitBan"><span class="bi">⚠️</span><div style="flex:1">${pw()}還沒加入！把邀請碼 <b style="font-weight:400;color:var(--pinkT);letter-spacing:2px">${esc(B.code||"")}</b> 傳給 ta<div class="waitWarn">⏰ <b>14 天</b>都沒人加入、你也沒打開的話，<b>小窩會自動刪除</b>，裡面的紀錄也會不見！</div></div><button class="btn" id="bInv">傳邀請</button></div>`;
     const alb = stateCache.album && stateCache.album.state, apct = alb ? (alb.bytes||0)/albumLimit : 0;
     if(apct >= .7 && !NO_MEDIA) html = html.replace('<div id="truceHome">', `<div class="box banner ${apct>=.85?"warn":""}" id="albBan"><span class="bi">${icon("camera")}</span><div style="flex:1">相簿已經用了 ${Math.round(apct*100)}%${apct>=.85?"，該刪一些照片了 🥺":"，可以開始整理照片囉"}</div><button class="btn" id="bAlbum">去整理</button></div><div id="truceHome">`);
@@ -445,7 +501,7 @@ const App = (function(){
     const gNote = `<p class="gNote">本站遊戲純屬娛樂，不是賭博。貓幣、股市資金等都是虛擬的，不能儲值、不能換成現金或獎品。</p>`;
     if(fbUnread > 0) html = html.replace('<div id="truceHome">', `<div class="box banner fbBan" id="fbBan"><span class="bi">📮</span><div style="flex:1">站長回覆你的回報了！</div><button class="btn" id="bFbH">看看</button></div><div id="truceHome">`);
     v.innerHTML = homePagesHtml(html, gCards, gNote);
-    renderMeter(); if(p) ckRefresh(); if(isFam()) famBind(v);
+    renderMeter(); if(p) ckRefresh(); if(isFam()){ famBind(v); famLiveLoad(); }
     const bfh=$("bFbH"); if(bfh) bfh.addEventListener("click", ()=>askFeedback());
     v.querySelectorAll("[data-g]").forEach(b=>b.addEventListener("click",()=>{ if(pinEdit){ SFX.tap(); gPinToggle(b.dataset.g); render(); return; } go("game-"+b.dataset.g); }));
     const pe = $("gPinEd"); if(pe) pe.addEventListener("click", ()=>{ SFX.tap(); pinEdit = !pinEdit; render(); if(pinEdit) toast("點遊戲就能置頂或取消置頂，好了按「完成」", 3500); });
@@ -3614,6 +3670,7 @@ const App = (function(){
     else if(route==="chat") viewChat(v);
     else if(route==="settings") viewSettings(v);
     else if(route==="party") viewParty(v);
+    else if(route==="watch") viewWatch(v);
     else if(route==="album"){ if(NO_MEDIA) viewHome(v); else viewAlbum(v); }
     else if(route==="game"){
       const g = games.find(x=>x.id===r.slice(5));
@@ -3677,6 +3734,8 @@ const App = (function(){
     $("top").classList.remove("hidden"); $("nav").classList.remove("hidden");
     B.on("msg", addMessage);
     B.on("bc", p=>{ if(p && p.from !== me.uid && (!p.to || p.to === me.uid)) bcSubs.slice().forEach(h=>{ try{ h(p); }catch(e){} }); });
+    // 家人觀戰的「加油」
+    B.on("bc", p=>{ if(!p || p.t !== "famCheer" || p.from === me.uid || !Array.isArray(p.to) || !p.to.includes(me.uid)) return; const f = members.find(m => m.user_id === p.from); if(!f) return; SFX.heart(); toast(`${sprite(f.cat || "orange", "love")} ${esc(f.name)} 在旁邊看你們玩，幫你加油！`, 3500); });
     B.on("members", async()=>{ const sig = () => members.map(x=>[x.user_id,x.name,x.cat].join("|")).join(","); const s0 = sig(); members = await B.members(); renderHeader(); if(route==="home") render(); else if(chatVisible()){ if(sig() === s0) markReadDom(); else drawList(false); } });
     B.on("msg", ()=>{ lastRt = Date.now(); }); B.on("bc", ()=>{ lastRt = Date.now(); });
     B.on("state", (game, version, state)=>{ lastRt = Date.now(); },);

@@ -182,6 +182,12 @@
       if (r.error) { if (/delete_photos|function/i.test(r.error.message || "")) throw new Error("NEED_SQL"); throw r.error; }
       return r.data;
     };
+    // 家人模式觀戰：小窩裡最近有在動的對戰（例如 gomoku:aaaa-bbbb）
+    B.liveGames = async (games, mins) => {
+      const since = new Date(Date.now() - mins * 60000).toISOString();
+      const { data, error } = await sb.from("game_state").select("game,updated_at").eq("couple_id", B.coupleId).gt("updated_at", since).or(games.map(g => `game.like.${g}:%`).join(","));
+      if (error) throw error; return data || [];
+    };
     B.getState = async (game) => {
       const { data, error } = await sb.from("game_state").select("version,state").eq("couple_id", B.coupleId).eq("game", game).maybeSingle();
       if (error) throw error; return data;
@@ -322,6 +328,7 @@
     B.leaveNest = async () => call("leavenest", { cid: B.coupleId, uid: B.uid });
     B.deletePhotos = async (rows) => call("delphotos", { cid: B.coupleId, ids: rows.map(r => r.id) });
     B.getState = async (game) => call("get", { cid: B.coupleId, game });
+    B.liveGames = async (games, mins) => call("live", { cid: B.coupleId, games, mins });
     B.casState = async (game, version, state) => call("cas", { cid: B.coupleId, game, version, state });
     B.savePush = async () => {};
     B.memoSet = async (noteId, body, dueIso, toUids) => { try{ return await call("memo", { cid: B.coupleId, noteId, body, dueIso, toUids }); }catch(e){ return true; } };

@@ -16,7 +16,7 @@ async function op(page, name, a){
     case 'create': { const cid='c'+(++mid); const code='AB12CD'; DB.couples[cid]={code}; DB.members[a.uid]={user_id:a.uid,couple_id:cid,name:a.name,cat:a.cat,created_at:Date.now()}; return {couple_id:cid,code}; }
     case 'join': { const cid=Object.keys(DB.couples).find(k=>DB.couples[k].code===a.code.toUpperCase()); if(!cid) return {error:'code_not_found'};
       for(const m of mem(cid)) if(m.name===a.name && m.user_id!==a.uid) delete DB.members[m.user_id];
-      if(mem(cid).filter(m=>m.user_id!==a.uid).length>=2) return {error:'full'};
+      if(mem(cid).filter(m=>m.user_id!==a.uid).length>=(DB.famMax||6)-1) return {error:'full'};
       DB.members[a.uid]={user_id:a.uid,couple_id:cid,name:a.name,cat:a.cat,created_at:Date.now()}; emit({t:'members',coupleId:cid}); return {couple_id:cid,code:DB.couples[cid].code}; }
     case 'update': { Object.assign(DB.members[a.uid],a.patch); emit({t:'members',coupleId:DB.members[a.uid].couple_id}); return true; }
     case 'members': return mem(a.cid);
@@ -24,6 +24,7 @@ async function op(page, name, a){
     case 'upload': { const path=a.cid+'/p'+(++mid)+'.jpg'; DB.files=DB.files||{}; DB.files[path]=a.dataUrl; return path; }
     case 'url': return (DB.files||{})[a.path]||'';
     case 'send': { const row={id:++mid,couple_id:a.cid,sender:a.uid,body:a.body,kind:a.kind,name:a.name,cat:a.cat,media:a.media,created_at:new Date().toISOString()}; DB.messages.push(row); setTimeout(()=>emit({t:'msg',coupleId:a.cid,row}),30); return row; }
+    case 'live': return Object.keys(DB.state).filter(k=>k.startsWith(a.cid+'/') && a.games.some(g=>k.slice(a.cid.length+1).startsWith(g+':'))).map(k=>({game:k.slice(a.cid.length+1),updated_at:new Date().toISOString()}));
     case 'get': { const s=DB.state[a.cid+'/'+a.game]; return s?JSON.parse(JSON.stringify(s)):null; }
     case 'cas': { const k=a.cid+'/'+a.game, s=DB.state[k];
       if(a.version===0){ if(s) return null; DB.state[k]={version:1,state:a.state}; }

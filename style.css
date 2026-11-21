@@ -3964,3 +3964,15 @@ body.dockKb .careModal .ltWrap .ltBody{height:clamp(56px,calc(100dvh - var(--doc
 .skSecs button.on{background:var(--ink);color:#fff}.skSecs button.on small{color:#fff}
 .skNews.sec{background:#fff6e0}.skNews.sec b{color:#b7791f}
 .skNews.link b::after{content:" ⇄";font-size:11px;color:var(--muted)}
+
+/* 家人模式觀戰 */
+.famLive h3{font-weight:400;font-size:16px;margin:0 0 6px;display:flex;align-items:baseline;gap:8px}.famLive h3 small{font-size:12px;color:var(--muted)}
+.flRow{display:flex;align-items:center;gap:8px;width:100%;font:inherit;color:var(--ink);background:var(--card);border:2px solid var(--line);box-shadow:2px 2px 0 var(--shadow);padding:4px 8px;margin-top:6px;cursor:pointer;text-align:left}
+.flRow:active{transform:translate(2px,2px);box-shadow:none}
+.flCats{display:flex;align-items:center;gap:2px;flex:none}.flCats svg{width:34px;height:auto}.flCats i{font-style:normal;font-size:11px;color:var(--pinkT)}
+.flTxt{flex:1;min-width:0}.flTxt b{font-weight:400;display:block}.flTxt small{display:block;font-size:12px;color:var(--muted)}
+.flRow em{font-style:normal;font-size:13px;background:#e0627c;color:#fff;border:2px solid var(--line);padding:2px 8px;flex:none}
+.wBar{display:flex;align-items:center;gap:8px;padding:8px 10px}.wBar .btn{width:auto;margin:0;padding:6px 12px;font-size:14px;flex:none}
+#gArea.watching{pointer-events:none;position:relative}
+#gArea.watching::after{content:"觀戰中";position:absolute;top:6px;right:6px;background:rgba(90,59,46,.8);color:#fff;font-size:12px;padding:2px 8px;z-index:5}
+#gArea.watching .btn,#gArea.watching .pad,#gArea.watching .gmHint{display:none}
