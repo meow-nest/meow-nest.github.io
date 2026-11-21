@@ -21,16 +21,16 @@
 
   // ---------- 方塊種類和材質 ----------
   // 每種方塊：[上面, 側面, 下面] 用哪一格材質；solid 會擋路；clear 是半透明
-  const B = { AIR:0, GRASS:1, DIRT:2, STONE:3, PLANK:4, LOG:5, LEAF:6, WATER:7, ROOF:8, SAND:9, BRICK:10, WOOL:11, GLASS:12, CLOUD:13, CLOUDB:14 };
+  const B = { AIR:0, GRASS:1, DIRT:2, STONE:3, PLANK:4, LOG:5, LEAF:6, WATER:7, ROOF:8, SAND:9, BRICK:10, WOOL:11, GLASS:12, CLOUD:13, CLOUDB:14, SAKURA:15 };
   const BT = {
     1:{ t:[0,1,2], solid:1 }, 2:{ t:[2,2,2], solid:1 }, 3:{ t:[3,3,3], solid:1 }, 4:{ t:[4,4,4], solid:1 }, 5:{ t:[6,5,6], solid:1 },
     6:{ t:[7,7,7], solid:1 }, 7:{ t:[8,8,8], solid:0, clear:1 }, 8:{ t:[9,9,9], solid:1 }, 9:{ t:[10,10,10], solid:1 }, 10:{ t:[11,11,11], solid:1 },
-    11:{ t:[12,12,12], solid:1 }, 12:{ t:[13,13,13], solid:1, clear:1 }, 13:{ t:[14,15,16], solid:1 }, 14:{ t:[16,16,16], solid:1 },
+    11:{ t:[12,12,12], solid:1 }, 12:{ t:[13,13,13], solid:1, clear:1 }, 13:{ t:[14,15,16], solid:1 }, 14:{ t:[16,16,16], solid:1 }, 15:{ t:[17,17,17], solid:1 },
   };
   // 材質：和紙風（站長選的第 12 種）——淡雅的大地色、和紙纖維紋路、邊邊像撕過的紙，圖案是圓圓的形狀（不是像素石頭泥土）
   // 0 草地上面 1 草地側面 2 土 3 鵝卵石 4 木板 5 貓抓柱側面 6 貓抓柱上面 7 樹葉 8 水 9 魚鱗瓦 10 星星砂 11 磚 12 毛線毯 13 玻璃 14～16 白雲
-  const TILE_N = 17;
-  const WASHI = { g:"#a8c99a", f:"#f2e6c8", d:"#c9a880", s:"#b8b8c0", w:"#dcc19a", r:"#c97f86", b:"#d49a86", m:"#efe6d4", l:"#93b98c", wt:"#9ec3d6", sa:"#e6d6b0", wo:"#d6a2ac", rp:"#cfb084", cu:"#c97f86", cl:"#f7f2ea" };
+  const TILE_N = 18;
+  const WASHI = { g:"#b4dca4", f:"#fff0d6", d:"#d8b48a", s:"#c6c3d4", w:"#ecd0a6", r:"#ec97a4", b:"#eca996", m:"#f6eee0", l:"#a4d49a", wt:"#a8d6ee", sa:"#f2e2b8", wo:"#f0b4c0", rp:"#dcbc8c", cu:"#ee9fb0", cl:"#fbf7f0", sk:"#f7bccb" };   // 和紙風，顏色稍微亮一點、粉一點（比較可愛）
   function makeAtlas(){
     const N = 64, COLS = 8, cv = document.createElement("canvas"); cv.width = cv.height = N*COLS; const g = cv.getContext("2d");
     const hx = h => [1,3,5].map(i => parseInt(h.substr(i,2),16)), mix = (a, b, k) => { const x = hx(a), y = hx(b); return "#" + x.map((v,i) => Math.round(v + (y[i]-v)*k).toString(16).padStart(2,"0")).join(""); };
@@ -65,13 +65,14 @@
       () => { bg(W.cl); for(const [x, y, q] of [[18,18,10],[44,40,12]]){ el(x, y, q, q*.7); g.fillStyle = "rgba(255,255,255,.6)"; g.fill(); } edge(); },
       () => { bg(mix(W.cl, "#dfe4ee", .5)); sh(() => { g.beginPath(); g.moveTo(0, 0); g.lineTo(N, 0); for(let x = N; x >= 0; x -= 2) g.lineTo(x, 14 + Math.sin(x/N*Math.PI*4)*3); g.closePath(); }, W.cl, 10); edge(); },
       () => { bg(mix(W.cl, "#c9d3e4", .6)); edge(); },
+      () => { bg(dk(W.sk, .1)); for(const [x, y, q] of [[14,14,13],[46,14,14],[30,34,15],[10,50,12],[52,50,13]]) sh(() => el(x, y, q, q), q % 2 ? W.sk : lt(W.sk, .18), 8); plum(20, 22, 4, "#fff6f8"); plum(46, 44, 4, "#fff6f8"); edge(); },   // 17 櫻花
     ];
     T.forEach((f, k) => { const ox = (k % COLS)*N, oy = Math.floor(k / COLS)*N; r = rng(100 + k); g.save(); g.translate(ox, oy); g.beginPath(); g.rect(0, 0, N, N); g.clip(); f(); g.restore(); });
     return { cv, COLS, N };
   }
   void TILE_N;
   // 挖方塊時噴出來的碎屑顏色（跟材質差不多）
-  const TILE_COL = [["#a8c99a","#f2e6c8"],["#c9a880","#a8c99a"],["#c9a880","#a88a66"],["#b8b8c0","#d0d0d6"],["#dcc19a","#efd7d9"],["#cfb084","#b8986c"],["#c97f86","#cfb084"],["#93b98c","#a8c99a"],["#9ec3d6","#ffffff"],["#c97f86","#d89aa0"],["#e6d6b0","#f3e3c0"],["#d49a86","#efe6d4"],["#d6a2ac","#e6c2c8"],["#e6f0f0","#a08060"],["#f7f2ea","#ffffff"],["#ece9ec","#f7f2ea"],["#d8dbe4","#c9d3e4"]];
+  const TILE_COL = [["#a8c99a","#f2e6c8"],["#c9a880","#a8c99a"],["#c9a880","#a88a66"],["#b8b8c0","#d0d0d6"],["#dcc19a","#efd7d9"],["#cfb084","#b8986c"],["#c97f86","#cfb084"],["#93b98c","#a8c99a"],["#9ec3d6","#ffffff"],["#c97f86","#d89aa0"],["#e6d6b0","#f3e3c0"],["#d49a86","#efe6d4"],["#d6a2ac","#e6c2c8"],["#e6f0f0","#a08060"],["#f7f2ea","#ffffff"],["#ece9ec","#f7f2ea"],["#d8dbe4","#c9d3e4"],["#f7bccb","#fff6f8"]];
 
   // ---------- 世界 ----------
   // 世界：飄在天空的白雲島（主島＋幾塊小雲朵踏腳石），下面是雲海
@@ -106,11 +107,15 @@
     for(let k = 0; k < 5; k++) for(let x = hx-1+k; x <= hx+hw-k; x++) for(let z = hz-1+k; z <= hz+hd-k; z++){
       const ring = x === hx-1+k || x === hx+hw-k || z === hz-1+k || z === hz+hd-k; if(ring) set(x, fy+4+k, z, B.ROOF); }
     // 幾棵樹
-    const tree = (x,z,h) => { const g = topY(x,z) + 1; if(g < 1) return; for(let y = g; y < g+h; y++) set(x,y,z,B.LOG);
-      for(let y = g+h-2; y <= g+h+1; y++){ const rr = y > g+h ? 1 : 2; for(let a = -rr; a <= rr; a++) for(let b = -rr; b <= rr; b++){ if(Math.abs(a)+Math.abs(b) > rr+1) continue; if(!get(x+a,y,z+b)) set(x+a,y,z+b,B.LEAF); } } };
-    for(const [x,z,h] of [[19,22,4],[37,33,5],[22,37,4]]) tree(x,z,h);
-    void r;
-    return { v, get, set, topY, flowers: [], spawn:[dx+.5, fy+1, hz+hd+2.5], house:{ x:hx+hw/2, z:hz+hd/2 }, floor: fy };
+    const tree = (x,z,h,lf = B.LEAF) => { const g = topY(x,z) + 1; if(g < 1) return; for(let y = g; y < g+h; y++) set(x,y,z,B.LOG);
+      for(let y = g+h-2; y <= g+h+1; y++){ const rr = y > g+h ? 1 : 2; for(let a = -rr; a <= rr; a++) for(let b = -rr; b <= rr; b++){ if(Math.abs(a)+Math.abs(b) > rr+1) continue; if(!get(x+a,y,z+b)) set(x+a,y,z+b,lf); } } };
+    for(const [x,z,h,lf] of [[19,22,4,B.SAKURA],[37,33,5,B.LEAF],[22,37,4,B.LEAF],[36,20,3,B.SAKURA]]) tree(x,z,h,lf);
+    // 小花、小蘑菇（裝飾，不會擋路）
+    const flowers = [], FC = ["#f7a7b8", "#ffe08a", "#ffffff", "#cdb4f0", "#f28b82", "#a8d8ff"];
+    for(let k = 0; k < 70; k++){ const x = CX - 13 + r()*26, z = CZ - 13 + r()*26, ix = Math.floor(x), iz = Math.floor(z), ty = topY(ix, iz);
+      if(ty !== GY || get(ix, ty, iz) !== B.CLOUD) continue; if(x > hx - 2 && x < hx + hw + 1 && z > hz - 2 && z < hz + hd + 4) continue;
+      flowers.push({ x, y: ty + 1, z, c: FC[k % FC.length], m: k % 9 === 0, s: .8 + r()*.5, a: r()*6 }); }
+    return { v, get, set, topY, flowers, spawn:[dx+.5, fy+1, hz+hd+2.5], house:{ x:hx+hw/2, z:hz+hd/2 }, floor: fy };
   }
 
   // ---------- 著色器 ----------
@@ -123,7 +128,8 @@
     vec3 c; float a = alpha;
     if(mode < .5){ vec4 t = texture2D(tex, vuv); if(t.a < .08) discard; c = t.rgb*vsh; a *= t.a; }
     else if(mode < 1.5){ float d = dot(normalize(vn), normalize(vec3(-.4,.9,.5))); float l = d > .4 ? 1. : d > -.1 ? .86 : .72; c = col*l; }
-    else { vec3 N = normalize(vn); float d = dot(N, normalize(vec3(-.4,.9,.5))); c = col*(.66 + .4*max(d, 0.)) + vec3(.05)*pow(max(d, 0.), 12.); }   // 平滑的光（頭髮）
+    else if(mode < 2.5){ vec3 N = normalize(vn); float d = dot(N, normalize(vec3(-.4,.9,.5))); c = col*(.66 + .4*max(d, 0.)) + vec3(.05)*pow(max(d, 0.), 12.); }
+    else { vec3 N = normalize(vn); float d = dot(N, normalize(vec3(-.4,.9,.5))); c = col*(.9 + .1*max(d, 0.)); }   // 雲：亮亮白白的，下面不會變灰   // 平滑的光（頭髮）
     gl_FragColor = vec4(mix(c*tint, sky, vfog), a);
   }`;
 
@@ -259,7 +265,7 @@
       { n:[1,0,0], c:[[1,0,1],[1,0,0],[1,1,0],[1,1,1]], t:1, l:.8 }, { n:[-1,0,0], c:[[0,0,0],[0,0,1],[0,1,1],[0,1,0]], t:1, l:.8 },
       { n:[0,0,1], c:[[0,0,1],[1,0,1],[1,1,1],[0,1,1]], t:1, l:.9 }, { n:[0,0,-1], c:[[1,0,0],[0,0,0],[0,1,0],[1,1,0]], t:1, l:.7 },
     ];
-    let chunks = [];
+    let chunks = [], puffs = [], puffOK = true;   // 樹葉、櫻花畫成圓圓蓬蓬的一團（太多的時候改回方塊，免得手機卡）
     // ---------- 有形狀的方塊：屋瓦會變成斜斜的屋頂、貓抓柱是圓柱、紙窗是薄薄的一片 ----------
     const isRoof = (x,y,z) => world.get(x,y,z) === B.ROOF;
     const fullAt = (x,y,z) => { const b = world.get(x,y,z); return b && !BT[b].clear && !shaped(x,y,z); };
@@ -276,7 +282,7 @@
       if(sx && !sz) return { k:"ridge", ax:"x" }; if(sz && !sx) return { k:"ridge", ax:"z" };
       return { k:"peak" };
     }
-    function shaped(x, y, z){ const b = world.get(x,y,z); if(b === B.LOG) return true; if(b === B.ROOF) return !!roofShape(x,y,z); return false; }
+    function shaped(x, y, z){ const b = world.get(x,y,z); if(b === B.LOG) return true; if((b === B.LEAF || b === B.SAKURA) && puffOK) return true; if(b === B.ROOF) return !!roofShape(x,y,z); return false; }
     // 畫一個三角形／四邊形（自己算法線和亮度）
     function tri3(Pp, Nn, UVv, SHh, Ii, a, b, c, ua, ub, uc){
       const n = nrm(cross(sub(b, a), sub(c, a))), base = Pp.length/3, l = Math.max(.5, Math.min(1, .72 + .3*n[1] + .08*n[2] - .04*Math.abs(n[0])));
@@ -338,7 +344,8 @@
         tri3(Pp, Nn, UVv, SHh, Ii, q[0], q[1], q[2], uvs[0], uvs[1], uvs[2]); tri3(Pp, Nn, UVv, SHh, Ii, q[0], q[2], q[3], uvs[0], uvs[2], uvs[3]); }
     }
     function buildWorld(){
-      chunks.forEach(c => c.forEach(m => [m.p,m.n,m.uv,m.sh,m.i].forEach(b => gl.deleteBuffer(b)))); chunks = [];
+      chunks.forEach(c => c.forEach(m => [m.p,m.n,m.uv,m.sh,m.i].forEach(b => gl.deleteBuffer(b)))); chunks = []; puffs = [];
+      { let n = 0; for(let i = 0; i < world.v.length; i++) if(world.v[i] === B.LEAF || world.v[i] === B.SAKURA) n++; puffOK = n <= 600; }
       for(const pass of [0, 1]){
         let P = [], N = [], UV = [], SH = [], I = []; const out = [];
         const flush = () => { if(I.length) out.push(mesh(P, N, UV, SH, I)); P = []; N = []; UV = []; SH = []; I = []; };
@@ -347,6 +354,7 @@
           const em = { P, N, UV, SH, I, push(){} };
           if(b === B.ROOF){ const rs = roofShape(x, y, z); if(rs){ emitRoof(x, y, z, rs, bt, P, N, UV, SH, I); if(P.length/3 > 60000) flush(); continue; } }
           if(b === B.LOG){ emitPost(x, y, z, bt, P, N, UV, SH, I); if(P.length/3 > 60000) flush(); continue; }
+          if((b === B.LEAF || b === B.SAKURA) && puffOK){ puffs.push([x, y, z, b, !world.get(x, y+1, z)]); continue; }
           if(b === B.GLASS){ emitPane(x, y, z, bt, P, N, UV, SH, I); if(P.length/3 > 60000) flush(); continue; }
           void em;
           for(const f of FACES){
@@ -557,8 +565,8 @@
     paintAct();
 
     // ---------- 蓋房子 ----------
-    const PALETTE = [B.PLANK, B.LOG, B.BRICK, B.STONE, B.GLASS, B.WOOL, B.ROOF, B.LEAF, B.GRASS, B.SAND, B.CLOUD, B.DIRT];
-    const BNAME = { [B.PLANK]:"梅花木板", [B.LOG]:"貓抓柱", [B.BRICK]:"紅磚", [B.STONE]:"鵝卵石", [B.GLASS]:"紙窗", [B.WOOL]:"毛線毯", [B.ROOF]:"魚鱗瓦", [B.LEAF]:"樹葉", [B.GRASS]:"草地", [B.SAND]:"梅花沙", [B.CLOUD]:"雲朵", [B.DIRT]:"泥土" };
+    const PALETTE = [B.PLANK, B.LOG, B.BRICK, B.STONE, B.GLASS, B.WOOL, B.ROOF, B.LEAF, B.SAKURA, B.GRASS, B.SAND, B.CLOUD, B.DIRT];
+    const BNAME = { [B.PLANK]:"梅花木板", [B.LOG]:"貓抓柱", [B.BRICK]:"紅磚", [B.STONE]:"鵝卵石", [B.GLASS]:"紙窗", [B.WOOL]:"毛線毯", [B.ROOF]:"魚鱗瓦", [B.LEAF]:"樹葉", [B.SAKURA]:"櫻花", [B.GRASS]:"草地", [B.SAND]:"梅花沙", [B.CLOUD]:"雲朵", [B.DIRT]:"泥土" };
     const buildEl = root.querySelector("#p3dBuild"), barEl = root.querySelector("#p3dBar");
     let buildOn = false, tool = "put", pick = B.PLANK, lastCam = null; const undo = [], fx = [];
     // 方塊小圖示：用材質畫一個小小的立體方塊（上面＋左右兩面）
@@ -967,6 +975,7 @@
       for(let k = 0; k < 30; k++) out.push({ x: q()*140, y: -3 - q()*4, z: -30 + q()*116, v: .25 + q()*.25, a: .95, parts: puff(4, 9 + q()*8, 3) });
       for(let k = 0; k < 9; k++) out.push({ x: q()*140, y: 24 + q()*10, z: -20 + q()*96, v: .5 + q()*.5, a: .8, parts: puff(3, 4 + q()*4, 1.6) });
       return out; })();
+    const PETALS = Array.from({ length: 34 }, (_, k) => ({ x: world.spawn[0] + (Math.random() - .5)*20, y: world.spawn[1] + Math.random()*8, z: world.spawn[2] + (Math.random() - .5)*20, r: Math.random()*6, w: .6 + Math.random()*1.4, p: Math.random()*6, c: k % 3 ? "#f9c4d2" : "#ffe3ea" }));
     function frame(now){
       if(dead) return; raf = requestAnimationFrame(frame);
       if(CFG.fps && now - last < 1000/CFG.fps - 2) return;   // 幀率上限：還沒到時間就先不畫（比較省電、不會燙）
@@ -1021,7 +1030,18 @@
       chunks[0].forEach(m => { bind(m); gl.drawElements(gl.TRIANGLES, m.c, gl.UNSIGNED_SHORT, 0); });
       // 貓、花
       gl.uniform1f(U("mode"), 1); bind(cube);
-      world.flowers.forEach(f => { box(chain(T(f.x, f.y + .14, f.z), S(.05,.28,.05)), "#4f9e48"); box(chain(T(f.x, f.y + .32, f.z), RY(.8), S(.16,.12,.16)), f.c); });
+      const puff = (m, col, a = 1) => { bind(ball); gl.uniform1f(U("mode"), 2); gl.disable(gl.CULL_FACE); box(m, col, a); gl.enable(gl.CULL_FACE); bind(cube); gl.uniform1f(U("mode"), 1); };
+      // 樹葉、櫻花：每一格是一顆圓圓的毛球，上面那層再加一顆亮亮的
+      puffs.forEach(([x, y, z, b, top]) => { const h = ((x*73856093) ^ (y*19349663) ^ (z*83492791)) >>> 0, k = (h % 7)/7, sw = Math.sin(t*1.2 + x*.7 + z*.5)*.03;
+        const base = b === B.SAKURA ? ["#f7bccb", "#f9c9d5", "#f4adc0"][h % 3] : ["#a4d49a", "#b0dca6", "#98cc90"][h % 3];
+        puff(chain(T(x + .5 + sw, y + .5, z + .5), S(1.34 + k*.12, 1.22 + k*.1, 1.34 + k*.12)), base);
+        if(top) puff(chain(T(x + .38 + sw, y + .95, z + .4), S(.62, .5, .62)), b === B.SAKURA ? "#fde4ea" : "#c8ecbc"); });
+      // 小花、小蘑菇（被方塊蓋住的就不畫）
+      world.flowers.forEach(f => { const ix = Math.floor(f.x), iz = Math.floor(f.z); if(world.get(ix, f.y, iz) || !world.get(ix, f.y - 1, iz)) return; const s = f.s;
+        if(f.m){ box(chain(T(f.x, f.y + .08*s, f.z), S(.07*s, .16*s, .07*s)), "#fff6ea"); puff(chain(T(f.x, f.y + .19*s, f.z), S(.24*s, .13*s, .24*s)), "#ef8a8a"); puff(chain(T(f.x + .05*s, f.y + .24*s, f.z + .04*s), S(.05*s, .03*s, .05*s)), "#ffffff"); return; }
+        box(chain(T(f.x, f.y + .12*s, f.z), S(.035, .24*s, .035)), "#7cbf6e"); box(chain(T(f.x + .05, f.y + .08*s, f.z), RY(f.a), RZ(.6), S(.1*s, .02, .05*s)), "#8fd080");
+        for(let k = 0; k < 5; k++){ const a = f.a + k*Math.PI*2/5; puff(chain(T(f.x + Math.cos(a)*.055*s, f.y + .27*s, f.z + Math.sin(a)*.055*s), S(.075*s, .035*s, .075*s)), f.c); }
+        puff(chain(T(f.x, f.y + .285*s, f.z), S(.05*s, .04*s, .05*s)), f.c === "#ffe08a" ? "#f2a65a" : "#ffd36b"); });
       if(dist > .6) drawKid(player, t);   // 鏡頭被擠到頭裡面時先不畫自己
       pets.forEach(p => drawCat(p, t));
       if(yarn) drawBall();
@@ -1030,7 +1050,15 @@
       if(flash.t > 0){ flash.t -= dt; gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); box(chain(T(flash.x + .5, flash.y + .5, flash.z + .5), S(1.04, 1.04, 1.04)), "#ffffff", flash.t*2); gl.disable(gl.BLEND); }
       // 雲海和飄來飄去的雲（白白的大方塊，半透明）
       gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.uniform1f(U("mode"), 1); bind(cube);
-      if(CFG.clouds) CLOUDS.forEach(c => { const x = ((c.x + t*c.v) % 140 + 140) % 140 - 42; for(const [ox, oy, oz, sx, sy, sz] of c.parts) box(chain(T(x+ox, c.y+oy, c.z+oz), S(sx, sy, sz)), "#ffffff", c.a); });
+      if(CFG.clouds){ bind(ball); gl.uniform1f(U("mode"), 3); gl.disable(gl.CULL_FACE);   // 圓圓蓬蓬的雲
+        CLOUDS.forEach(c => { const x = ((c.x + t*c.v) % 140 + 140) % 140 - 42; for(const [ox, oy, oz, sx, sy, sz] of c.parts) box(chain(T(x+ox, c.y+oy, c.z+oz), S(sx*1.25, sy*1.3, sz*1.25)), "#ffffff", c.a); });
+        gl.enable(gl.CULL_FACE); bind(cube); gl.uniform1f(U("mode"), 1); }
+      // 飄落的櫻花瓣（在你附近慢慢飄）
+      if(CFG.clouds){ bind(ball); gl.uniform1f(U("mode"), 2); gl.disable(gl.CULL_FACE);
+        PETALS.forEach(q => { q.y -= dt*.45; q.x += Math.sin(t*.8 + q.p)*dt*.5 + dt*.25; q.z += Math.cos(t*.6 + q.p)*dt*.3; q.r += dt*q.w;
+          if(q.y < player.y - 2 || Math.hypot(q.x - player.x, q.z - player.z) > 13){ const a = Math.random()*Math.PI*2, d = 2 + Math.random()*10; q.x = player.x + Math.cos(a)*d; q.z = player.z + Math.sin(a)*d; q.y = player.y + 4 + Math.random()*5; }
+          box(chain(T(q.x, q.y, q.z), RY(q.r), RX(Math.sin(q.r*1.3)*.9), S(.13, .018, .09)), q.c, .92); });
+        gl.enable(gl.CULL_FACE); bind(cube); gl.uniform1f(U("mode"), 1); }
       if(STAR > .02){ gl.uniform3fv(U("tint"), [1,1,1]); gl.uniform2f(U("fogR"), 1e4, 1e4 + 1); gl.depthMask(false);
         STARS.forEach(([x, y, z, r], k) => box(chain(T(eye[0] + x, eye[1] + y - 8, eye[2] + z), S(r, r, r)), "#fff8d8", STAR*(.55 + .45*Math.sin(t*1.3 + k)))); gl.depthMask(true);
         gl.uniform3fv(U("tint"), TINT); gl.uniform2f(U("fogR"), CFG.fog ? CFG.view*.45 : 1e4, CFG.fog ? CFG.view : 1e4 + 1); }
