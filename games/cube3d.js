@@ -54,8 +54,9 @@
     ["圓圓大樹", [87, 88], "#f6c4d2", "round"], ["大傘（又寬又扁）", [87, 88], "#f6c4d2", "umbrella"], ["垂枝櫻（花一串串垂下來）", [87, 88], "#f6c4d2", "weep"],
     ["高高橢圓", [87, 88], "#f6c4d2", "oval"], ["雲朵（好幾團）", [87, 88], "#f6c4d2", "cloud"], ["兩層", [87, 88], "#f6c4d2", "tier"],
     ["圓圓大樹・淡白", [89, 88], "#f9dde5", "round"], ["圓圓大樹・深粉", [90, 87], "#e98aa6", "round"], ["垂枝櫻・淡白", [89, 88], "#f9dde5", "weep"], ["雲朵・深粉", [90, 87], "#e98aa6", "cloud"],
+    ["圓圓大傘（1+2）", [87, 88], "#f6c4d2", "dome"],
   ];
-  const SAK_PICK = 0;
+  const SAK_PICK = 10;   // 站長選的：1 圓圓大樹＋2 大傘的感覺
   function makeAtlas(){
     const N = 64, COLS = 16, cv = document.createElement("canvas"); cv.width = cv.height = N*COLS; const g = cv.getContext("2d");
     const hx = h => [1,3,5].map(i => parseInt(h.substr(i,2),16)), mix = (a, b, k) => { const x = hx(a), y = hx(b); return "#" + x.map((v,i) => Math.round(v + (y[i]-v)*k).toString(16).padStart(2,"0")).join(""); };
@@ -593,6 +594,7 @@
         const C0 = [cx, Cy, cz];
         if(shape === "round") lobe(C0, Rx, Ry, Rz, 46);
         else if(shape === "umbrella"){ const C = [cx, Cy + Ry*.25, cz]; lobe(C, Rx*1.35, Ry*.62, Rz*1.35, 52); }
+        else if(shape === "dome"){ const C = [cx, Cy + Ry*.12, cz]; lobe(C, Rx*1.2, Ry*.8, Rz*1.2, 52); }   // 又圓又寬：上面圓圓蓬蓬、往兩邊撐開
         else if(shape === "oval"){ lobe([cx, Cy + Ry*.2, cz], Rx*.82, Ry*1.3, Rz*.82, 44); }
         else if(shape === "weep"){ lobe(C0, Rx*1.05, Ry*.85, Rz*1.05, 40); hangs(C0, Rx*1.05, Rz*1.05, Cy - Ry*.45, 34, Ry*1.3); }
         else if(shape === "cloud"){ lobe([cx, Cy + Ry*.25, cz], Rx*.7, Ry*.7, Rz*.7, 16); for(let i = 0; i < 4; i++){ const a = i*1.5708 + q()*.5; lobe([cx + Math.cos(a)*Rx*.55, Cy - Ry*.1 + q()*.4, cz + Math.sin(a)*Rz*.55], Rx*.55, Ry*.55, Rz*.55, 10); } }
