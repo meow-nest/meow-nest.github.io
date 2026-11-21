@@ -1397,6 +1397,23 @@
           disc(.25, .05, .1, .14, .008, "#8fc48a"); el(.27, .07, .08, .04, .03, .04, PK); const fx = Math.cos(t*.8)*.35, fz = Math.sin(t*.8)*.2; el(fx, .04, fz, .07, .025, .04, "#f2a65a", RY(-t*.8)); break; }
       }
     }
+    // ---------- 方塊風家具（像方塊遊戲的家具模型：用 1/16 格的小方塊拼，顏色用和紙色）----------
+    function drawFurnV(id, x, y, z, rot, t){
+      const M0 = chain(T(x, y, z), RY(rot || 0));
+      const v = (x0, y0, z0, x1, y1, z1, c) => box(chain(M0, T((x0 + x1)/32 - .5, (y0 + y1)/32, (z0 + z1)/32 - .5), S((x1 - x0)/16, (y1 - y0)/16, (z1 - z0)/16)), c);
+      const W = "#dcbf96", WD = "#b8946a", WL = "#ead4b0", PK = "#f2a7bd", PKD = "#e08aa4", PKL = "#fbd3de", CR = "#fff6ea", SG = "#a8c89a", SGD = "#8fb582", SGL = "#c4ddb8", Y = "#ffd36b";
+      switch(id){
+        case "bed": v(0,0,0, 2,3,2, WD); v(14,0,0, 16,3,2, WD); v(0,0,30, 2,3,32, WD); v(14,0,30, 16,3,32, WD);
+          v(0,3,0, 16,6,32, W); v(0,3,-1, 16,14,1, WD); v(1,6,0, 15,8,31, CR); v(3,8,1, 13,10,6, PKL); v(0,7,10, 16,9,31, PK); v(0,9,10, 16,9.6,31, PKD); v(0,3,31, 16,8,32, WD); break;
+        case "sofa": v(1,0,2, 3,2,4, WD); v(13,0,2, 15,2,4, WD); v(1,0,12, 3,2,14, WD); v(13,0,12, 15,2,14, WD);
+          v(-8,2,2, 24,6,14, SG); v(-8,6,2, 24,13,5, SGD); v(-8,2,2, -5,10,14, SGD); v(21,2,2, 24,10,14, SGD);
+          v(-5,6,5, 8,8,14, SGL); v(8.2,6,5, 21,8,14, SGL); v(-3,8,5, 3,12,7, PKL); v(13,8,5, 19,12,7, CR); break;
+        case "cattree": v(1,0,1, 15,2,15, PK); v(3,2,3, 7,22,7, WL); v(10,2,10, 14,13,14, WL);
+          for(let k = 0; k < 10; k++) v(2.6,3 + k*2,2.6, 7.4,4 + k*2,7.4, "#e6cfa6");
+          v(7,13,7, 16,15,16, PKD); v(0,22,0, 10,24,10, PK); v(1,24,1, 9,25.5,9, CR); v(9,18,4, 9.6,22,4.6, Y); v(8.6,16.5,3.6, 10,18,5, PK); break;
+        case "lamp": v(5,0,5, 11,1,11, WD); v(7.2,1,7.2, 8.8,10,8.8, Y); v(4,10,4, 12,15,12, CR); v(5,15,5, 11,16,11, CR); v(6,9,6, 10,10,10, "#fff1b0"); break;
+      }
+    }
     function frame(now){
       if(dead) return; raf = requestAnimationFrame(frame);
       if(CFG.fps && now - last < 1000/CFG.fps - 2) return;   // 幀率上限：還沒到時間就先不畫（比較省電、不會燙）
@@ -1473,7 +1490,7 @@
       if(dist > .6 && !window.__camT) drawKid(player, t);   // 鏡頭被擠到頭裡面時先不畫自己
       pets.forEach(p => drawCat(p, t));
       if(yarn) drawBall();
-      (window.__furn || []).forEach(f => drawFurn(f.id, f.x, f.y, f.z, f.r, t));   // 家具（之後會改成玩家擺的）
+      (window.__furn || []).forEach(f => (f.v ? drawFurnV : drawFurn)(f.id, f.x, f.y, f.z, f.r, t));   // 家具（之後會改成玩家擺的）
       // 挖方塊噴出來的小碎塊、剛放好的方塊閃一下
       for(let k = fx.length - 1; k >= 0; k--){ const f = fx[k]; f.life -= dt; if(f.life <= 0){ fx.splice(k, 1); continue; } f.vy -= 12*dt; f.x += f.vx*dt; f.y += f.vy*dt; f.z += f.vz*dt; box(chain(T(f.x, f.y, f.z), S(.12, .12, .12)), f.c); }
       if(flash.t > 0){ flash.t -= dt; gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); box(chain(T(flash.x + .5, flash.y + .5, flash.z + .5), S(1.04, 1.04, 1.04)), "#ffffff", flash.t*2); gl.disable(gl.BLEND); }
