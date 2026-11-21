@@ -3956,3 +3956,11 @@ body.dockKb .careModal .ltWrap .ltBody{height:clamp(56px,calc(100dvh - var(--doc
 .ptWaitE{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);padding:4px 2px}.ptWaitE svg{width:44px;height:auto;flex:none}
 .ptGames .gcard{position:relative}
 .ptWB{position:absolute;top:6px;right:6px;font-style:normal;font-size:11px;background:#e0627c;color:#fff;border:2px solid var(--line);padding:1px 5px;animation:ptHop 1.2s steps(2) infinite}
+
+/* 貓貓股市：產業分頁（更新 71） */
+.skSecs{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:none}.skSecs::-webkit-scrollbar{display:none}
+.skSecs button{flex:none;font:inherit;font-size:13px;padding:4px 10px;border:3px solid var(--ink);background:#fff;color:var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:center;line-height:1.15;box-shadow:2px 2px 0 var(--shadow)}
+.skSecs button small{font-size:11px}
+.skSecs button.on{background:var(--ink);color:#fff}.skSecs button.on small{color:#fff}
+.skNews.sec{background:#fff6e0}.skNews.sec b{color:#b7791f}
+.skNews.link b::after{content:" ⇄";font-size:11px;color:var(--muted)}
