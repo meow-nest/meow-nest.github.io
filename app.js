@@ -1707,7 +1707,7 @@ const App = (function(){
     presence: list => { PT.online = new Set(list); ptPaintBar(); PT.psubs.slice().forEach(h => { try{ h(); }catch(e){ console.error(e); } }); },
     status: ok => { if(ok) ptRefresh(); },
   };
-  const ptEntryHtml = () => `<button class="box ptEntry"><span class="ptEI">${icon("star")}</span><span><b>跟其他小窩的朋友一起玩</b><small>${PT.room ? (PT.room.pub ? (ptMembers().length > 1 ? "正在跟喵友一起玩" : "正在幫你找喵友…") : `你在房間裡・房間碼 ${esc(PT.room.code)}`) : isSolo() ? "開房間找朋友，或隨機配對陌生的喵友" : "你畫我猜、撞球、五子棋…開房間就能一起玩"}</small></span><em>▶</em></button>`;
+  const ptEntryHtml = () => `<button class="box ptEntry"><span class="ptEI">${icon("star")}</span><span><b>跟其他小窩的朋友一起玩</b><small>${PT.room ? (PT.room.pub ? (ptMembers().length > 1 ? "正在跟喵友一起玩" : "正在幫你找喵友…") : `你在房間裡・房間碼 ${esc(PT.room.code)}`) : "開房間找朋友，或隨機配對其他小窩的喵友"}</small></span><em>▶</em></button>`;
   function ptEntryBind(){ document.querySelectorAll("#view .ptEntry").forEach(bp=>{ if(bp._b) return; bp._b = 1; bp.addEventListener("click", ()=>{ SFX.tap(); go("party"); }); }); }
   function ptConnect(){ const id = PT.room && PT.view ? PT.room.id : null; if(id === PT.conn) return; PT.conn = id; PT.online = new Set();
     if(id){ if(B.partyConnect) B.partyConnect(id, ptHandlers); } else if(B.partyClose) B.partyClose(); }
@@ -1810,9 +1810,9 @@ const App = (function(){
     if(!R){
       ptUnmount();
       const pend = (()=>{ try{ return localStorage.getItem("mw_ptJoin") || ""; }catch(e){ return ""; } })();
-      const matchBox = isSolo() ? `<div class="box ptBox ptMatchBox"><div class="ptHead">${sprite(me.cat || "orange", "happy")}<p><b>找陌生的喵友一起玩</b><br>隨機配對另一個單人小窩</p></div>
+      const matchBox = `<div class="box ptBox ptMatchBox"><div class="ptHead">${sprite(me.cat || "orange", "happy")}<p><b>找陌生的喵友一起玩</b><br>隨機配對其他小窩的人</p></div>
         <div class="ptGames">${MATCH_GAMES.map(id => { const g = ptGame(id); if(!g) return ""; return `<button class="gcard" data-pm="${id}"><span class="gi">${window.GameArt && GameArt[id] ? `<span class="ga">${GameArt[id]()}</span>` : g.icon()}</span><span class="gn">${esc(g.name)}</span><span class="gd">隨機配對</span></button>`; }).join("")}</div>
-        <div class="k ptNote">喵友只看得到你的貓咪和「喵友」編號，看不到你的暱稱<br>不能打字聊天，只能用固定的短句・遇到怪怪的人可以按「檢舉」</div></div>` : "";
+        <div class="k ptNote">喵友只看得到你的貓咪和「喵友」編號，看不到你的暱稱<br>不能打字聊天，只能用固定的短句・遇到怪怪的人可以按「檢舉」</div></div>`;
       a.innerHTML = `${matchBox}<div class="box ptBox"><div class="ptHead">${sprite(me.cat || "orange", "wave")}<p>開一間房間，把<b>房間碼</b>傳給其他小窩的朋友，<br>就能一起玩了！</p></div>
         ${PT.err ? `<div class="k ptErrT">${esc(PT.err)}</div>` : ""}
         <h3 class="ptH">開房間</h3><div class="ptGames">${PARTY_GAMES.map(id => { const g = ptGame(id); if(!g) return ""; return `<button class="gcard" data-pc="${id}"><span class="gi">${window.GameArt && GameArt[id] ? `<span class="ga">${GameArt[id]()}</span>` : g.icon()}</span><span class="gn">${esc(g.name)}</span><span class="gd">開一間房間</span></button>`; }).join("")}</div>
