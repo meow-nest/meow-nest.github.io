@@ -705,9 +705,14 @@
       switch(w.base || w.id){
         // ---- 帽子 ----
         case "straw": sph(0, .205, 0, .33, .022, .31, pal.Y || "#f0cf7a"); sph(0, .26, 0, .16, .1, .15, pal.Y || "#f0cf7a"); ring(0, .23, 0, .158, .148, .02, C.red); break;
-        case "crown": case "crown2": { const g = C.gold, gem = w.base === "crown2" ? A : C.red; ring(0, .215, 0, .145, .13, .028, g); ring(0, .25, 0, .15, .135, .018, g);
-          for(let k = 0; k < 5; k++){ const a = -Math.PI/2 + (k - 2)*.62, x = Math.cos(a + Math.PI/2)*.14, z = Math.sin(a + Math.PI/2)*.12; line([x, .25, z], [x*1.05, .34, z*1.05], .03, .006, g, 4); sph(x*1.06, .345, z*1.06, .016, .016, .016, g); }
-          sph(0, .235, .14, .028, .028, .016, gem); sph(-.085, .235, .115, .02, .02, .012, gem); sph(.085, .235, .115, .02, .02, .012, gem); break; }
+        case "crown": case "crown2": {   // 小小的皇冠，戴在兩個耳朵中間，裡面是紅色絨布墊
+          const g = C.gold, gd = C.goldD, gem = w.base === "crown2" ? A : C.red, R0 = .1, y0 = .185, y1 = .265;
+          line([0, y0, -.01], [0, y1, -.01], R0, R0, g, 3); ring(0, y0 + .006, -.01, R0 + .004, R0 + .004, .014, gd); ring(0, y1, -.01, R0, R0, .01, gd);
+          sph(0, y1 - .005, -.01, .085, .055, .085, "#c43a5a");
+          for(let k = 0; k < 5; k++){ const a = Math.PI/2 + (k - 2)*Math.PI*2/5, x = Math.cos(a)*R0, z = -.01 + Math.sin(a)*R0;
+            line([x, y1 - .01, z], [x*1.08, y1 + .075, z*1.08 - .001], .03, .006, g, 5); sph(x*1.09, y1 + .085, z*1.09, .017, .017, .017, k === 2 ? gem : "#fff3b0"); }
+          sph(0, (y0 + y1)/2, R0 - .006, .024, .024, .012, gem); for(const sx of [-1, 1]) sph(sx*.062, (y0 + y1)/2, .07, .015, .015, .009, w.base === "crown2" ? "#ffffff" : "#6fb7e8");
+          break; }
         case "wizard": { const v = pal.V || "#9b6fd6"; sph(0, .2, 0, .3, .022, .28, v); cone(.2, .16, .38, v, .12); sph(.05, .33, .12, .03, .03, .015, C.yellow); sph(.12, .5, -.02, .025, .025, .025, C.yellow); break; }
         case "phones": { const k = pal.K || "#f0708d"; curve([[-.25, .02, 0], [-.22, .2, 0], [0, .29, 0], [.22, .2, 0], [.25, .02, 0]], .022, .022, shade(k, .85)); for(const sx of [-1, 1]){ sph(sx*.255, .02, 0, .045, .085, .08, k); sph(sx*.27, .02, 0, .035, .065, .062, shade(k, .7)); } break; }
         case "santa": { cone(.21, .17, .3, C.red, .22); ring(0, .2, 0, .19, .175, .045, C.white); sph(.22, .5, -.05, .05, .05, .05, C.white); break; }
