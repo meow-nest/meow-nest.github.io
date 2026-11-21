@@ -18,11 +18,12 @@ App.registerGame({
     const save = () => { try{ localStorage.setItem("mw_cube_av", JSON.stringify(av)); }catch(e){} };
     el.innerHTML = `<div class="box card cbStart">
       <h3>喵喵方塊島</h3>
-      <p class="k">穿上貓咪睡衣，在飄在白雲上的方塊小島到處走走：<br>左下搖桿走路、右邊拖曳轉鏡頭、按「跳」跳起來，<br>島上住著 8 隻小貓村民，走過去可以聊天、摸摸。</p>
+      <p class="k">穿上貓咪睡衣，在飄在白雲上的方塊小島到處走走：<br>左下搖桿走路、右邊拖曳轉鏡頭、按「跳」跳起來，<br>島上住著 8 隻小貓村民，走過去可以聊天、摸摸。<br>家裡養的貓也會跟著你，一起追毛線球、玩鬼抓人。</p>
       <div class="cbMe" id="cbMe"></div>
       <div class="cbPickT">貓咪睡衣</div><div class="cbPick" id="cbPick"></div>
       <div class="cbPickT">髮型</div><div class="cbPick hs" id="cbHair"></div>
       <div class="cbPickT">髮色</div><div class="cbHc" id="cbHc"></div>
+      <div class="cbFam" id="cbFam"></div>
       <button class="btn" id="cbGo">開始</button>
       <p class="k cbNote">之後會加上：放方塊蓋房子、看得到${p ? esc(p.name) : "一起玩的人"}、探索撿東西</p>
     </div>`;
@@ -37,11 +38,24 @@ App.registerGame({
       el.querySelectorAll("[data-hc]").forEach(b => b.addEventListener("click", () => { SFX.tap && SFX.tap(); av.hc = b.dataset.hc; save(); paint(); }));
     }
     paint();
+    // 我們家的貓（「我們的貓」養的）也一起來島上玩
+    let fam = [];
+    const PL = window.PetLogic, stg = c => PL ? PL.stage(c) : (() => { const e = c.exp || 0, S = [[0,"小奶貓",.5],[8,"小貓",.62],[25,"大貓",.74],[60,"胖胖貓",.86],[120,"貓咪大王",.9]]; let i = 0; while(i+1 < S.length && e >= S[i+1][0]) i++; return { name:S[i][1], scale:S[i][2] }; })();
+    function paintFam(){
+      const f = el.querySelector("#cbFam"); if(!f) return;
+      f.innerHTML = fam.length ? `<div class="cbPickT">一起來玩的貓咪</div><div class="cbFamL">${fam.map(c => `<div>${sprite(c.color, "happy")}<b>${esc(c.name)}</b><small>${esc(c.stage)}</small></div>`).join("")}</div>`
+        : `<p class="k cbFamNo">在「我們的貓」領養貓咪之後，牠也會跟你一起來島上玩喔</p>`;
+    }
+    (async () => { try{
+      const r = ctx.getState ? await ctx.getState("pet") : null, st = r && r.state, cats = st ? (st.v === 2 ? st.cats : [st]) : [];
+      fam = (cats || []).filter(c => c && c.name).slice(0, 2).map((c, i) => { const g = stg(c);
+        return { id:"fam" + i, fam:true, p:"fam", name:c.name, color:c.color || "orange", scale:g.scale, stage:g.name, full:PL && PL.fullness ? PL.fullness(c) : null, pitch:1.15 - i*.1 }; });
+    }catch(e){} paintFam(); })();
     el.querySelector("#cbGo").addEventListener("click", () => {
       if(!window.Cube3D) return;
       SFX.tap && SFX.tap();
       const npcs = (window.CubeTalk && window.CubeTalk.VILLAGERS) || [{ id:"shiro", name:"小白", color:"white" }];
-      game = window.Cube3D.open({ avatar: Object.assign({}, av), meName: ctx.me.name, npcs, sfx: SFX, icon: ctx.icon, esc, toast: ctx.toast, onClose: () => { game = null; } });
+      game = window.Cube3D.open({ avatar: Object.assign({}, av), meName: ctx.me.name, partnerName: p ? p.name : "", npcs: npcs.concat(fam), sfx: SFX, icon: ctx.icon, esc, toast: ctx.toast, onClose: () => { game = null; } });
     });
   },
   unmount(){ const g = document.querySelector(".p3d"); if(g){ const x = g.querySelector("#p3dX"); if(x) x.click(); } },

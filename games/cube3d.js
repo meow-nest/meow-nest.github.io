@@ -335,10 +335,16 @@
     const npc = o.npcs || [];
     // 小貓村民：每隻在島上有自己的家（繞著貓屋一圈），白天在家附近閒晃，晚上回家睡覺
     const pets = npc.map((c, i) => { const a = i/npc.length*Math.PI*2 + .4, r = 8 + (i % 2)*2.2;
+      if(c.fam){ const fa = Math.PI + (i % 2 ? .9 : -.9), fx = world.spawn[0] + Math.sin(fa)*1.6, fz = world.spawn[2] + Math.cos(fa)*1.6;   // 我們家的貓：一開始就在你身邊
+        return { i, x:fx, y:world.spawn[1] + .2, z:fz, vy:0, yaw:Math.PI, walk:0, onG:false, col:CAT[catKey(c.color)], s:.55 + (c.scale||.6)*.45, tx:null, tz:null, wait:.5, love:0, home:[fx, world.spawn[1], fz], v:c, sleep:0, fam:true, fs:{ mode:"follow", t:0 } }; }
       let hx = world.house.x + Math.cos(a)*r, hz = world.house.z + Math.sin(a)*r; const ty = world.topY(Math.floor(hx), Math.floor(hz));
       if(ty < world.floor - 2){ hx = world.house.x + Math.cos(a)*5; hz = world.house.z + Math.sin(a)*5; }
       const hy = world.topY(Math.floor(hx), Math.floor(hz)) + 1;
       return { i, x:hx, y:hy, z:hz, vy:0, yaw:a, walk:0, onG:false, col:CAT[catKey(c.color)], s:.55 + (c.scale||.6)*.45, tx:null, tz:null, wait:Math.random()*2, love:0, home:[hx, hy, hz], v:c, sleep:0 }; });
+    const fams = pets.filter(p => p.fam);
+    // 毛線球：家裡的貓會追著玩、互相搶（你走過去也可以踢一下）
+    const yarn = fams.length ? { x:world.spawn[0] + .8, y:world.spawn[1] + 1, z:world.spawn[2] - 2.2, vx:0, vy:0, vz:0, r:.17, roll:0, spin:0 } : null;
+    let idleT = 0;
     const cam = { yaw:0, pitch:.38, dist:5 };   // 一開始站在貓屋前面、看著貓屋
 
     // 方塊碰撞：角色是一個 寬 w、高 h 的盒子
@@ -419,6 +425,7 @@
       if(near < 0){ act.innerHTML = ""; return; }
       const c = npc[near]; if(!c){ act.innerHTML = ""; return; }
       const p = pets[near], lv = FL[friendLv(c.id)];
+      if(p && p.fam){ act.innerHTML = `<div class="p3dNm fam"><b>${o.esc(c.name)}</b><small>我們家的貓${c.stage ? "・" + o.esc(c.stage) : ""}</small></div><div class="p3dActB three"><button data-a="talk">${IC("chat")}<span>聊天</span></button><button data-a="pet">${IC("paw")}<span>摸摸</span></button><button data-a="ball">${IC("yarn")}<span>丟球</span></button></div>`; return; }
       act.innerHTML = `<div class="p3dNm"><b>${o.esc(c.name)}</b>${hearts(friendLv(c.id))}<small>${lv}</small></div><div class="p3dActB"><button data-a="talk">${IC("chat")}<span>聊天</span></button><button data-a="pet">${IC("paw")}<span>摸摸</span></button></div>`;
       void p;
     }
@@ -435,7 +442,7 @@
     }
     function startTalk(i){
       const p = pets[i], c = p && p.v; if(!c) return; talkLv = friendLv(c.id);
-      talkLines = TK ? TK.talk(c, { me:o.meName, friend:friendLv(c.id), sleeping:p.sleep > .5, hour:curHr, day:today(), n:talkN++ }) : ["喵～"];
+      talkLines = TK && c.fam && TK.famTalk ? TK.famTalk(c, { me:o.meName, partner:o.partnerName, sleeping:p.sleep > .5, hour:curHr, day:today(), n:talkN++ }) : TK ? TK.talk(c, { me:o.meName, friend:friendLv(c.id), sleeping:p.sleep > .5, hour:curHr, day:today(), n:talkN++ }) : ["喵～"];
       if(p.sleep <= .5) addFriend(c.id, "t");
       talkIdx = i; talkK = 0; p.tx = null; p.wait = 4; player.yaw = Math.atan2(p.x - player.x, p.z - player.z); showLine();
     }
@@ -446,6 +453,7 @@
       const b = e.target.closest("button"); if(!b) return; e.preventDefault(); e.stopPropagation();
       const p = pets[near]; if(!p || busy) return; busy = true; setTimeout(() => { busy = false; }, 700);
       if(b.dataset.a === "talk"){ hideHint(); startTalk(near); return; }
+      if(b.dataset.a === "ball"){ hideHint(); tossBall(p); return; }
       addFriend(p.v && p.v.id, "p"); p.sleep = 0;
       if(TK && p.v){ talkLv = friendLv(p.v.id); talkLines = [TK.petLine(p.v)]; talkIdx = near; talkK = 0; showLine(); clearTimeout(p._pt); p._pt = setTimeout(() => { if(talkIdx === p.i && talkLines.length === 1) endTalk(); }, 2200); }
       p.love = 2.2; p.hop = .6; p.tx = null; p.wait = 2.5; p.pets = (p.pets || 0) + 1;
@@ -603,6 +611,74 @@
     const STARS = (() => { const q = rng(99), out = []; for(let k = 0; k < 90; k++){ const a = q()*Math.PI*2, e = .15 + q()*1.2; out.push([Math.cos(a)*Math.cos(e)*70, Math.sin(e)*70, Math.sin(a)*Math.cos(e)*70, .25 + q()*.35]); } return out; })();
     let boundC = 36; const bind0 = bind; bind = m => { boundC = m.c; bind0(m); };
     function box(m, col, a = 1){ gl.uniformMatrix4fv(U("M"), false, m); gl.uniform3fv(U("col"), hexc(col)); gl.uniform1f(U("alpha"), a); gl.drawElements(gl.TRIANGLES, boundC, gl.UNSIGNED_SHORT, 0); }
+    // ---------- 我們家的貓：跟著你、一起玩（追毛線球、互相追、繞著你跑、坐下來看你） ----------
+    const turnTo = (p, vx, vz, dt, k = 8) => { const want = Math.atan2(vx, vz); let d = want - p.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); p.yaw += d*Math.min(1, dt*k); };
+    const okAt = (x, z) => world.topY(Math.floor(x), Math.floor(z)) >= world.floor - 1;
+    function famAI(p, dp, dt, night){
+      const s = p.fs, others = fams.filter(q => q !== p);
+      if(dp > 16 || p.fell){ p.fell = 0; const a = player.yaw + Math.PI + (p.i % 2 ? .8 : -.8); p.x = player.x + Math.sin(a)*1.5; p.z = player.z + Math.cos(a)*1.5; p.y = player.y + .3; p.vy = 0; s.t = 0; return [0, 0]; }   // 走太遠：跑回你身邊
+      // 晚上你站著不動一陣子，牠們會在你旁邊縮成一團睡
+      if(night && idleT > 6 && dp < 3.5 && talkIdx !== p.i){ p.sleep = Math.min(1, p.sleep + dt*.7); return [0, 0]; }
+      p.sleep = Math.max(0, p.sleep - dt*2);
+      for(const q of others){ const d = Math.hypot(p.x - q.x, p.z - q.z), m = .3*(p.s + q.s); if(d < m && d > 1e-4){ const k = (m - d)/d*.5, ox = p.x, oz = p.z; p.x += (p.x - q.x)*k; p.z += (p.z - q.z)*k; if(hits(p.x, p.y, p.z, .25*p.s, .8*p.s)){ p.x = ox; p.z = oz; } } }   // 兩隻不會疊在一起
+      s.chk = (s.chk || 0) + dt;   // 卡住（被方塊擋住、兩隻擠在一起）超過 1.2 秒：先坐下來，等一下再玩別的
+      if(s.chk > 1.2){ if(/chase|flee|zoom|roam/.test(s.mode) && Math.hypot(p.x - (s.px || 0), p.z - (s.pz || 0)) < .15){ if(s.who && s.who.fs.who === p){ s.who.fs.mode = "sit"; s.who.fs.t = 1.2; s.who.fs.who = null; } s.mode = "sit"; s.t = 1.2; s.who = null; } s.chk = 0; s.px = p.x; s.pz = p.z; }
+      if(talkIdx === p.i || p.wait > 0){ p.wait -= dt; turnTo(p, player.x - p.x, player.z - p.z, dt); return [0, 0]; }
+      let tx, tz, sp;
+      if(dp > 5){ tx = player.x; tz = player.z; sp = Math.min(4.8, 2.2 + dp*.5); s.mode = "follow"; s.t = 0; }   // 跟上來
+      else {
+        s.t -= dt;
+        if(s.t <= 0 && s.mode !== "flee"){
+          const r = Math.random(), mates = others.filter(q => q.sleep < .5 && q.fs.mode !== "chase");
+          s.mode = yarn && r < .38 ? "ball" : mates.length && r < .62 ? "chase" : r < .74 ? "zoom" : r < .88 ? "roam" : "sit";
+          s.t = 3 + Math.random()*4; s.ang = Math.atan2(p.x - player.x, p.z - player.z); s.tx = null;
+          if(s.mode === "chase"){ const q = mates[Math.floor(Math.random()*mates.length)]; s.who = q; q.fs.mode = "flee"; q.fs.who = p; q.fs.t = s.t; p.hop = .6; }
+        }
+        if(s.mode === "flee" && s.t <= 0){ s.mode = "sit"; s.t = 1.5; }
+        if(s.mode === "ball"){ tx = yarn.x; tz = yarn.z; sp = 3.3;
+          const d = Math.hypot(yarn.x - p.x, yarn.z - p.z);
+          if(d < .32 + .25*p.s && yarn.y < p.y + .8){ const k = 2.6 + Math.random()*2.2, dx = (yarn.x - p.x)/(d || 1), dz = (yarn.z - p.z)/(d || 1), sd = (Math.random() - .5)*1.6;
+            yarn.vx = dx*k + dz*sd; yarn.vz = dz*k - dx*sd; yarn.vy = 2 + Math.random()*1.5; yarn.spin = 8; p.hop = .6; p.pounce = .4; } }
+        else if(s.mode === "chase"){ const q = s.who; if(!q || q.fs.who !== p){ s.t = 0; return [0, 0]; } tx = q.x; tz = q.z; sp = 3.5;
+          if(Math.hypot(q.x - p.x, q.z - p.z) < .62){ p.hop = q.hop = .6; p.love = q.love = 1.2; q.fs.mode = "chase"; q.fs.who = p; q.fs.t = 2.5 + Math.random()*2; s.mode = "flee"; s.who = q; s.t = q.fs.t; CFG.sound && o.sfx && o.sfx.meow && o.sfx.meow(1.35); } }   // 抓到了！換人當鬼
+        else if(s.mode === "flee"){ const q = s.who || player, ax = p.x - q.x, az = p.z - q.z, l = Math.hypot(ax, az) || 1;
+          tx = p.x + ax/l*2; tz = p.z + az/l*2; if(Math.hypot(tx - player.x, tz - player.z) > 4.2){ const b = Math.atan2(p.x - player.x, p.z - player.z) + 1.2; tx = player.x + Math.sin(b)*3; tz = player.z + Math.cos(b)*3; } sp = 3.1; }
+        else if(s.mode === "zoom"){ s.ang += dt*1.9; tx = player.x + Math.sin(s.ang)*2.3; tz = player.z + Math.cos(s.ang)*2.3; sp = 3.8; }
+        else if(s.mode === "roam"){ if(s.tx == null){ const a = Math.random()*Math.PI*2, r = 1.2 + Math.random()*2.3; s.tx = player.x + Math.sin(a)*r; s.tz = player.z + Math.cos(a)*r; } tx = s.tx; tz = s.tz; sp = 1.5; }
+        else { turnTo(p, player.x - p.x, player.z - p.z, dt, 4); return [0, 0]; }   // 坐下來看你
+      }
+      if(!okAt(tx, tz)){ s.t = 0; s.tx = null; return [0, 0]; }
+      const dx = tx - p.x, dz = tz - p.z, l = Math.hypot(dx, dz);
+      if(l < .3){ if(s.mode === "roam"){ s.mode = "sit"; s.t = 1.5 + Math.random()*2; } return [0, 0]; }
+      if(!ground(p.x + dx/l*.5, p.z + dz/l*.5, p.y)){ s.t = 0; s.tx = null; return [0, 0]; }   // 前面是雲的邊邊：不跳下去
+      if(s.mode === "follow" && l < 1.6) return [0, 0];
+      turnTo(p, dx, dz, dt); return [dx/l*sp, dz/l*sp];
+    }
+    function tossBall(p){
+      if(!yarn) return; const a = player.yaw; yarn.x = player.x + Math.sin(a)*.5; yarn.z = player.z + Math.cos(a)*.5; yarn.y = player.y + 1.1;
+      const dx = p.x - player.x, dz = p.z - player.z, l = Math.hypot(dx, dz) || 1, k = 3.2 + Math.random();
+      yarn.vx = dx/l*k + (Math.random() - .5); yarn.vz = dz/l*k + (Math.random() - .5); yarn.vy = 3.4; yarn.spin = 10;
+      fams.forEach(q => { q.fs.mode = "ball"; q.fs.t = 4 + Math.random()*2; q.sleep = 0; q.wait = 0; q.hop = .6; });
+      player.petT = .4; CFG.sound && o.sfx && o.sfx.tap && o.sfx.tap();
+    }
+    function ballStep(dt){
+      const b = yarn, ox = b.x, oz = b.z;
+      b.vy -= 15*dt; b.x += b.vx*dt; b.z += b.vz*dt; b.y += b.vy*dt;
+      if(solid(b.x, b.y, b.z)){ if(solid(b.x, b.y, oz)){ b.x = ox; b.vx *= -.5; } if(solid(ox, b.y, b.z)){ b.z = oz; b.vz *= -.5; } if(solid(b.x, b.y, b.z)){ b.x = ox; b.z = oz; } }
+      let gy = -99; for(let y = Math.floor(b.y + .5); y > Math.floor(b.y) - 3; y--) if(solid(b.x, y, b.z)){ gy = y + 1; break; }
+      if(b.y - b.r < gy){ b.y = gy + b.r; b.vy = Math.abs(b.vy) > 1.2 ? -b.vy*.35 : 0; const f = Math.max(0, 1 - 2.4*dt); b.vx *= f; b.vz *= f; }
+      const v = Math.hypot(b.vx, b.vz); b.roll += v*dt/b.r; if(v > .05) b.dir = Math.atan2(b.vx, b.vz);
+      // 你走過去會踢到
+      const pd = Math.hypot(b.x - player.x, b.z - player.z);
+      if(pd < .45 && player.spd > .2 && b.y < player.y + .6){ const a = player.yaw; b.vx = Math.sin(a)*4.5; b.vz = Math.cos(a)*4.5; b.vy = 2.2; }
+      if(b.y < -6 || pd > 22){ const a = player.yaw; b.x = player.x + Math.sin(a)*1.4; b.z = player.z + Math.cos(a)*1.4; b.y = player.y + 1.6; b.vx = b.vz = b.vy = 0; }   // 掉下雲或滾太遠：回到你前面
+    }
+    function drawBall(){
+      const b = yarn, W0 = chain(T(b.x, b.y, b.z), RY(b.dir || 0), RX(b.roll || 0));
+      bind(ball); gl.uniform1f(U("mode"), 2); box(chain(W0, S(.34, .34, .34)), "#f28db0"); gl.uniform1f(U("mode"), 1); bind(cube);   // 圓圓的毛線球
+      box(chain(W0, S(.36, .035, .2)), "#d9688a"); box(chain(W0, RY(1.1), RX(.6), S(.2, .035, .36)), "#d9688a"); box(chain(W0, RX(1.3), S(.035, .2, .36)), "#e47ea0");
+      const tl = chain(T(b.x, b.y - b.r + .02, b.z), RY((b.dir || 0) + Math.PI)); box(chain(tl, T(0, 0, .25), S(.03, .02, .4)), "#e07898");   // 拖在後面的毛線
+    }
     function drawCat(e, t){
       const k = e.col, s = e.s, sw = Math.sin(e.walk*10)*.5*Math.min(1, e.spd || 0), hop = e.hop ? Math.sin((.6 - e.hop)/.6*Math.PI)*.35 : 0;
       const sl = e.sleep || 0, W0 = chain(T(e.x, e.y + hop - sl*.12*s, e.z), RY(e.yaw), S(s, s, s));
@@ -728,7 +804,7 @@
       if(mag > .08){ const fx = -Math.sin(cam.yaw), fz = -Math.cos(cam.yaw), rx = Math.cos(cam.yaw), rz = -Math.sin(cam.yaw);
         const dx = (rx*ix - fx*iz), dz = (rz*ix - fz*iz), l = Math.hypot(dx, dz) || 1; mx = dx/l*sp; mz = dz/l*sp;
         const want = Math.atan2(mx, mz); let d = want - player.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); player.yaw += d*Math.min(1, dt*12); }
-      tryJump(dt); if(player.petT > 0) player.petT -= dt;
+      tryJump(dt); if(player.petT > 0) player.petT -= dt; idleT = mag > .08 ? 0 : idleT + dt;
       move(player, mx, mz, dt, .28, 1.45); player._dt = dt; player.spd = mag; player.walk += dt*mag;
       // 鏡頭慢慢轉到玩家背後（有在走、而且沒在拖曳時）
       if(CFG.autoCam && mag > .2 && dragId === null){ let d = (player.yaw + Math.PI) - cam.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); cam.yaw += d*Math.min(1, dt*1.4); }
@@ -736,16 +812,18 @@
       near = -1; let nd = 2.4;
       pets.forEach(p => {
         const dp = Math.hypot(p.x - player.x, p.z - player.z);
-        const atHome = Math.hypot(p.x - p.home[0], p.z - p.home[2]) < .7; p.sleep = night && atHome && talkIdx !== p.i ? Math.min(1, p.sleep + dt) : Math.max(0, p.sleep - dt*2);
+        const atHome = Math.hypot(p.x - p.home[0], p.z - p.home[2]) < .7; if(!p.fam) p.sleep = night && atHome && talkIdx !== p.i ? Math.min(1, p.sleep + dt) : Math.max(0, p.sleep - dt*2);
         if(dp < nd && Math.abs(p.y - player.y) < 1.2 && !solid((p.x+player.x)/2, player.y + .5, (p.z+player.z)/2)){ nd = dp; near = p.i; }   // 隔著牆、高低差太多不算
         if(dp < .55 && dp > 1e-4){ const k = (.55 - dp)/dp*.5, ox = p.x, oz = p.z; p.x -= (player.x - p.x)*k; p.z -= (player.z - p.z)*k; if(hits(p.x, p.y, p.z, .25*p.s, .8*p.s)){ p.x = ox; p.z = oz; } }   // 不會穿過小貓，會把牠輕輕擠開
         let vx = 0, vz = 0;
-        if(p.sleep > .5){ /* 睡著了，不動 */ } else if(dp < 2.4){ const want = Math.atan2(player.x - p.x, player.z - p.z); let d = want - p.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); p.yaw += d*Math.min(1, dt*6); p.tx = null; }
+        if(p.fam){ const r = famAI(p, dp, dt, night); vx = r[0]; vz = r[1]; }
+        else if(p.sleep > .5){ /* 睡著了，不動 */ } else if(dp < 2.4){ const want = Math.atan2(player.x - p.x, player.z - p.z); let d = want - p.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); p.yaw += d*Math.min(1, dt*6); p.tx = null; }
         else if(p.tx == null){ p.wait -= dt; if(p.wait <= 0){ const a = Math.random()*Math.PI*2, r = night ? 0 : 1 + Math.random()*3.5; const nx = p.home[0] + Math.cos(a)*r, nz = p.home[2] + Math.sin(a)*r; if(world.topY(Math.floor(nx), Math.floor(nz)) >= world.floor - 1){ p.tx = nx; p.tz = nz; } else p.wait = .5; } }
         else { const dx = p.tx - p.x, dz = p.tz - p.z, l = Math.hypot(dx, dz); if(l < .3){ p.tx = null; p.wait = 1.5 + Math.random()*3.5; } else if(!ground(p.x + dx/l*.5, p.z + dz/l*.5, p.y)){ p.tx = null; p.wait = .8; } else { vx = dx/l*1.6; vz = dz/l*1.6; const want = Math.atan2(vx, vz); let d = want - p.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); p.yaw += d*Math.min(1, dt*6); } }
         const ox = p.x, oz = p.z; move(p, vx, vz, dt, .25*p.s, .8*p.s); if(p.tx != null && Math.hypot(p.x-ox, p.z-oz) < .001 && (vx || vz)){ p.tx = null; p.wait = 1; }
         p.spd = Math.min(1, Math.hypot(vx, vz)/1.6); p.walk += dt*p.spd; if(p.love > 0) p.love -= dt; if(p.hop > 0) p.hop = Math.max(0, p.hop - dt);
       });
+      if(yarn) ballStep(dt);
       if(talkIdx >= 0 && pets[talkIdx] && Math.hypot(pets[talkIdx].x - player.x, pets[talkIdx].z - player.z) > 3.6) endTalk();   // 走遠了就不聊了
       if(near !== act._near){ act._near = near; paintAct(); }
       if(clockEl._m !== Math.floor(hr*60)){ clockEl._m = Math.floor(hr*60); const H = Math.floor(hr), M = Math.floor((hr - H)*60); clockEl.innerHTML = CFG.time === "day" ? "" : `${o.icon ? `<span class="p3dIc">${o.icon(H >= 6 && H < 18 ? "sun" : "moon")}</span>` : ""}${H < 5 || H >= 19 ? "晚上" : H < 11 ? "早上" : H < 13 ? "中午" : H < 17 ? "下午" : "傍晚"} ${H}:${String(M).padStart(2, "0")}`; }
@@ -769,6 +847,7 @@
       world.flowers.forEach(f => { box(chain(T(f.x, f.y + .14, f.z), S(.05,.28,.05)), "#4f9e48"); box(chain(T(f.x, f.y + .32, f.z), RY(.8), S(.16,.12,.16)), f.c); });
       if(dist > .6) drawKid(player, t);   // 鏡頭被擠到頭裡面時先不畫自己
       pets.forEach(p => drawCat(p, t));
+      if(yarn) drawBall();
       // 挖方塊噴出來的小碎塊、剛放好的方塊閃一下
       for(let k = fx.length - 1; k >= 0; k--){ const f = fx[k]; f.life -= dt; if(f.life <= 0){ fx.splice(k, 1); continue; } f.vy -= 12*dt; f.x += f.vx*dt; f.y += f.vy*dt; f.z += f.vz*dt; box(chain(T(f.x, f.y, f.z), S(.12, .12, .12)), f.c); }
       if(flash.t > 0){ flash.t -= dt; gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); box(chain(T(flash.x + .5, flash.y + .5, flash.z + .5), S(1.04, 1.04, 1.04)), "#ffffff", flash.t*2); gl.disable(gl.BLEND); }
@@ -789,7 +868,7 @@
       let html = "";
       const cs = npc;
       pets.forEach(p => { const c = cs[p.i]; if(!c) return; const q = project(p.x, p.y + 1.15*p.s + .25, p.z, V, P); if(!q || q[2] > 16) return;
-        if(CFG.names) html += `<div class="p3dNmTag${p.i === near ? " on" : ""}" style="transform:translate(${q[0]}px,${q[1]}px) translate(-50%,-100%)">${o.esc(c.name)}</div>`;
+        if(CFG.names || p.fam) html += `<div class="p3dNmTag${p.i === near ? " on" : ""}${p.fam ? " fam" : ""}" style="transform:translate(${q[0]}px,${q[1]}px) translate(-50%,-100%)">${p.fam && o.icon ? `<span class="p3dIc">${o.icon("paw")}</span>` : ""}${o.esc(c.name)}</div>`;
         if(p.sleep > .5) html += `<div class="p3dZz" style="transform:translate(${q[0] + 18}px,${q[1] - 16 - (t*14 % 18)}px) translate(-50%,-100%);opacity:${1 - (t*14 % 18)/18}">Z<small>z</small></div>`;
         if(p.love > 0){ const k = 2.2 - p.love; html += `<div class="p3dHeart" style="transform:translate(${q[0]}px,${q[1] - 18 - k*26}px) translate(-50%,-100%);opacity:${Math.min(1, p.love)}">${o.icon ? o.icon("heart") : "♥"}</div>`; } });
       if(labels._h !== html){ labels._h = html; labels.innerHTML = html; }

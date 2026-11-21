@@ -125,7 +125,29 @@
     out.push(pick(LINES[v.p] || LINES.gentle, (s >>> 5) + n));
     return out.map(t => { t = fill(t); const tl = TAIL[v.p] || ""; return tl && !/[…！？～]$/.test(t) ? t.replace(/[。]$/, "") + tl : t; });
   }
+  PET.fam = "呼嚕嚕～最喜歡被你摸了。";
+
+  // 我們家的貓（「我們的貓」養的）來島上玩時說的話；{pt} 是一起養的人
+  const FAM = {
+    hi: ["{me}！你帶我來這麼好玩的地方！", "這裡好多雲，跟小窩不一樣耶！", "我會一直跟在你旁邊的。", "{me}走慢一點，我的腳比較短～"],
+    play: ["我們來玩毛線球！你丟、我追！", "我剛剛跟島上的貓咪打招呼了。", "雲的邊邊不要靠太近喔，我會怕。", "抓到了！……咦，那是我的尾巴。", "你看你看，我可以跑一整圈！", "這邊的草地踩起來軟軟的。"],
+    pt: ["{pt}什麼時候也來玩？", "等一下回小窩要跟{pt}說今天的冒險。", "我想要{pt}也摸摸我。"],
+    hungry: ["肚子有點餓了……回小窩記得餵我小魚乾。", "玩累了，好想吃小魚乾喔。"],
+    big: ["我長大了，跑得比以前快喔！", "以前我只有一點點大，現在是{stage}了！"],
+    sleepy: ["呼嚕……{me}在旁邊……好安心……", "zzz……毛線球……zzz……", "（縮成一團，尾巴蓋住鼻子）"],
+  };
+  function famTalk(v, { me, partner, sleeping, hour, day, n }){
+    const fill = t => t.replace(/\{me\}/g, me || "你").replace(/\{pt\}/g, partner || "").replace(/\{name\}/g, v.name).replace(/\{stage\}/g, v.stage || "大貓");
+    const s = hash(v.id + v.name + day + "|" + n);
+    if(sleeping) return [fill(pick(FAM.sleepy, s))];
+    const out = [];
+    if(n === 0) out.push(pick(FAM.hi, s));
+    if(v.full != null && v.full < 35) out.push(pick(FAM.hungry, s >>> 2));
+    const pool = FAM.play.concat(partner ? FAM.pt : [], (v.scale || 0) >= .74 ? FAM.big : []);
+    out.push(pick(pool, (s >>> 5) + n));
+    void hour; return out.map(fill);
+  }
   const petLine = v => PET[v.p] || PET.gentle;
 
-  window.CubeTalk = { VILLAGERS, talk, petLine, meowOf, hash };
+  window.CubeTalk = { VILLAGERS, talk, famTalk, petLine, meowOf, hash };
 })();

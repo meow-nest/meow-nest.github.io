@@ -306,4 +306,5 @@ ICON.gift = ["..O...O..",".OKO.OKO.","..OOKOO..","OOOOKOOOO","OYYYKYYYO","OOOOKO
 ICON.conf = ["K...Y..","..B...K",".Y..K..","B....B.","..K.Y..","Y.....B"];
 ICON.cup = ["O.....O","OWWWWWO","OKKKKKO","OKWKKKO",".OKKKO.","..OKO..","...O...","..OOO.."];
 ICON.horn = ["........OO","......OOKO","....OOYYKO","OOOOYYYYKO","OKKYYYYYKO","OOOOYYYYKO","....OOYYKO","......OOKO","........OO"];
+ICON.yarn = ["..OOOOO..",".OKKWKKO.","OKWKKWKKO","OKKWKKWKO","OWKKWKKKO","OKWKKWKWO",".OKKWKKO.","..OOOOOO.","......OOO"];   // 毛線球
 const Pix = { COLORS, CNAME, SPECIAL, sprite, icon, palOf, BD_IDS, BD_COL, isBd };
