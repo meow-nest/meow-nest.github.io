@@ -1389,7 +1389,7 @@
     }
     // ---------- 家具（不是方塊做的，用圓角、圓球、管子組起來）：FURN 是清單，drawFurn 畫一件 ----------
     const FURN = [
-      ["cattree", "貓跳台", "貓咪用品"], ["catbed", "貓窩", "貓咪用品"], ["bowl", "食盆", "貓咪用品"], ["teaser", "逗貓棒罐", "貓咪用品"], ["cbox", "紙箱", "貓咪用品"],
+      ["cattree", "貓跳台", "貓咪用品"], ["catbed", "貓窩", "貓咪用品"], ["bowl", "食盆", "貓咪用品"],
       ["bed", "小床", "臥室"], ["lamp", "檯燈", "臥室"], ["wardrobe", "衣櫃", "臥室"], ["rug", "圓地毯", "臥室"], ["nstand", "床頭櫃", "臥室"],
       ["sofa", "沙發", "客廳"], ["ltable", "矮桌", "客廳"], ["cushion", "坐墊", "客廳"], ["plant", "盆栽", "客廳"], ["tv", "小電視", "客廳"],
       ["swing", "鞦韆", "庭院"], ["bench", "長椅", "庭院"], ["slamp", "路燈", "庭院"], ["frack", "花架", "庭院"], ["pond", "小池塘", "庭院"],
@@ -1453,7 +1453,7 @@
     const tcube = (() => { const P = [], N = [], UV = [], SH = [], I = []; FACES.forEach(f => { const b = P.length/3; f.c.forEach(c => { P.push(c[0]-.5, c[1]-.5, c[2]-.5); N.push(...f.n); SH.push(f.l); }); UV.push(0,1, 1,1, 1,0, 0,0); I.push(b,b+1,b+2,b,b+2,b+3); }); return mesh(P, N, UV, SH, I); })();
     function drawFurnV(id, x, y, z, rot, t){
       const M0 = chain(T(x, y, z), RY(rot || 0)), FS = window.__fvStyle != null ? window.__fvStyle : FV_STYLE;
-      const v = (FS < 0 || FV_FLAT.has(id)) ? (x0, y0, z0, x1, y1, z1, c) => box(chain(M0, T((x0 + x1)/32 - .5, (y0 + y1)/32, (z0 + z1)/32 - .5), S((x1 - x0)/16, (y1 - y0)/16, (z1 - z0)/16)), c)
+      const v = FS < 0 ? (x0, y0, z0, x1, y1, z1, c) => box(chain(M0, T((x0 + x1)/32 - .5, (y0 + y1)/32, (z0 + z1)/32 - .5), S((x1 - x0)/16, (y1 - y0)/16, (z1 - z0)/16)), c)
         : (x0, y0, z0, x1, y1, z1, c) => { const ci = FV_COLS.indexOf(c); if(ci < 0){ box(chain(M0, T((x0 + x1)/32 - .5, (y0 + y1)/32, (z0 + z1)/32 - .5), S((x1 - x0)/16, (y1 - y0)/16, (z1 - z0)/16)), c); return; }
           const [u0,v0,u1,v1] = tileUV(128 + FS*FV_COLS.length + ci); bind(tcube); gl.uniform1f(U("mode"), 0); gl.uniform4f(U("uvR"), u0, v0, u1 - u0, v1 - v0);
           gl.uniformMatrix4fv(U("M"), false, chain(M0, T((x0 + x1)/32 - .5, (y0 + y1)/32, (z0 + z1)/32 - .5), S((x1 - x0)/16, (y1 - y0)/16, (z1 - z0)/16))); gl.uniform1f(U("alpha"), 1); gl.drawElements(gl.TRIANGLES, boundC, gl.UNSIGNED_SHORT, 0);
@@ -1471,9 +1471,6 @@
         case "lamp": v(5,0,5, 11,1,11, WD); v(7.2,1,7.2, 8.8,10,8.8, Y); v(4,10,4, 12,15,12, CR); v(5,15,5, 11,16,11, CR); v(6,9,6, 10,10,10, "#fff1b0"); break;
         case "catbed": v(1,0,1, 15,2,15, PK); v(1,2,1, 15,5,3, PK); v(1,2,13, 15,5,15, PK); v(1,2,3, 3,5,13, PK); v(13,2,3, 15,5,13, PK); v(3,2,3, 13,3,13, CR); v(5,3,5, 9,4,8, PKL); break;
         case "bowl": v(1,0,4, 15,.3,12, CR); v(2,0,5, 7,2.5,10, PK); v(3,2,6, 6,2.6,9, "#d9a066"); v(9,0,5, 14,2.5,10, "#a9c6ef"); v(10,2,6, 13,2.6,9, "#dff2ff"); break;
-        case "teaser": v(5,0,5, 11,6,11, Y); v(5,6,5, 11,6.5,11, WD); v(6.5,6,7, 7.5,14,8, WD); v(9,6,8, 10,13,9, WD); v(7.5,6,9.5, 8.5,15,10.5, WD);
-          { const sw = Math.sin(t*2)*.6; v(5.5 + sw,14,6.5, 7.5 + sw,16,8.5, PK); v(8.5 - sw,13,7.5, 10.5 - sw,15,9.5, SGL); v(7 + sw*.5,15,9, 9 + sw*.5,17,11, "#a9c6ef"); } break;
-        case "cbox": v(1,0,1, 15,9,15, WL); v(2,9,2, 14,9.2,14, WD); v(1,9,1, 15,9.6,3, WL); v(1,9,13, 15,9.6,15, WL); v(6,4,15, 10,6,15.3, PK); break;
         case "wardrobe": v(0,0,4, 16,30,16, W); v(1,1,16, 7.8,28,16.3, WL); v(8.2,1,16, 15,28,16.3, WL); v(7,14,16.3, 7.6,17,16.7, Y); v(8.4,14,16.3, 9,17,16.7, Y); v(-.5,30,3.5, 16.5,31,16.5, WD); v(4,31,8, 12,33,12, PKL); break;
         case "rug": v(-6,0,-6, 22,.4,22, PKL); v(-6,0,-6, 22,.5,-4.5, PK); v(-6,0,20.5, 22,.5,22, PK); v(-6,0,-4.5, -4.5,.5,20.5, PK); v(20.5,0,-4.5, 22,.5,20.5, PK); v(4,0,4, 12,.55,12, CR); break;
         case "nstand": v(2,1,3, 14,11,13, W); for(const [a2, b2] of [[2,3],[12,3],[2,11],[12,11]]) v(a2,0,b2, a2 + 2,1,b2 + 2, WD); v(3,4,13, 13,9,13.3, WL); v(7.5,6,13.3, 8.5,7,13.7, Y); v(8,11,6, 11,14,9, "#a9c6ef"); break;
@@ -1492,7 +1489,6 @@
           v(2,.8,6, 7,1.1,11, SG); v(4,1.1,8, 5.5,2,9.5, PK); const fx = 8 + Math.cos(t*.8)*6, fz = 8 + Math.sin(t*.8)*5; v(fx - 1.5,.9,fz - .8, fx + 1.5,1.5,fz + .8, "#f2a65a"); break; }
       }
     }
-    const FV_FLAT = new Set(["cbox", "teaser"]);   // 這幾件不套家具材質（站長說紙箱、逗貓棒罐維持平塗）
     const FV_STYLE = 6;    // 家具材質風格（-1 平塗；0 和紙、1 像素點點、2 手繪木紋布紋、3 粉彩小圖案）
     function frame(now){
       if(dead) return; raf = requestAnimationFrame(frame);
