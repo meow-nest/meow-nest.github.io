@@ -185,7 +185,7 @@
     // 家人模式觀戰：小窩裡最近有在動的對戰（例如 gomoku:aaaa-bbbb）
     B.liveGames = async (games, mins) => {
       const since = new Date(Date.now() - mins * 60000).toISOString();
-      const { data, error } = await sb.from("game_state").select("game,updated_at").eq("couple_id", B.coupleId).gt("updated_at", since).or(games.map(g => `game.like.${g}:*`).join(","));
+      const { data, error } = await sb.from("game_state").select("game,updated_at,win:state->win").eq("couple_id", B.coupleId).gt("updated_at", since).or(games.map(g => `game.like.${g}:*`).join(","));
       if (error) throw error; return data || [];
     };
     B.getState = async (game) => {

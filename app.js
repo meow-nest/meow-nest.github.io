@@ -368,7 +368,7 @@ const App = (function(){
     clearTimeout(famLiveT);
     const el = $("famLive"); if(!el || !isFam() || (route !== "home" && route !== "games") || others().length < 2 || !B.liveGames) return;
     if(document.visibilityState === "visible"){
-      let rows = null; try{ rows = await B.liveGames(WATCHABLE, 20); }catch(e){}
+      let rows = null; try{ rows = (await B.liveGames(WATCHABLE, 30)).filter(r => !r.win); }catch(e){}
       const box = $("famLive"); if(!box) return;
       if(rows){ const xs = famLiveParse(rows);
         box.innerHTML = xs.length ? `<div class="box famLive"><h3>家人正在玩<small>點進去觀戰</small></h3>${xs.slice(0, 4).map(x => { const g = games.find(z => z.id === x.g);
@@ -391,6 +391,29 @@ const App = (function(){
     const gm = games.find(z => z.id === g); if(!gm) return;
     const media = JSON.stringify({ k: key, g, a: me.uid, b: p.user_id });
     try{ const row = await B.send(`${me.name} 和 ${p.name} 在玩「${gm.name}」，大家可以來觀戰！`, "watch", me.name, me.cat, media); addMessage(row); }catch(e){}
+  }
+  // 家人對局中：畫面最上面一直浮著「誰跟誰在玩」，直到分出勝負（或 30 分鐘沒動）
+  const famBanHide = new Set(), famBanSeen = new Set(); let famBanLast = [];
+  async function famLivePoll(){
+    if(!isFam() || others().length < 2 || !B.liveGames || document.visibilityState !== "visible"){ famBanPaint([]); return; }
+    let rows; try{ rows = await B.liveGames(WATCHABLE, 30); }catch(e){ return; }
+    famBanPaint(famLiveParse(rows.filter(r => !r.win)));
+  }
+  function famBanPaint(xs){
+    famBanLast = xs;
+    const x = route === "watch" ? null : xs.find(z => !famBanHide.has(z.key));
+    let el = $("famBan");
+    if(!x){ if(el) el.remove(); return; }
+    const g = games.find(z => z.id === x.g), isNew = !famBanSeen.has(x.key);
+    famBanSeen.add(x.key);
+    if(!el){ el = document.createElement("div"); el.id = "famBan"; document.body.appendChild(el); }
+    if(el.dataset.k !== x.key){
+      el.dataset.k = x.key;
+      el.innerHTML = `<span class="flCats">${sprite(x.a.cat || "orange", "happy")}<i>VS</i>${sprite(x.b.cat || "white", "happy")}</span><span class="flTxt"><b>${esc(x.a.name)} 和 ${esc(x.b.name)}</b><small>正在玩「${esc(g ? g.name : x.g)}」</small></span><button class="btn" id="fbGo">觀戰</button><button class="fbX" id="fbX" aria-label="收起來">×</button>`;
+      el.querySelector("#fbGo").addEventListener("click", () => { SFX.tap(); WATCH = x; el.remove(); go("watch"); });
+      el.querySelector("#fbX").addEventListener("click", () => { SFX.tap(); famBanHide.add(x.key); el.remove(); });
+      if(isNew){ el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop"); SFX.match(); }
+    }
   }
   function famWatchOpen(media){
     let o = null; try{ o = JSON.parse(media); }catch(e){}
@@ -3684,6 +3707,7 @@ const App = (function(){
     ptLeaveView();
     if(curGame && curGame.unmount){ try{ curGame.unmount(); }catch(e){} } curGame=null; closeSheet(); kb=null; document.body.classList.remove("kbd"); const ofab=$("fab"); if(ofab) ofab.remove(); stkClose(true); Object.keys(RS).forEach(k=>{ RS[k].un && RS[k].un(); delete RS[k]; }); rqBar(null);
     route = r.startsWith("game-") ? "game" : r;
+    if(route !== "watch") setTimeout(() => famBanPaint(famBanLast), 0);
     document.body.classList.toggle("admsolo", isAdmin && isSolo());
     document.body.classList.toggle("compact", route!=="home");
     document.body.classList.toggle("ingame", route==="game");
@@ -3693,7 +3717,7 @@ const App = (function(){
     else if(route==="chat") viewChat(v);
     else if(route==="settings") viewSettings(v);
     else if(route==="party") viewParty(v);
-    else if(route==="watch") viewWatch(v);
+    else if(route==="watch"){ const fb = $("famBan"); if(fb) fb.remove(); viewWatch(v); }
     else if(route==="album"){ if(NO_MEDIA) viewHome(v); else viewAlbum(v); }
     else if(route==="game"){
       const g = games.find(x=>x.id===r.slice(5));
@@ -3757,6 +3781,8 @@ const App = (function(){
     $("top").classList.remove("hidden"); $("nav").classList.remove("hidden");
     B.on("msg", addMessage);
     B.on("bc", p=>{ if(p && p.from !== me.uid && (!p.to || p.to === me.uid)) bcSubs.slice().forEach(h=>{ try{ h(p); }catch(e){} }); });
+    setInterval(famLivePoll, 15000); setTimeout(famLivePoll, 3000);
+    document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible") famLivePoll(); });
     // 家人觀戰的「加油」
     B.on("bc", p=>{ if(!p || p.t !== "famCheer" || p.from === me.uid || !Array.isArray(p.to) || !p.to.includes(me.uid)) return; const f = members.find(m => m.user_id === p.from); if(!f) return; SFX.heart(); toast(`${sprite(f.cat || "orange", "love")} ${esc(f.name)} 在旁邊看你們玩，幫你加油！`, 3500); });
     B.on("members", async()=>{ const sig = () => members.map(x=>[x.user_id,x.name,x.cat].join("|")).join(","); const s0 = sig(); members = await B.members(); renderHeader(); if(route==="home") render(); else if(chatVisible()){ if(sig() === s0) markReadDom(); else drawList(false); } });

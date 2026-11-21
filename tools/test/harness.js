@@ -24,7 +24,7 @@ async function op(page, name, a){
     case 'upload': { const path=a.cid+'/p'+(++mid)+'.jpg'; DB.files=DB.files||{}; DB.files[path]=a.dataUrl; return path; }
     case 'url': return (DB.files||{})[a.path]||'';
     case 'send': { const row={id:++mid,couple_id:a.cid,sender:a.uid,body:a.body,kind:a.kind,name:a.name,cat:a.cat,media:a.media,created_at:new Date().toISOString()}; DB.messages.push(row); setTimeout(()=>emit({t:'msg',coupleId:a.cid,row}),30); return row; }
-    case 'live': return Object.keys(DB.state).filter(k=>k.startsWith(a.cid+'/') && a.games.some(g=>k.slice(a.cid.length+1).startsWith(g+':'))).map(k=>({game:k.slice(a.cid.length+1),updated_at:new Date().toISOString()}));
+    case 'live': return Object.keys(DB.state).filter(k=>k.startsWith(a.cid+'/') && a.games.some(g=>k.slice(a.cid.length+1).startsWith(g+':'))).map(k=>({game:k.slice(a.cid.length+1),updated_at:new Date().toISOString(),win:(DB.state[k].state||{}).win||null}));
     case 'get': { const s=DB.state[a.cid+'/'+a.game]; return s?JSON.parse(JSON.stringify(s)):null; }
     case 'cas': { const k=a.cid+'/'+a.game, s=DB.state[k];
       if(a.version===0){ if(s) return null; DB.state[k]={version:1,state:a.state}; }
