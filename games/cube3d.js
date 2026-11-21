@@ -1,6 +1,6 @@
 // 喵喵方塊島的 3D 引擎：方塊世界、第三人稱、虛擬搖桿到處走，島上有小貓可以摸摸
 // 用法：Cube3D.open({ meCat, meName, npcs:[{name,color}], sfx, icon, esc, onClose })
-// 方塊和貓都是自己用程式畫的（像素風的方塊材質是隨機產生的），不使用任何遊戲的素材。
+// 方塊和貓都是自己用程式畫的（材質是喵喵島自己的粉彩點心風：抹茶草地、餅乾土、魚鱗瓦、方糖磚…），不使用任何遊戲的素材。
 (function(){
   // ---------- 小工具：矩陣 ----------
   const I4 = () => [1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1];
@@ -19,7 +19,7 @@
   const hexc = h => [1,3,5].map(i => parseInt(h.substr(i, 2), 16)/255);
   function rng(seed){ let s = seed >>> 0 || 1; return () => (s = (s*1664525 + 1013904223) >>> 0) / 4294967296; }
 
-  // ---------- 方塊種類和像素材質 ----------
+  // ---------- 方塊種類和材質 ----------
   // 每種方塊：[上面, 側面, 下面] 用哪一格材質；solid 會擋路；clear 是半透明
   const B = { AIR:0, GRASS:1, DIRT:2, STONE:3, PLANK:4, LOG:5, LEAF:6, WATER:7, ROOF:8, SAND:9, BRICK:10, WOOL:11, GLASS:12, CLOUD:13, CLOUDB:14 };
   const BT = {
@@ -27,43 +27,54 @@
     6:{ t:[7,7,7], solid:1 }, 7:{ t:[8,8,8], solid:0, clear:1 }, 8:{ t:[9,9,9], solid:1 }, 9:{ t:[10,10,10], solid:1 }, 10:{ t:[11,11,11], solid:1 },
     11:{ t:[12,12,12], solid:1 }, 12:{ t:[13,13,13], solid:1, clear:1 }, 13:{ t:[14,15,16], solid:1 }, 14:{ t:[16,16,16], solid:1 },
   };
-  // 材質格子（16×16 像素）：用調色盤加隨機雜點畫出來
-  const TILES = [
-    { p:["#7fcf6a","#6bbd57","#8fdb78","#5ea94c"] },                                  // 0 草地上面
-    { p:["#8a6a4a","#7a5c3e","#98785a"], top:["#7fcf6a","#6bbd57","#5ea94c"], topH:4 }, // 1 草地側面
-    { p:["#8a6a4a","#7a5c3e","#98785a","#6e5236"] },                                  // 2 泥土
-    { p:["#9aa0a8","#8a9098","#aab0b8","#7c828a"] },                                  // 3 石頭
-    { p:["#d9a86a","#c99858","#e6b87a"], planks:1 },                                   // 4 木板
-    { p:["#8a5a34","#7a4c2a","#9a6a40"], bark:1 },                                     // 5 樹幹側面
-    { p:["#c9965e","#b98650","#d9a86a"], ring:1 },                                     // 6 樹幹切面
-    { p:["#4fae5a","#3f9a4c","#62c06c","#358a42"] },                                  // 7 樹葉
-    { p:["#5fb8e8","#4fa8d8","#7cc8f0"], a:.72 },                                      // 8 水
-    { p:["#e07a7a","#d06a6a","#ee8a8a"], planks:1 },                                   // 9 屋頂（粉紅）
-    { p:["#f2dfa6","#e8d296","#f8e8b6","#dcc488"] },                                  // 10 沙子
-    { p:["#c8744e","#b8643e","#d8845e"], bricks:1 },                                   // 11 磚
-    { p:["#f6c8d8","#ecb8cc","#fbd8e4"] },                                            // 12 毛毯（粉）
-    { p:["#e8f6ff"], glass:1, a:.35 },                                                 // 13 玻璃
-    { p:["#ffffff","#f6f9fe","#edf3fb","#ffffff","#fbfcff"] },                        // 14 白雲上面（暫時的素材，之後換）
-    { p:["#e4ecf8","#d9e4f4","#edf2fb"], top:["#ffffff","#f6f9fe"], topH:4 },          // 15 白雲側面
-    { p:["#cfdcef","#c4d3ea","#d8e3f3"] },                                            // 16 白雲下面（比較暗）
-  ];
+  // 材質：喵喵島自己的軟軟材質（32×32、圓角、粉彩色，每塊方塊看起來像一塊小點心或玩具，不是像素石頭泥土）
+  // 0 抹茶草地上面 1 草地側面（抹茶糖霜＋餅乾） 2 餅乾土 3 鵝卵石 4 奶油木板 5 貓抓柱側面 6 貓抓柱上面 7 棉花糖葉
+  // 8 水 9 魚鱗瓦 10 星星砂 11 方糖磚 12 毛線毯 13 泡泡玻璃 14～16 白雲
+  const TILE_N = 17;
   function makeAtlas(){
-    const N = 16, COLS = 8, cv = document.createElement("canvas"); cv.width = cv.height = N*COLS; const g = cv.getContext("2d"), r = rng(7);
-    TILES.forEach((t, k) => { const ox = (k % COLS)*N, oy = Math.floor(k / COLS)*N;
-      for(let y = 0; y < N; y++) for(let x = 0; x < N; x++){
-        let pal = t.p;
-        if(t.top && y < t.topH + (r() < .35 ? 1 : 0)) pal = t.top;
-        let c = pal[Math.floor(r()*pal.length)];
-        if(t.planks && (y % 4 === 3)) c = pal[1];
-        if(t.planks && y % 4 !== 3 && x === ((Math.floor(y/4)*7) % 16)) c = pal[1];
-        if(t.bark && (x % 4 === 0 || r() < .1)) c = pal[1];
-        if(t.ring){ const d = Math.max(Math.abs(x-7.5), Math.abs(y-7.5)); if(Math.round(d) % 3 === 0) c = pal[1]; if(d > 6.6) c = "#8a5a34"; }
-        if(t.bricks){ const row = Math.floor(y/4), off = row % 2 ? 4 : 0; if(y % 4 === 3 || (x + off) % 8 === 7) c = "#e8d8c8"; }
-        if(t.glass){ c = (x === 0 || y === 0 || x === N-1 || y === N-1) ? "#ffffff" : (x === y || x === y+1) ? "#ffffff" : t.p[0]; }
-        g.fillStyle = c; g.globalAlpha = t.a && !(t.glass && (x === 0 || y === 0 || x === N-1 || y === N-1)) ? t.a : 1; g.fillRect(ox+x, oy+y, 1, 1);
-      } });
-    g.globalAlpha = 1; return { cv, COLS, N };
+    const N = 32, COLS = 8, cv = document.createElement("canvas"); cv.width = cv.height = N*COLS; const g = cv.getContext("2d");
+    const rr = (x, y, w, h, r) => { g.beginPath(); g.moveTo(x+r, y); g.arcTo(x+w, y, x+w, y+h, r); g.arcTo(x+w, y+h, x, y+h, r); g.arcTo(x, y+h, x, y, r); g.arcTo(x, y, x+w, y, r); g.closePath(); };
+    const dot = (x, y, r, c) => { g.fillStyle = c; g.beginPath(); g.arc(x, y, r, 0, Math.PI*2); g.fill(); };
+    const star = (x, y, r, c) => { g.fillStyle = c; g.beginPath(); for(let k = 0; k < 10; k++){ const a = -Math.PI/2 + k*Math.PI/5, q = k % 2 ? r*.45 : r; g.lineTo(x + Math.cos(a)*q, y + Math.sin(a)*q); } g.closePath(); g.fill(); };
+    const paw = (x, y, s, c) => { dot(x, y + s*.35, s*.42, c); for(const [dx, dy] of [[-.45, -.15], [-.16, -.42], [.16, -.42], [.45, -.15]]) dot(x + dx*s, y + dy*s, s*.17, c); };
+    const heart = (x, y, s, c) => { g.fillStyle = c; g.beginPath(); g.moveTo(x, y + s*.35); g.bezierCurveTo(x - s*.6, y - s*.05, x - s*.3, y - s*.55, x, y - s*.18); g.bezierCurveTo(x + s*.3, y - s*.55, x + s*.6, y - s*.05, x, y + s*.35); g.fill(); };
+    // 軟軟的圓角邊：亮的左上、暗的右下，讓每一塊像小玩具
+    const bevel = (k = 1) => { g.lineWidth = 2; g.strokeStyle = `rgba(255,255,255,${.45*k})`; rr(1.5, 1.5, N-3, N-3, 6); g.stroke(); g.strokeStyle = `rgba(90,50,60,${.16*k})`; g.lineWidth = 1.5; rr(.75, .75, N-1.5, N-1.5, 7); g.stroke(); };
+    const grad = (c1, c2) => { const gr = g.createLinearGradient(0, 0, N, N); gr.addColorStop(0, c1); gr.addColorStop(1, c2); g.fillStyle = gr; g.fillRect(0, 0, N, N); };
+    const T = [
+      () => { grad("#a9e6a6", "#8fd394"); paw(9, 10, 6, "rgba(255,255,255,.5)"); paw(23, 22, 5, "rgba(255,255,255,.4)"); for(const [x, y] of [[22, 7], [8, 24], [16, 16], [27, 13]]) dot(x, y, 1.6, "#c6f1c2"); bevel(); },
+      () => { grad("#f4d6a8", "#e6c08a"); for(const [x, y] of [[8, 22], [20, 26], [25, 18], [13, 28]]) dot(x, y, 1.4, "#d4a46a");
+              g.fillStyle = "#9fdc9c"; g.beginPath(); g.moveTo(0, 0); g.lineTo(N, 0); for(let x = N; x >= 0; x -= 1){ const y = 10 + Math.sin(x/N*Math.PI*3 + .8)*2.2 + (x % 11 < 3 ? 2.5 : 0); g.lineTo(x, y); } g.closePath(); g.fill();
+              g.fillStyle = "rgba(255,255,255,.35)"; g.fillRect(0, 2, N, 2); bevel(); },
+      () => { grad("#efcd99", "#e0b67c"); for(const [x, y, r] of [[8, 9, 2.4], [22, 7, 2], [15, 18, 2.6], [26, 22, 2.2], [7, 26, 2], [19, 28, 1.6]]){ dot(x, y, r, "#a8754a"); dot(x - .6, y - .6, r*.35, "#c8956a"); } bevel(); },
+      () => { grad("#d6d1e2", "#c3bdd3"); for(const [x, y, w, h, c] of [[9, 9, 7, 5, "#e6e2ef"], [22, 8, 6, 5, "#b7b0c9"], [15, 19, 8, 6, "#ebe8f2"], [6, 25, 5, 4, "#b9b3cb"], [25, 24, 6, 5, "#dedaea"]]){
+                g.fillStyle = c; g.beginPath(); g.ellipse(x, y, w, h, 0, 0, Math.PI*2); g.fill(); g.fillStyle = "rgba(255,255,255,.55)"; g.beginPath(); g.ellipse(x - w*.3, y - h*.35, w*.35, h*.22, 0, 0, Math.PI*2); g.fill(); } bevel(); },
+      () => { g.fillStyle = "#f6d9a8"; g.fillRect(0, 0, N, N); for(let k = 0; k < 2; k++){ const y = k*16; g.fillStyle = k ? "#f0cf98" : "#f8deb0"; rr(1, y + 1, N - 2, 14, 5); g.fill();
+                g.strokeStyle = "rgba(200,150,90,.35)"; g.lineWidth = 1; g.beginPath(); g.moveTo(5, y + 6); g.bezierCurveTo(12, y + 4, 18, y + 9, 27, y + 6); g.stroke(); heart(5, y + 10, 4, "#f2a0b0"); heart(27, y + 10, 4, "#f2a0b0"); } bevel(.8); },
+      () => { g.fillStyle = "#e2bf86"; g.fillRect(0, 0, N, N); for(let y = 0; y < N; y += 4){ g.fillStyle = (y/4) % 2 ? "#d4ad70" : "#ecca92"; rr(0, y, N, 4, 2); g.fill();
+                g.strokeStyle = "rgba(160,110,50,.35)"; g.lineWidth = 1; for(let x = -4; x < N; x += 5){ g.beginPath(); g.moveTo(x, y + 4); g.lineTo(x + 4, y); g.stroke(); } } bevel(.7); },
+      () => { g.fillStyle = "#e8c894"; g.fillRect(0, 0, N, N); dot(16, 16, 12, "#f7b6c8"); dot(16, 16, 8, "#fbcfdb"); dot(13, 12, 3, "rgba(255,255,255,.6)"); bevel(); },
+      () => { grad("#9edba6", "#82c990"); for(const [x, y, r] of [[8, 8, 7], [23, 9, 8], [15, 20, 9], [5, 25, 6], [27, 25, 7]]){ dot(x, y, r, "#a8e2ae"); dot(x - r*.3, y - r*.35, r*.42, "rgba(255,255,255,.45)"); } bevel(.8); },
+      () => { grad("#8fd0f2", "#74bfe8"); g.strokeStyle = "rgba(255,255,255,.6)"; g.lineWidth = 1.5; for(const [x, y] of [[6, 9], [20, 16], [9, 25]]){ g.beginPath(); g.arc(x + 4, y, 4, Math.PI*1.1, Math.PI*1.9); g.stroke(); } },
+      () => { g.fillStyle = "#e98a9a"; g.fillRect(0, 0, N, N); for(let row = 0; row < 5; row++) for(let k = -1; k < 5; k++){ const x = k*8 + (row % 2 ? 4 : 0) + 4, y = row*8 - 2;
+                g.fillStyle = row % 2 ? "#f4a3b1" : "#f7b2be"; g.beginPath(); g.arc(x, y, 5.2, 0, Math.PI); g.fill(); g.strokeStyle = "rgba(180,70,90,.35)"; g.lineWidth = 1; g.beginPath(); g.arc(x, y, 5.2, 0, Math.PI); g.stroke(); dot(x - 1.5, y + 2, 1.2, "rgba(255,255,255,.5)"); } bevel(.8); },
+      () => { grad("#fdeec4", "#f6dfa6"); for(const [x, y, r] of [[8, 9, 3.2], [22, 13, 2.6], [13, 24, 2.8], [26, 26, 2.2], [17, 5, 1.8]]) star(x, y, r, "#ffd36b"); for(const [x, y] of [[5, 17], [28, 6], [20, 21]]) dot(x, y, 1, "#f2c97c"); bevel(); },
+      () => { g.fillStyle = "#fff4ec"; g.fillRect(0, 0, N, N); for(let row = 0; row < 3; row++) for(let k = -1; k < 3; k++){ const x = k*16 + (row % 2 ? 8 : 0) + 1, y = row*11 + 1;
+                g.fillStyle = row % 2 ? "#f7b39b" : "#f9c2ad"; rr(x, y, 14, 9.5, 3.5); g.fill(); g.fillStyle = "rgba(255,255,255,.5)"; rr(x + 2, y + 1.5, 6, 2, 1); g.fill(); } bevel(.6); },
+      () => { g.fillStyle = "#f6bfd0"; g.fillRect(0, 0, N, N); for(let y = 0; y < N; y += 6) for(let x = 0; x < N; x += 8){ g.strokeStyle = "#fbd6e1"; g.lineWidth = 2.2; g.beginPath(); g.moveTo(x + 1, y + 1); g.lineTo(x + 4, y + 5); g.lineTo(x + 7, y + 1); g.stroke();
+                g.strokeStyle = "rgba(200,110,140,.35)"; g.lineWidth = 1; g.beginPath(); g.moveTo(x + 1.5, y + 3); g.lineTo(x + 4, y + 6.5); g.lineTo(x + 6.5, y + 3); g.stroke(); } bevel(.7); },
+      () => { g.clearRect(0, 0, N, N); g.fillStyle = "rgba(214,238,255,.45)"; rr(1, 1, N-2, N-2, 7); g.fill(); g.strokeStyle = "#ffffff"; g.lineWidth = 2.5; rr(1.5, 1.5, N-3, N-3, 7); g.stroke();
+              g.fillStyle = "rgba(255,255,255,.85)"; g.beginPath(); g.ellipse(10, 9, 5, 2.4, -.6, 0, Math.PI*2); g.fill(); heart(23, 23, 6, "rgba(255,182,204,.7)"); },
+      () => { grad("#ffffff", "#f1f6fd"); dot(10, 10, 6, "rgba(255,255,255,.9)"); dot(22, 20, 7, "rgba(236,243,252,.9)"); bevel(.5); },
+      () => { grad("#eef3fb", "#dde7f5"); g.fillStyle = "#ffffff"; g.beginPath(); g.moveTo(0, 0); g.lineTo(N, 0); for(let x = N; x >= 0; x -= 2) g.lineTo(x, 7 + Math.sin(x/N*Math.PI*4)*2); g.closePath(); g.fill(); bevel(.5); },
+      () => { grad("#d8e3f3", "#c8d6ec"); bevel(.4); },
+    ];
+    T.forEach((f, k) => { const ox = (k % COLS)*N, oy = Math.floor(k / COLS)*N; g.save(); g.translate(ox, oy); g.beginPath(); g.rect(0, 0, N, N); g.clip(); f(); g.restore(); });
+    return { cv, COLS, N };
   }
+  void TILE_N;
+  // 挖方塊時噴出來的碎屑顏色（跟材質差不多）
+  const TILE_COL = [["#a9e6a6","#8fd394"],["#f4d6a8","#9fdc9c"],["#efcd99","#a8754a"],["#d6d1e2","#e6e2ef"],["#f8deb0","#f2a0b0"],["#ecca92","#d4ad70"],["#f7b6c8","#e8c894"],["#a8e2ae","#82c990"],["#8fd0f2","#ffffff"],["#f7b2be","#e98a9a"],["#fdeec4","#ffd36b"],["#f9c2ad","#fff4ec"],["#f6bfd0","#fbd6e1"],["#d6eeff","#ffffff"],["#ffffff","#eef3fb"],["#eef3fb","#ffffff"],["#d8e3f3","#c8d6ec"]];
 
   // ---------- 世界 ----------
   // 世界：飄在天空的白雲島（主島＋幾塊小雲朵踏腳石），下面是雲海
@@ -228,7 +239,7 @@
     // 材質
     const atlas = makeAtlas(), tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, atlas.cv);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);   // 軟軟的材質，不要像素感
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     const tileUV = k => { const s = 1/atlas.COLS, e = .002, u = (k % atlas.COLS)*s, v = Math.floor(k / atlas.COLS)*s; return [u+e, v+e, u+s-e, v+s-e]; };
 
@@ -466,13 +477,13 @@
 
     // ---------- 蓋房子 ----------
     const PALETTE = [B.PLANK, B.LOG, B.BRICK, B.STONE, B.GLASS, B.WOOL, B.ROOF, B.LEAF, B.GRASS, B.SAND, B.CLOUD, B.DIRT];
-    const BNAME = { [B.PLANK]:"木板", [B.LOG]:"原木", [B.BRICK]:"磚塊", [B.STONE]:"石頭", [B.GLASS]:"玻璃", [B.WOOL]:"毛毯", [B.ROOF]:"屋瓦", [B.LEAF]:"樹葉", [B.GRASS]:"草地", [B.SAND]:"沙子", [B.CLOUD]:"雲朵", [B.DIRT]:"泥土" };
+    const BNAME = { [B.PLANK]:"奶油木板", [B.LOG]:"貓抓柱", [B.BRICK]:"方糖磚", [B.STONE]:"鵝卵石", [B.GLASS]:"泡泡玻璃", [B.WOOL]:"毛線毯", [B.ROOF]:"魚鱗瓦", [B.LEAF]:"棉花糖葉", [B.GRASS]:"抹茶草地", [B.SAND]:"星星砂", [B.CLOUD]:"雲朵", [B.DIRT]:"餅乾土" };
     const buildEl = root.querySelector("#p3dBuild"), barEl = root.querySelector("#p3dBar");
     let buildOn = false, tool = "put", pick = B.PLANK, lastCam = null; const undo = [], fx = [];
     // 方塊小圖示：用材質畫一個小小的立體方塊（上面＋左右兩面）
     function blockIcon(b){
-      const c = document.createElement("canvas"), N = 16, S2 = 44; c.width = c.height = S2; const g = c.getContext("2d"); g.imageSmoothingEnabled = false;
-      const t = BT[b].t, tile = k => [(k % 8)*N, Math.floor(k / 8)*N];
+      const c = document.createElement("canvas"), N = atlas.N, S2 = 44; c.width = c.height = S2; const g = c.getContext("2d"); g.imageSmoothingEnabled = true;
+      const t = BT[b].t, tile = k => [(k % atlas.COLS)*N, Math.floor(k / atlas.COLS)*N];
       const face = (k, m, dark) => { const [sx, sy] = tile(k); g.save(); g.setTransform(...m); g.drawImage(atlas.cv, sx, sy, N, N, 0, 0, N, N); if(dark){ g.fillStyle = `rgba(0,0,0,${dark})`; g.fillRect(0, 0, N, N); } g.restore(); };
       const k = 1/N;
       face(t[0], [20*k, 10*k, -20*k, 10*k, 22, 2], 0);       // 上面
@@ -522,7 +533,7 @@
       if(rec) undo.push({ x, y, z, prev, b }); if(undo.length > 60) undo.shift();
       saveEdits(); buildWorld(); return true;
     }
-    function burst(x, y, z, b){ const c = TILES[BT[b].t[1]].p; for(let k = 0; k < 10; k++) fx.push({ x:x + .5, y:y + .5, z:z + .5, vx:(Math.random() - .5)*3, vy:1.5 + Math.random()*2.5, vz:(Math.random() - .5)*3, life:.6 + Math.random()*.3, c:c[k % c.length] }); }
+    function burst(x, y, z, b){ const c = TILE_COL[BT[b].t[1]]; for(let k = 0; k < 10; k++) fx.push({ x:x + .5, y:y + .5, z:z + .5, vx:(Math.random() - .5)*3, vy:1.5 + Math.random()*2.5, vz:(Math.random() - .5)*3, life:.6 + Math.random()*.3, c:c[k % c.length] }); }
     const flash = { t:0 };
     function buildAt(cx, cy){
       const h = pickRay(cx, cy); if(!h){ o.toast && o.toast("點近一點的方塊"); return; }
@@ -642,7 +653,7 @@
           if(d < .32 + .25*p.s && yarn.y < p.y + .8){ const k = 2.6 + Math.random()*2.2, dx = (yarn.x - p.x)/(d || 1), dz = (yarn.z - p.z)/(d || 1), sd = (Math.random() - .5)*1.6;
             yarn.vx = dx*k + dz*sd; yarn.vz = dz*k - dx*sd; yarn.vy = 2 + Math.random()*1.5; yarn.spin = 8; p.hop = .6; p.pounce = .4; } }
         else if(s.mode === "chase"){ const q = s.who; if(!q || q.fs.who !== p){ s.t = 0; return [0, 0]; } tx = q.x; tz = q.z; sp = 3.5;
-          if(Math.hypot(q.x - p.x, q.z - p.z) < .62){ p.hop = q.hop = .6; p.love = q.love = 1.2; q.fs.mode = "chase"; q.fs.who = p; q.fs.t = 2.5 + Math.random()*2; s.mode = "flee"; s.who = q; s.t = q.fs.t; CFG.sound && o.sfx && o.sfx.meow && o.sfx.meow(1.35); } }   // 抓到了！換人當鬼
+          if(Math.hypot(q.x - p.x, q.z - p.z) < .62){ p.hop = q.hop = .6; p.love = q.love = 1.2; q.fs.mode = "chase"; q.fs.who = p; q.fs.t = 2.5 + Math.random()*2; s.mode = "flee"; s.who = q; s.t = q.fs.t; } }   // 抓到了！換人當鬼（不叫，免得一直喵喵叫很吵）
         else if(s.mode === "flee"){ const q = s.who || player, ax = p.x - q.x, az = p.z - q.z, l = Math.hypot(ax, az) || 1;
           tx = p.x + ax/l*2; tz = p.z + az/l*2; if(Math.hypot(tx - player.x, tz - player.z) > 4.2){ const b = Math.atan2(p.x - player.x, p.z - player.z) + 1.2; tx = player.x + Math.sin(b)*3; tz = player.z + Math.cos(b)*3; } sp = 3.1; }
         else if(s.mode === "zoom"){ s.ang += dt*1.9; tx = player.x + Math.sin(s.ang)*2.3; tz = player.z + Math.cos(s.ang)*2.3; sp = 3.8; }
