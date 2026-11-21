@@ -976,6 +976,37 @@
       for(let k = 0; k < 9; k++) out.push({ x: q()*140, y: 24 + q()*10, z: -20 + q()*96, v: .5 + q()*.5, a: .8, parts: puff(3, 4 + q()*4, 1.6) });
       return out; })();
     const PETALS = Array.from({ length: 34 }, (_, k) => ({ x: world.spawn[0] + (Math.random() - .5)*20, y: world.spawn[1] + Math.random()*8, z: world.spawn[2] + (Math.random() - .5)*20, r: Math.random()*6, w: .6 + Math.random()*1.4, p: Math.random()*6, c: k % 3 ? "#f9c4d2" : "#ffe3ea" }));
+    // ---------- 樹葉的 20 種樣子 ----------
+    const LEAF_STYLE = 0;
+    function drawLeaf(st, x, y, z, b, top, t, puff){
+      const h = ((x*73856093) ^ (y*19349663) ^ (z*83492791)) >>> 0, k = (h % 7)/7, sw = Math.sin(t*1.2 + x*.7 + z*.5)*.03, sak = b === B.SAKURA;
+      const cx = x + .5 + sw, cy = y + .5, cz = z + .5, P3 = (c3) => c3[h % c3.length];
+      const G = sak ? ["#f7bccb", "#f9c9d5", "#f4adc0"] : ["#a4d49a", "#b0dca6", "#98cc90"], HL = sak ? "#fde4ea" : "#c8ecbc";
+      const S3 = (dx, dy, dz, sx, sy, sz, c, r) => puff(chain(T(cx + dx, cy + dy, cz + dz), r || I4(), S(sx, sy, sz)), c);
+      const pick = (green, pink) => sak ? pink : green;
+      switch(st){
+        case 0: S3(0, 0, 0, 1.34 + k*.12, 1.22 + k*.1, 1.34 + k*.12, P3(G)); if(top) S3(-.12, .45, -.1, .62, .5, .62, HL); break;   // 圓毛球
+        case 1: for(const [dx, dz, s0] of [[-.22, -.15, .85], [.24, -.1, .8], [0, .22, .82]]) S3(dx, .05 + s0*.05, dz, s0, s0*.9, s0, P3(G)); if(top) S3(0, .45, 0, .6, .5, .6, HL); break;   // 雲朵三球
+        case 2: { const c = pick(["#9fd69a", "#8fcf8c", "#aadca2"], ["#f7b6c8", "#f9c2d2", "#f4a8bc"])[h % 3]; S3(-.17, .12, 0, .72, .72, .55, c); S3(.17, .12, 0, .72, .72, .55, c); S3(0, -.15, 0, .6, .7, .5, c, RZ(Math.PI/4)); break; }   // 愛心葉
+        case 3: S3(0, 0, 0, 1.12, 1.12, 1.12, P3(G)); for(const [a, c2] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) S3(a*.3, .3, c2*.3, .6, .6, .6, P3(G)); break;   // 軟軟方圓
+        case 4: for(let i = 0; i < 4; i++){ const a = h + i*1.7; S3(Math.cos(a)*.22, -.25 + i*.17, Math.sin(a)*.22, .95 - i*.12, .22, .95 - i*.12, i % 2 ? P3(G) : HL, RY(a)); } break;   // 花瓣層層
+        case 5: { const c = pick("#7fbf86", "#f2a8bc"); if(top){ tube([[cx, cy - .5, cz], [cx, cy + .7, cz]], u => .62*(1 - u) + .01, c, true); } else S3(0, 0, 0, 1.3, 1.2, 1.3, c); break; }   // 尖尖松樹
+        case 6: for(let i = 0; i < 3; i++) S3(0, -.32 + i*.32, 0, 1.4 - i*.32, .38, 1.4 - i*.32, i === 2 ? HL : P3(G)); break;   // 疊疊盤子
+        case 7: S3(0, 0, 0, 1.32, 1.2, 1.32, sak ? P3(G) : ["#f2a65a", "#ec8a5a", "#f6c06a"][h % 3]); if(top) S3(-.12, .45, -.1, .6, .48, .6, sak ? HL : "#ffd9a0"); break;   // 秋天楓紅
+        case 8: S3(0, 0, 0, 1.28, 1.2, 1.28, P3(G)); S3(-.25, .28, .3, .22, .18, .1, "#ffffff"); break;   // 糖果亮亮
+        case 9: for(let i = 0; i < 6; i++){ const a = h*.3 + i*1.05, e = (i % 3 - 1)*.25; S3(Math.cos(a)*.3, e, Math.sin(a)*.3, .55, .1, .32, i % 2 ? P3(G) : HL, chain(RY(a), RZ(.5 + e))); } S3(0, 0, 0, .8, .8, .8, P3(G)); break;   // 葉片翻飛
+        case 10: S3(0, -.1, 0, 1.15, 1.05, 1.15, P3(G)); if(top) tube([[cx, cy + .2, cz], [cx + .05, cy + .65, cz], [cx + .12, cy + .9, cz]], u => .38*(1 - u) + .02, P3(G), true); break;   // 水滴
+        case 11: for(const [dx, dy, dz] of [[-.25, -.2, -.25], [.25, -.2, .2], [-.2, .2, .25], [.25, .22, -.2], [0, 0, 0]]) S3(dx, dy, dz, .58, .58, .58, P3(G)); break;   // 小球串
+        case 12: gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); puff(chain(T(cx, cy, cz), S(1.38, 1.28, 1.38)), P3(G), .72); S3(0, 0, 0, .7, .7, .7, HL); gl.disable(gl.BLEND); break;   // 薄荷霧
+        case 13: S3(0, 0, 0, 1.3, 1.2, 1.3, P3(G)); for(let i = 0; i < 4; i++){ const a = h + i*1.6, e = .25 + (i % 2)*.25; S3(Math.cos(a)*.62, e, Math.sin(a)*.62, .16, .1, .16, ["#ffffff", "#ffe08a", "#f7a7b8", "#cdb4f0"][i]); } break;   // 開花樹
+        case 14: S3(0, 0, 0, 1.3, 1.2, 1.3, P3(G)); for(let i = 0; i < 3; i++){ const a = h + i*2.1; S3(Math.cos(a)*.6, -.1 + i*.15, Math.sin(a)*.6, .17, .17, .17, sak ? "#ffffff" : "#ef5a6a"); } break;   // 結果子
+        case 15: S3(0, .1, 0, 1.25, 1, 1.25, P3(G)); if(!world.get(x, y-1, z)) for(let i = 0; i < 4; i++){ const a = h + i*1.57; for(let j = 0; j < 3; j++) S3(Math.cos(a)*.35, -.45 - j*.18, Math.sin(a)*.35, .18 - j*.03, .2, .18 - j*.03, ["#c9a6e8", "#b892e0", "#dcc0f2"][j]); } break;   // 紫藤垂垂
+        case 16: S3(0, .15, 0, 1.2, .9, 1.2, P3(G)); if(!world.get(x, y-1, z)) for(let i = 0; i < 5; i++){ const a = h + i*1.25, rx = Math.cos(a)*.45, rz = Math.sin(a)*.45, sw2 = Math.sin(t*1.5 + i)*.05; tube([[cx + rx, cy - .2, cz + rz], [cx + rx + sw2, cy - .7, cz + rz], [cx + rx + sw2*2, cy - 1.15, cz + rz]], () => .035, P3(G), false); } break;   // 柳條垂垂
+        case 17: S3(0, 0, 0, 1.45, .8, 1.45, P3(G)); if(top) S3(0, .32, 0, 1.05, .45, 1.05, HL); break;   // 修剪盆栽
+        case 18: S3(0, 0, 0, 1.3, 1.2, 1.3, P3(G)); for(let i = 0; i < 3; i++){ const a = t*.8 + h + i*2.1; S3(Math.cos(a)*.75, .2 + Math.sin(t*2 + i)*.15, Math.sin(a)*.75, .07, .07, .07, "#fff3a0"); } break;   // 螢火點點
+        case 19: { const c = sak ? P3(G) : ["#f6d35a", "#f2c84a", "#f8dc72"][h % 3]; for(let i = 0; i < 5; i++){ const a = h + i*1.26; S3(Math.cos(a)*.3, (i % 2)*.2 - .1, Math.sin(a)*.3, .7, .22, .55, c, chain(RY(a), RX(.5))); } S3(0, 0, 0, .9, .85, .9, c); break; }   // 銀杏黃扇
+      }
+    }
     function frame(now){
       if(dead) return; raf = requestAnimationFrame(frame);
       if(CFG.fps && now - last < 1000/CFG.fps - 2) return;   // 幀率上限：還沒到時間就先不畫（比較省電、不會燙）
@@ -1031,11 +1062,9 @@
       // 貓、花
       gl.uniform1f(U("mode"), 1); bind(cube);
       const puff = (m, col, a = 1) => { bind(ball); gl.uniform1f(U("mode"), 2); gl.disable(gl.CULL_FACE); box(m, col, a); gl.enable(gl.CULL_FACE); bind(cube); gl.uniform1f(U("mode"), 1); };
-      // 樹葉、櫻花：每一格是一顆圓圓的毛球，上面那層再加一顆亮亮的
-      puffs.forEach(([x, y, z, b, top]) => { const h = ((x*73856093) ^ (y*19349663) ^ (z*83492791)) >>> 0, k = (h % 7)/7, sw = Math.sin(t*1.2 + x*.7 + z*.5)*.03;
-        const base = b === B.SAKURA ? ["#f7bccb", "#f9c9d5", "#f4adc0"][h % 3] : ["#a4d49a", "#b0dca6", "#98cc90"][h % 3];
-        puff(chain(T(x + .5 + sw, y + .5, z + .5), S(1.34 + k*.12, 1.22 + k*.1, 1.34 + k*.12)), base);
-        if(top) puff(chain(T(x + .38 + sw, y + .95, z + .4), S(.62, .5, .62)), b === B.SAKURA ? "#fde4ea" : "#c8ecbc"); });
+      // 樹葉、櫻花：照 LEAF_STYLE 畫（window.__leafStyle 可以換，給站長挑樣式用）
+      const LS = window.__leafStyle != null ? window.__leafStyle : LEAF_STYLE;
+      puffs.forEach(([x, y, z, b, top]) => drawLeaf(LS, x, y, z, b, top, t, puff));
       // 小花、小蘑菇（被方塊蓋住的就不畫）
       world.flowers.forEach(f => { const ix = Math.floor(f.x), iz = Math.floor(f.z); if(world.get(ix, f.y, iz) || !world.get(ix, f.y - 1, iz)) return; const s = f.s;
         if(f.m){ box(chain(T(f.x, f.y + .08*s, f.z), S(.07*s, .16*s, .07*s)), "#fff6ea"); puff(chain(T(f.x, f.y + .19*s, f.z), S(.24*s, .13*s, .24*s)), "#ef8a8a"); puff(chain(T(f.x + .05*s, f.y + .24*s, f.z + .04*s), S(.05*s, .03*s, .05*s)), "#ffffff"); return; }
