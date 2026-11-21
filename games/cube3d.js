@@ -970,7 +970,7 @@
     }
     raf = requestAnimationFrame(frame);
 
-    return { close, _state:{ player, pets, cam, world } };
+    return { close, _state:{ player, pets, cam, world, rebuild: buildWorld } };
     }   // build 結束
     function close(){
       if(dead) return; dead = true; cancelAnimationFrame(raf); offAll(); cur = null;
