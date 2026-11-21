@@ -39,6 +39,8 @@
     ["薰衣草", null, "cross"], ["紅果子", "#8cc68c", "face"], ["柳葉", "#93c990", "hang"], ["竹葉", null, "rand"], ["橄欖葉", "#aabb94", "face"],
     ["蒲公英", null, "rand"], ["星星葉", "#93c990", "face"], ["貓掌葉", "#93c990", "face"], ["雲朵葉", "#d6f0cc", "face"], ["水彩葉", null, "rand"],
     ["線稿葉", "#f4fbf0", "face"], ["扶桑花", "#6fae72", "face"], ["檸檬樹", "#7fbf7a", "face"], ["紫藤", "#93c990", "hang"], ["雪頂葉", "#8cc68c", "face"],
+    ["繡球・粉紅", "#f2b0c4", "face"], ["繡球・天空藍", "#9cbff0", "face"], ["繡球・紫色", "#b896e0", "face"], ["繡球・白綠", "#dfeed2", "face"], ["繡球・粉藍紫混色", "#c8bfe8", "face"],
+    ["繡球・大朵", "#b8c8ee", "face"], ["繡球・小碎花", "#b8c8ee", "face"], ["繡球・帶葉子", "#8cc68c", "face"], ["繡球・和紙淡色", "#dfe2ee", "face"], ["繡球・彩虹", "#e8dcf0", "face"], ["繡球・圓球花團", "#b8c8ee", "rand"],
   ];
   const FOL_INNER = [...new Set(FOL_STYLES.map(x => x[1]).filter(Boolean))];
   function makeAtlas(){
@@ -154,9 +156,30 @@
       ];
     })();
     FP.forEach((f, k) => { const ox = ((22 + k) % COLS)*N, oy = Math.floor((22 + k) / COLS)*N; g.save(); g.translate(ox, oy); g.beginPath(); g.rect(0, 0, N, N); g.clip(); g.clearRect(0, 0, N, N); f(); g.restore(); });
+    // 繡球花的 11 種變化（材質格 52～62）：[花的顏色們, 小花數量, 小花大小, 有沒有葉子, 排法]
+    const HYD = [
+      [["#f7b6c8", "#f9c4d4", "#f2a2b8"], 18, 1, 0, "spiral"],          // 粉紅
+      [["#8fb8f0", "#a6c8f6", "#7aa6e8"], 18, 1, 0, "spiral"],          // 天空藍
+      [["#b48ee0", "#c4a2ea", "#a37ad6"], 18, 1, 0, "spiral"],          // 紫色
+      [["#f4f8ee", "#e6f2da", "#ffffff"], 18, 1, 0, "spiral"],          // 白綠
+      [["#f7b6c8", "#a6c8f6", "#c4a2ea"], 18, 1, 0, "mix"],             // 粉藍紫混色
+      [["#a8c8f2", "#b9a8ee", "#c8d8fa"], 9, 1.55, 0, "spiral"],        // 大朵
+      [["#a8c8f2", "#b9a8ee", "#c8d8fa"], 34, .7, 0, "spiral"],         // 小碎花
+      [["#a8c8f2", "#b9a8ee", "#c8d8fa"], 14, 1, 1, "spiral"],          // 帶大葉子
+      [["#d6dcef", "#e4d6ea", "#dfe8f2"], 18, 1, 0, "spiral"],          // 和紙淡色
+      [["#f7a7b8", "#ffe08a", "#a8d8ff", "#cdb4f0", "#a8e6c4"], 18, 1, 0, "mix"],   // 彩虹
+      [["#a8c8f2", "#b9a8ee", "#c8d8fa"], 22, .9, 0, "ball"],           // 一顆一顆圓球花團
+    ];
+    HYD.forEach(([cols, n, sz, lv, lay], k) => { const ox = ((52 + k) % COLS)*N, oy = Math.floor((52 + k) / COLS)*N; g.save(); g.translate(ox, oy); g.beginPath(); g.rect(0, 0, N, N); g.clip(); g.clearRect(0, 0, N, N);
+      const E2 = (x, y, rx, ry, a, c) => { g.save(); g.translate(x, y); g.rotate(a); g.beginPath(); g.ellipse(0, 0, rx, ry, 0, 0, Math.PI*2); g.fillStyle = c; g.fill(); g.restore(); };
+      if(lv) for(const [x, y, a] of [[14, 48, -.8], [50, 46, .8]]){ g.save(); g.translate(x, y); g.rotate(a); g.beginPath(); g.ellipse(0, 0, 9, 14, 0, 0, Math.PI*2); g.fillStyle = "#7fbf7a"; g.fill(); g.strokeStyle = "rgba(255,255,255,.4)"; g.lineWidth = 1; g.beginPath(); g.moveTo(0, -12); g.lineTo(0, 12); g.stroke(); g.restore(); }
+      const floret = (x, y, s, c) => { for(let j = 0; j < 4; j++) E2(x + Math.cos(j*1.57 + .4)*3.2*s, y + Math.sin(j*1.57 + .4)*3.2*s, 3.4*s, 2.4*s, j*1.57 + .4, c); g.beginPath(); g.arc(x, y, 1*s, 0, Math.PI*2); g.fillStyle = "#fff"; g.fill(); };
+      if(lay === "ball"){ for(const [cx, cy, rr] of [[22, 24, 13], [44, 28, 12], [32, 46, 13]]){ g.beginPath(); g.arc(cx, cy, rr, 0, Math.PI*2); g.fillStyle = cols[2]; g.fill(); for(let j = 0; j < 9; j++){ const an = j*2.4, d = Math.sqrt(j/9)*rr*.75; floret(cx + Math.cos(an)*d, cy + Math.sin(an)*d, .62, cols[j % 2]); } } }
+      else for(let j = 0; j < n; j++){ const an = j*2.4, d = Math.sqrt(j/n)*25; floret(32 + Math.cos(an)*d, 32 + Math.sin(an)*d, sz, lay === "mix" ? cols[(j*7) % cols.length] : cols[j % cols.length]); }
+      g.restore(); });
 
     // 顏色格（材質格 52 切成 8×8 小格，給 30 款樹葉裡面那層用）
-    { const ox = (52 % COLS)*N, oy = Math.floor(52 / COLS)*N; FOL_INNER.forEach((c, k) => { g.fillStyle = c; g.fillRect(ox + (k % 8)*8, oy + Math.floor(k / 8)*8, 8, 8); }); }
+    { const ox = (63 % COLS)*N, oy = Math.floor(63 / COLS)*N; FOL_INNER.forEach((c, k) => { g.fillStyle = c; g.fillRect(ox + (k % 8)*8, oy + Math.floor(k / 8)*8, 8, 8); }); }
     return { cv, COLS, N };
   }
   void TILE_N;
@@ -472,7 +495,7 @@
       const quad = (pts, uv, l) => { const base = F.P.length/3, nv = nrm(cross(sub(pts[1], pts[0]), sub(pts[2], pts[0]))); for(const p of pts){ F.P.push(...p); F.N.push(...nv); F.SH.push(l); } F.UV.push(...uv); F.I.push(base, base+1, base+2, base, base+2, base+3); };
       const UVq = [u0,v1, u1,v1, u1,v0, u0,v0];
       const card = (cc, ex, ey, sz, l) => quad([[-1,-1],[1,-1],[1,1],[-1,1]].map(([a, b2]) => [cc[0] + (ex[0]*a + ey[0]*b2)*sz, cc[1] + (ex[1]*a + ey[1]*b2)*sz, cc[2] + (ex[2]*a + ey[2]*b2)*sz]), UVq, l);
-      let swUV = null; if(inner){ const k = FOL_INNER.indexOf(inner), s0 = 1/atlas.COLS, bu = (52 % atlas.COLS)*s0, bv = Math.floor(52 / atlas.COLS)*s0, cu = bu + ((k % 8)*8 + 4)/(atlas.N*atlas.COLS), cv2 = bv + (Math.floor(k / 8)*8 + 4)/(atlas.N*atlas.COLS); swUV = [cu,cv2, cu,cv2, cu,cv2, cu,cv2]; }
+      let swUV = null; if(inner){ const k = FOL_INNER.indexOf(inner), s0 = 1/atlas.COLS, bu = (63 % atlas.COLS)*s0, bv = Math.floor(63 / atlas.COLS)*s0, cu = bu + ((k % 8)*8 + 4)/(atlas.N*atlas.COLS), cv2 = bv + (Math.floor(k / 8)*8 + 4)/(atlas.N*atlas.COLS); swUV = [cu,cv2, cu,cv2, cu,cv2, cu,cv2]; }
       const open = FACES.filter(f => !isF(x+f.n[0], y+f.n[1], z+f.n[2]));
       if(mode === "face" || mode === "hang"){
         for(const f of open){ const [nx, ny, nz] = f.n; const nb = world.get(x+nx, y+ny, z+nz); if(nb && !BT[nb].clear && !shaped(x+nx, y+ny, z+nz)) continue;
