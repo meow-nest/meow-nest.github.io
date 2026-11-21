@@ -48,7 +48,7 @@ async function op(page, name, a){
       let out=''; try{ out=cp.execSync('su postgres -c "psql -q -t -A -d t -f /tmp/rt.sql" 2>&1',{encoding:'utf8'}); }catch(e){ out=String(e.stdout||e); }
       const m=out.match(/RES:(.*)/s); if(!m){ console.log('SQLERR',a.fn,out.slice(0,300)); throw new Error(out.slice(0,200)); }
       return JSON.parse(m[1].trim()); }
-      if(a.fn && a.fn.startsWith('stock_')){ const SY=process.env.N8?['MEOW','PAW','TOY','CAN','FISH','SAND','NAP','NIP']:['MEOW','PAW','TOY','CAN','FISH','SAND','NAP','NIP','CLAW','TREE','COIN','TUNA','LASR','YARN','SUN','MILK'], BASE=[520,210,128,86,64,42,35,18,310,240,150,96,74,52,28,12];
+      if(a.fn && a.fn.startsWith('stock_')){ const SY=process.env.N8?['MEOW','PAW','TOY','CAN','FISH','SAND','NAP','NIP']:['MEOW','PAW','TOY','CAN','FISH','SAND','NAP','NIP','CLAW','TREE','COIN','TUNA','LASR','YARN','SUN','MILK','MAIL','VET','COMB','SOFA','BELL','FLY','DRIP','SAFE'], BASE=[520,210,128,86,64,42,35,18,310,240,150,96,74,52,28,12,132,410,46,58,88,33,24,165];
       const K=DB.stk=DB.stk||(()=>{ const ticks=[]; let p=Object.fromEntries(SY.map((s,i)=>[s,BASE[i]])); const ref={...p}; for(let i=0;i<200;i++){ p={...p}; SY.forEach(s=>{ p[s]=Math.round(p[s]*(1+(Math.random()-.48)*.012)*100)/100; }); ticks.push(p); } return {ticks,ref,acct:{},t:29910000}; })();
       const px=K.ticks[K.ticks.length-1]; const A=K.acct[page.__uid||'x']=K.acct[page.__uid||'x']||{cash:10000,hold:{},trades:[]};
       const assets=()=>Math.round((A.cash+Object.entries(A.hold).reduce((x,[k,v])=>x+v.q*px[k],0))*100)/100;

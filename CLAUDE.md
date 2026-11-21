@@ -108,7 +108,7 @@ git push origin main           # GitHub Pages 約 1 分鐘後更新
 
 ## 目前的狀態（2026/11/20）
 
-- 最新的 SQL 是 update_64（定時訊息，站長已經跑過）。站長說過 11/22（日）回來繼續更新。
+- 最新的 SQL 是 update_65（貓貓股市多 8 家公司，共 24 家：`stock_defs`、`stock_meta` 兩個函式要一起加；前端 `games/stock.js` 的 `CO`、`INFO` 也要加）。update_64（定時訊息）站長已經跑過。站長說過 11/22（日）回來繼續更新。
 - 睡衣小貓：11/30 前看到「站長去充電」通知的人自動領（`gift_got`、`claim_gift`）。
 - 推播診斷（隱藏功能）：sw.js 收到推播時會記下時間（快取 `meow-pub-assets` 的 `__diag/push`），設定頁連點「通知」標題 5 次會顯示「最近一次收到推播」（`mw_diag`），用來查某支手機收不到背景通知（小米／紅米 Redmi Note 14 還在查）。一般使用者看不到，不用發更新通知。
 - 「下載 App」按鈕：Chrome 的安裝視窗沒跳出來（小米常見）時，3.5 秒後改顯示文字說明（`doInstall`）。已裝好的 App（standalone）設定頁不會有這顆按鈕。
