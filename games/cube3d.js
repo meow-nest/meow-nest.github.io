@@ -260,6 +260,83 @@
       { n:[0,0,1], c:[[0,0,1],[1,0,1],[1,1,1],[0,1,1]], t:1, l:.9 }, { n:[0,0,-1], c:[[1,0,0],[0,0,0],[0,1,0],[1,1,0]], t:1, l:.7 },
     ];
     let chunks = [];
+    // ---------- 有形狀的方塊：屋瓦會變成斜斜的屋頂、貓抓柱是圓柱、紙窗是薄薄的一片 ----------
+    const isRoof = (x,y,z) => world.get(x,y,z) === B.ROOF;
+    const fullAt = (x,y,z) => { const b = world.get(x,y,z); return b && !BT[b].clear && !shaped(x,y,z); };
+    // 屋瓦的樣子：上面蓋著東西→一般方塊；旁邊上一層還有屋瓦→往那邊斜上去；只有斜對角有→屋角；都沒有→屋脊或尖尖的屋頂
+    function roofShape(x, y, z){
+      const up = world.get(x, y+1, z); if(up && !BT[up].clear) return null;
+      const D4 = [[1,0],[-1,0],[0,1],[0,-1]], U = D4.filter(([dx,dz]) => isRoof(x+dx, y+1, z+dz));
+      if(U.length === 1) return { k:"slope", d:U[0] };
+      if(U.length >= 2) return null;
+      const DG = [[1,1],[1,-1],[-1,1],[-1,-1]].filter(([dx,dz]) => isRoof(x+dx, y+1, z+dz));
+      if(DG.length === 1) return { k:"corner", d:DG[0] };
+      if(DG.length > 1) return null;
+      const sx = isRoof(x+1,y,z) || isRoof(x-1,y,z), sz = isRoof(x,y,z+1) || isRoof(x,y,z-1);
+      if(sx && !sz) return { k:"ridge", ax:"x" }; if(sz && !sx) return { k:"ridge", ax:"z" };
+      return { k:"peak" };
+    }
+    function shaped(x, y, z){ const b = world.get(x,y,z); if(b === B.LOG) return true; if(b === B.ROOF) return !!roofShape(x,y,z); return false; }
+    // 畫一個三角形／四邊形（自己算法線和亮度）
+    function tri3(Pp, Nn, UVv, SHh, Ii, a, b, c, ua, ub, uc){
+      const n = nrm(cross(sub(b, a), sub(c, a))), base = Pp.length/3, l = Math.max(.5, Math.min(1, .72 + .3*n[1] + .08*n[2] - .04*Math.abs(n[0])));
+      for(const q of [a, b, c]){ Pp.push(...q); Nn.push(...n); SHh.push(l); } UVv.push(...ua, ...ub, ...uc); Ii.push(base, base+1, base+2);
+    }
+    function emitRoof(x, y, z, rs, bt, Pp, Nn, UVv, SHh, Ii){
+      const [u0,v0,u1,v1] = tileUV(bt.t[0]), [s0,t0,s1,t1] = tileUV(bt.t[1]), L = .06;
+      const T3 = (a, b, c) => tri3(Pp, Nn, UVv, SHh, Ii, a, b, c, [u0 + (u1-u0)*(a[0]-x), v0 + (v1-v0)*(a[2]-z)], [u0 + (u1-u0)*(b[0]-x), v0 + (v1-v0)*(b[2]-z)], [u0 + (u1-u0)*(c[0]-x), v0 + (v1-v0)*(c[2]-z)]);
+      const sideUV = (a, k) => [s0 + (s1-s0)*k, t1 - (t1-t0)*(a[1]-y)];
+      const P3 = (cx, h, cz) => [x+cx, y+h, z+cz];
+      let hf = null, apex = null;
+      if(rs.k === "slope"){ const [dx,dz] = rs.d; hf = (cx, cz) => (dx ? (dx > 0 ? cx : 1-cx) : (dz > 0 ? cz : 1-cz)) ? 1 : L; }
+      else if(rs.k === "corner"){ const [dx,dz] = rs.d, hx = dx > 0 ? 1 : 0, hz = dz > 0 ? 1 : 0; hf = (cx, cz) => cx === hx && cz === hz ? 1 : L; }
+      else if(rs.k === "peak") apex = [.5, .95, .5];
+      else if(rs.k === "ridge" || rs.k === "valley") hf = null;
+      const C = [[0,0],[1,0],[1,1],[0,1]];
+      if(hf){ const h = C.map(([cx,cz]) => hf(cx, cz)), Q = C.map(([cx,cz], i) => P3(cx, h[i], cz));
+        // 上面：兩個三角形，屋角的時候沿著高的那個角對切
+        const hi = h.indexOf(1), diag02 = rs.k !== "corner" || hi === 0 || hi === 2;
+        if(diag02){ T3(Q[0], Q[2], Q[1]); T3(Q[0], Q[3], Q[2]); } else { T3(Q[1], Q[3], Q[2]); T3(Q[1], Q[0], Q[3]); }
+        sides(C.map(([cx,cz], i) => [cx, cz, h[i]]));
+      } else if(apex){ const A = P3(...apex); for(let i = 0; i < 4; i++){ const [ax,az] = C[i], [bx,bz] = C[(i+1)%4]; T3(P3(bx, L, bz), P3(ax, L, az), A); } sides(C.map(([cx,cz]) => [cx, cz, L])); }
+      else { // 屋脊：沿著一個方向的三角形屋頂
+        const X = rs.ax === "x", R0 = X ? [P3(0, 1, .5), P3(1, 1, .5)] : [P3(.5, 1, 0), P3(.5, 1, 1)];
+        if(X){ T3(P3(0, L, 0), R0[1], P3(1, L, 0)); T3(P3(0, L, 0), R0[0], R0[1]); T3(P3(1, L, 1), R0[0], P3(0, L, 1)); T3(P3(1, L, 1), R0[1], R0[0]); }
+        else { T3(P3(0, L, 1), R0[1], R0[0]); T3(P3(0, L, 1), R0[0], P3(0, L, 0)); T3(P3(1, L, 0), R0[0], R0[1]); T3(P3(1, L, 0), R0[1], P3(1, L, 1)); }
+        const hh = (cx, cz) => L; sides(C.map(([cx,cz]) => [cx, cz, hh(cx, cz)]), X ? "x" : "z");
+      }
+      // 底面（從下面看得到的屋簷）
+      if(!fullAt(x, y-1, z)){ T3(P3(0,0,0), P3(1,0,0), P3(1,0,1)); T3(P3(0,0,0), P3(1,0,1), P3(0,0,1)); }
+      function sides(hc, gable){
+        for(let i = 0; i < 4; i++){ const [ax,az,ha] = hc[i], [bx,bz,hb] = hc[(i+1)%4], nx = ax === bx ? (ax ? 1 : -1) : 0, nz = az === bz ? (az ? 1 : -1) : 0;
+          if(fullAt(x+nx, y, z+nz)) continue;
+          const a0 = P3(ax, 0, az), b0 = P3(bx, 0, bz), a1 = P3(ax, ha, az), b1 = P3(bx, hb, bz);
+          // 外側的面（逆時針朝外）
+          tri3(Pp, Nn, UVv, SHh, Ii, a0, b1, b0, sideUV(a0, 0), sideUV(b1, 1), sideUV(b0, 1)); tri3(Pp, Nn, UVv, SHh, Ii, a0, a1, b1, sideUV(a0, 0), sideUV(a1, 0), sideUV(b1, 1));
+          if(gable && ((gable === "x" && nx) || (gable === "z" && nz))){ const m = P3(gable === "x" ? ax : .5, 1, gable === "x" ? .5 : az); tri3(Pp, Nn, UVv, SHh, Ii, a1, m, b1, sideUV(a1, 0), sideUV(m, .5), sideUV(b1, 1)); }
+        }
+      }
+    }
+    // 貓抓柱：八角形的圓柱
+    function emitPost(x, y, z, bt, Pp, Nn, UVv, SHh, Ii){
+      const [s0,t0,s1,t1] = tileUV(bt.t[1]), [u0,v0,u1,v1] = tileUV(bt.t[0]), R = .42, n8 = 10, cx = x + .5, cz = z + .5;
+      for(let k = 0; k < n8; k++){ const a0 = k/n8*Math.PI*2, a1 = (k+1)/n8*Math.PI*2, p0 = [cx + Math.cos(a0)*R, y, cz + Math.sin(a0)*R], p1 = [cx + Math.cos(a1)*R, y, cz + Math.sin(a1)*R];
+        const q0 = [p0[0], y+1, p0[2]], q1 = [p1[0], y+1, p1[2]], ua = s0 + (s1-s0)*(k % 2 ? .5 : 0), ub = ua + (s1-s0)*.5;
+        tri3(Pp, Nn, UVv, SHh, Ii, p0, q1, p1, [ua, t1], [ub, t0], [ub, t1]); tri3(Pp, Nn, UVv, SHh, Ii, p0, q0, q1, [ua, t1], [ua, t0], [ub, t0]); }
+      const cap = (yy, top) => { const c = [cx, yy, cz]; for(let k = 0; k < n8; k++){ const a0 = k/n8*Math.PI*2, a1 = (k+1)/n8*Math.PI*2, p0 = [cx + Math.cos(a0)*R, yy, cz + Math.sin(a0)*R], p1 = [cx + Math.cos(a1)*R, yy, cz + Math.sin(a1)*R];
+        const uv = q => [u0 + (u1-u0)*(q[0]-x), v0 + (v1-v0)*(q[2]-z)]; if(top) tri3(Pp, Nn, UVv, SHh, Ii, c, p1, p0, uv(c), uv(p1), uv(p0)); else tri3(Pp, Nn, UVv, SHh, Ii, c, p0, p1, uv(c), uv(p0), uv(p1)); } };
+      if(world.get(x, y+1, z) !== B.LOG) cap(y+1, true); if(world.get(x, y-1, z) !== B.LOG && !fullAt(x, y-1, z)) cap(y, false);
+    }
+    // 紙窗：薄薄的一片，會跟著旁邊的牆轉方向
+    function emitPane(x, y, z, bt, Pp, Nn, UVv, SHh, Ii){
+      const [u0,v0,u1,v1] = tileUV(bt.t[1]), wall = (a, c) => { const b = world.get(a, y, c); return b && (b === B.GLASS || !BT[b].clear); };
+      const alongX = wall(x-1, z) || wall(x+1, z) || !(wall(x, z-1) || wall(x, z+1)), T0 = .44, T1 = .56;
+      const bx = alongX ? [0, 1] : [T0, T1], bz = alongX ? [T0, T1] : [0, 1];
+      for(const f of FACES){ const big = alongX ? f.n[2] !== 0 : f.n[0] !== 0;
+        if(!big){ const nb = world.get(x+f.n[0], y+f.n[1], z+f.n[2]); if(nb && (nb === B.GLASS || !BT[nb].clear)) continue; }
+        const q = f.c.map(c => [x + bx[c[0]], y + c[1], z + bz[c[2]]]), uvs = [[u0,v1],[u1,v1],[u1,v0],[u0,v0]];
+        tri3(Pp, Nn, UVv, SHh, Ii, q[0], q[1], q[2], uvs[0], uvs[1], uvs[2]); tri3(Pp, Nn, UVv, SHh, Ii, q[0], q[2], q[3], uvs[0], uvs[2], uvs[3]); }
+    }
     function buildWorld(){
       chunks.forEach(c => c.forEach(m => [m.p,m.n,m.uv,m.sh,m.i].forEach(b => gl.deleteBuffer(b)))); chunks = [];
       for(const pass of [0, 1]){
@@ -267,9 +344,14 @@
         const flush = () => { if(I.length) out.push(mesh(P, N, UV, SH, I)); P = []; N = []; UV = []; SH = []; I = []; };
         for(let y = 0; y < H; y++) for(let z = 0; z < D; z++) for(let x = 0; x < W; x++){
           const b = world.get(x,y,z); if(!b) continue; const bt = BT[b]; if(!!bt.clear !== !!pass) continue;
+          const em = { P, N, UV, SH, I, push(){} };
+          if(b === B.ROOF){ const rs = roofShape(x, y, z); if(rs){ emitRoof(x, y, z, rs, bt, P, N, UV, SH, I); if(P.length/3 > 60000) flush(); continue; } }
+          if(b === B.LOG){ emitPost(x, y, z, bt, P, N, UV, SH, I); if(P.length/3 > 60000) flush(); continue; }
+          if(b === B.GLASS){ emitPane(x, y, z, bt, P, N, UV, SH, I); if(P.length/3 > 60000) flush(); continue; }
+          void em;
           for(const f of FACES){
             const nb = world.get(x+f.n[0], y+f.n[1], z+f.n[2]);
-            if(nb && (!BT[nb].clear || nb === b)) continue;
+            if(nb && (!BT[nb].clear || nb === b) && !shaped(x+f.n[0], y+f.n[1], z+f.n[2])) continue;
             if(b === B.WATER && f.n[1] !== 1 && nb) continue;
             const [u0,v0,u1,v1] = tileUV(bt.t[f.t]), base = P.length/3, yo = b === B.WATER && f.n[1] === 1 ? -.12 : 0;
             f.c.forEach((c, k) => { P.push(x+c[0], y+c[1]+(c[1] ? yo : 0), z+c[2]); N.push(...f.n); SH.push(f.l * (y < 2 && f.n[1] === 0 ? .9 : 1)); });
