@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#f6eee3">
 <title>喵喵方塊島（試玩）</title>
 <link rel="icon" type="image/png" href="icons/icon-192.png">
-<link rel="stylesheet" href="style.css?v=t38">
+<link rel="stylesheet" href="style.css?v=t39">
 <style>
   body{margin:0;min-height:100vh;background:var(--bg,#f6eee3)}
   .tWrap{max-width:460px;margin:0 auto;padding:calc(14px + env(safe-area-inset-top)) 12px 40px}
@@ -17,7 +17,7 @@
 </head>
 <body>
 <div class="tWrap"><div class="tBadge">試玩版・還沒放進小窩（只有知道這個網址的人打得開）</div><div id="game"></div></div>
-<script src="pixel.js?v=t38"></script>
+<script src="pixel.js?v=t39"></script>
 <script>
   // 假的 App：只拿遊戲的 mount 來用
   const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -31,10 +31,10 @@
     return { tap: () => tone(880, .08), meow }; })();
   const toast = msg => { const d = document.createElement("div"); d.textContent = msg; d.style.cssText = "position:fixed;left:50%;bottom:40px;transform:translateX(-50%);background:rgba(60,40,50,.85);color:#fff;padding:8px 14px;border-radius:10px;z-index:9999"; document.body.appendChild(d); setTimeout(() => d.remove(), 2500); };
 </script>
-<script src="games/petdeco.js?v=t38"></script>
-<script src="games/cube_talk.js?v=t38"></script>
-<script src="games/cube3d.js?v=t38"></script>
-<script src="games/cube.js?v=t38"></script>
+<script src="games/petdeco.js?v=t39"></script>
+<script src="games/cube_talk.js?v=t39"></script>
+<script src="games/cube3d.js?v=t39"></script>
+<script src="games/cube.js?v=t39"></script>
 <script>
   // 試玩頁沒有連到小窩，先用兩隻示範的「我們家的貓」（正式上線時會是小窩自己養的貓）
   const DEMO_PET = { v:2, deco:{ items:[], wear:{ 0:{ hat:"crown", neck:"bow" }, 1:{ hat:"straw", face:"glasses", neck:"bell" } } }, cats:[{ name:"麻糬", color:"white", exp:30, full:80, at:Date.now() }, { name:"布丁", color:"orange", exp:5, full:25, at:Date.now() }] };

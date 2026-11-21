@@ -57,6 +57,8 @@
     ["圓圓大傘（1+2）", [87, 88], "#f6c4d2", "dome"],
   ];
   const SAK_PICK = 10;   // 站長選的：1 圓圓大樹＋2 大傘的感覺
+  const FV_COLS = ["#dcbf96", "#b8946a", "#ead4b0", "#e6cfa6", "#f2a7bd", "#e08aa4", "#fbd3de", "#fff6ea", "#a8c89a", "#8fb582", "#c4ddb8", "#ffd36b", "#fff1b0"];
+  const FV_KIND = c => ["#dcbf96", "#b8946a", "#ead4b0"].includes(c) ? "wood" : c === "#e6cfa6" ? "rope" : c === "#ffd36b" || c === "#fff1b0" ? "plain" : "fabric";
   function makeAtlas(){
     const N = 64, COLS = 16, cv = document.createElement("canvas"); cv.width = cv.height = N*COLS; const g = cv.getContext("2d");
     const hx = h => [1,3,5].map(i => parseInt(h.substr(i,2),16)), mix = (a, b, k) => { const x = hx(a), y = hx(b); return "#" + x.map((v,i) => Math.round(v + (y[i]-v)*k).toString(16).padStart(2,"0")).join(""); };
@@ -237,6 +239,36 @@
       const F = []; for(let j = 0; j < 14; j++) F.push([8 + rq()*48, 8 + rq()*48, 5 + rq()*4.5, rq()*6.28, rq() < .3 ? .45 + rq()*.3 : 1, k === 2 ? true : k === 3 ? false : rq() < .45]);
       F.sort((a, b) => a[2] - b[2]).forEach(f => flower(...f));
       g.restore(); });
+    // 家具材質（材質格 128 起）：4 種風格 × 每種顏色一張
+    // 風格 0 和紙、1 像素點點、2 手繪木紋布紋、3 粉彩小圖案
+    for(let st = 0; st < 4; st++) FV_COLS.forEach((c, ci) => { const k = 128 + st*FV_COLS.length + ci, ox = (k % COLS)*N, oy = Math.floor(k / COLS)*N, kind = FV_KIND(c), rq = rng(k*7);
+      g.save(); g.translate(ox, oy); g.beginPath(); g.rect(0, 0, N, N); g.clip();
+      const hx = h => [1,3,5].map(i => parseInt(h.substr(i,2),16)), mixc = (a, b2, t2) => { const x = hx(a), y2 = hx(b2); return "#" + x.map((vv,i) => Math.round(vv + (y2[i]-vv)*t2).toString(16).padStart(2,"0")).join(""); };
+      const dk2 = (t2 = .15) => mixc(c, "#3a2a28", t2), lt2 = (t2 = .3) => mixc(c, "#ffffff", t2);
+      g.fillStyle = c; g.fillRect(0, 0, N, N);
+      if(st === 0){   // 和紙：纖維＋撕紙邊
+        g.lineWidth = .8; for(let j = 0; j < 55; j++){ const x = rq()*N, y = rq()*N; g.strokeStyle = rq() < .8 ? "rgba(255,255,255,.4)" : "rgba(90,60,40,.12)"; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + 6, y + rq()*6 - 3, x + 10 + rq()*8, y + rq()*5 - 2.5); g.stroke(); }
+        if(kind === "wood"){ g.strokeStyle = "rgba(120,80,40,.18)"; g.lineWidth = 1.2; for(let y = 8; y < N; y += 16){ g.beginPath(); g.moveTo(0, y); g.bezierCurveTo(20, y + 3, 40, y - 3, 64, y + 1); g.stroke(); } }
+        if(kind === "rope"){ g.strokeStyle = "rgba(140,100,60,.3)"; g.lineWidth = 2; for(let y = 0; y < N; y += 6){ g.beginPath(); g.moveTo(0, y); g.lineTo(N, y + 3); g.stroke(); } }
+        g.lineWidth = 2; g.strokeStyle = "rgba(255,250,240,.5)"; g.strokeRect(1.5, 1.5, N - 3, N - 3); }
+      else if(st === 1){   // 像素點點：8×8 小格子深淺不一
+        for(let y = 0; y < 8; y++) for(let x = 0; x < 8; x++){ let t2 = (rq() - .5)*.16; if(kind === "wood" && y % 3 === 2) t2 -= .12; if(kind === "rope" && (x + y) % 3 === 0) t2 -= .14; if(kind === "fabric" && (x + y) % 2) t2 += .04;
+          g.fillStyle = t2 < 0 ? mixc(c, "#3a2a28", -t2) : mixc(c, "#ffffff", t2); g.fillRect(x*8, y*8, 8, 8); }
+        g.fillStyle = dk2(.12); g.fillRect(0, 0, N, 2); g.fillRect(0, 0, 2, N); g.fillStyle = lt2(.25); g.fillRect(0, N - 2, N, 2); g.fillRect(N - 2, 0, 2, N); }
+      else if(st === 2){   // 手繪：木紋、布紋、麻繩
+        if(kind === "wood"){ g.strokeStyle = dk2(.18); g.lineWidth = 1.3; for(let y = 4; y < N; y += 7){ g.beginPath(); g.moveTo(0, y); for(let x = 0; x <= N; x += 8) g.lineTo(x, y + Math.sin(x*.12 + y)*1.6); g.stroke(); }
+          g.strokeStyle = dk2(.25); g.beginPath(); g.ellipse(40, 30, 5, 3, 0, 0, Math.PI*2); g.stroke(); g.fillStyle = dk2(.2); g.fillRect(0, 31, N, 1.5); }
+        else if(kind === "fabric"){ g.strokeStyle = lt2(.28); g.lineWidth = 2; for(let y = 0; y < N; y += 8) for(let x = 0; x < N; x += 8){ g.beginPath(); g.moveTo(x + 1, y + 2); g.lineTo(x + 4, y + 6); g.lineTo(x + 7, y + 2); g.stroke(); }
+          g.strokeStyle = dk2(.08); g.lineWidth = 1; g.setLineDash([3, 3]); g.strokeRect(3, 3, N - 6, N - 6); g.setLineDash([]); }
+        else if(kind === "rope"){ for(let y = 0; y < N; y += 5){ g.fillStyle = y % 10 ? dk2(.1) : lt2(.15); g.fillRect(0, y, N, 5); g.strokeStyle = dk2(.25); g.lineWidth = .8; for(let x = -4; x < N; x += 5){ g.beginPath(); g.moveTo(x, y + 5); g.lineTo(x + 4, y); g.stroke(); } } }
+        else { const gr = g.createLinearGradient(0, 0, 0, N); gr.addColorStop(0, lt2(.3)); gr.addColorStop(1, c); g.fillStyle = gr; g.fillRect(0, 0, N, N); } }
+      else {   // 粉彩小圖案：點點、小愛心、條紋
+        if(kind === "fabric"){ g.fillStyle = lt2(.45); for(let y = 0; y < 4; y++) for(let x = 0; x < 4; x++){ g.beginPath(); g.arc(8 + x*16 + (y % 2)*8, 8 + y*16, 3, 0, Math.PI*2); g.fill(); } }
+        else if(kind === "wood"){ for(let y = 0; y < N; y += 16){ g.fillStyle = (y/16) % 2 ? dk2(.05) : lt2(.08); g.fillRect(0, y, N, 15); g.fillStyle = dk2(.15); g.fillRect(0, y + 15, N, 1); }
+          g.fillStyle = "#f7b6c8"; for(const [x, y] of [[12, 8], [44, 40]]){ g.beginPath(); g.moveTo(x, y + 3); g.bezierCurveTo(x - 4, y, x - 2, y - 3, x, y - 1); g.bezierCurveTo(x + 2, y - 3, x + 4, y, x, y + 3); g.fill(); } }
+        else if(kind === "rope"){ for(let y = 0; y < N; y += 8){ g.fillStyle = (y/8) % 2 ? "#f7d6df" : lt2(.2); g.fillRect(0, y, N, 8); } }
+        else { g.fillStyle = "rgba(255,255,255,.5)"; g.beginPath(); g.ellipse(18, 16, 10, 5, -.5, 0, Math.PI*2); g.fill(); } }
+      g.restore(); });
     // 顏色格（材質格 52 切成 8×8 小格，給 30 款樹葉裡面那層用）
     { const ox = (127 % COLS)*N, oy = Math.floor(127 / COLS)*N; FOL_INNER.forEach((c, k) => { g.fillStyle = c; g.fillRect(ox + (k % 8)*8, oy + Math.floor(k / 8)*8, 8, 8); }); }
     return { cv, COLS, N };
@@ -298,10 +330,10 @@
   uniform mat4 M, V, P; uniform vec2 fogR; varying vec2 vuv; varying float vsh, vfog; varying vec3 vn, vvn;
   void main(){ vec4 w = M*vec4(p,1.); vec4 e = V*w; vfog = clamp((-e.z - fogR.x)/(fogR.y - fogR.x), 0., 1.); vuv = uv; vsh = sh; vn = normalize(mat3(M)*n); vvn = mat3(V)*vn; gl_Position = P*e; }`;
   const FS = `precision mediump float; varying vec2 vuv; varying float vsh, vfog; varying vec3 vn, vvn;
-  uniform sampler2D tex; uniform float mode, alpha, cut; uniform vec3 col, sky, tint;
+  uniform sampler2D tex; uniform float mode, alpha, cut; uniform vec3 col, sky, tint; uniform vec4 uvR;
   void main(){
     vec3 c; float a = alpha;
-    if(mode < .5){ vec4 t = texture2D(tex, vuv); if(t.a < cut) discard; c = t.rgb*vsh; a *= t.a; }
+    if(mode < .5){ vec4 t = texture2D(tex, uvR.xy + vuv*uvR.zw); if(t.a < cut) discard; c = t.rgb*vsh; a *= t.a; }
     else if(mode < 1.5){ float d = dot(normalize(vn), normalize(vec3(-.4,.9,.5))); float l = d > .4 ? 1. : d > -.1 ? .86 : .72; c = col*l; }
     else if(mode < 2.5){ vec3 N = normalize(vn); float d = dot(N, normalize(vec3(-.4,.9,.5))); c = col*(.66 + .4*max(d, 0.)) + vec3(.05)*pow(max(d, 0.), 12.); }
     else { vec3 N = normalize(vn); float d = dot(N, normalize(vec3(-.4,.9,.5))); c = col*(.9 + .1*max(d, 0.)); }   // 雲：亮亮白白的，下面不會變灰   // 平滑的光（頭髮）
@@ -409,7 +441,7 @@
     const shd = (t, s) => { const x = gl.createShader(t); gl.shaderSource(x, s); gl.compileShader(x); if(!gl.getShaderParameter(x, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(x)); return x; };
     const PR = gl.createProgram(); gl.attachShader(PR, shd(gl.VERTEX_SHADER, VS)); gl.attachShader(PR, shd(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(PR); gl.useProgram(PR);
     const UL = {}, U = n => UL[n] || (UL[n] = gl.getUniformLocation(PR, n));
-    gl.uniform1f(U("cut"), .08);
+    gl.uniform1f(U("cut"), .08); gl.uniform4f(U("uvR"), 0, 0, 1, 1);
     const AL = { p:gl.getAttribLocation(PR,"p"), n:gl.getAttribLocation(PR,"n"), uv:gl.getAttribLocation(PR,"uv"), sh:gl.getAttribLocation(PR,"sh") };
     const buf = (a, t = gl.ARRAY_BUFFER, A = Float32Array) => { const b = gl.createBuffer(); gl.bindBuffer(t, b); gl.bufferData(t, new A(a), gl.STATIC_DRAW); return b; };
     const mesh = (P, N, UV, SH, I) => ({ p:buf(P), n:buf(N), uv:buf(UV), sh:buf(SH), i:buf(I, gl.ELEMENT_ARRAY_BUFFER, Uint16Array), c:I.length });
@@ -1398,9 +1430,15 @@
       }
     }
     // ---------- 方塊風家具（像方塊遊戲的家具模型：用 1/16 格的小方塊拼，顏色用和紙色）----------
+    // 有貼圖的小方塊（家具用）：每一面 0～1 貼一整張材質，面的亮度不同
+    const tcube = (() => { const P = [], N = [], UV = [], SH = [], I = []; FACES.forEach(f => { const b = P.length/3; f.c.forEach(c => { P.push(c[0]-.5, c[1]-.5, c[2]-.5); N.push(...f.n); SH.push(f.l); }); UV.push(0,1, 1,1, 1,0, 0,0); I.push(b,b+1,b+2,b,b+2,b+3); }); return mesh(P, N, UV, SH, I); })();
     function drawFurnV(id, x, y, z, rot, t){
-      const M0 = chain(T(x, y, z), RY(rot || 0));
-      const v = (x0, y0, z0, x1, y1, z1, c) => box(chain(M0, T((x0 + x1)/32 - .5, (y0 + y1)/32, (z0 + z1)/32 - .5), S((x1 - x0)/16, (y1 - y0)/16, (z1 - z0)/16)), c);
+      const M0 = chain(T(x, y, z), RY(rot || 0)), FS = window.__fvStyle != null ? window.__fvStyle : FV_STYLE;
+      const v = FS < 0 ? (x0, y0, z0, x1, y1, z1, c) => box(chain(M0, T((x0 + x1)/32 - .5, (y0 + y1)/32, (z0 + z1)/32 - .5), S((x1 - x0)/16, (y1 - y0)/16, (z1 - z0)/16)), c)
+        : (x0, y0, z0, x1, y1, z1, c) => { const ci = FV_COLS.indexOf(c); if(ci < 0){ box(chain(M0, T((x0 + x1)/32 - .5, (y0 + y1)/32, (z0 + z1)/32 - .5), S((x1 - x0)/16, (y1 - y0)/16, (z1 - z0)/16)), c); return; }
+          const [u0,v0,u1,v1] = tileUV(128 + FS*FV_COLS.length + ci); bind(tcube); gl.uniform1f(U("mode"), 0); gl.uniform4f(U("uvR"), u0, v0, u1 - u0, v1 - v0);
+          gl.uniformMatrix4fv(U("M"), false, chain(M0, T((x0 + x1)/32 - .5, (y0 + y1)/32, (z0 + z1)/32 - .5), S((x1 - x0)/16, (y1 - y0)/16, (z1 - z0)/16))); gl.uniform1f(U("alpha"), 1); gl.drawElements(gl.TRIANGLES, boundC, gl.UNSIGNED_SHORT, 0);
+          gl.uniform4f(U("uvR"), 0, 0, 1, 1); gl.uniform1f(U("mode"), 1); bind(cube); };
       const W = "#dcbf96", WD = "#b8946a", WL = "#ead4b0", PK = "#f2a7bd", PKD = "#e08aa4", PKL = "#fbd3de", CR = "#fff6ea", SG = "#a8c89a", SGD = "#8fb582", SGL = "#c4ddb8", Y = "#ffd36b";
       switch(id){
         case "bed": v(0,0,0, 2,3,2, WD); v(14,0,0, 16,3,2, WD); v(0,0,30, 2,3,32, WD); v(14,0,30, 16,3,32, WD);
@@ -1414,6 +1452,7 @@
         case "lamp": v(5,0,5, 11,1,11, WD); v(7.2,1,7.2, 8.8,10,8.8, Y); v(4,10,4, 12,15,12, CR); v(5,15,5, 11,16,11, CR); v(6,9,6, 10,10,10, "#fff1b0"); break;
       }
     }
+    const FV_STYLE = -1;   // 家具材質風格（-1 平塗；0 和紙、1 像素點點、2 手繪木紋布紋、3 粉彩小圖案）
     function frame(now){
       if(dead) return; raf = requestAnimationFrame(frame);
       if(CFG.fps && now - last < 1000/CFG.fps - 2) return;   // 幀率上限：還沒到時間就先不畫（比較省電、不會燙）
