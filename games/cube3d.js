@@ -1015,6 +1015,7 @@
       if(s.cd > 0) s.cd -= dt;   // 剛被抓到、換人當鬼：先讓對方跑一下，不會每一格畫面都互相抓來抓去
       if(dp > 16 || p.fell){ p.fell = 0; const a = player.yaw + Math.PI + (p.i % 2 ? .8 : -.8); p.x = player.x + Math.sin(a)*1.5; p.z = player.z + Math.cos(a)*1.5; p.y = player.y + .3; p.vy = 0; s.t = 0; return [0, 0]; }   // 走太遠：跑回你身邊
       // 晚上你站著不動一陣子，牠們會在你旁邊縮成一團睡
+      if(night && idleT > 4 && dp >= 2 && talkIdx !== p.i){ const dx = player.x - p.x, dz = player.z - p.z, l = Math.hypot(dx, dz) || 1; p.sleep = 0; if(ground(p.x + dx/l*.5, p.z + dz/l*.5, p.y)){ turnTo(p, dx, dz, dt); return [dx/l*2.2, dz/l*2.2]; } }   // 晚上你停下來：先走回你旁邊
       if(night && idleT > 6 && dp < 3.5 && talkIdx !== p.i){ p.sleep = Math.min(1, p.sleep + dt*.7); return [0, 0]; }
       p.sleep = Math.max(0, p.sleep - dt*2);
       for(const q of others){ const d = Math.hypot(p.x - q.x, p.z - q.z), m = .3*(p.s + q.s); if(d < m && d > 1e-4){ const k = (m - d)/d*.5, ox = p.x, oz = p.z; p.x += (p.x - q.x)*k; p.z += (p.z - q.z)*k; if(hits(p.x, p.y, p.z, .25*p.s, .8*p.s)){ p.x = ox; p.z = oz; } } }   // 兩隻不會疊在一起

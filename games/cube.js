@@ -18,7 +18,7 @@ App.registerGame({
     const save = () => { try{ localStorage.setItem("mw_cube_av", JSON.stringify(av)); }catch(e){} };
     el.innerHTML = `<div class="box card cbStart">
       <h3>喵喵方塊島</h3>
-      <p class="k">穿上貓咪睡衣，在飄在白雲上的方塊小島到處走走：<br>左下搖桿走路、右邊拖曳轉鏡頭、按「跳」跳起來，<br>島上住著 8 隻小貓村民，走過去可以聊天、摸摸。<br>家裡養的貓也會跟著你，一起追毛線球、玩鬼抓人。</p>
+      <p class="k">穿上貓咪睡衣，在飄在白雲上的方塊小島到處走走：<br>左下搖桿走路、右邊拖曳轉鏡頭、按「跳」跳起來，<br>家裡養的貓會跟著你一起生活：追毛線球、玩鬼抓人，<br>走過去可以聊天、摸摸，晚上在你旁邊睡覺。</p>
       <div class="cbMe" id="cbMe"></div>
       <div class="cbPickT">貓咪睡衣</div><div class="cbPick" id="cbPick"></div>
       <div class="cbPickT">髮型</div><div class="cbPick hs" id="cbHair"></div>
@@ -56,7 +56,7 @@ App.registerGame({
     el.querySelector("#cbGo").addEventListener("click", () => {
       if(!window.Cube3D) return;
       SFX.tap && SFX.tap();
-      const npcs = (window.CubeTalk && window.CubeTalk.VILLAGERS) || [{ id:"shiro", name:"小白", color:"white" }];
+      const npcs = [];   // 站長不要村民：島上只有自己養的貓
       game = window.Cube3D.open({ avatar: Object.assign({}, av), meName: ctx.me.name, partnerName: p ? p.name : "", npcs: npcs.concat(fam), sfx: SFX, icon: ctx.icon, esc, toast: ctx.toast, onClose: () => { game = null; } });
     });
   },
