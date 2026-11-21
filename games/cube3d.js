@@ -46,6 +46,7 @@
     ["點點・粉", "#efb3c5", "face"], ["點點・紫", "#bba0e0", "face"], ["綠葉襯・粉", "#efb3c5", "face"], ["綠葉襯・藍", "#a3c0ea", "face"],
     ["漸層・粉到白", "#f2c3d1", "face"], ["漸層・藍到紫", "#b2b6e8", "face"], ["蜜桃色", "#f2c0a2", "face"], ["薄荷綠", "#b8e0cb", "face"],
     ["薰衣草淡紫", "#d2c2ec", "face"], ["粉藍兩色", "#cfc0e0", "face"], ["粉紫兩色", "#dcb4d8", "face"], ["奶油黃", "#f2e6c2", "face"],
+    ["方塊櫻花", "#f2a7bd", "block"], ["方塊櫻花・淡粉", "#f6bfcf", "block"], ["方塊櫻花・夾綠葉", "#f2a7bd", "block"],
   ];
   const FOL_INNER = [...new Set(FOL_STYLES.map(x => x[1]).filter(Boolean))];
   function makeAtlas(){
@@ -200,6 +201,17 @@
         if(pat === "fiber"){ g.lineWidth = .7; for(let j2 = 0; j2 < 26; j2++){ const x = cx + (rq() - .5)*rr*2, y = cy + (rq() - .5)*rr*2; g.strokeStyle = "rgba(255,255,255,.4)"; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + 5, y + rq()*5 - 2.5, x + 8 + rq()*6, y + rq()*4 - 2); g.stroke(); } }
         g.restore(); });
       g.restore(); });
+    // 方塊型的櫻花（材質格 83～85 樹冠、86 垂下來的花串）：整格粉粉的，有一些小縫看得到裡面、一朵朵小花是自己畫的
+    [["#f6b8cb", "#f9cbd8", "#ef9fb7", 0], ["#fad3de", "#fde2ea", "#f4b8c8", 0], ["#f6b8cb", "#f9cbd8", "#ef9fb7", 1]].forEach(([c1, c2, c3, lv], k) => { const ox = ((83 + k) % COLS)*N, oy = Math.floor((83 + k) / COLS)*N, rq = rng(500 + k); g.save(); g.translate(ox, oy); g.beginPath(); g.rect(0, 0, N, N); g.clip(); g.clearRect(0, 0, N, N);
+      g.fillStyle = c1; g.fillRect(0, 0, N, N);
+      for(let j = 0; j < 26; j++){ const x = rq()*N, y = rq()*N, rr = 4 + rq()*4, cc = [c2, c3, c1][j % 3]; for(let p2 = 0; p2 < 5; p2++){ const a = p2*1.2566 + j; g.beginPath(); g.ellipse(x + Math.cos(a)*rr*.5, y + Math.sin(a)*rr*.5, rr*.48, rr*.34, a, 0, Math.PI*2); g.fillStyle = cc; g.fill(); } g.beginPath(); g.arc(x, y, rr*.18, 0, Math.PI*2); g.fillStyle = "#e57d9a"; g.fill(); }
+      if(lv) for(let j = 0; j < 7; j++){ const x = rq()*N, y = rq()*N, a = rq()*6.28; g.save(); g.translate(x, y); g.rotate(a); g.beginPath(); g.ellipse(0, 0, 2.6, 5.5, 0, 0, Math.PI*2); g.fillStyle = "#8fc48a"; g.fill(); g.restore(); }
+      g.lineWidth = .7; for(let j = 0; j < 30; j++){ const x = rq()*N, y = rq()*N; g.strokeStyle = "rgba(255,255,255,.35)"; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + 5, y + rq()*4 - 2, x + 9, y + rq()*4 - 2); g.stroke(); }
+      g.globalCompositeOperation = "destination-out"; for(let j = 0; j < 9; j++){ g.beginPath(); g.ellipse(rq()*N, rq()*N, 2 + rq()*3, 1.5 + rq()*2.5, rq()*3, 0, Math.PI*2); g.fill(); } g.globalCompositeOperation = "source-over";   // 小縫
+      g.restore(); });
+    { const ox = (86 % COLS)*N, oy = Math.floor(86 / COLS)*N; g.save(); g.translate(ox, oy); g.beginPath(); g.rect(0, 0, N, N); g.clip(); g.clearRect(0, 0, N, N); const rq = rng(77);
+      for(let s2 = 0; s2 < 6; s2++){ const x = 6 + s2*10.5, L = 26 + rq()*30; for(let y = 4; y < L; y += 6){ const rr = 4.2 - y/L*1.6; for(let p2 = 0; p2 < 5; p2++){ const a = p2*1.2566 + y; g.beginPath(); g.ellipse(x + Math.cos(a)*rr*.5, y + Math.sin(a)*rr*.5, rr*.5, rr*.36, a, 0, Math.PI*2); g.fillStyle = ["#f6b8cb", "#f9cbd8", "#ef9fb7"][(y + s2) % 3]; g.fill(); } } }
+      g.restore(); }
     // 顏色格（材質格 52 切成 8×8 小格，給 30 款樹葉裡面那層用）
     { const ox = (127 % COLS)*N, oy = Math.floor(127 / COLS)*N; FOL_INNER.forEach((c, k) => { g.fillStyle = c; g.fillRect(ox + (k % 8)*8, oy + Math.floor(k / 8)*8, 8, 8); }); }
     return { cv, COLS, N };
@@ -520,7 +532,14 @@
       const card = (cc, ex, ey, sz, l) => quad([[-1,-1],[1,-1],[1,1],[-1,1]].map(([a, b2]) => [cc[0] + (ex[0]*a + ey[0]*b2)*sz, cc[1] + (ex[1]*a + ey[1]*b2)*sz, cc[2] + (ex[2]*a + ey[2]*b2)*sz]), UVq, l);
       let swUV = null; if(inner){ const k = FOL_INNER.indexOf(inner), s0 = 1/atlas.COLS, bu = (127 % atlas.COLS)*s0, bv = Math.floor(127 / atlas.COLS)*s0, cu = bu + ((k % 8)*8 + 4)/(atlas.N*atlas.COLS), cv2 = bv + (Math.floor(k / 8)*8 + 4)/(atlas.N*atlas.COLS); swUV = [cu,cv2, cu,cv2, cu,cv2, cu,cv2]; }
       const open = FACES.filter(f => !isF(x+f.n[0], y+f.n[1], z+f.n[2]));
-      if(mode === "face" || mode === "hang"){
+      if(mode === "block"){   // 方塊型：外面一層有小縫的花、裡面深一點的一層、下面垂一些花串
+        const [h0,h1,h2,h3] = tileUV(86);
+        for(const f of open){ const [nx, ny, nz] = f.n; const nb = world.get(x+nx, y+ny, z+nz); if(nb && !BT[nb].clear && !shaped(x+nx, y+ny, z+nz)) continue;
+          quad(f.c.map(c => [x + c[0], y + c[1], z + c[2]]), UVq, Math.min(1.05, f.l + .05));
+          if(swUV) quad(f.c.map(c => [x + .5 + (c[0] - .5)*.8, y + .5 + (c[1] - .5)*.8, z + .5 + (c[2] - .5)*.8]), swUV, f.l*.92);
+          if(ny === -1 && !world.get(x, y - 1, z)) for(let k = 0; k < 2; k++){ const a = q()*3.14, ex = [Math.cos(a), 0, Math.sin(a)], cx2 = x + .5 + (q() - .5)*.5, cz2 = z + .5 + (q() - .5)*.5, L2 = .35 + q()*.3;
+            quad([[cx2 - ex[0]*.45, y - L2, cz2 - ex[2]*.45], [cx2 + ex[0]*.45, y - L2, cz2 + ex[2]*.45], [cx2 + ex[0]*.45, y + .02, cz2 + ex[2]*.45], [cx2 - ex[0]*.45, y + .02, cz2 - ex[2]*.45]], [h0,h3, h2,h3, h2,h1, h0,h1], .95); } }
+      } else if(mode === "face" || mode === "hang"){
         for(const f of open){ const [nx, ny, nz] = f.n; const nb = world.get(x+nx, y+ny, z+nz); if(nb && !BT[nb].clear && !shaped(x+nx, y+ny, z+nz)) continue;
           if(swUV) quad(f.c.map(c => [x + c[0], y + c[1], z + c[2]]), swUV, Math.min(1.05, f.l + .05));   // 裡面那層貼齊方塊，格子之間不會有縫
           if(mode === "hang" && ny === 1) continue;
