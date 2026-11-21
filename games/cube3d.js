@@ -272,7 +272,11 @@
     // 幾棵樹
     const tree = (x,z,h,lf = B.LEAF) => { const g = topY(x,z) + 1; if(g < 1) return; for(let y = g; y < g+h; y++) set(x,y,z,B.LOG);
       for(let y = g+h-2; y <= g+h+1; y++){ const rr = y > g+h ? 1 : 2; for(let a = -rr; a <= rr; a++) for(let b = -rr; b <= rr; b++){ if(Math.abs(a)+Math.abs(b) > rr+1) continue; if(!get(x+a,y,z+b)) set(x+a,y,z+b,lf); } } };
-    for(const [x,z,h,lf] of [[19,22,4,B.SAKURA],[37,33,5,B.LEAF],[22,37,4,B.LEAF],[36,20,3,B.SAKURA]]) tree(x,z,h,lf);
+    // 大櫻花樹：樹幹高一點、樹冠又寬又圓（像一棵大樹）
+    const bigSakura = (x, z) => { const g = topY(x,z) + 1; if(g < 1) return; for(let y = g; y < g+5; y++) set(x,y,z,B.LOG);
+      for(let y = g+3; y <= g+7; y++){ const dy = y - (g+5), rr = dy <= 0 ? 3 : dy === 1 ? 3 : 2; for(let a = -rr; a <= rr; a++) for(let b = -rr; b <= rr; b++){ if(a*a + b*b > rr*rr + 1) continue; if(!get(x+a,y,z+b)) set(x+a,y,z+b,B.SAKURA); } } };
+    for(const [x,z,h,lf] of [[37,33,5,B.LEAF],[22,37,4,B.LEAF]]) tree(x,z,h,lf);
+    bigSakura(18, 22); bigSakura(37, 19);
     // 小花、小蘑菇（裝飾，不會擋路）
     const flowers = [], FC = ["#f7a7b8", "#ffe08a", "#ffffff", "#cdb4f0", "#f28b82", "#a8d8ff"];
     for(let k = 0; k < 70; k++){ const x = CX - 13 + r()*26, z = CZ - 13 + r()*26, ix = Math.floor(x), iz = Math.floor(z), ty = topY(ix, iz);
@@ -567,6 +571,12 @@
           for(let j = 0; j < 2; j++){ const a2 = a + (j ? .6 : -.6) + (q() - .5)*.3, E2 = [E[0] + Math.cos(a2)*(.6 + q()*.5), E[1] + .3 + q()*.6, E[2] + Math.sin(a2)*(.6 + q()*.5)];
             branch([E, E2], .05, .025); clump(E2, .7, 18, q, 1.02); } }
         const Cy = bot + h*.6, Ry = h*.5 + .3;
+        // 樹冠裡面：兩層扁扁的圓球（裡面一層粉粉的實心、外面一層是花的貼圖），用很少的面就能看起來很茂密
+        const ell = (sx, sy, sz, uvF, l, sg = 10) => { for(let i = 0; i < sg; i++) for(let j = 0; j < sg/2; j++){ const P4 = [[i, j], [i+1, j], [i+1, j+1], [i, j+1]].map(([a, b]) => { const th = a/sg*Math.PI*2, ph = -Math.PI/2 + b/(sg/2)*Math.PI*.85; return [cx + Math.cos(th)*Math.cos(ph)*sx, Cy + Math.sin(ph)*sy, cz + Math.sin(th)*Math.cos(ph)*sz]; });
+          quad(P4, uvF(i, j), l*(.9 + .12*(j/(sg/2)))); } };
+        { const k2 = FOL_INNER.indexOf("#f6c4d2"), s0 = 1/atlas.COLS, bu = (127 % atlas.COLS)*s0, bv = Math.floor(127 / atlas.COLS)*s0, cu = bu + ((Math.max(0, k2) % 8)*8 + 4)/(atlas.N*atlas.COLS), cv2 = bv + (Math.floor(Math.max(0, k2) / 8)*8 + 4)/(atlas.N*atlas.COLS);
+          ell(Rx*.72, Ry*.7, Rz*.72, () => [cu,cv2, cu,cv2, cu,cv2, cu,cv2], .88);
+          ell(Rx*.86, Ry*.84, Rz*.86, (i, j) => { const [u0,v0,u1,v1] = tileUV((i + j) % 2 ? 87 : 88); return [u0,v1, u1,v1, u1,v0, u0,v0]; }, 1, 12); }
         for(let i = 0; i < 46; i++){ const a = q()*Math.PI*2, e = q()*1.6 - .55, rr = .7 + q()*.32, ce = Math.cos(e);   // 整個樹冠（扁扁的半球）表面和裡面都補滿花
           clump([cx + Math.cos(a)*ce*Rx*rr, Cy + Math.sin(e)*Ry*rr, cz + Math.sin(a)*ce*Rz*rr], .6, 12, q, .96 + Math.sin(e)*.1); }   // 樹頂補幾叢
       }
