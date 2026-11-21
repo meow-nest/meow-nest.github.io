@@ -41,10 +41,15 @@
     ["線稿葉", "#f4fbf0", "face"], ["扶桑花", "#6fae72", "face"], ["檸檬樹", "#7fbf7a", "face"], ["紫藤", "#93c990", "hang"], ["雪頂葉", "#8cc68c", "face"],
     ["素雅繡球・粉紅", "#efb3c5", "face"], ["素雅繡球・天空藍", "#a3c0ea", "face"], ["素雅繡球・紫色", "#bba0e0", "face"], ["素雅繡球・白綠", "#e6eedc", "face"], ["素雅繡球・和紙淡粉", "#eed8de", "face"], ["素雅繡球・藍紫", "#adb0e6", "face"],
     ["素雅繡球・粉藍紫", "#c9c0e6", "face"], ["花球・粉紅", "#efb3c5", "face"], ["花球・天空藍", "#a3c0ea", "face"], ["花球・紫色", "#bba0e0", "face"], ["花球・白綠", "#e6eedc", "face"],
+    ["一大球・粉", "#efb3c5", "face"], ["一大球・藍", "#a3c0ea", "face"], ["兩球・粉白", "#f4d6df", "face"], ["四小球・紫", "#bba0e0", "face"],
+    ["白邊・粉", "#efb3c5", "face"], ["白邊・藍", "#a3c0ea", "face"], ["和紙紋・淡粉", "#eed8de", "face"], ["和紙紋・淡藍", "#d3dfee", "face"],
+    ["點點・粉", "#efb3c5", "face"], ["點點・紫", "#bba0e0", "face"], ["綠葉襯・粉", "#efb3c5", "face"], ["綠葉襯・藍", "#a3c0ea", "face"],
+    ["漸層・粉到白", "#f2c3d1", "face"], ["漸層・藍到紫", "#b2b6e8", "face"], ["蜜桃色", "#f2c0a2", "face"], ["薄荷綠", "#b8e0cb", "face"],
+    ["薰衣草淡紫", "#d2c2ec", "face"], ["粉藍兩色", "#cfc0e0", "face"], ["粉紫兩色", "#dcb4d8", "face"], ["奶油黃", "#f2e6c2", "face"],
   ];
   const FOL_INNER = [...new Set(FOL_STYLES.map(x => x[1]).filter(Boolean))];
   function makeAtlas(){
-    const N = 64, COLS = 8, cv = document.createElement("canvas"); cv.width = cv.height = N*COLS; const g = cv.getContext("2d");
+    const N = 64, COLS = 16, cv = document.createElement("canvas"); cv.width = cv.height = N*COLS; const g = cv.getContext("2d");
     const hx = h => [1,3,5].map(i => parseInt(h.substr(i,2),16)), mix = (a, b, k) => { const x = hx(a), y = hx(b); return "#" + x.map((v,i) => Math.round(v + (y[i]-v)*k).toString(16).padStart(2,"0")).join(""); };
     const lt = (c, k = .3) => mix(c, "#ffffff", k), dk = (c, k = .25) => mix(c, "#3a2a28", k);
     let r = rng(12);
@@ -172,9 +177,31 @@
           for(let p2 = 0; p2 < 4; p2++){ const a3 = p2*1.5708 + .5 + h; g.save(); g.translate(fx + Math.cos(a3)*2.6, fy + Math.sin(a3)*2.6); g.rotate(a3); g.beginPath(); g.ellipse(0, 0, 2.9, 2.1, 0, 0, Math.PI*2); g.fillStyle = mixC(c, "#ffffff", .22); g.fill(); g.restore(); }
           g.beginPath(); g.arc(fx, fy, .9, 0, Math.PI*2); g.fillStyle = mixC(c, "#ffffff", .5); g.fill(); } } });
       g.restore(); });
-
+    // 更多素雅花球（材質格 63～82）：[顏色們, 花球數 1/2/3/4, 花樣 none/faint/dots/fiber, 白邊, 綠葉襯, 漸層強]
+    const CALM = [
+      [["#f4b9ca"], 1, "faint"], [["#a9c6ef"], 1, "faint"], [["#f4b9ca", "#fbeef2"], 2, "none"], [["#c1a6e6"], 4, "none"],
+      [["#f4b9ca"], 3, "none", 1], [["#a9c6ef"], 3, "none", 1], [["#f3dde3"], 3, "fiber"], [["#d9e4f2"], 3, "fiber"],
+      [["#f4b9ca"], 3, "dots"], [["#c1a6e6"], 3, "dots"], [["#f4b9ca"], 3, "none", 0, 1], [["#a9c6ef"], 3, "none", 0, 1],
+      [["#f4b9ca"], 3, "none", 0, 0, 1], [["#a9c6ef", "#c1a6e6"], 3, "none", 0, 0, 1], [["#f8c8a8"], 3, "faint"], [["#bfe6d2"], 3, "faint"],
+      [["#d9c8f0"], 3, "faint"], [["#f4b9ca", "#a9c6ef"], 3, "none"], [["#f4b9ca", "#c1a6e6"], 3, "none"], [["#f8eecc"], 3, "faint"],
+    ];
+    CALM.forEach(([cols, n, pat, rim, lv, grd], k) => { const ox = ((63 + k) % COLS)*N, oy = Math.floor((63 + k) / COLS)*N; g.save(); g.translate(ox, oy); g.beginPath(); g.rect(0, 0, N, N); g.clip(); g.clearRect(0, 0, N, N);
+      const mixC = (a, b, t) => { const p = h => [1,3,5].map(i => parseInt(h.substr(i,2),16)), A = p(a), B2 = p(b); return "#" + A.map((v,i) => Math.round(v + (B2[i]-v)*t).toString(16).padStart(2,"0")).join(""); };
+      const POS = { 1: [[32, 33, 27]], 2: [[22, 28, 17], [42, 38, 17]], 3: [[22, 23, 15], [43, 27, 14], [31, 45, 15]], 4: [[20, 20, 12], [44, 20, 12], [20, 44, 12], [44, 44, 12]] }[n];
+      if(lv) for(const [x, y, a] of [[10, 52, -.9], [54, 52, .9], [32, 58, 0]]){ g.save(); g.translate(x, y); g.rotate(a); g.beginPath(); g.ellipse(0, 0, 7, 12, 0, 0, Math.PI*2); g.fillStyle = "#8fc48a"; g.fill(); g.strokeStyle = "rgba(255,255,255,.4)"; g.lineWidth = 1; g.beginPath(); g.moveTo(0, -10); g.lineTo(0, 10); g.stroke(); g.restore(); }
+      POS.forEach(([cx, cy, rr], h) => { const c = cols[h % cols.length], rq = rng(k*31 + h);
+        g.beginPath(); for(let j2 = 0; j2 <= 32; j2++){ const an = j2/32*Math.PI*2, q2 = rr*(.95 + .05*Math.sin(an*5 + h)); g.lineTo(cx + Math.cos(an)*q2, cy + Math.sin(an)*q2); } g.closePath();
+        const gr = g.createRadialGradient(cx - rr*.35, cy - rr*.4, 1, cx, cy, rr*1.05); gr.addColorStop(0, mixC(c, "#ffffff", grd ? .55 : .3)); gr.addColorStop(1, mixC(c, grd ? "#7a6aa0" : "#6a5a88", grd ? .14 : .06)); g.fillStyle = gr; g.fill();
+        if(rim){ g.strokeStyle = "rgba(255,255,255,.75)"; g.lineWidth = 1.6; g.stroke(); }
+        g.save(); g.clip();
+        if(pat === "faint") for(let j2 = 0; j2 < Math.round(rr*.5); j2++){ const an = j2*2.4 + h, d = Math.sqrt((j2 + .5)/(rr*.5))*rr*.72, fx = cx + Math.cos(an)*d, fy = cy + Math.sin(an)*d;
+          for(let p2 = 0; p2 < 4; p2++){ const a3 = p2*1.5708 + .5 + h; g.save(); g.translate(fx + Math.cos(a3)*2.5, fy + Math.sin(a3)*2.5); g.rotate(a3); g.beginPath(); g.ellipse(0, 0, 2.7, 2, 0, 0, Math.PI*2); g.fillStyle = mixC(c, "#ffffff", .2); g.fill(); g.restore(); } }
+        if(pat === "dots") for(let j2 = 0; j2 < rr; j2++){ g.beginPath(); g.arc(cx + (rq() - .5)*rr*1.6, cy + (rq() - .5)*rr*1.6, .9 + rq()*.7, 0, Math.PI*2); g.fillStyle = "rgba(255,255,255,.75)"; g.fill(); }
+        if(pat === "fiber"){ g.lineWidth = .7; for(let j2 = 0; j2 < 26; j2++){ const x = cx + (rq() - .5)*rr*2, y = cy + (rq() - .5)*rr*2; g.strokeStyle = "rgba(255,255,255,.4)"; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + 5, y + rq()*5 - 2.5, x + 8 + rq()*6, y + rq()*4 - 2); g.stroke(); } }
+        g.restore(); });
+      g.restore(); });
     // 顏色格（材質格 52 切成 8×8 小格，給 30 款樹葉裡面那層用）
-    { const ox = (63 % COLS)*N, oy = Math.floor(63 / COLS)*N; FOL_INNER.forEach((c, k) => { g.fillStyle = c; g.fillRect(ox + (k % 8)*8, oy + Math.floor(k / 8)*8, 8, 8); }); }
+    { const ox = (127 % COLS)*N, oy = Math.floor(127 / COLS)*N; FOL_INNER.forEach((c, k) => { g.fillStyle = c; g.fillRect(ox + (k % 8)*8, oy + Math.floor(k / 8)*8, 8, 8); }); }
     return { cv, COLS, N };
   }
   void TILE_N;
@@ -491,7 +518,7 @@
       const quad = (pts, uv, l) => { const base = F.P.length/3, nv = nrm(cross(sub(pts[1], pts[0]), sub(pts[2], pts[0]))); for(const p of pts){ F.P.push(...p); F.N.push(...nv); F.SH.push(l); } F.UV.push(...uv); F.I.push(base, base+1, base+2, base, base+2, base+3); };
       const UVq = [u0,v1, u1,v1, u1,v0, u0,v0];
       const card = (cc, ex, ey, sz, l) => quad([[-1,-1],[1,-1],[1,1],[-1,1]].map(([a, b2]) => [cc[0] + (ex[0]*a + ey[0]*b2)*sz, cc[1] + (ex[1]*a + ey[1]*b2)*sz, cc[2] + (ex[2]*a + ey[2]*b2)*sz]), UVq, l);
-      let swUV = null; if(inner){ const k = FOL_INNER.indexOf(inner), s0 = 1/atlas.COLS, bu = (63 % atlas.COLS)*s0, bv = Math.floor(63 / atlas.COLS)*s0, cu = bu + ((k % 8)*8 + 4)/(atlas.N*atlas.COLS), cv2 = bv + (Math.floor(k / 8)*8 + 4)/(atlas.N*atlas.COLS); swUV = [cu,cv2, cu,cv2, cu,cv2, cu,cv2]; }
+      let swUV = null; if(inner){ const k = FOL_INNER.indexOf(inner), s0 = 1/atlas.COLS, bu = (127 % atlas.COLS)*s0, bv = Math.floor(127 / atlas.COLS)*s0, cu = bu + ((k % 8)*8 + 4)/(atlas.N*atlas.COLS), cv2 = bv + (Math.floor(k / 8)*8 + 4)/(atlas.N*atlas.COLS); swUV = [cu,cv2, cu,cv2, cu,cv2, cu,cv2]; }
       const open = FACES.filter(f => !isF(x+f.n[0], y+f.n[1], z+f.n[2]));
       if(mode === "face" || mode === "hang"){
         for(const f of open){ const [nx, ny, nz] = f.n; const nb = world.get(x+nx, y+ny, z+nz); if(nb && !BT[nb].clear && !shaped(x+nx, y+ny, z+nz)) continue;
