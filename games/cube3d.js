@@ -31,6 +31,16 @@
   // 0 草地上面 1 草地側面 2 土 3 鵝卵石 4 木板 5 貓抓柱側面 6 貓抓柱上面 7 樹葉 8 水 9 魚鱗瓦 10 星星砂 11 磚 12 毛線毯 13 玻璃 14～16 白雲
   const TILE_N = 22;
   const WASHI = { g:"#b4dca4", f:"#fff0d6", d:"#d8b48a", s:"#c6c3d4", w:"#ecd0a6", r:"#ec97a4", b:"#eca996", m:"#f6eee0", l:"#a4d49a", wt:"#a8d6ee", sa:"#f2e2b8", wo:"#f0b4c0", rp:"#dcbc8c", cu:"#ee9fb0", cl:"#fbf7f0", sk:"#f7bccb" };   // 和紙風，顏色稍微亮一點、粉一點（比較可愛）
+  // 30 款樹葉：[名字, 裡面那層顏色(null=沒有), 擺法 face=貼在外面／rand=亂亂的／cross=像草叢交叉／hang=往下垂]
+  const FOL_STYLES = [
+    ["圓圓葉", "#93c990", "face"], ["楓葉", "#e98a62", "face"], ["銀杏扇", "#f2cf5a", "face"], ["愛心葉", null, "rand"], ["幸運草", "#8fcf86", "face"],
+    ["蕨類", null, "cross"], ["松針", null, "cross"], ["龜背芋", null, "rand"], ["櫻花", "#f6c4d2", "face"], ["白梅", null, "rand"],
+    ["繡球花", "#b8c8ee", "face"], ["雛菊", "#9fd39a", "face"], ["鬱金香", null, "cross"], ["玫瑰", "#7fbf7a", "face"], ["山茶花", "#5f9a66", "face"],
+    ["薰衣草", null, "cross"], ["紅果子", "#8cc68c", "face"], ["柳葉", "#93c990", "hang"], ["竹葉", null, "rand"], ["橄欖葉", "#aabb94", "face"],
+    ["蒲公英", null, "rand"], ["星星葉", "#93c990", "face"], ["貓掌葉", "#93c990", "face"], ["雲朵葉", "#d6f0cc", "face"], ["水彩葉", null, "rand"],
+    ["線稿葉", "#f4fbf0", "face"], ["扶桑花", "#6fae72", "face"], ["檸檬樹", "#7fbf7a", "face"], ["紫藤", "#93c990", "hang"], ["雪頂葉", "#8cc68c", "face"],
+  ];
+  const FOL_INNER = [...new Set(FOL_STYLES.map(x => x[1]).filter(Boolean))];
   function makeAtlas(){
     const N = 64, COLS = 8, cv = document.createElement("canvas"); cv.width = cv.height = N*COLS; const g = cv.getContext("2d");
     const hx = h => [1,3,5].map(i => parseInt(h.substr(i,2),16)), mix = (a, b, k) => { const x = hx(a), y = hx(b); return "#" + x.map((v,i) => Math.round(v + (y[i]-v)*k).toString(16).padStart(2,"0")).join(""); };
@@ -98,6 +108,55 @@
       g.fillStyle = ["#9fd39a", "#93cb90", "#a9da9f", "#8cc68c", "#b2dfa6"][k % 5]; g.fill();
       g.strokeStyle = "rgba(255,255,255,.45)"; g.lineWidth = 1.2; g.beginPath(); g.moveTo(0, -L*.36); g.lineTo(0, L*.42); g.stroke(); g.restore(); }
     T.forEach((f, k) => { const ox = (k % COLS)*N, oy = Math.floor(k / COLS)*N; r = rng(100 + k); g.save(); g.translate(ox, oy); g.beginPath(); g.rect(0, 0, N, N); g.clip(); f(); g.restore(); });
+    // ---------- 樹葉 30 款（給站長挑；材質格 22～51，背景透明） ----------
+    const FP = (() => {
+      const E = (x, y, rx, ry, a, c) => { g.save(); g.translate(x, y); g.rotate(a || 0); g.beginPath(); g.ellipse(0, 0, rx, ry, 0, 0, Math.PI*2); g.fillStyle = c; g.fill(); g.restore(); };
+      const C = (x, y, rr, c) => { g.beginPath(); g.arc(x, y, rr, 0, Math.PI*2); g.fillStyle = c; g.fill(); };
+      const vein = (x, y, a, L, c = "rgba(255,255,255,.45)") => { g.save(); g.translate(x, y); g.rotate(a); g.strokeStyle = c; g.lineWidth = 1.1; g.beginPath(); g.moveTo(0, -L*.4); g.lineTo(0, L*.42); g.stroke(); g.restore(); };
+      const drop = (x, y, a, L, w, c) => { g.save(); g.translate(x, y); g.rotate(a); const W2 = L*w; g.beginPath(); g.moveTo(0, -L/2); g.bezierCurveTo(W2, -L*.22, W2*.85, L*.28, 0, L/2); g.bezierCurveTo(-W2*.85, L*.28, -W2, -L*.22, 0, -L/2); g.fillStyle = c; g.fill(); g.restore(); };
+      const heartP = (x, y, s, a, c) => { g.save(); g.translate(x, y); g.rotate(a); g.beginPath(); g.moveTo(0, s*.35); g.bezierCurveTo(-s*.65, -s*.05, -s*.32, -s*.6, 0, -s*.2); g.bezierCurveTo(s*.32, -s*.6, s*.65, -s*.05, 0, s*.35); g.fillStyle = c; g.fill(); g.restore(); };
+      const starP = (x, y, rr, a, c, n = 5) => { g.save(); g.translate(x, y); g.rotate(a); g.beginPath(); for(let k = 0; k < n*2; k++){ const q2 = k % 2 ? rr*.48 : rr, an = k*Math.PI/n - Math.PI/2; g.lineTo(Math.cos(an)*q2, Math.sin(an)*q2); } g.closePath(); g.fillStyle = c; g.fill(); g.restore(); };
+      const petals = (x, y, n, rr, pw, c, mid, a = 0) => { for(let k = 0; k < n; k++){ const an = a + k*Math.PI*2/n; E(x + Math.cos(an)*rr*.55, y + Math.sin(an)*rr*.55, rr*.55, rr*pw, an, c); } if(mid) C(x, y, rr*.28, mid); };
+      const G5 = ["#9fd39a", "#93cb90", "#a9da9f", "#8cc68c", "#b2dfa6"];
+      return [
+        () => { for(const [x, y, rr, k] of [[22, 24, 13, 0], [42, 22, 12, 1], [32, 42, 14, 2], [14, 44, 9, 3], [50, 44, 10, 4]]) C(x, y, rr, G5[k]); },                                         // 0 圓圓葉
+        () => { const M = (x, y, s, a, c) => { g.save(); g.translate(x, y); g.rotate(a); g.beginPath(); for(let k = 0; k <= 10; k++){ const an = -Math.PI/2 + k*Math.PI*2/10, q2 = k % 2 ? s*.42 : s*(k === 0 || k === 10 ? 1 : .85); g.lineTo(Math.cos(an)*q2, Math.sin(an)*q2); } g.closePath(); g.fillStyle = c; g.fill(); g.strokeStyle = "rgba(255,240,200,.5)"; g.lineWidth = 1; for(let k = 0; k < 5; k++){ const an = -Math.PI/2 + k*Math.PI*2/5; g.beginPath(); g.moveTo(0, 0); g.lineTo(Math.cos(an)*s*.8, Math.sin(an)*s*.8); g.stroke(); } g.restore(); };
+                M(22, 22, 16, -.3, "#ec8a5a"); M(44, 28, 15, .4, "#e96a5a"); M(30, 46, 15, .1, "#f2a65a"); },                                                                                   // 1 楓葉
+        () => { const F = (x, y, s, a, c) => { g.save(); g.translate(x, y); g.rotate(a); g.beginPath(); g.moveTo(0, s*.5); g.lineTo(-s*.55, -s*.25); g.quadraticCurveTo(0, -s*.75, s*.55, -s*.25); g.closePath(); g.fillStyle = c; g.fill(); g.strokeStyle = "rgba(255,255,255,.4)"; g.beginPath(); g.moveTo(0, s*.5); g.lineTo(0, -s*.3); g.stroke(); g.restore(); };
+                F(22, 26, 24, -.5, "#f6d35a"); F(42, 24, 22, .5, "#f2c84a"); F(32, 44, 24, 0, "#f8dc72"); },                                                                                   // 2 銀杏扇
+        () => { heartP(22, 24, 24, -.3, "#9fd39a"); heartP(44, 26, 22, .35, "#8cc68c"); heartP(32, 46, 24, 3.14, "#a9da9f"); },                                                                  // 3 愛心葉
+        () => { for(const [x, y, a] of [[32, 32, 0], [18, 46, 2], [46, 18, 4]]){ for(let k = 0; k < 4; k++) heartP(x + Math.cos(a + k*1.57)*7, y + Math.sin(a + k*1.57)*7, 15, a + k*1.57 + 1.57, k % 2 ? "#8fcf86" : "#9fd89a"); C(x, y, 2, "#78b874"); } },   // 4 幸運草
+        () => { for(const [x0, y0, a0] of [[20, 50, -.5], [44, 52, .5]]){ g.save(); g.translate(x0, y0); g.rotate(a0); g.strokeStyle = "#6ab46e"; g.lineWidth = 1.5; g.beginPath(); g.moveTo(0, 0); g.lineTo(0, -40); g.stroke(); for(let k = 0; k < 9; k++){ const yy = -4 - k*4.2, L = 10 - k*.8; E(-L*.55, yy, L*.55, 2.2, -.5, "#8fcf86"); E(L*.55, yy, L*.55, 2.2, .5, "#9fd89a"); } g.restore(); } },   // 5 蕨類
+        () => { for(const [x, y] of [[20, 30], [44, 28], [32, 46]]){ for(let k = 0; k < 14; k++){ const an = -Math.PI/2 + (k - 6.5)*.2; g.strokeStyle = k % 2 ? "#5fa866" : "#78bc78"; g.lineWidth = 2; g.lineCap = "round"; g.beginPath(); g.moveTo(x, y + 8); g.lineTo(x + Math.cos(an)*16, y + 8 + Math.sin(an)*16); g.stroke(); } } g.lineCap = "butt"; },   // 6 松針
+        () => { g.save(); g.translate(32, 34); g.beginPath(); g.ellipse(0, 0, 26, 22, 0, 0, Math.PI*2); g.fillStyle = "#6fb57a"; g.fill(); g.globalCompositeOperation = "destination-out"; for(let k = 0; k < 7; k++){ const an = -2.6 + k*.75; g.beginPath(); g.ellipse(Math.cos(an)*18, Math.sin(an)*15, 6, 2.2, an, 0, Math.PI*2); g.fill(); C(Math.cos(an)*9, Math.sin(an)*8, 2, "#000"); } g.restore(); vein(32, 34, 0, 40); },   // 7 龜背芋
+        () => { for(const [x, y, rr, a] of [[22, 24, 12, .3], [44, 30, 11.5, 1.1], [30, 46, 11, 2.2]]){ for(let k = 0; k < 5; k++){ const an = a + k*1.2566; E(x + Math.cos(an)*rr*.5, y + Math.sin(an)*rr*.5, rr*.55, rr*.42, an, k % 2 ? "#fbd0dc" : "#f9c2d2"); } C(x, y, rr*.25, "#ef8aa4"); } },   // 8 櫻花
+        () => { for(const [x, y, rr] of [[22, 24, 11], [44, 28, 10], [30, 46, 11]]) petals(x, y, 5, rr, .5, "#ffffff", "#ffd36b"); },                                                       // 9 白梅
+        () => { for(let k = 0; k < 18; k++){ const an = k*2.4, d = Math.sqrt(k/18)*24; const x = 32 + Math.cos(an)*d, y = 32 + Math.sin(an)*d; for(let j = 0; j < 4; j++) E(x + Math.cos(j*1.57 + .4)*3.2, y + Math.sin(j*1.57 + .4)*3.2, 3.4, 2.4, j*1.57 + .4, ["#a8c8f2", "#b9a8ee", "#c8d8fa"][k % 3]); C(x, y, 1, "#fff"); } },   // 10 繡球花
+        () => { for(const [x, y, rr] of [[22, 24, 12], [44, 30, 11], [30, 46, 12]]) petals(x, y, 12, rr, .22, "#ffffff", "#ffd36b"); },                                                     // 11 雛菊
+        () => { for(const [x, y, c] of [[20, 28, "#f28b9a"], [44, 26, "#ffd36b"], [32, 46, "#f7a7c8"]]){ g.fillStyle = c; g.beginPath(); g.moveTo(x - 9, y - 6); g.lineTo(x - 5, y - 1); g.lineTo(x, y - 9); g.lineTo(x + 5, y - 1); g.lineTo(x + 9, y - 6); g.quadraticCurveTo(x + 10, y + 10, x, y + 10); g.quadraticCurveTo(x - 10, y + 10, x - 9, y - 6); g.fill(); drop(x + 8, y + 12, .6, 12, .3, "#8fcf86"); } },   // 12 鬱金香
+        () => { for(const [x, y, rr, c] of [[22, 24, 12, "#f07a8e"], [44, 30, 11, "#f59ab0"], [30, 46, 12, "#e8607a"]]){ C(x, y, rr, c); g.strokeStyle = "rgba(150,30,60,.35)"; g.lineWidth = 1.2; g.beginPath(); for(let k = 0; k < 40; k++){ const an = k*.45, q2 = rr*(1 - k/44); g.lineTo(x + Math.cos(an)*q2, y + Math.sin(an)*q2); } g.stroke(); } },   // 13 玫瑰
+        () => { for(const [x, y, rr] of [[22, 24, 12], [44, 30, 11], [30, 46, 12]]){ petals(x, y, 6, rr, .62, "#e85a6a", null, .3); C(x, y, rr*.32, "#ffd36b"); } },                          // 14 山茶花
+        () => { for(const x of [14, 26, 38, 50]){ g.strokeStyle = "#7cb87a"; g.lineWidth = 1.4; g.beginPath(); g.moveTo(x, 60); g.lineTo(x, 10); g.stroke(); for(let k = 0; k < 8; k++){ E(x - 2.2, 14 + k*4.2, 2.6, 2, -.4, "#b892e0"); E(x + 2.2, 14 + k*4.2, 2.6, 2, .4, "#c9a6e8"); } } },   // 15 薰衣草
+        () => { for(const [x, y, a] of [[20, 24, -.4], [44, 22, .4], [30, 44, 0]]) drop(x, y, a, 26, .4, "#8fcf86"); for(const [x, y] of [[30, 28], [34, 32], [28, 34], [36, 26], [40, 36], [22, 38]]){ C(x, y, 4, "#e8404e"); C(x - 1.2, y - 1.2, 1.2, "#ffb0b8"); } },   // 16 紅果子
+        () => { for(let k = 0; k < 7; k++){ const x = 6 + k*8.5; g.strokeStyle = "#8fcf86"; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x, 0); g.quadraticCurveTo(x + 3, 30, x - 1, 62); g.stroke(); for(let j = 0; j < 6; j++) drop(x + 1 + j*.3, 8 + j*9, .2*(j % 2 ? 1 : -1), 9, .28, j % 2 ? "#9fd89a" : "#8cc68c"); } },   // 17 柳葉
+        () => { for(let k = 0; k < 7; k++){ const an = -1.2 + k*.4; drop(32 + Math.cos(an)*14, 32 + Math.sin(an)*10, an + 1.57, 34, .14, k % 2 ? "#8fcf86" : "#a6da9a"); } g.strokeStyle = "#7aa860"; g.lineWidth = 2; g.beginPath(); g.moveTo(20, 50); g.lineTo(32, 32); g.stroke(); },   // 18 竹葉
+        () => { for(let k = 0; k < 9; k++){ const an = k*.7; drop(32 + Math.cos(an)*14, 32 + Math.sin(an)*14, an + 1.57, 22, .2, k % 2 ? "#a6b88f" : "#b9c9a3"); } },                         // 19 橄欖葉
+        () => { for(const [x, y, rr] of [[22, 24, 12], [44, 30, 11], [30, 46, 12]]){ for(let k = 0; k < 16; k++){ const an = k*.3927; g.strokeStyle = "rgba(255,255,255,.95)"; g.lineWidth = 1; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(an)*rr, y + Math.sin(an)*rr); g.stroke(); C(x + Math.cos(an)*rr, y + Math.sin(an)*rr, 1.6, "#ffffff"); } C(x, y, 2.4, "#e8e2d0"); } },   // 20 蒲公英
+        () => { starP(22, 24, 14, .2, "#9fd39a"); starP(44, 26, 13, .7, "#8cc68c"); starP(32, 46, 14, .4, "#b2dfa6"); },                                                                       // 21 星星葉
+        () => { for(const [x, y, s, c] of [[22, 26, 1, "#9fd39a"], [44, 28, .9, "#8cc68c"], [32, 46, 1, "#b2dfa6"]]){ E(x, y + 4*s, 9*s, 7.5*s, 0, c); for(const [dx, dy] of [[-8, -6], [-3, -10], [3, -10], [8, -6]]) E(x + dx*s, y + dy*s, 3.4*s, 4*s, 0, c); } },   // 22 貓掌葉
+        () => { for(const [x, y, rr] of [[22, 30, 14], [40, 26, 15], [32, 44, 13]]){ C(x, y, rr, "#c8ecbc"); C(x - rr*.25, y - rr*.25, rr*.6, "#e2f6d8"); } },                                     // 23 雲朵葉
+        () => { for(const [x, y, rr, c] of [[24, 26, 15, "rgba(140,200,130,.75)"], [40, 30, 14, "rgba(120,190,120,.7)"], [30, 42, 14, "rgba(160,215,140,.7)"]]){ g.beginPath(); for(let k = 0; k <= 24; k++){ const an = k/24*Math.PI*2, q2 = rr*(.85 + .15*Math.sin(an*3 + x)); g.lineTo(x + Math.cos(an)*q2, y + Math.sin(an)*q2); } g.fillStyle = c; g.fill(); } },   // 24 水彩葉
+        () => { g.lineWidth = 2; g.strokeStyle = "#5fa866"; for(const [x, y, a] of [[22, 24, -.4], [44, 26, .4], [32, 44, 0]]){ drop(x, y, a, 26, .38, "#ffffff"); g.save(); g.translate(x, y); g.rotate(a); g.beginPath(); g.moveTo(0, -13); g.bezierCurveTo(9.9, -5.7, 8.8, 7.3, 0, 13); g.bezierCurveTo(-8.8, 7.3, -9.9, -5.7, 0, -13); g.stroke(); g.beginPath(); g.moveTo(0, -10); g.lineTo(0, 11); g.stroke(); g.restore(); } },   // 25 線稿葉
+        () => { for(const [x, y, rr, c] of [[22, 24, 13, "#f2607a"], [44, 30, 12, "#ff8a5a"], [30, 46, 13, "#f27aa0"]]){ petals(x, y, 5, rr, .58, c, null, .3); g.strokeStyle = "#ffd36b"; g.lineWidth = 1.6; g.beginPath(); g.moveTo(x, y); g.lineTo(x + rr*.5, y - rr*.5); g.stroke(); C(x + rr*.5, y - rr*.5, 1.8, "#ffd36b"); } },   // 26 扶桑花
+        () => { for(const [x, y, a] of [[18, 22, -.4], [44, 20, .4], [24, 46, .2], [46, 44, -.3]]) drop(x, y, a, 24, .36, "#7fbf7a"); for(const [x, y] of [[32, 30], [26, 36], [40, 38]]){ E(x, y, 6, 5, .3, "#ffe066"); E(x - 1.5, y - 1.5, 2, 1.4, .3, "#fff6c0"); } },   // 27 檸檬樹
+        () => { for(const x of [14, 32, 50]){ for(let k = 0; k < 7; k++){ const w2 = 7 - k*.7; for(let j = -1; j <= 1; j += 2) C(x + j*w2*.5, 8 + k*7, 3.4 - k*.25, ["#b892e0", "#c9a6e8", "#d8c0f2"][k % 3]); } drop(x, 4, 0, 10, .4, "#8fcf86"); } },   // 28 紫藤
+        () => { for(const [x, y, a] of [[22, 26, -.3], [44, 28, .3], [32, 44, 0]]){ drop(x, y, a, 26, .4, "#8cc68c"); E(x - 2, y - 8, 9, 5, a, "#ffffff"); } },                                // 29 雪頂葉
+      ];
+    })();
+    FP.forEach((f, k) => { const ox = ((22 + k) % COLS)*N, oy = Math.floor((22 + k) / COLS)*N; g.save(); g.translate(ox, oy); g.beginPath(); g.rect(0, 0, N, N); g.clip(); g.clearRect(0, 0, N, N); f(); g.restore(); });
+
+    // 顏色格（材質格 52 切成 8×8 小格，給 30 款樹葉裡面那層用）
+    { const ox = (52 % COLS)*N, oy = Math.floor(52 / COLS)*N; FOL_INNER.forEach((c, k) => { g.fillStyle = c; g.fillRect(ox + (k % 8)*8, oy + Math.floor(k / 8)*8, 8, 8); }); }
     return { cv, COLS, N };
   }
   void TILE_N;
@@ -406,7 +465,34 @@
     }
     // 樹葉、櫻花：每一格放幾片「一叢葉子／一叢小花」的透明貼圖，方向亂亂的，疊起來就是蓬蓬的樹冠（不是方塊）
     let FOL = null;
-    function emitFoliage(x, y, z, b){ const F = FOL, sak = b === B.SAKURA, [u0,v0,u1,v1] = tileUV(sak ? 19 : 18), [c0,d0,c1,d1] = tileUV(sak ? 21 : 20), q = rng(((x*73856093) ^ (y*19349663) ^ (z*83492791)) >>> 0);
+    const FOL_PICK = -1;   // 站長選好的樹葉款式（-1 = 還沒選，用乾淨版）；window.__fol 可以暫時換來看
+    function emitFoliage(x, y, z, b){ const sel = window.__fol != null ? window.__fol : FOL_PICK; if(sel >= 0) return emitFol30(x, y, z, b, sel); return emitFolClean(x, y, z, b); }
+    function emitFol30(x, y, z, b, sel){ const F = FOL, [nm, inner, mode] = FOL_STYLES[sel], [u0,v0,u1,v1] = tileUV(22 + sel), q = rng(((x*73856093) ^ (y*19349663) ^ (z*83492791)) >>> 0); void nm;
+      const isF = (a, b2, c) => { const nb = world.get(a, b2, c); return nb === B.LEAF || nb === B.SAKURA; };
+      const quad = (pts, uv, l) => { const base = F.P.length/3, nv = nrm(cross(sub(pts[1], pts[0]), sub(pts[2], pts[0]))); for(const p of pts){ F.P.push(...p); F.N.push(...nv); F.SH.push(l); } F.UV.push(...uv); F.I.push(base, base+1, base+2, base, base+2, base+3); };
+      const UVq = [u0,v1, u1,v1, u1,v0, u0,v0];
+      const card = (cc, ex, ey, sz, l) => quad([[-1,-1],[1,-1],[1,1],[-1,1]].map(([a, b2]) => [cc[0] + (ex[0]*a + ey[0]*b2)*sz, cc[1] + (ex[1]*a + ey[1]*b2)*sz, cc[2] + (ex[2]*a + ey[2]*b2)*sz]), UVq, l);
+      let swUV = null; if(inner){ const k = FOL_INNER.indexOf(inner), s0 = 1/atlas.COLS, bu = (52 % atlas.COLS)*s0, bv = Math.floor(52 / atlas.COLS)*s0, cu = bu + ((k % 8)*8 + 4)/(atlas.N*atlas.COLS), cv2 = bv + (Math.floor(k / 8)*8 + 4)/(atlas.N*atlas.COLS); swUV = [cu,cv2, cu,cv2, cu,cv2, cu,cv2]; }
+      const open = FACES.filter(f => !isF(x+f.n[0], y+f.n[1], z+f.n[2]));
+      if(mode === "face" || mode === "hang"){
+        for(const f of open){ const [nx, ny, nz] = f.n; const nb = world.get(x+nx, y+ny, z+nz); if(nb && !BT[nb].clear && !shaped(x+nx, y+ny, z+nz)) continue;
+          if(swUV) quad(f.c.map(c => [x + .5 + (c[0] - .5)*.86, y + .5 + (c[1] - .5)*.86, z + .5 + (c[2] - .5)*.86]), swUV, f.l*.95);
+          if(mode === "hang" && ny === 1) continue;
+          const t1 = nx ? [0, 1, 0] : [1, 0, 0], t2 = cross(f.n, t1), nC = mode === "hang" ? 2 : 3;
+          for(let k = 0; k < nC; k++){ const a = mode === "hang" ? 0 : q()*6.28, ca = Math.cos(a), sa = Math.sin(a), ja = (q() - .5)*.7, jb = (q() - .5)*.7, off = .5 + .03 + q()*.06;
+            const ex = mode === "hang" && !ny ? nrm(cross([0,1,0], f.n)) : [t1[0]*ca + t2[0]*sa, t1[1]*ca + t2[1]*sa, t1[2]*ca + t2[2]*sa], ey = mode === "hang" && !ny ? [0, 1, 0] : cross(f.n, ex);
+            const cc = [x + .5 + nx*off + t1[0]*ja + t2[0]*jb, y + .5 + ny*off + t1[1]*ja + t2[1]*jb - (mode === "hang" ? .35 : 0), z + .5 + nz*off + t1[2]*ja + t2[2]*jb];
+            card(cc, ex, ey, .5 + q()*.14, Math.min(1.05, f.l + .08)); } }
+      } else if(mode === "rand"){
+        const n = open.length ? 5 : 2; for(let k = 0; k < n; k++){ const cc = [x + .5 + (q() - .5)*.6, y + .5 + (q() - .5)*.6, z + .5 + (q() - .5)*.6], nv = nrm([q()*2 - 1, q()*1.4 - .4, q()*2 - 1]), ex = nrm(cross(Math.abs(nv[1]) < .9 ? [0,1,0] : [1,0,0], nv)), ey = cross(nv, ex);
+          card(cc, ex, ey, .62 + q()*.15, Math.min(1.05, .78 + open.length*.05)); }
+      } else {   // cross：像草叢一樣交叉的直立貼圖
+        for(let k = 0; k < 3; k++){ const a = k*1.047 + q()*.4, ex = [Math.cos(a), 0, Math.sin(a)]; card([x + .5 + (q() - .5)*.2, y + .5, z + .5 + (q() - .5)*.2], ex, [0, 1, 0], .62, .9 + k*.05); }
+        if(!isF(x, y+1, z)) card([x + .5, y + .95, z + .5], [1, 0, 0], [0, 0, 1], .55, 1);
+      }
+      if(F.P.length/3 > 60000){ F.out.push(mesh(F.P, F.N, F.UV, F.SH, F.I)); F.P = []; F.N = []; F.UV = []; F.SH = []; F.I = []; }
+    }
+    function emitFolClean(x, y, z, b){ const F = FOL, sak = b === B.SAKURA, [u0,v0,u1,v1] = tileUV(sak ? 19 : 18), [c0,d0,c1,d1] = tileUV(sak ? 21 : 20), q = rng(((x*73856093) ^ (y*19349663) ^ (z*83492791)) >>> 0);
       const isF = (a, b2, c) => { const nb = world.get(a, b2, c); return nb === B.LEAF || nb === B.SAKURA; }, IN = .08;
       const quad = (pts, uv, l) => { const base = F.P.length/3, nv = nrm(cross(sub(pts[1], pts[0]), sub(pts[2], pts[0]))); for(const p of pts){ F.P.push(...p); F.N.push(...nv); F.SH.push(l); } F.UV.push(...uv); F.I.push(base, base+1, base+2, base, base+2, base+3); };
       for(const f of FACES){ const [nx, ny, nz] = f.n; if(isF(x+nx, y+ny, z+nz)) continue;
