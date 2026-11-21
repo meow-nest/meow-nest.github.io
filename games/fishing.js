@@ -433,6 +433,41 @@ App.registerGame({
     const me = () => ctx.me.uid;
     const clearT = () => { timers.forEach(t=>{ clearTimeout(t); clearInterval(t); }); timers = []; };
     const later = (fn, ms) => timers.push(setTimeout(fn, ms));
+    // ---- 全家一起玩（家人模式）：大家同一時間一起釣 60 秒，即時看分數，最後排名 ----
+    const FA = !!ctx.famAll;
+    let race = null, raceT = 0, live = {}, myRace = 0;
+    const nm = u => u === me() ? "你" : ctx.nameOf(u);
+    const raceOn = r => r && r.players && r.start && Date.now() < r.start + 75000;
+    function raceHtml(){
+      const pl = ctx.players(), host = pl[0] === me(), r = race;
+      const res = r && r.players && Object.keys(r.scores || {}).length ? r.players.slice().sort((a, b) => ((r.scores||{})[b] ?? -1) - ((r.scores||{})[a] ?? -1)) : null;
+      return `<div class="fsRace"><div class="fsRaceH">全家釣魚比賽</div>
+        <div class="fsRaceP">${pl.map(u => `<span>${sprite(ctx.catOf(u), "happy")}<i>${esc(nm(u))}</i></span>`).join("")}</div>
+        ${raceOn(r) && r.players.includes(me()) && !(r.done || {})[me()] ? `<button class="btn fsGo" id="fsJoin">比賽進行中，快加入！</button>`
+          : raceOn(r) ? `<div class="fsRules">比賽進行中，下一場再一起來～</div>`
+          : pl.length < 2 ? `<div class="fsRules">等家人也打開「全家一起玩」的釣魚大賽…</div>`
+          : host ? `<button class="btn fsGo" id="fsRaceGo">全家一起開始比賽！（${pl.length} 人）</button>` : `<div class="fsRules">等 ${esc(nm(pl[0]))} 按開始…</div>`}
+        ${res ? `<div class="fsRank">${res.map((u, i) => `<div class="${u === me() ? "me" : ""}"><em>${i + 1}</em>${sprite(ctx.catOf(u), i === 0 ? "love" : "normal")}<b>${esc(nm(u))}</b><span>${(r.scores||{})[u] ?? "…"} 分</span></div>`).join("")}<small>上一場的成績</small></div>` : ""}
+      </div>`;
+    }
+    function raceBind(){
+      const go = box.querySelector("#fsRaceGo"); if(go) go.addEventListener("click", async () => { if(ctx.players().length < 2) return; SFX.select(); go.disabled = true;
+        await ctx.update("fishrace", r => ({ round: ((r && r.round) || 0) + 1, start: Date.now() + 4000, players: ctx.players().slice(0, 6), scores: {}, done: {} })); });
+      const jn = box.querySelector("#fsJoin"); if(jn) jn.addEventListener("click", () => raceEnter(race));
+    }
+    function raceEnter(r){
+      if(!r || !r.players || !r.players.includes(me()) || myRace === r.round || (r.done || {})[me()]) return;
+      const left = Math.round((r.start + 60000 - Date.now()) / 1000); if(left < 5) return;
+      myRace = r.round; live = {}; clearTimeout(raceT);
+      const wait = r.start - Date.now();
+      if(wait > 0){ view = "count"; clearT();
+        let n = Math.ceil(wait / 1000); const tick = () => { if(view !== "count") return; box.innerHTML = `<div class="fsCount"><b>${n > 0 ? n : "開始！"}</b><span>全家一起釣 60 秒，看誰分數最高！</span></div>`; if(n > 0) SFX.beep(false); n--; };
+        tick(); timers.push(setInterval(tick, 1000)); later(() => start(60), wait); }
+      else start(Math.max(5, left));
+    }
+    function liveHtml(){ const r = race; if(!r || !r.players) return "";
+      return r.players.map(u => [u, u === me() ? (game ? game.score : 0) : (live[u] ?? (r.scores || {})[u] ?? 0)]).sort((a, b) => b[1] - a[1]).map(([u, v]) => `<span class="${u === me() ? "me" : ""}">${sprite(ctx.catOf(u), "normal")}${v}</span>`).join(""); }
+    function livePaint(){ const el2 = box.querySelector("#fsLive"); if(el2) el2.innerHTML = liveHtml(); }
 
     function lobby(){
       view = "lobby"; clearT();
@@ -445,11 +480,13 @@ App.registerGame({
           ${p?`<div><b>${esc(p.name)}</b><span>最高 ${best[p.user_id]||0} 分</span><span>圖鑑 ${theirs}/${FISH.length}</span></div>`:""}
         </div>
         ${last ? `<div class="fsNews">📣 ${esc(ctx.nameOf(last.by))} 剛剛釣到 <b style="color:${R[FISH[last.id].r].c}">${R[FISH[last.id].r].n}・${esc(FISH[last.id].n)}</b>！</div>` : ""}
-        <button class="btn fsGo" id="fsGo">開始釣魚！（60 秒）</button>
+        ${FA ? raceHtml() : ""}
+        <button class="btn ${FA ? "sub" : ""} fsGo" id="fsGo">${FA ? "自己練習（60 秒）" : "開始釣魚！（60 秒）"}</button>
         <button class="btn sub" id="fsDex" style="width:100%;margin-top:8px">📖 圖鑑</button>
         <div class="fsRules">拋竿 → 浮標往下沉就快按「拉竿！」→ 看指針跑進綠色區域時按下去。<br>越稀有的魚，綠色區越窄、要按中的次數越多。</div>`;
-      box.querySelector("#fsGo").addEventListener("click", start);
+      box.querySelector("#fsGo").addEventListener("click", () => { myRace = 0; start(); });
       box.querySelector("#fsDex").addEventListener("click", dexView);
+      if(FA) raceBind();
     }
     function dexView(){
       view = "dex";
@@ -465,10 +502,10 @@ App.registerGame({
       box.querySelectorAll("[data-r]").forEach(b=>b.addEventListener("click", ()=>{ dexView.tab = +b.dataset.r; dexView(); }));
     }
     // ---- one 60-second session ----
-    function start(){
-      view = "play"; clearT();
-      game = { t:60, score:0, caught:[], phase:"idle", fish:null, hits:0, miss:0, pos:0, dir:1, zone:0 };
-      box.innerHTML = `<div class="fsTop"><span id="fsT">⏱ 60</span><button class="fsQuit" id="fsQuit">🏳️ 退出</button><span id="fsS">0 分</span></div>
+    function start(secs){
+      view = "play"; clearT(); if(typeof secs !== "number") { secs = 60; myRace = 0; }
+      game = { t:secs, score:0, caught:[], phase:"idle", fish:null, hits:0, miss:0, pos:0, dir:1, zone:0, race: myRace || 0 };
+      box.innerHTML = `<div class="fsTop"><span id="fsT">⏱ 60</span><button class="fsQuit" id="fsQuit">🏳️ 退出</button><span id="fsS">0 分</span></div>${game.race ? `<div class="fsLive" id="fsLive">${liveHtml()}</div>` : ""}
         <div class="fsPond" id="fsPond"><div class="fsCat">${sprite(ctx.me.cat,"normal")}</div><div class="fsLine" id="fsLine"></div><div class="fsBob" id="fsBob"></div><div class="fsBang hidden" id="fsBang">！</div><div class="fsCatch hidden" id="fsCatch"></div></div>
         <div class="fsReel hidden" id="fsReel"><div class="bar"><i class="zone" id="fsZone"></i><i class="needle" id="fsNeedle"></i></div><div class="lives" id="fsLives"></div></div>
         <button class="btn fsAct" id="fsAct">拋竿！</button>`;
@@ -479,7 +516,7 @@ App.registerGame({
       box.querySelector("#fsQuit").addEventListener("click", e=>{
         const q = e.currentTarget;
         if(!q.classList.contains("ask")){ q.classList.add("ask"); q.textContent = "確定？這場不算"; SFX.tap(); clearTimeout(quitT); quitT = setTimeout(()=>{ q.classList.remove("ask"); q.textContent = "🏳️ 退出"; }, 3000); return; }
-        clearTimeout(quitT); clearT(); game.phase = "end"; game = null; SFX.next();
+        clearTimeout(quitT); clearT(); game.phase = "end"; if(game.race){ const rr = game.race; ctx.update("fishrace", r => { if(!r || r.round !== rr) return undefined; r.done = r.done || {}; r.scores = r.scores || {}; r.done[me()] = true; r.scores[me()] = 0; return r; }); } game = null; SFX.next();
         ctx.toast(`${sprite(ctx.me.cat,"sleep")} 這場不算，下次再來釣～`); lobby();
       });
       timers.push(setInterval(()=>{ game.t--; box.querySelector("#fsT").textContent = "⏱ "+game.t; if(game.t<=5 && game.t>0) SFX.beep(false); if(game.t<=0) finish(); }, 1000));
@@ -532,6 +569,7 @@ App.registerGame({
       const f = game.fish, t = R[f.r], cm = Math.round((8 + f.r*15 + Math.random()*(10+f.r*20))*10)/10;
       game.score += t.pts; game.caught.push(f.id);
       box.querySelector("#fsS").textContent = game.score + " 分";
+      if(game.race){ ctx.broadcast({ fsr: game.race, sc: game.score }); livePaint(); }
       const c = box.querySelector("#fsCatch"); c.classList.remove("hidden");
       c.innerHTML = `<div class="fsCard" style="border-color:${t.c}"><i style="background:${t.c}">${t.n}</i>${fishSvg(f)}<b>${esc(f.n)}</b><span>${cm} cm・+${t.pts} 分</span></div>`;
       c.firstChild.animate([{transform:"scale(.3) rotate(-10deg)",opacity:0},{transform:"scale(1.15) rotate(3deg)",opacity:1,offset:.6},{transform:"scale(1)"}],{duration:450,easing:"ease-out"});
@@ -560,21 +598,38 @@ App.registerGame({
       const prevBest = (s && s.best && s.best[me()]) || 0, prevDex = Object.keys((s && s.dex && s.dex[me()])||{});
       const newOnes = [...new Set(game.caught)].filter(id=>!prevDex.includes(String(id)));
       await save({ final:true });
-      const rec = game.score > prevBest;
+      const rec = game.score > prevBest, rr = game.race, mySc = game.score;
+      if(rr) await ctx.update("fishrace", r => { if(!r || r.round !== rr) return undefined; r.done = r.done || {}; r.scores = r.scores || {}; r.done[me()] = true; r.scores[me()] = mySc; return r; });
       if(rec && game.score>0){ ctx.notifyPartner(`${ctx.me.name} 在「釣魚大賽」刷新紀錄：${game.score} 分！`); }
       box.innerHTML = `<div class="fsEnd"><div class="fsBig">${sprite(ctx.me.cat, game.score?"love":"sleep")}</div>
         <div class="fsScore">${game.score} 分${rec&&game.score?`<em>新紀錄！</em>`:""}</div>
         <div>釣到 ${game.caught.length} 條魚${newOnes.length?`・<b>新圖鑑 +${newOnes.length}</b>`:""}</div>
         <div class="fsGot">${game.caught.map(id=>`<span title="${esc(FISH[id].n)}">${fishSvg(FISH[id])}</span>`).join("")||"（今天魚都不太餓…）"}</div>
-        <button class="btn" id="fsAgain">再釣一場</button><button class="btn sub" id="fsHome" style="width:100%;margin-top:8px">回釣魚池</button></div>`;
+        ${rr ? `<div class="fsRank big" id="fsRaceEnd"></div>` : ""}
+        <button class="btn" id="fsAgain">${rr ? "自己再練習一場" : "再釣一場"}</button><button class="btn sub" id="fsHome" style="width:100%;margin-top:8px">回釣魚池</button></div>`;
       if(rec && game.score){ SFX.level(); ctx.burst(); } else SFX.next();
-      box.querySelector("#fsAgain").addEventListener("click", start);
+      box.querySelector("#fsAgain").addEventListener("click", () => { myRace = 0; start(); });
       box.querySelector("#fsHome").addEventListener("click", lobby);
+      if(rr){ view = "raceEnd"; raceEndPaint(); }
+    }
+    function raceEndPaint(){
+      const el2 = box.querySelector("#fsRaceEnd"), r = race; if(!el2 || !r || !r.players) return;
+      const doneAll = r.players.every(u => (r.done || {})[u]) || Date.now() > r.start + 75000;
+      const res = r.players.slice().sort((a, b) => ((r.scores||{})[b] ?? -1) - ((r.scores||{})[a] ?? -1));
+      el2.innerHTML = `<div class="fsRaceH">${doneAll ? "全家比賽結果" : "等其他人釣完…"}</div>${res.map((u, i) => `<div class="${u === me() ? "me" : ""}"><em>${doneAll ? i + 1 : ""}</em>${sprite(ctx.catOf(u), doneAll && i === 0 ? "love" : "normal")}<b>${esc(nm(u))}</b><span>${(r.done || {})[u] ? `${(r.scores||{})[u] ?? 0} 分` : `釣魚中 ${live[u] ?? ""}`}</span></div>`).join("")}`;
+      if(doneAll && !el2.dataset.cel){ el2.dataset.cel = 1; if(res[0] === me()){ SFX.level(); ctx.burst(); } }
     }
     this._u = ctx.onState("fishing", st=>{ s = st; if(view==="lobby") lobby(); });
+    if(FA){
+      this._r = ctx.onState("fishrace", r => { race = r; if(view === "lobby") lobby(); else if(view === "raceEnd") raceEndPaint(); if(r && r.round !== myRace && raceOn(r) && r.start > Date.now() - 2000 && (view === "lobby" || view === "raceEnd" || view === "dex")) raceEnter(r); });
+      this._b = ctx.onBroadcast(p => { if(!p || !p.fsr || !race || p.fsr !== race.round) return; live[p.from] = +p.sc || 0; livePaint(); if(view === "raceEnd") raceEndPaint(); });
+      this._m = ctx.onMembers && ctx.onMembers(() => { if(view === "lobby") lobby(); });
+      ctx.getState("fishrace").then(c => { race = c ? c.state : null; if(view === "lobby") lobby(); }).catch(() => {});
+      this._ri = setInterval(() => { if(view === "raceEnd") raceEndPaint(); }, 3000);
+    }
     this._clear = clearT;
     (async()=>{ const cur = await ctx.getState("fishing"); s = cur ? JSON.parse(JSON.stringify(cur.state)) : null; lobby(); })();
   },
-  unmount(){ if(this._u) this._u(); if(this._clear) this._clear(); },
+  unmount(){ if(this._u) this._u(); if(this._r) this._r(); if(this._b) this._b(); if(this._m) this._m(); if(this._ri) clearInterval(this._ri); if(this._clear) this._clear(); },
 });
 })();

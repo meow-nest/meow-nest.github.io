@@ -378,6 +378,42 @@ const App = (function(){
     }
     famLiveT = setTimeout(famLiveLoad, 15000);
   }
+  // ---- 家人模式「全家一起玩」：你畫我猜、賓果、釣魚大賽（存檔用 遊戲:fam，大家共用）----
+  const FAM_ALL = ["draw", "bingo", "fishing"];
+  const famAllOk = g => isFam() && others().length >= 2 && FAM_ALL.includes(g);
+  const famAllOn = g => { if(!famAllOk(g)) return false; try{ const v = sessionStorage.getItem("mw_famAll_" + g); return v == null ? true : v === "1"; }catch(e){ return true; } };
+  const FH = { seen: {}, subs: [], beat: 0, g: null };   // 誰現在也在「全家一起玩」同一個遊戲
+  const famHere = g => { const t = Date.now(), o = FH.seen[g] || {}; return [me.uid].concat(Object.keys(o).filter(u => u !== me.uid && t - o[u] < 12000 && members.some(m => m.user_id === u))).sort(); };
+  function famHereBeat(){ if(!FH.g || !B.bcast) return; B.bcast({ t: "famHere", to: "__fam", g: FH.g, from: me.uid }); }
+  function famHereGot(p){
+    const o = FH.seen[p.g] = FH.seen[p.g] || {}, was = !!(o[p.from] && Date.now() - o[p.from] < 12000);
+    if(p.bye) delete o[p.from]; else o[p.from] = Date.now();
+    if(was !== !p.bye && p.g === FH.g){ FH.subs.slice().forEach(h => { try{ h(); }catch(e){} }); if(!was && !p.bye) famHereBeat(); }
+  }
+  setInterval(() => { if(!FH.g) return; famHereBeat();
+    const o = FH.seen[FH.g] || {}, t = Date.now(); let ch = false; for(const u in o) if(t - o[u] > 12000){ delete o[u]; ch = true; }
+    if(ch) FH.subs.slice().forEach(h => { try{ h(); }catch(e){} }); }, 4000);
+  function famAllCtx(gid){
+    // 釣魚大賽：圖鑑和最高分照舊存在 fishing，全家比賽另外存在 fishrace:fam
+    const fg = gid === "fishing" ? "fishrace" : gid, c = Object.create(ctx), key = fg + ":fam";
+    FH.g = gid; FH.subs = []; famHereBeat();
+    const bcs = [];
+    c.famAll = true; c.party = gid === "draw";
+    c.players = () => famHere(gid);
+    c.partner = () => { const u = famHere(gid).find(x => x !== me.uid); const m = u && members.find(z => z.user_id === u); return m ? { user_id: m.user_id, name: m.name, cat: m.cat } : null; };
+    c.partyHost = () => famHere(gid)[0];
+    c.onMembers = h => { FH.subs.push(h); return () => { FH.subs = FH.subs.filter(x => x !== h); }; };
+    c.getState = g => g === fg ? getState(key) : ctx.getState(g);
+    c.update = (g, fn) => g === fg ? update(key, fn) : ctx.update(g, fn);
+    c.onState = (g, h) => g === fg ? onState(key, h) : ctx.onState(g, h);
+    c.broadcast = p => { if(B.bcast) B.bcast(Object.assign({ from: me.uid, to: "__fam", famg: gid }, p)); };
+    c.onBroadcast = h => { bcs.push(h); FH.bcs = bcs; return () => { const i = bcs.indexOf(h); if(i >= 0) bcs.splice(i, 1); }; };
+    c.notifyPartner = async () => {};
+    c.mode = () => "family"; c.pw = () => "家人";
+    c.isBusy = () => false;
+    return c;
+  }
+  function famAllLeave(){ if(!FH.g) return; if(B.bcast) B.bcast({ t: "famHere", to: "__fam", g: FH.g, from: me.uid, bye: 1 }); FH.g = null; FH.subs = []; FH.bcs = []; }
   // 家人在下棋時，聊天室貼一則「誰跟誰在玩什麼」，其他家人點一下就能觀戰（同一組同一個遊戲 30 分鐘最多一則）
   async function famAnnounce(g){
     if(!isFam() || others().length < 2 || !WATCHABLE.includes(g)) return;
@@ -3705,7 +3741,7 @@ const App = (function(){
     document.querySelectorAll(".hSheet").forEach(x=>x.remove()); { const tt = $("topTools"); if(tt) tt.innerHTML = ""; }
     { const ab=$("alBar"); if(ab) ab.remove(); const vr=$("vrec"); if(vr){ const c=vr.querySelector("#vrX"); if(c) c.click(); else vr.remove(); } }
     ptLeaveView();
-    if(curGame && curGame.unmount){ try{ curGame.unmount(); }catch(e){} } curGame=null; closeSheet(); kb=null; document.body.classList.remove("kbd"); const ofab=$("fab"); if(ofab) ofab.remove(); stkClose(true); Object.keys(RS).forEach(k=>{ RS[k].un && RS[k].un(); delete RS[k]; }); rqBar(null);
+    if(curGame && curGame.unmount){ try{ curGame.unmount(); }catch(e){} } curGame=null; famAllLeave(); closeSheet(); kb=null; document.body.classList.remove("kbd"); const ofab=$("fab"); if(ofab) ofab.remove(); stkClose(true); Object.keys(RS).forEach(k=>{ RS[k].un && RS[k].un(); delete RS[k]; }); rqBar(null);
     route = r.startsWith("game-") ? "game" : r;
     if(route !== "watch") setTimeout(() => famBanPaint(famBanLast), 0);
     document.body.classList.toggle("admsolo", isAdmin && isSolo());
@@ -3726,7 +3762,11 @@ const App = (function(){
       v.innerHTML = `<div class="gtop"><button class="btn sub" id="bBack">◀ 回小窩</button><span class="gname">${esc(g.id==="pet" && isSolo() ? "我的貓" : g.name)}</span>${pawCallable(g) ? `<button class="pawCall" id="bPaw" aria-label="呼叫 ta">${PAW_SVG}<em>呼叫</em></button>` : ""}</div><div id="gArea"></div>`;
       $("bBack").addEventListener("click", ()=>go(isAdmin ? "games" : "home"));
       if($("bPaw")) $("bPaw").addEventListener("click", ()=>pawCall(g));
-      curGame = g; lastGame = r; g.mount($("gArea"), ctx);
+      curGame = g; lastGame = r;
+      const fAll = famAllOn(g.id);
+      if(famAllOk(g.id)){ $("gArea").insertAdjacentHTML("beforebegin", `<div class="famAllSw"><button data-fa="0" class="${fAll ? "" : "on"}">${g.id === "fishing" ? "自己釣" : `跟 ${esc((partner()||{}).name || "家人")} 兩個人`}</button><button data-fa="1" class="${fAll ? "on" : ""}">全家一起玩</button></div>`);
+        v.querySelectorAll("[data-fa]").forEach(b => b.addEventListener("click", () => { if((b.dataset.fa === "1") === fAll) return; SFX.tap(); try{ sessionStorage.setItem("mw_famAll_" + g.id, b.dataset.fa); }catch(e){} render(); })); }
+      g.mount($("gArea"), fAll ? famAllCtx(g.id) : ctx);
       const fab=document.createElement("button"); fab.id="fab"; fab.className="fab"; fab.innerHTML=`${icon("chat")}<b id="fabBadge" class="hidden">0</b>`; fab.addEventListener("click", openSheet); document.body.appendChild(fab); if(!curGame || curGame.id !== "notes") stkFab();
     } else if(route==="games" && isAdmin){ lastGame = null; viewHome(v, true);
       if(isSolo()) v.insertAdjacentHTML("afterbegin", `<div class="box banner admGamesTip"><span class="bi">👑</span><div style="flex:1">站長測試區：你的小窩是單人模式，這裡只看得到單人也能玩的遊戲。<br>雙人遊戲要用另一支手機開一個雙人小窩、兩個人一起測。</div></div>`); }
@@ -3783,6 +3823,10 @@ const App = (function(){
     B.on("bc", p=>{ if(p && p.from !== me.uid && (!p.to || p.to === me.uid)) bcSubs.slice().forEach(h=>{ try{ h(p); }catch(e){} }); });
     setInterval(famLivePoll, 15000); setTimeout(famLivePoll, 3000);
     document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible") famLivePoll(); });
+    // 全家一起玩：誰在場、遊戲廣播
+    B.on("bc", p=>{ if(!p || p.to !== "__fam" || p.from === me.uid || !isFam()) return;
+      if(p.t === "famHere"){ famHereGot(p); return; }
+      if(p.famg && p.famg === FH.g) (FH.bcs || []).slice().forEach(h => { try{ h(p); }catch(e){} }); });
     // 家人觀戰的「加油」
     B.on("bc", p=>{ if(!p || p.t !== "famCheer" || p.from === me.uid || !Array.isArray(p.to) || !p.to.includes(me.uid)) return; const f = members.find(m => m.user_id === p.from); if(!f) return; SFX.heart(); toast(`${sprite(f.cat || "orange", "love")} ${esc(f.name)} 在旁邊看你們玩，幫你加油！`, 3500); });
     B.on("members", async()=>{ const sig = () => members.map(x=>[x.user_id,x.name,x.cat].join("|")).join(","); const s0 = sig(); members = await B.members(); renderHeader(); if(route==="home") render(); else if(chatVisible()){ if(sig() === s0) markReadDom(); else drawList(false); } });

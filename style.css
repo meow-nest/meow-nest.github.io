@@ -3987,3 +3987,25 @@ body.dockKb .careModal .ltWrap .ltBody{height:clamp(56px,calc(100dvh - var(--doc
 #famBan .flTxt b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #famBan .btn{width:auto;margin:0;padding:5px 12px;font-size:14px;flex:none}
 #famBan .fbX{flex:none;background:none;border:0;font:inherit;font-size:20px;color:var(--muted);padding:0 4px;cursor:pointer}
+
+/* 家人模式：兩個人／全家一起玩 切換 */
+.famAllSw{display:flex;gap:0;margin:0 0 8px;border:3px solid var(--line);box-shadow:3px 3px 0 var(--shadow);background:var(--card)}
+.famAllSw button{flex:1;font:inherit;font-size:14px;padding:7px 4px;border:0;background:none;color:var(--ink);cursor:pointer}
+.famAllSw button+button{border-left:3px solid var(--line)}
+.famAllSw button.on{background:var(--pinkL);color:var(--pinkT)}
+
+/* 賓果：全家一起玩 */
+.bgVsRow.multi{display:flex;flex-wrap:wrap;gap:4px;justify-content:center}
+.bgVsRow.multi .bgSide{flex:1 1 30%;min-width:96px}
+.bgOpps{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}.bgOpps .bgOpp{flex:0 0 auto}
+.bgFam{display:flex;justify-content:center;gap:6px;margin:4px 0}.bgFam span{display:flex;flex-direction:column;align-items:center;font-size:12px}.bgFam svg{width:40px;height:auto}.bgFam i{font-style:normal}
+
+/* 釣魚大賽：全家比賽 */
+.fsRace{border:3px solid var(--line);background:#eaf6ff;padding:8px;margin:8px 0;text-align:center}
+.fsRaceH{font-size:16px;margin-bottom:4px}
+.fsRaceP{display:flex;justify-content:center;gap:6px;flex-wrap:wrap}.fsRaceP span{display:flex;flex-direction:column;align-items:center;font-size:12px}.fsRaceP svg{width:38px;height:auto}.fsRaceP i{font-style:normal}
+.fsRank{display:grid;gap:4px;margin-top:6px;text-align:left}.fsRank>div{display:flex;align-items:center;gap:6px;background:var(--card);border:2px solid var(--line);padding:2px 8px}
+.fsRank>div.me{background:var(--pinkL)}.fsRank em{font-style:normal;width:18px;text-align:center;color:var(--pinkT)}.fsRank svg{width:28px;height:auto}.fsRank b{font-weight:400;flex:1}.fsRank small{font-size:11px;color:var(--muted);text-align:center}
+.fsRank.big{margin:10px 0}
+.fsLive{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin:4px 0}.fsLive span{display:flex;align-items:center;gap:2px;font-size:13px;background:var(--card);border:2px solid var(--line);padding:0 6px 0 2px}.fsLive span.me{background:var(--pinkL)}.fsLive svg{width:22px;height:auto}
+.fsCount{text-align:center;padding:40px 10px}.fsCount b{display:block;font-weight:400;font-size:64px;color:var(--pinkT)}.fsCount span{color:var(--muted)}

@@ -126,11 +126,11 @@ App.registerGame({
       const pl = here();
       if(s.phase==="lobby"){
         const host = amHost();
-        box.innerHTML = `<div class="drHd"><b>你畫我猜・多人房</b></div>
+        box.innerHTML = `<div class="drHd"><b>你畫我猜・${ctx.famAll ? "全家一起" : "多人房"}</b></div>
           <div class="drLobby">${pl.map(u=>`<span>${sprite(ctx.catOf(u), "happy")}<i>${esc(u===me()?"你":ctx.nameOf(u))}${u===hostId()?"<em>房主</em>":""}</i></span>`).join("")}</div>
           <div class="drRule"><b>怎麼贏？</b>大家輪流畫，其他人一起猜。<br>猜對：第 1 個 <b>+3</b>、第 2 個 <b>+2</b>、之後 <b>+1</b><br>每有一個人猜對，畫的人也 <b>+1</b><br>每個人都畫完，<b>分數最高的人贏！</b></div>
           <div class="drPer"><span>每人畫幾次</span>${[1,2,3].map(n=>`<button data-per="${n}" class="${s.per===n?"on":""}" ${host?"":"disabled"}>${n} 次</button>`).join("")}</div>
-          ${host ? `<button class="btn" id="drStart" style="width:100%" ${pl.length<2?"disabled":""}>${pl.length<2?"等朋友進來…":`開始遊戲（${pl.length} 人・共 ${pl.length*s.per} 回合）`}</button>` : `<p class="drSub" style="text-align:center">等房主 ${esc(ctx.nameOf(hostId()))} 按開始…</p>`}
+          ${host ? `<button class="btn" id="drStart" style="width:100%" ${pl.length<2?"disabled":""}>${pl.length<2?(ctx.famAll?"等家人進來…":"等朋友進來…"):`開始遊戲（${pl.length} 人・共 ${pl.length*s.per} 回合）`}</button>` : `<p class="drSub" style="text-align:center">等房主 ${esc(ctx.nameOf(hostId()))} 按開始…</p>`}
           <p class="drSub" style="text-align:center">最多 6 人・玩到一半也可以加入</p>`;
         box.querySelectorAll("[data-per]").forEach(b=>b.addEventListener("click", ()=>{ if(!amHost()) return; SFX.tap(); const n = +b.dataset.per; ctx.update("draw", x=>{ if(!x || x.phase!=="lobby") return undefined; x.per = n; return x; }); }));
         const st = $("#drStart"); if(st) st.addEventListener("click", ()=>{ if(here().length < 2) return; SFX.select();

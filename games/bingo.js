@@ -55,7 +55,7 @@ const int = (v, lo, hi, d) => { v = Math.floor(Number(v)); return Number.isFinit
 const sid = v => typeof v === "string" ? v.slice(0, 64) : null;
 function cleanG(g){
   if(!g || typeof g !== "object" || !Array.isArray(g.players)) return null;
-  const players = g.players.slice(0, 2).map(sid); if(players.length !== 2 || players.some(x => !x)) return null;
+  const players = g.players.slice(0, 6).map(sid); if(players.length < 2 || players.some(x => !x) || new Set(players).size !== players.length) return null;   // 2 人，或全家一起玩最多 6 人
   const kind = g.kind === "gacha" ? "gacha" : "call", max = kind === "gacha" ? 75 : 25;
   const boards = {}, ready = {}, stamps = {};
   for(const u of players){
@@ -68,9 +68,9 @@ function cleanG(g){
   (Array.isArray(g.calls) ? g.calls : []).slice(0, 80).forEach((n, i) => { n = int(n, 1, max, 0); if(n && !seen.has(n)){ seen.add(n); calls.push(n); by.push(sid(g.by && g.by[i])); } });
   const phase = ["setup", "play", "end"].includes(g.phase) ? g.phase : "setup";
   return { id: String(g.id || "x").slice(0, 24), kind, target: int(g.target, 1, 5, 5), phase, players, boards, ready, stamps, calls, by,
-    turn: players.includes(g.turn) ? g.turn : players[0], winner: g.winner === "tie" || players.includes(g.winner) ? g.winner : null, at: int(g.at, 0, 9e15, 0), endAt: int(g.endAt, 0, 9e15, 0) };
+    turn: players.includes(g.turn) ? g.turn : players[0], winner: g.winner === "tie" || players.includes(g.winner) ? g.winner : null, winners: Array.isArray(g.winners) ? g.winners.map(sid).filter(u => players.includes(u)) : undefined, at: int(g.at, 0, 9e15, 0), endAt: int(g.endAt, 0, 9e15, 0) };
 }
-function cleanS(st){ if(!st || typeof st !== "object") return null; const wins = {}; if(st.wins && typeof st.wins === "object") for(const k of Object.keys(st.wins).slice(0, 4)) wins[k] = int(st.wins[k], 0, 1e6, 0); return { g: cleanG(st.g), wins }; }
+function cleanS(st){ if(!st || typeof st !== "object") return null; const wins = {}; if(st.wins && typeof st.wins === "object") for(const k of Object.keys(st.wins).slice(0, 8)) wins[k] = int(st.wins[k], 0, 1e6, 0); return { g: cleanG(st.g), wins }; }
 // 扭蛋模式：真的賓果卡（B 1-15、I 16-30、N 31-45、G 46-60、O 61-75），正中間是 FREE
 const COLC = ["#f0708d", "#f6a65a", "#f6c45f", "#7cc98a", "#7ab8f0"];
 const colOf = n => Math.min(4, ((n - 1)/15)|0);
@@ -92,7 +92,12 @@ App.registerGame({
     const pt = () => ctx.partner();
     const G = () => mode === "cpu" ? cpuG : s && s.g;
     const oppId = g => g.players.find(u => u !== me());
-    const oppName = g => oppId(g) === CPU ? "喵喵電腦" : (pt() ? pt().name : "ta");
+    // 全家一起玩（家人模式）：players 可以有 3～6 個人，輪流喊
+    const FA = !!ctx.famAll;
+    const nm = u => u === CPU ? "喵喵電腦" : u === me() ? "你" : ctx.nameOf(u);
+    const multi = g => g.players.length > 2;
+    const turnName = g => nm(g.turn);
+    const oppName = g => multi(g) ? "大家" : oppId(g) === CPU ? "喵喵電腦" : (pt() ? pt().name : "ta");
     const oppCat = g => oppId(g) === CPU ? { cat: "black" } : (pt() || { cat: "white" });
     const cat = (u, mood, cls) => `<span class="bgCat ${cls || ""}">${ctx.sprite((u && u.cat) || "orange", mood || "normal")}</span>`;
     const meObj = () => ({ cat: ctx.me.cat, name: ctx.me.name });
@@ -121,13 +126,13 @@ App.registerGame({
       render(); return ok;
     }
     function newGame(target, vsCpu, kind){
-      const p = vsCpu ? CPU : pt().user_id, players = [me(), p];
+      const p = vsCpu ? CPU : pt().user_id, players = !vsCpu && FA ? ctx.players().slice(0, 6) : [me(), p];
       return { id: Date.now().toString(36), kind: kind || "call", target, phase: "setup", players, boards: vsCpu ? { [CPU]: kind === "gacha" ? genCard() : shuffle() } : {}, ready: vsCpu ? { [CPU]: true } : {}, calls: [], by: [], turn: players[(Math.random()*2)|0], winner: null, at: Date.now() };
     }
     function afterCall(g){
       const called = CS(g); const win = g.players.filter(u => doneLines(g.boards[u], called).length >= g.target);
-      if(win.length){ g.phase = "end"; g.winner = win.length === 2 ? "tie" : win[0]; g.endAt = Date.now(); }
-      else g.turn = g.players.find(u => u !== g.turn);
+      if(win.length){ g.phase = "end"; g.winner = win.length > 1 ? "tie" : win[0]; g.winners = win; g.endAt = Date.now(); }
+      else g.turn = g.players[(g.players.indexOf(g.turn) + 1) % g.players.length];
       return g;
     }
     async function call(n){
@@ -174,12 +179,13 @@ App.registerGame({
         <div class="bgSub">喵喵賓果</div>
         <div class="bgKind"><button data-k="call" class="${kindSel === "call" ? "on" : ""}"><b>喊號碼</b><small>自己排 1～25<br>輪流喊號碼</small></button><button data-k="gacha" class="${kindSel === "gacha" ? "on" : ""}"><b>扭蛋</b><small>選一張賓果卡<br>輪流扭出 1～75</small></button></div>
         <p class="bgHint">${kindSel === "gacha" ? "從幾張賓果卡裡挑一張，正中間是 FREE，<br>輪流轉扭蛋機，扭到的號碼自動蓋章！" : "兩個人各自把 1～25 排進格子裡，<br>輪流喊號碼，先連成指定條數的線就贏！"}</p>
-        ${going && p ? `<button class="btn bgBig" id="bgBack">${I(PAWC)} 回到和 ${esc(p.name)} 的這一局</button>` : ""}
+        ${going && p && g.players.includes(me()) ? `<button class="btn bgBig" id="bgBack">${I(PAWC)} 回到${FA ? "全家的" : `和 ${esc(p.name)} 的`}這一局</button>` : ""}
+        ${FA ? `<div class="bgFam">${ctx.players().map(u => `<span>${ctx.sprite(ctx.catOf(u), "happy")}<i>${esc(nm(u))}</i></span>`).join("")}</div><div class="bgHint small">${ctx.players().length < 2 ? "等家人也打開「全家一起玩」的賓果…" : `現在有 ${ctx.players().length} 個人在這裡，開一局大家一起玩！`}</div>` : ""}
         <div class="bgPick"><div class="bgPickH">幾條線算贏？</div><div class="bgSeg">${(kindSel === "gacha" ? [1, 2, 3] : [3, 4, 5]).map(n => `<button data-n="${n}" class="${n === (kindSel === "gacha" ? 1 : 5) ? "on" : ""}">${n} 條</button>`).join("")}</div></div>
         <button class="bgMyStamp" id="bgStampBtn">${stampPrev(myStamp, 7)}<span>我的印章：<b>${STAMP[myStamp][1]}</b><small>點這裡換一個</small></span></button>
-        ${p ? `<button class="btn bgBig" id="bgVs">${going ? "重新開一局" : `和 ${esc(p.name)} 對戰`}</button>` : `<div class="bgHint small">等 ta 加入小窩，就可以兩個人對戰喔</div>`}
+        ${p ? `<button class="btn bgBig" id="bgVs">${going ? "重新開一局" : FA ? `全家一起開一局（${ctx.players().length} 人）` : `和 ${esc(p.name)} 對戰`}</button>` : FA ? "" : `<div class="bgHint small">等 ta 加入小窩，就可以兩個人對戰喔</div>`}
         <button class="btn sub bgBig" id="bgCpu">跟喵喵電腦練習</button>
-        ${p ? `<div class="bgScore">${cat(meObj(), "happy")}<b>${wins[me()] || 0}</b><span>勝</span><i>：</i><span>勝</span><b>${wins[p.user_id] || 0}</b>${cat(p, "happy")}</div>` : ""}
+        ${p && !FA ? `<div class="bgScore">${cat(meObj(), "happy")}<b>${wins[me()] || 0}</b><span>勝</span><i>：</i><span>勝</span><b>${wins[p.user_id] || 0}</b>${cat(p, "happy")}</div>` : ""}
       </div>`;
       let target = kindSel === "gacha" ? 1 : 5;
       el.querySelectorAll(".bgKind button").forEach(b => b.addEventListener("click", () => { kindSel = b.dataset.k; SFX.tap(); lobby(); }));
@@ -195,6 +201,9 @@ App.registerGame({
     const I = svg => `<span class="bgI">${svg}</span>`;
     function resetLocal(){ draft = Array(25).fill(0); lastSeenCalls = -1; lastLines = 0; shownEnd = null; cards = []; pickCard = -1; }
     function header(g){
+      if(multi(g)){ const slotsM = n => Array.from({ length: g.target }, (_, i) => `<span class="${i < n ? "on" : ""}">${g.target === 5 ? LETTERS[i] : i + 1}</span>`).join("");
+        return `<div class="bgTop"><button class="btn sub bgMenu" id="bgMenu">◀ 選單</button><span class="bgGoal">${g.kind === "gacha" ? "扭蛋・" : ""}${g.target} 條線獲勝・${g.players.length} 人</span></div>
+          <div class="bgVsRow multi">${g.players.map(u => { const L = doneLines(g.boards[u], CS(g)).length; return `<div class="bgSide ${g.turn === u && g.phase === "play" ? "turn" : ""}">${cat({ cat: ctx.catOf(u) }, L >= g.target ? "happy" : "normal")}<b>${esc(nm(u))}</b><div class="bgSlots">${slotsM(L)}</div></div>`; }).join("")}</div>`; }
       const o = { cat: oppCat(g).cat };
       const myL = doneLines(g.boards[me()], CS(g)).length, opL = doneLines(g.boards[oppId(g)], CS(g)).length;
       const slots = n => Array.from({ length: g.target }, (_, i) => `<span class="${i < n ? "on" : ""}">${g.target === 5 ? LETTERS[i] : i + 1}</span>`).join("");
@@ -210,7 +219,7 @@ App.registerGame({
       const mineReady = g.ready[me()];
       if(!mineReady && !cards.length){ cards = [genCard(), genCard(), genCard(), genCard()]; pickCard = -1; }
       el.innerHTML = `<div class="box bgBox play">${header(g)}
-        ${mineReady ? `<div class="bgBanner">${cat(oppCat(g), "normal")}<span>你選好了！等 ${esc(oppName(g))} 選完就開始</span></div>${miniCard(g.boards[me()], "big")}`
+        ${mineReady ? `<div class="bgBanner">${cat(oppCat(g), "normal")}<span>你選好了！等 ${esc(oppName(g))} 選完就開始${multi(g) ? `（${g.players.filter(u => g.ready[u]).length}/${g.players.length}）` : ""}</span></div>${miniCard(g.boards[me()], "big")}`
           : `<div class="bgBanner"><span>挑一張你喜歡的賓果卡<br><small>不喜歡可以換一批，正中間的 FREE 一開始就算蓋章</small></span></div>
           <div class="bgCardPick">${cards.map((b, i) => `<button data-i="${i}" class="${i === pickCard ? "on" : ""}">${miniCard(b)}</button>`).join("")}</div>
           <button class="bgMyStamp small" id="bgStampBtn">${stampPrev(myStamp, 7)}<span>這局的印章：<b>${STAMP[myStamp][1]}</b><small>按「就這張！」之後就不能換囉</small></span></button>
@@ -228,7 +237,7 @@ App.registerGame({
       const mineReady = g.ready[me()];
       const next = (() => { for(let n = 1; n <= 25; n++) if(!draft.includes(n)) return n; return 0; })();
       el.innerHTML = `<div class="box bgBox play">${header(g)}
-        ${mineReady ? `<div class="bgBanner">${cat(oppCat(g), "normal")}<span>你排好了！等 ${esc(oppName(g))} 排完就開始</span></div>`
+        ${mineReady ? `<div class="bgBanner">${cat(oppCat(g), "normal")}<span>你排好了！等 ${esc(oppName(g))} 排完就開始${multi(g) ? `（${g.players.filter(u => g.ready[u]).length}/${g.players.length}）` : ""}</span></div>`
           : `<div class="bgBanner"><span>把 1～25 排進格子裡<br><small>點空格放下一個號碼，點已經放的可以拿掉</small></span></div>`}
         <div class="bgNext">${mineReady ? "" : next ? `下一個要放：<b>${next}</b>` : `排好了！按「準備好了」`}</div>
         <div class="bgCard setup">${(mineReady ? g.boards[me()] : draft).map((n, k) => `<button class="bgCell ${n ? "fill" : ""}" data-k="${k}" ${mineReady ? "disabled" : ""}><span>${n || ""}</span></button>`).join("")}</div>
@@ -256,7 +265,7 @@ App.registerGame({
       el.innerHTML = `<div class="box bgBox play">${header(g)}
         ${gacha ? machine(g, fresh, myTurn, lastN, lastBy) : `<div class="bgBallRow">
           <div class="bgBall ${fresh ? "roll" : ""}">${lastN ? `<b>${lastN}</b>` : `<small>還沒喊</small>`}</div>
-          <div class="bgBallTxt">${g.phase === "end" ? "" : myTurn ? `<b class="bgYour">輪到你喊號碼！</b><small>點你格子裡還沒蓋章的號碼</small>` : `<b>等 ${esc(oppName(g))} 喊號碼…</b><small>${lastN ? `${lastBy === me() ? "你" : esc(oppName(g))} 剛剛喊了 ${lastN}` : `${esc(oppName(g))} 先喊`}</small>`}</div>
+          <div class="bgBallTxt">${g.phase === "end" ? "" : myTurn ? `<b class="bgYour">輪到你喊號碼！</b><small>點你格子裡還沒蓋章的號碼</small>` : `<b>等 ${esc(turnName(g))} 喊號碼…</b><small>${lastN ? `${esc(nm(lastBy))} 剛剛喊了 ${lastN}` : `${esc(turnName(g))} 先喊`}</small>`}</div>
         </div>`}
         ${gacha ? `<div class="bgHd top">${LETTERS.split("").map((c, i) => `<i style="background:${COLC[i]}">${c}</i>`).join("")}</div>` : ""}<div class="bgCard ${myTurn && !gacha ? "myturn" : ""} ${gacha ? "gacha" : ""} ${gacha && fresh && lastSeenCalls >= 0 ? "late" : ""}">${board.map((n, k) => { const m = called.has(n), isLast = n === lastN && n;
             if(gacha && n === 0) return `<button class="bgCell mark free" disabled><span>FREE</span></button>`;
@@ -264,8 +273,9 @@ App.registerGame({
           <svg class="bgLines ${gacha ? "g" : ""}" viewBox="0 0 5 5">${lines.map((li, j) => { const L = LINES[li], a = L[0], b = L[4], x1 = a % 5 + .5, y1 = ((a/5)|0) + .5, x2 = b % 5 + .5, y2 = ((b/5)|0) + .5, dx = (x2 - x1)*.08, dy = (y2 - y1)*.08;
             return `<line x1="${x1 - dx}" y1="${y1 - dy}" x2="${x2 + dx}" y2="${y2 + dy}" class="${j >= lastLines && newLines ? "new" : ""}"/>`; }).join("")}</svg>
         </div>
-        <div class="bgOpp"><div class="bgOppH">${esc(oppName(g))} 的格子${showOpp ? "" : "（只看得到蓋了幾格）"}</div>
-          <div class="bgMini ${showOpp ? "show" : ""}">${opB ? opB.map((n, k) => `<span class="${opMarks[k] ? "on" : ""} ${showOpp && doneLines(opB, called).some(li => LINES[li].includes(k)) ? "ln" : ""}">${showOpp ? (n || "★") : ""}</span>`).join("") : ""}</div></div>
+        ${multi(g) ? `<div class="bgOpps">${g.players.filter(u => u !== me()).map(u => { const ob = g.boards[u]; return `<div class="bgOpp"><div class="bgOppH">${esc(nm(u))}</div><div class="bgMini ${showOpp ? "show" : ""}">${ob ? ob.map((n, k) => `<span class="${called.has(n) ? "on" : ""} ${showOpp && doneLines(ob, called).some(li => LINES[li].includes(k)) ? "ln" : ""}">${showOpp ? (n || "★") : ""}</span>`).join("") : ""}</div></div>`; }).join("")}</div>`
+        : `<div class="bgOpp"><div class="bgOppH">${esc(oppName(g))} 的格子${showOpp ? "" : "（只看得到蓋了幾格）"}</div>
+          <div class="bgMini ${showOpp ? "show" : ""}">${opB ? opB.map((n, k) => `<span class="${opMarks[k] ? "on" : ""} ${showOpp && doneLines(opB, called).some(li => LINES[li].includes(k)) ? "ln" : ""}">${showOpp ? (n || "★") : ""}</span>`).join("") : ""}</div></div>`}
         <div class="bgCalls">${g.calls.map((n, i) => gacha ? `<span class="cap" style="--c:${COLC[colOf(n)]}">${LETTERS[colOf(n)]}${n}</span>` : `<span class="${g.by[i] === me() ? "me" : ""}">${n}</span>`).join("")}</div>
       </div>`;
       bindMenu();
@@ -294,24 +304,25 @@ App.registerGame({
     }
     function machine(g, fresh, myTurn, lastN, lastBy){
       const anim = fresh && lastN && lastSeenCalls >= 0, c = lastN ? colOf(lastN) : 0, left = 75 - g.calls.length;
-      const who = lastBy === me() ? meObj() : oppCat(g);
+      const who = lastBy === me() ? meObj() : multi(g) ? { cat: ctx.catOf(lastBy) } : oppCat(g);
       return `<div class="gcRow"><div class="gcM ${anim ? "go" : ""}">${jarSvg(left + (anim ? 1 : 0))}${anim ? `<i class="gcPeek" style="--c:${COLC[c]}"></i>` : ""}</div>
         <div class="gcSide">
           <div class="gcRes">${lastN ? `<div class="gcCap ${anim ? "drop" : "open"}" style="--c:${COLC[c]}">
               <div class="gcTop"></div>
               <div class="gcKit">${cat(who, "happy", "gcCat")}<div class="gcPlate"><small style="background:${COLC[c]}">${LETTERS[c]}</small><b>${lastN}</b></div></div>
               <div class="gcBot"></div></div>` : `<div class="gcEmpty">還沒扭</div>`}</div>
-          ${g.phase === "end" ? "" : myTurn ? `<button class="btn gcGo" id="gcGo">扭！</button>` : `<b>等 ${esc(oppName(g))} 扭蛋…</b>`}
-          <small>${lastN ? `${lastBy === me() ? "你" : esc(oppName(g))}扭出了 ${LETTERS[c]}-${lastN}` : `${g.turn === me() ? "你" : esc(oppName(g))}先扭`}・還剩 ${left} 顆</small></div></div>`;
+          ${g.phase === "end" ? "" : myTurn ? `<button class="btn gcGo" id="gcGo">扭！</button>` : `<b>等 ${esc(turnName(g))} 扭蛋…</b>`}
+          <small>${lastN ? `${esc(nm(lastBy))}扭出了 ${LETTERS[c]}-${lastN}` : `${esc(turnName(g))}先扭`}・還剩 ${left} 顆</small></div></div>`;
     }
     function endModal(g){
       if(!alive) return;
-      const win = g.winner === me(), tie = g.winner === "tie";
+      const ws = g.winners || (g.winner === "tie" ? g.players : [g.winner]);
+      const win = ws.includes(me()), tie = ws.length > 1 && !multi(g);
       document.querySelectorAll(".bgEnd").forEach(x => x.remove());
       const o = document.createElement("div"); o.className = "careModal bgEnd";
       o.innerHTML = `<div class="cmBox"><div class="bgEndTitle ${win ? "win" : ""}">${tie ? "平手！" : win ? LETTERS.split("").map((c, i) => `<span style="--i:${i}">${c}</span>`).join("") + "<em>!</em>" : "差一點點～"}</div>
         <div class="bgEndCats">${cat(meObj(), win || tie ? "happy" : "normal")}${win ? `<span class="bgI big">${CROWN}</span>` : `<span class="bgI big">${STAR}</span>`}${cat(oppCat(g), !win ? "happy" : "normal")}</div>
-        <h3>${tie ? "兩個人同時連成了！" : win ? `你先連成 ${g.target} 條線，贏了！` : `${esc(oppName(g))} 先連成 ${g.target} 條線`}</h3>
+        <h3>${multi(g) ? (ws.length > 1 ? `${ws.map(u => esc(nm(u))).join("、")} 同時連成 ${g.target} 條線！` : `${esc(nm(ws[0]))} 先連成 ${g.target} 條線${win ? "，贏了！" : ""}`) : tie ? "兩個人同時連成了！" : win ? `你先連成 ${g.target} 條線，贏了！` : `${esc(oppName(g))} 先連成 ${g.target} 條線`}</h3>
         <div class="k">一共${g.kind === "gacha" ? "扭" : "喊"}了 ${g.calls.length} 個號碼</div>
         <div class="bgRow"><button class="btn sub" id="bgLook">看看格子</button><button class="btn" id="bgAgain">再玩一局</button></div></div>`;
       document.body.appendChild(o);
@@ -327,6 +338,8 @@ App.registerGame({
       if(!g){ mode = null; return lobby(); }
       if(g.phase === "setup") return setup(g);
       if(g.phase === "play" && g.kind === "gacha" && mode === "cpu") cpuMaybe();
+      if(FA && mode === "vs" && g.phase === "play" && !ctx.players().includes(g.turn) && ctx.players()[0] === me())   // 輪到的人離開了：跳過 ta
+        setTimeout(() => mutate(gg => { if(!gg || gg.phase !== "play" || ctx.players().includes(gg.turn)) return undefined; const pl = gg.players; for(let k = 1; k <= pl.length; k++){ const u = pl[(pl.indexOf(gg.turn) + k) % pl.length]; if(ctx.players().includes(u)){ gg.turn = u; break; } } return gg; }), 1500);
       return play(g);
     }
 
@@ -335,7 +348,8 @@ App.registerGame({
     this._u = ctx.onState("bingo", st => { const prev = s && s.g; s = cleanS(st) || {};
       if(mode === "vs"){ const g = s.g; if(g && prev && g.id !== prev.id) resetLocal(); render(); }
       else if(!mode){ const g = s.g; if(g && g.phase !== "end" && pt() && g.players.includes(me()) && (!prev || prev.id !== g.id)){ mode = "vs"; resetLocal(); } render(); } });
-    this._stop = () => { alive = false; clearTimeout(cpuTimer); document.querySelectorAll(".bgEnd,.bgPick2").forEach(x => x.remove()); };
+    if(FA && ctx.onMembers) this._m = ctx.onMembers(() => render());
+    this._stop = () => { alive = false; if(this._m) this._m(); clearTimeout(cpuTimer); document.querySelectorAll(".bgEnd,.bgPick2").forEach(x => x.remove()); };
   },
   unmount(){ if(this._u) this._u(); if(this._stop) this._stop(); },
 });
