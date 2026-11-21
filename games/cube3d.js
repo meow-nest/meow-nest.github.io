@@ -1492,7 +1492,7 @@
           v(2,.8,6, 7,1.1,11, SG); v(4,1.1,8, 5.5,2,9.5, PK); const fx = 8 + Math.cos(t*.8)*6, fz = 8 + Math.sin(t*.8)*5; v(fx - 1.5,.9,fz - .8, fx + 1.5,1.5,fz + .8, "#f2a65a"); break; }
       }
     }
-    const FV_STYLE = -1;   // 家具材質風格（-1 平塗；0 和紙、1 像素點點、2 手繪木紋布紋、3 粉彩小圖案）
+    const FV_STYLE = 6;    // 家具材質風格（-1 平塗；0 和紙、1 像素點點、2 手繪木紋布紋、3 粉彩小圖案）
     function frame(now){
       if(dead) return; raf = requestAnimationFrame(frame);
       if(CFG.fps && now - last < 1000/CFG.fps - 2) return;   // 幀率上限：還沒到時間就先不畫（比較省電、不會燙）
