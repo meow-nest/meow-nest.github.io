@@ -346,6 +346,8 @@
     // ---------- 角色 ----------
     const player = { x:world.spawn[0], y:world.spawn[1], z:world.spawn[2], vy:0, yaw:Math.PI, walk:0, onG:false, av:avOf(o.avatar), s:1 };
     const npc = o.npcs || [];
+    // 音效一律限速：同一種聲音 .35 秒內只響一次（不會疊在一起變成雜音）
+    if(o.sfx){ const raw = o.sfx, lastS = {}; o = Object.assign({}, o, { sfx: new Proxy(raw, { get(tg, k){ const f = tg[k]; if(typeof f !== "function") return f; return (...a) => { const n = performance.now(); if(n - (lastS[k] || 0) < 350) return; lastS[k] = n; return f.apply(tg, a); }; } }) }); }
     // 小貓村民：每隻在島上有自己的家（繞著貓屋一圈），白天在家附近閒晃，晚上回家睡覺
     const pets = npc.map((c, i) => { const a = i/npc.length*Math.PI*2 + .4, r = 8 + (i % 2)*2.2;
       if(c.fam){ const fa = Math.PI + (i % 2 ? .9 : -.9), fx = world.spawn[0] + Math.sin(fa)*1.6, fz = world.spawn[2] + Math.cos(fa)*1.6;   // 我們家的貓：一開始就在你身邊
@@ -629,6 +631,7 @@
     const okAt = (x, z) => world.topY(Math.floor(x), Math.floor(z)) >= world.floor - 1;
     function famAI(p, dp, dt, night){
       const s = p.fs, others = fams.filter(q => q !== p);
+      if(s.cd > 0) s.cd -= dt;   // 剛被抓到、換人當鬼：先讓對方跑一下，不會每一格畫面都互相抓來抓去
       if(dp > 16 || p.fell){ p.fell = 0; const a = player.yaw + Math.PI + (p.i % 2 ? .8 : -.8); p.x = player.x + Math.sin(a)*1.5; p.z = player.z + Math.cos(a)*1.5; p.y = player.y + .3; p.vy = 0; s.t = 0; return [0, 0]; }   // 走太遠：跑回你身邊
       // 晚上你站著不動一陣子，牠們會在你旁邊縮成一團睡
       if(night && idleT > 6 && dp < 3.5 && talkIdx !== p.i){ p.sleep = Math.min(1, p.sleep + dt*.7); return [0, 0]; }
@@ -653,7 +656,7 @@
           if(d < .32 + .25*p.s && yarn.y < p.y + .8){ const k = 2.6 + Math.random()*2.2, dx = (yarn.x - p.x)/(d || 1), dz = (yarn.z - p.z)/(d || 1), sd = (Math.random() - .5)*1.6;
             yarn.vx = dx*k + dz*sd; yarn.vz = dz*k - dx*sd; yarn.vy = 2 + Math.random()*1.5; yarn.spin = 8; p.hop = .6; p.pounce = .4; } }
         else if(s.mode === "chase"){ const q = s.who; if(!q || q.fs.who !== p){ s.t = 0; return [0, 0]; } tx = q.x; tz = q.z; sp = 3.5;
-          if(Math.hypot(q.x - p.x, q.z - p.z) < .62){ p.hop = q.hop = .6; p.love = q.love = 1.2; q.fs.mode = "chase"; q.fs.who = p; q.fs.t = 2.5 + Math.random()*2; s.mode = "flee"; s.who = q; s.t = q.fs.t; } }   // 抓到了！換人當鬼（不叫，免得一直喵喵叫很吵）
+          if(!(s.cd > 0) && Math.hypot(q.x - p.x, q.z - p.z) < .62){ p.hop = q.hop = .6; p.love = q.love = 1.2; q.fs.mode = "chase"; q.fs.who = p; q.fs.t = 2.5 + Math.random()*2; q.fs.cd = 1.2; s.mode = "flee"; s.who = q; s.t = q.fs.t; } }   // 抓到了！換人當鬼（不叫，免得一直喵喵叫很吵）
         else if(s.mode === "flee"){ const q = s.who || player, ax = p.x - q.x, az = p.z - q.z, l = Math.hypot(ax, az) || 1;
           tx = p.x + ax/l*2; tz = p.z + az/l*2; if(Math.hypot(tx - player.x, tz - player.z) > 4.2){ const b = Math.atan2(p.x - player.x, p.z - player.z) + 1.2; tx = player.x + Math.sin(b)*3; tz = player.z + Math.cos(b)*3; } sp = 3.1; }
         else if(s.mode === "zoom"){ s.ang += dt*1.9; tx = player.x + Math.sin(s.ang)*2.3; tz = player.z + Math.cos(s.ang)*2.3; sp = 3.8; }
