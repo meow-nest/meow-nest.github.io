@@ -1,6 +1,6 @@
 // 喵喵方塊島的 3D 引擎：方塊世界、第三人稱、虛擬搖桿到處走，島上有小貓可以摸摸
 // 用法：Cube3D.open({ meCat, meName, npcs:[{name,color}], sfx, icon, esc, onClose })
-// 方塊和貓都是自己用程式畫的（材質是喵喵島自己的粉彩點心風：抹茶草地、餅乾土、魚鱗瓦、方糖磚…），不使用任何遊戲的素材。
+// 方塊和貓都是自己用程式畫的（材質是喵喵島自己的和紙風：淡雅大地色、和紙纖維、梅花、青海波），不使用任何遊戲的素材。
 (function(){
   // ---------- 小工具：矩陣 ----------
   const I4 = () => [1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1];
@@ -27,54 +27,51 @@
     6:{ t:[7,7,7], solid:1 }, 7:{ t:[8,8,8], solid:0, clear:1 }, 8:{ t:[9,9,9], solid:1 }, 9:{ t:[10,10,10], solid:1 }, 10:{ t:[11,11,11], solid:1 },
     11:{ t:[12,12,12], solid:1 }, 12:{ t:[13,13,13], solid:1, clear:1 }, 13:{ t:[14,15,16], solid:1 }, 14:{ t:[16,16,16], solid:1 },
   };
-  // 材質：喵喵島自己的軟軟材質（32×32、圓角、粉彩色，每塊方塊看起來像一塊小點心或玩具，不是像素石頭泥土）
-  // 0 抹茶草地上面 1 草地側面（抹茶糖霜＋餅乾） 2 餅乾土 3 鵝卵石 4 奶油木板 5 貓抓柱側面 6 貓抓柱上面 7 棉花糖葉
-  // 8 水 9 魚鱗瓦 10 星星砂 11 方糖磚 12 毛線毯 13 泡泡玻璃 14～16 白雲
+  // 材質：和紙風（站長選的第 12 種）——淡雅的大地色、和紙纖維紋路、邊邊像撕過的紙，圖案是圓圓的形狀（不是像素石頭泥土）
+  // 0 草地上面 1 草地側面 2 土 3 鵝卵石 4 木板 5 貓抓柱側面 6 貓抓柱上面 7 樹葉 8 水 9 魚鱗瓦 10 星星砂 11 磚 12 毛線毯 13 玻璃 14～16 白雲
   const TILE_N = 17;
+  const WASHI = { g:"#a8c99a", f:"#f2e6c8", d:"#c9a880", s:"#b8b8c0", w:"#dcc19a", r:"#c97f86", b:"#d49a86", m:"#efe6d4", l:"#93b98c", wt:"#9ec3d6", sa:"#e6d6b0", wo:"#d6a2ac", rp:"#cfb084", cu:"#c97f86", cl:"#f7f2ea" };
   function makeAtlas(){
-    const N = 32, COLS = 8, cv = document.createElement("canvas"); cv.width = cv.height = N*COLS; const g = cv.getContext("2d");
-    const rr = (x, y, w, h, r) => { g.beginPath(); g.moveTo(x+r, y); g.arcTo(x+w, y, x+w, y+h, r); g.arcTo(x+w, y+h, x, y+h, r); g.arcTo(x, y+h, x, y, r); g.arcTo(x, y, x+w, y, r); g.closePath(); };
-    const dot = (x, y, r, c) => { g.fillStyle = c; g.beginPath(); g.arc(x, y, r, 0, Math.PI*2); g.fill(); };
-    const star = (x, y, r, c) => { g.fillStyle = c; g.beginPath(); for(let k = 0; k < 10; k++){ const a = -Math.PI/2 + k*Math.PI/5, q = k % 2 ? r*.45 : r; g.lineTo(x + Math.cos(a)*q, y + Math.sin(a)*q); } g.closePath(); g.fill(); };
-    const paw = (x, y, s, c) => { dot(x, y + s*.35, s*.42, c); for(const [dx, dy] of [[-.45, -.15], [-.16, -.42], [.16, -.42], [.45, -.15]]) dot(x + dx*s, y + dy*s, s*.17, c); };
-    const heart = (x, y, s, c) => { g.fillStyle = c; g.beginPath(); g.moveTo(x, y + s*.35); g.bezierCurveTo(x - s*.6, y - s*.05, x - s*.3, y - s*.55, x, y - s*.18); g.bezierCurveTo(x + s*.3, y - s*.55, x + s*.6, y - s*.05, x, y + s*.35); g.fill(); };
-    // 軟軟的圓角邊：亮的左上、暗的右下，讓每一塊像小玩具
-    const bevel = (k = 1) => { g.lineWidth = 2; g.strokeStyle = `rgba(255,255,255,${.45*k})`; rr(1.5, 1.5, N-3, N-3, 6); g.stroke(); g.strokeStyle = `rgba(90,50,60,${.16*k})`; g.lineWidth = 1.5; rr(.75, .75, N-1.5, N-1.5, 7); g.stroke(); };
-    const grad = (c1, c2) => { const gr = g.createLinearGradient(0, 0, N, N); gr.addColorStop(0, c1); gr.addColorStop(1, c2); g.fillStyle = gr; g.fillRect(0, 0, N, N); };
-    const T = [
-      () => { grad("#a9e6a6", "#8fd394"); paw(9, 10, 6, "rgba(255,255,255,.5)"); paw(23, 22, 5, "rgba(255,255,255,.4)"); for(const [x, y] of [[22, 7], [8, 24], [16, 16], [27, 13]]) dot(x, y, 1.6, "#c6f1c2"); bevel(); },
-      () => { grad("#f4d6a8", "#e6c08a"); for(const [x, y] of [[8, 22], [20, 26], [25, 18], [13, 28]]) dot(x, y, 1.4, "#d4a46a");
-              g.fillStyle = "#9fdc9c"; g.beginPath(); g.moveTo(0, 0); g.lineTo(N, 0); for(let x = N; x >= 0; x -= 1){ const y = 10 + Math.sin(x/N*Math.PI*3 + .8)*2.2 + (x % 11 < 3 ? 2.5 : 0); g.lineTo(x, y); } g.closePath(); g.fill();
-              g.fillStyle = "rgba(255,255,255,.35)"; g.fillRect(0, 2, N, 2); bevel(); },
-      () => { grad("#efcd99", "#e0b67c"); for(const [x, y, r] of [[8, 9, 2.4], [22, 7, 2], [15, 18, 2.6], [26, 22, 2.2], [7, 26, 2], [19, 28, 1.6]]){ dot(x, y, r, "#a8754a"); dot(x - .6, y - .6, r*.35, "#c8956a"); } bevel(); },
-      () => { grad("#d6d1e2", "#c3bdd3"); for(const [x, y, w, h, c] of [[9, 9, 7, 5, "#e6e2ef"], [22, 8, 6, 5, "#b7b0c9"], [15, 19, 8, 6, "#ebe8f2"], [6, 25, 5, 4, "#b9b3cb"], [25, 24, 6, 5, "#dedaea"]]){
-                g.fillStyle = c; g.beginPath(); g.ellipse(x, y, w, h, 0, 0, Math.PI*2); g.fill(); g.fillStyle = "rgba(255,255,255,.55)"; g.beginPath(); g.ellipse(x - w*.3, y - h*.35, w*.35, h*.22, 0, 0, Math.PI*2); g.fill(); } bevel(); },
-      () => { g.fillStyle = "#f6d9a8"; g.fillRect(0, 0, N, N); for(let k = 0; k < 2; k++){ const y = k*16; g.fillStyle = k ? "#f0cf98" : "#f8deb0"; rr(1, y + 1, N - 2, 14, 5); g.fill();
-                g.strokeStyle = "rgba(200,150,90,.35)"; g.lineWidth = 1; g.beginPath(); g.moveTo(5, y + 6); g.bezierCurveTo(12, y + 4, 18, y + 9, 27, y + 6); g.stroke(); heart(5, y + 10, 4, "#f2a0b0"); heart(27, y + 10, 4, "#f2a0b0"); } bevel(.8); },
-      () => { g.fillStyle = "#e2bf86"; g.fillRect(0, 0, N, N); for(let y = 0; y < N; y += 4){ g.fillStyle = (y/4) % 2 ? "#d4ad70" : "#ecca92"; rr(0, y, N, 4, 2); g.fill();
-                g.strokeStyle = "rgba(160,110,50,.35)"; g.lineWidth = 1; for(let x = -4; x < N; x += 5){ g.beginPath(); g.moveTo(x, y + 4); g.lineTo(x + 4, y); g.stroke(); } } bevel(.7); },
-      () => { g.fillStyle = "#e8c894"; g.fillRect(0, 0, N, N); dot(16, 16, 12, "#f7b6c8"); dot(16, 16, 8, "#fbcfdb"); dot(13, 12, 3, "rgba(255,255,255,.6)"); bevel(); },
-      () => { grad("#9edba6", "#82c990"); for(const [x, y, r] of [[8, 8, 7], [23, 9, 8], [15, 20, 9], [5, 25, 6], [27, 25, 7]]){ dot(x, y, r, "#a8e2ae"); dot(x - r*.3, y - r*.35, r*.42, "rgba(255,255,255,.45)"); } bevel(.8); },
-      () => { grad("#8fd0f2", "#74bfe8"); g.strokeStyle = "rgba(255,255,255,.6)"; g.lineWidth = 1.5; for(const [x, y] of [[6, 9], [20, 16], [9, 25]]){ g.beginPath(); g.arc(x + 4, y, 4, Math.PI*1.1, Math.PI*1.9); g.stroke(); } },
-      () => { g.fillStyle = "#e98a9a"; g.fillRect(0, 0, N, N); for(let row = 0; row < 5; row++) for(let k = -1; k < 5; k++){ const x = k*8 + (row % 2 ? 4 : 0) + 4, y = row*8 - 2;
-                g.fillStyle = row % 2 ? "#f4a3b1" : "#f7b2be"; g.beginPath(); g.arc(x, y, 5.2, 0, Math.PI); g.fill(); g.strokeStyle = "rgba(180,70,90,.35)"; g.lineWidth = 1; g.beginPath(); g.arc(x, y, 5.2, 0, Math.PI); g.stroke(); dot(x - 1.5, y + 2, 1.2, "rgba(255,255,255,.5)"); } bevel(.8); },
-      () => { grad("#fdeec4", "#f6dfa6"); for(const [x, y, r] of [[8, 9, 3.2], [22, 13, 2.6], [13, 24, 2.8], [26, 26, 2.2], [17, 5, 1.8]]) star(x, y, r, "#ffd36b"); for(const [x, y] of [[5, 17], [28, 6], [20, 21]]) dot(x, y, 1, "#f2c97c"); bevel(); },
-      () => { g.fillStyle = "#fff4ec"; g.fillRect(0, 0, N, N); for(let row = 0; row < 3; row++) for(let k = -1; k < 3; k++){ const x = k*16 + (row % 2 ? 8 : 0) + 1, y = row*11 + 1;
-                g.fillStyle = row % 2 ? "#f7b39b" : "#f9c2ad"; rr(x, y, 14, 9.5, 3.5); g.fill(); g.fillStyle = "rgba(255,255,255,.5)"; rr(x + 2, y + 1.5, 6, 2, 1); g.fill(); } bevel(.6); },
-      () => { g.fillStyle = "#f6bfd0"; g.fillRect(0, 0, N, N); for(let y = 0; y < N; y += 6) for(let x = 0; x < N; x += 8){ g.strokeStyle = "#fbd6e1"; g.lineWidth = 2.2; g.beginPath(); g.moveTo(x + 1, y + 1); g.lineTo(x + 4, y + 5); g.lineTo(x + 7, y + 1); g.stroke();
-                g.strokeStyle = "rgba(200,110,140,.35)"; g.lineWidth = 1; g.beginPath(); g.moveTo(x + 1.5, y + 3); g.lineTo(x + 4, y + 6.5); g.lineTo(x + 6.5, y + 3); g.stroke(); } bevel(.7); },
-      () => { g.clearRect(0, 0, N, N); g.fillStyle = "rgba(214,238,255,.45)"; rr(1, 1, N-2, N-2, 7); g.fill(); g.strokeStyle = "#ffffff"; g.lineWidth = 2.5; rr(1.5, 1.5, N-3, N-3, 7); g.stroke();
-              g.fillStyle = "rgba(255,255,255,.85)"; g.beginPath(); g.ellipse(10, 9, 5, 2.4, -.6, 0, Math.PI*2); g.fill(); heart(23, 23, 6, "rgba(255,182,204,.7)"); },
-      () => { grad("#ffffff", "#f1f6fd"); dot(10, 10, 6, "rgba(255,255,255,.9)"); dot(22, 20, 7, "rgba(236,243,252,.9)"); bevel(.5); },
-      () => { grad("#eef3fb", "#dde7f5"); g.fillStyle = "#ffffff"; g.beginPath(); g.moveTo(0, 0); g.lineTo(N, 0); for(let x = N; x >= 0; x -= 2) g.lineTo(x, 7 + Math.sin(x/N*Math.PI*4)*2); g.closePath(); g.fill(); bevel(.5); },
-      () => { grad("#d8e3f3", "#c8d6ec"); bevel(.4); },
+    const N = 64, COLS = 8, cv = document.createElement("canvas"); cv.width = cv.height = N*COLS; const g = cv.getContext("2d");
+    const hx = h => [1,3,5].map(i => parseInt(h.substr(i,2),16)), mix = (a, b, k) => { const x = hx(a), y = hx(b); return "#" + x.map((v,i) => Math.round(v + (y[i]-v)*k).toString(16).padStart(2,"0")).join(""); };
+    const lt = (c, k = .3) => mix(c, "#ffffff", k), dk = (c, k = .25) => mix(c, "#3a2a28", k);
+    let r = rng(12);
+    const rr = (x, y, w, h, q) => { g.beginPath(); g.moveTo(x+q, y); g.arcTo(x+w, y, x+w, y+h, q); g.arcTo(x+w, y+h, x, y+h, q); g.arcTo(x, y+h, x, y, q); g.arcTo(x, y, x+w, y, q); g.closePath(); };
+    const el = (x, y, a, b) => { g.beginPath(); g.ellipse(x, y, a, b, 0, 0, Math.PI*2); };
+    // 和紙：先塗顏色，再加一絲一絲白白的纖維和一點點深色的小纖維
+    const fibers = (n = 40, a = .35) => { g.lineWidth = .7; for(let k = 0; k < n; k++){ const x = r()*N, y = r()*N; g.strokeStyle = r() < .82 ? `rgba(255,255,255,${a})` : "rgba(90,60,40,.12)"; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + 6, y + r()*6 - 3, x + 9 + r()*9, y + r()*5 - 2.5); g.stroke(); } };
+    const sh = (path, c, n = 14) => { path(); g.fillStyle = c; g.fill(); g.save(); path(); g.clip(); fibers(n, .3); g.restore(); };
+    const bg = c => { g.fillStyle = mix(c, WASHI.m, .12); g.fillRect(0, 0, N, N); fibers(60, .32); };
+    // 邊邊：像撕過的和紙，有一點點不規則的淡色邊
+    const edge = () => { g.lineWidth = 2.2; g.strokeStyle = "rgba(255,250,240,.55)"; g.beginPath(); for(let k = 0; k <= 64; k++){ const t = k/64*4, side = Math.floor(t) % 4, u = t - Math.floor(t), j = 1.6 + r()*1.4;
+        const [x, y] = side === 0 ? [u*N, j] : side === 1 ? [N - j, u*N] : side === 2 ? [N - u*N, N - j] : [j, N - u*N]; k ? g.lineTo(x, y) : g.moveTo(x, y); } g.closePath(); g.stroke();
+      g.lineWidth = 1.2; g.strokeStyle = "rgba(90,60,50,.16)"; g.strokeRect(.6, .6, N - 1.2, N - 1.2); };
+    const plum = (x, y, s, c) => { for(let k = 0; k < 5; k++){ const a = -Math.PI/2 + k*Math.PI*2/5; el(x + Math.cos(a)*s*.55, y + Math.sin(a)*s*.55, s*.42, s*.42); g.fillStyle = c; g.fill(); } el(x, y, s*.22, s*.22); g.fillStyle = "#e8c070"; g.fill(); };   // 小梅花
+    const W = WASHI, T = [
+      () => { bg(W.g); sh(() => el(18, 20, 10, 7), lt(W.g, .15)); sh(() => el(44, 42, 12, 8), lt(W.g, .1)); plum(46, 14, 5, W.f); plum(16, 48, 4.5, "#f3d6da"); edge(); },
+      () => { bg(W.d); sh(() => el(20, 46, 5, 4), dk(W.d, .12)); sh(() => el(46, 54, 4, 3), dk(W.d, .12)); sh(() => { g.beginPath(); g.moveTo(0, 0); g.lineTo(N, 0); for(let x = N; x >= 0; x -= 2) g.lineTo(x, 20 + Math.sin(x/N*Math.PI*3)*4); g.closePath(); }, W.g, 20); edge(); },
+      () => { bg(W.d); for(const [x, y, q] of [[16,16,6],[44,20,5],[28,40,7],[50,48,5],[12,52,4]]) sh(() => el(x, y, q, q*.8), dk(W.d, .16), 4); edge(); },
+      () => { bg(W.s); for(const [x, y, a, b] of [[18,18,12,9],[46,16,10,8],[30,42,14,10],[54,48,8,7],[10,50,7,6]]) sh(() => el(x, y, a, b), lt(W.s, .2), 6); edge(); },
+      () => { bg(dk(W.w, .12)); for(let k = 0; k < 3; k++) sh(() => rr(2, 2 + k*21, N - 4, 18, 5), k % 2 ? dk(W.w, .04) : W.w); plum(9, 11, 3.5, "#efd7d9"); plum(55, 53, 3.5, "#efd7d9"); edge(); },
+      () => { bg(W.rp); for(let y = 0; y < N; y += 8) sh(() => rr(0, y + 1, N, 6.5, 3), (y/8) % 2 ? dk(W.rp, .08) : lt(W.rp, .08), 6); g.strokeStyle = "rgba(110,80,40,.22)"; g.lineWidth = 1; for(let y = 0; y < N; y += 8) for(let x = -6; x < N; x += 7){ g.beginPath(); g.moveTo(x, y + 7.5); g.lineTo(x + 6, y + 1); g.stroke(); } edge(); },
+      () => { bg(W.rp); sh(() => el(32, 32, 24, 24), W.cu); sh(() => el(32, 32, 16, 16), lt(W.cu, .18)); plum(32, 32, 6, W.f); edge(); },
+      () => { bg(dk(W.l, .15)); for(const [x, y, q] of [[14,14,13],[46,14,14],[30,34,15],[10,50,12],[52,50,13]]) sh(() => el(x, y, q, q), q % 2 ? W.l : lt(W.l, .1), 8); edge(); },
+      () => { bg(W.wt); g.strokeStyle = "rgba(255,255,255,.55)"; g.lineWidth = 1.4; for(let row = 0; row < 4; row++) for(let k = 0; k < 4; k++){ const x = k*16 + (row % 2 ? 8 : 0), y = row*16 + 16; for(const q of [10, 6.5, 3]){ g.beginPath(); g.arc(x, y, q, Math.PI, 0); g.stroke(); } } g.globalCompositeOperation = "destination-in"; g.fillStyle = "rgba(0,0,0,.75)"; g.fillRect(0, 0, N, N); g.globalCompositeOperation = "source-over"; },   // 青海波（水波紋）
+      () => { bg(dk(W.r, .18)); for(let row = 0; row < 5; row++) for(let k = -1; k < 5; k++){ const x = k*16 + (row % 2 ? 8 : 0) + 8, y = row*14 - 4; sh(() => { g.beginPath(); g.arc(x, y, 9, 0, Math.PI); g.closePath(); }, row % 2 ? W.r : lt(W.r, .12), 4); } edge(); },
+      () => { bg(W.sa); for(const [x, y] of [[14,16],[44,24],[24,44],[52,52],[34,8]]) plum(x, y, 3.2, "#f3e3c0"); for(let k = 0; k < 14; k++){ el(r()*N, r()*N, .9, .9); g.fillStyle = "rgba(150,120,80,.3)"; g.fill(); } edge(); },
+      () => { bg(W.m); for(let row = 0; row < 4; row++) for(let k = -1; k < 3; k++){ const x = k*32 + (row % 2 ? 16 : 0) + 2, y = row*16 + 2; sh(() => rr(x, y, 28, 12, 4), row % 2 ? W.b : lt(W.b, .1), 5); } edge(); },
+      () => { bg(W.wo); g.lineCap = "round"; for(let y = 2; y < N; y += 10) for(let x = 0; x < N; x += 12){ g.strokeStyle = lt(W.wo, .3); g.lineWidth = 3; g.beginPath(); g.moveTo(x + 2, y + 1); g.lineTo(x + 6, y + 7); g.lineTo(x + 10, y + 1); g.stroke(); } g.lineCap = "butt"; edge(); },
+      () => { g.clearRect(0, 0, N, N); g.fillStyle = "rgba(230,240,240,.4)"; g.fillRect(0, 0, N, N); g.strokeStyle = "rgba(120,90,70,.75)"; g.lineWidth = 4; g.strokeRect(2, 2, N - 4, N - 4); g.lineWidth = 2; g.beginPath(); g.moveTo(N/2, 2); g.lineTo(N/2, N - 2); g.moveTo(2, N/2); g.lineTo(N - 2, N/2); g.stroke(); },   // 障子風格的窗
+      () => { bg(W.cl); for(const [x, y, q] of [[18,18,10],[44,40,12]]){ el(x, y, q, q*.7); g.fillStyle = "rgba(255,255,255,.6)"; g.fill(); } edge(); },
+      () => { bg(mix(W.cl, "#dfe4ee", .5)); sh(() => { g.beginPath(); g.moveTo(0, 0); g.lineTo(N, 0); for(let x = N; x >= 0; x -= 2) g.lineTo(x, 14 + Math.sin(x/N*Math.PI*4)*3); g.closePath(); }, W.cl, 10); edge(); },
+      () => { bg(mix(W.cl, "#c9d3e4", .6)); edge(); },
     ];
-    T.forEach((f, k) => { const ox = (k % COLS)*N, oy = Math.floor(k / COLS)*N; g.save(); g.translate(ox, oy); g.beginPath(); g.rect(0, 0, N, N); g.clip(); f(); g.restore(); });
+    T.forEach((f, k) => { const ox = (k % COLS)*N, oy = Math.floor(k / COLS)*N; r = rng(100 + k); g.save(); g.translate(ox, oy); g.beginPath(); g.rect(0, 0, N, N); g.clip(); f(); g.restore(); });
     return { cv, COLS, N };
   }
   void TILE_N;
   // 挖方塊時噴出來的碎屑顏色（跟材質差不多）
-  const TILE_COL = [["#a9e6a6","#8fd394"],["#f4d6a8","#9fdc9c"],["#efcd99","#a8754a"],["#d6d1e2","#e6e2ef"],["#f8deb0","#f2a0b0"],["#ecca92","#d4ad70"],["#f7b6c8","#e8c894"],["#a8e2ae","#82c990"],["#8fd0f2","#ffffff"],["#f7b2be","#e98a9a"],["#fdeec4","#ffd36b"],["#f9c2ad","#fff4ec"],["#f6bfd0","#fbd6e1"],["#d6eeff","#ffffff"],["#ffffff","#eef3fb"],["#eef3fb","#ffffff"],["#d8e3f3","#c8d6ec"]];
+  const TILE_COL = [["#a8c99a","#f2e6c8"],["#c9a880","#a8c99a"],["#c9a880","#a88a66"],["#b8b8c0","#d0d0d6"],["#dcc19a","#efd7d9"],["#cfb084","#b8986c"],["#c97f86","#cfb084"],["#93b98c","#a8c99a"],["#9ec3d6","#ffffff"],["#c97f86","#d89aa0"],["#e6d6b0","#f3e3c0"],["#d49a86","#efe6d4"],["#d6a2ac","#e6c2c8"],["#e6f0f0","#a08060"],["#f7f2ea","#ffffff"],["#ece9ec","#f7f2ea"],["#d8dbe4","#c9d3e4"]];
 
   // ---------- 世界 ----------
   // 世界：飄在天空的白雲島（主島＋幾塊小雲朵踏腳石），下面是雲海
@@ -479,7 +476,7 @@
 
     // ---------- 蓋房子 ----------
     const PALETTE = [B.PLANK, B.LOG, B.BRICK, B.STONE, B.GLASS, B.WOOL, B.ROOF, B.LEAF, B.GRASS, B.SAND, B.CLOUD, B.DIRT];
-    const BNAME = { [B.PLANK]:"奶油木板", [B.LOG]:"貓抓柱", [B.BRICK]:"方糖磚", [B.STONE]:"鵝卵石", [B.GLASS]:"泡泡玻璃", [B.WOOL]:"毛線毯", [B.ROOF]:"魚鱗瓦", [B.LEAF]:"棉花糖葉", [B.GRASS]:"抹茶草地", [B.SAND]:"星星砂", [B.CLOUD]:"雲朵", [B.DIRT]:"餅乾土" };
+    const BNAME = { [B.PLANK]:"梅花木板", [B.LOG]:"貓抓柱", [B.BRICK]:"紅磚", [B.STONE]:"鵝卵石", [B.GLASS]:"紙窗", [B.WOOL]:"毛線毯", [B.ROOF]:"魚鱗瓦", [B.LEAF]:"樹葉", [B.GRASS]:"草地", [B.SAND]:"梅花沙", [B.CLOUD]:"雲朵", [B.DIRT]:"泥土" };
     const buildEl = root.querySelector("#p3dBuild"), barEl = root.querySelector("#p3dBar");
     let buildOn = false, tool = "put", pick = B.PLANK, lastCam = null; const undo = [], fx = [];
     // 方塊小圖示：用材質畫一個小小的立體方塊（上面＋左右兩面）
