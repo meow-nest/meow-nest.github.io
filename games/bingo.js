@@ -180,10 +180,12 @@ App.registerGame({
         <div class="bgKind"><button data-k="call" class="${kindSel === "call" ? "on" : ""}"><b>喊號碼</b><small>自己排 1～25<br>輪流喊號碼</small></button><button data-k="gacha" class="${kindSel === "gacha" ? "on" : ""}"><b>扭蛋</b><small>選一張賓果卡<br>輪流扭出 1～75</small></button></div>
         <p class="bgHint">${kindSel === "gacha" ? "從幾張賓果卡裡挑一張，正中間是 FREE，<br>輪流轉扭蛋機，扭到的號碼自動蓋章！" : "兩個人各自把 1～25 排進格子裡，<br>輪流喊號碼，先連成指定條數的線就贏！"}</p>
         ${going && p && g.players.includes(me()) ? `<button class="btn bgBig" id="bgBack">${I(PAWC)} 回到${FA ? "全家的" : `和 ${esc(p.name)} 的`}這一局</button>` : ""}
+        ${FA && going && !g.players.includes(me()) ? `<div class="bgLive"><b>家人正在玩（${g.players.length} 人）</b><small>${g.players.map(u => esc(nm(u))).join("、")}・已經喊了 ${g.calls.length} 個號碼</small>
+          <div class="bgRow"><button class="btn sub" id="bgWatch">觀戰</button>${g.players.length < 6 && g.phase !== "end" ? `<button class="btn" id="bgJoin">中途加入</button>` : ""}</div></div>` : ""}
         ${FA ? `<div class="bgFam">${ctx.players().map(u => `<span>${ctx.sprite(ctx.catOf(u), "happy")}<i>${esc(nm(u))}</i></span>`).join("")}</div><div class="bgHint small">${ctx.players().length < 2 ? "等家人也打開「全家一起玩」的賓果…" : `現在有 ${ctx.players().length} 個人在這裡，開一局大家一起玩！`}</div>` : ""}
         <div class="bgPick"><div class="bgPickH">幾條線算贏？</div><div class="bgSeg">${(kindSel === "gacha" ? [1, 2, 3] : [3, 4, 5]).map(n => `<button data-n="${n}" class="${n === (kindSel === "gacha" ? 1 : 5) ? "on" : ""}">${n} 條</button>`).join("")}</div></div>
         <button class="bgMyStamp" id="bgStampBtn">${stampPrev(myStamp, 7)}<span>我的印章：<b>${STAMP[myStamp][1]}</b><small>點這裡換一個</small></span></button>
-        ${p ? `<button class="btn bgBig" id="bgVs">${going ? "重新開一局" : FA ? `全家一起開一局（${ctx.players().length} 人）` : `和 ${esc(p.name)} 對戰`}</button>` : FA ? "" : `<div class="bgHint small">等 ta 加入小窩，就可以兩個人對戰喔</div>`}
+        ${p && !(FA && going && !g.players.includes(me())) ? `<button class="btn bgBig" id="bgVs">${going ? "重新開一局" : FA ? `全家一起開一局（${ctx.players().length} 人）` : `和 ${esc(p.name)} 對戰`}</button>` : FA ? "" : `<div class="bgHint small">等 ta 加入小窩，就可以兩個人對戰喔</div>`}
         <button class="btn sub bgBig" id="bgCpu">跟喵喵電腦練習</button>
         ${p && !FA ? `<div class="bgScore">${cat(meObj(), "happy")}<b>${wins[me()] || 0}</b><span>勝</span><i>：</i><span>勝</span><b>${wins[p.user_id] || 0}</b>${cat(p, "happy")}</div>` : ""}
       </div>`;
@@ -192,6 +194,12 @@ App.registerGame({
       el.querySelectorAll(".bgSeg button").forEach(b => b.addEventListener("click", () => { target = +b.dataset.n; el.querySelectorAll(".bgSeg button").forEach(x => x.classList.toggle("on", x === b)); SFX.tap(); }));
       el.querySelector("#bgStampBtn").addEventListener("click", () => stampPicker(() => lobby()));
       const back = el.querySelector("#bgBack"); if(back) back.addEventListener("click", () => { mode = "vs"; render(); });
+      const wb = el.querySelector("#bgWatch"); if(wb) wb.addEventListener("click", () => { SFX.tap(); mode = "watch"; render(); });
+      const jb = el.querySelector("#bgJoin"); if(jb) jb.addEventListener("click", async () => { SFX.select(); resetLocal();
+        // 中途加入：直接拿一張隨機排好的卡，已經喊過的號碼也算
+        const ok = await mutate(gg => { if(!gg || gg.phase === "end" || gg.players.includes(me()) || gg.players.length >= 6) return undefined;
+          gg.players.push(me()); gg.boards[me()] = gg.kind === "gacha" ? genCard() : shuffle(); gg.ready[me()] = true; gg.stamps = gg.stamps || {}; gg.stamps[me()] = myStamp; return gg; });
+        if(ok){ mode = "vs"; render(); ctx.toast("加入了！已經喊過的號碼也幫你蓋好章了"); } else { ctx.toast("加入不了，可能剛好結束了"); render(); } });
       const vs = el.querySelector("#bgVs"); if(vs) vs.addEventListener("click", async () => {
         if(going && !vs.dataset.ok){ vs.dataset.ok = 1; vs.textContent = "目前這局會不見喔，再按一次"; return; }
         mode = "vs"; resetLocal();
@@ -200,8 +208,8 @@ App.registerGame({
     }
     const I = svg => `<span class="bgI">${svg}</span>`;
     function resetLocal(){ draft = Array(25).fill(0); lastSeenCalls = -1; lastLines = 0; shownEnd = null; cards = []; pickCard = -1; }
-    function header(g){
-      if(multi(g)){ const slotsM = n => Array.from({ length: g.target }, (_, i) => `<span class="${i < n ? "on" : ""}">${g.target === 5 ? LETTERS[i] : i + 1}</span>`).join("");
+    function header(g, wm){
+      if(multi(g) || wm){ const slotsM = n => Array.from({ length: g.target }, (_, i) => `<span class="${i < n ? "on" : ""}">${g.target === 5 ? LETTERS[i] : i + 1}</span>`).join("");
         return `<div class="bgTop"><button class="btn sub bgMenu" id="bgMenu">◀ 選單</button><span class="bgGoal">${g.kind === "gacha" ? "扭蛋・" : ""}${g.target} 條線獲勝・${g.players.length} 人</span></div>
           <div class="bgVsRow multi">${g.players.map(u => { const L = doneLines(g.boards[u], CS(g)).length; return `<div class="bgSide ${g.turn === u && g.phase === "play" ? "turn" : ""}">${cat({ cat: ctx.catOf(u) }, L >= g.target ? "happy" : "normal")}<b>${esc(nm(u))}</b><div class="bgSlots">${slotsM(L)}</div></div>`; }).join("")}</div>`; }
       const o = { cat: oppCat(g).cat };
@@ -330,10 +338,24 @@ App.registerGame({
       o.querySelector("#bgLook").addEventListener("click", () => o.remove());
       o.querySelector("#bgAgain").addEventListener("click", () => { o.remove(); mode = null; render(); });
     }
+    // 觀戰（全家一起玩時，不在這一局的人）：看得到每個人的格子和蓋章，不能喊
+    function watchView(g){
+      const called = CS(g), lastN = g.calls[g.calls.length - 1];
+      el.innerHTML = `<div class="box bgBox play">${header(g, true)}
+        <div class="bgBallRow"><div class="bgBall">${lastN ? `<b>${lastN}</b>` : `<small>還沒喊</small>`}</div>
+          <div class="bgBallTxt">${g.phase === "end" ? `<b>這一局結束了！</b>` : g.phase === "setup" ? `<b>大家在排號碼…</b>` : `<b>輪到 ${esc(turnName(g))}</b>`}<small>觀戰中・只能看不能喊${g.phase === "play" && g.players.length < 6 ? "" : ""}</small></div></div>
+        <div class="bgOpps watch">${g.players.map(u => { const ob = g.boards[u]; return `<div class="bgOpp"><div class="bgOppH">${esc(nm(u))}・${doneLines(ob, called).length} 條</div><div class="bgMini show">${ob ? ob.map((n, k) => `<span class="${called.has(n) ? "on" : ""} ${doneLines(ob, called).some(li => LINES[li].includes(k)) ? "ln" : ""}">${n || "★"}</span>`).join("") : ""}</div></div>`; }).join("")}</div>
+        <div class="bgCalls">${g.calls.map(n => `<span>${n}</span>`).join("")}</div>
+        ${g.phase !== "end" && g.players.length < 6 ? `<button class="btn bgBig" id="bgJoin2">我也要中途加入</button>` : ""}
+      </div>`;
+      bindMenu();
+      const j = el.querySelector("#bgJoin2"); if(j) j.addEventListener("click", () => { mode = null; lobby(); const b = el.querySelector("#bgJoin"); if(b) b.click(); });
+    }
     function bindMenu(){ const m = el.querySelector("#bgMenu"); if(m) m.addEventListener("click", () => { clearTimeout(cpuTimer); if(mode === "cpu") cpuG = null; mode = null; render(); }); }
     function render(){
       if(!alive) return;
       if(mode === "vs" && !pt()) mode = null;
+      if(mode === "watch"){ const gw = s && s.g; if(!gw || gw.players.includes(me())){ mode = gw && gw.players.includes(me()) ? "vs" : null; } else return watchView(gw); }
       const g = mode ? G() : null;
       if(!g){ mode = null; return lobby(); }
       if(g.phase === "setup") return setup(g);
@@ -346,7 +368,7 @@ App.registerGame({
     ctx.getState("bingo").catch(() => null).then(c => { s = c ? cleanS(c.state) : null;
       const g = s && s.g; if(g && g.phase !== "end" && pt() && g.players.includes(me())){ mode = "vs"; lastSeenCalls = g.calls.length; lastLines = doneLines(g.boards[me()], CS(g)).length; shownEnd = null; } render(); });
     this._u = ctx.onState("bingo", st => { const prev = s && s.g; s = cleanS(st) || {};
-      if(mode === "vs"){ const g = s.g; if(g && prev && g.id !== prev.id) resetLocal(); render(); }
+      if(mode === "vs" || mode === "watch"){ const g = s.g; if(g && prev && g.id !== prev.id) resetLocal(); render(); }
       else if(!mode){ const g = s.g; if(g && g.phase !== "end" && pt() && g.players.includes(me()) && (!prev || prev.id !== g.id)){ mode = "vs"; resetLocal(); } render(); } });
     if(FA && ctx.onMembers) this._m = ctx.onMembers(() => render());
     this._stop = () => { alive = false; if(this._m) this._m(); clearTimeout(cpuTimer); document.querySelectorAll(".bgEnd,.bgPick2").forEach(x => x.remove()); };

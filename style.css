@@ -4009,3 +4009,6 @@ body.dockKb .careModal .ltWrap .ltBody{height:clamp(56px,calc(100dvh - var(--doc
 .fsRank.big{margin:10px 0}
 .fsLive{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin:4px 0}.fsLive span{display:flex;align-items:center;gap:2px;font-size:13px;background:var(--card);border:2px solid var(--line);padding:0 6px 0 2px}.fsLive span.me{background:var(--pinkL)}.fsLive svg{width:22px;height:auto}
 .fsCount{text-align:center;padding:40px 10px}.fsCount b{display:block;font-weight:400;font-size:64px;color:var(--pinkT)}.fsCount span{color:var(--muted)}
+
+.bgLive{border:3px solid var(--pinkT);background:#fff6f8;padding:8px;margin:6px 0;text-align:center}.bgLive b{font-weight:400;display:block}.bgLive small{display:block;color:var(--muted);font-size:12px;margin-bottom:6px}
+.bgOpps.watch .bgMini{width:120px}
