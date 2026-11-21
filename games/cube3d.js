@@ -223,7 +223,7 @@
         g.strokeStyle = "#f2a0b8"; g.lineWidth = .45; for(let s3 = 0; s3 < 8; s3++){ const an = s3*.785; g.beginPath(); g.moveTo(0, 0); g.lineTo(Math.cos(an)*rr*.45, Math.sin(an)*rr*.45); g.stroke(); g.fillStyle = "#f6d06a"; g.beginPath(); g.arc(Math.cos(an)*rr*.47, Math.sin(an)*rr*.47, .65, 0, Math.PI*2); g.fill(); }
         g.restore(); };
       // 細細的小枝
-      g.strokeStyle = "#7a5a4a"; g.lineWidth = 1.4; g.beginPath(); g.moveTo(4, 60); g.quadraticCurveTo(24, 40, 30, 30); g.moveTo(22, 44); g.quadraticCurveTo(40, 42, 54, 46); g.stroke();
+      g.strokeStyle = "rgba(150,110,95,.55)"; g.lineWidth = .9; g.beginPath(); g.moveTo(4, 60); g.quadraticCurveTo(24, 40, 30, 30); g.moveTo(22, 44); g.quadraticCurveTo(40, 42, 54, 46); g.stroke();
       for(let j = 0; j < 4; j++){ const x = 10 + rq()*44, y = 10 + rq()*44; g.save(); g.translate(x, y); g.rotate(rq()*6.28); g.beginPath(); g.ellipse(0, 0, 2.2, 3.6, 0, 0, Math.PI*2); g.fillStyle = "#e0718f"; g.fill(); g.restore(); }   // 花苞
       if(k) for(let j = 0; j < 3; j++){ const x = 8 + rq()*48, y = 8 + rq()*48; g.save(); g.translate(x, y); g.rotate(rq()*6.28); g.beginPath(); g.ellipse(0, 0, 2.5, 5, 0, 0, Math.PI*2); g.fillStyle = "#a86a5a"; g.fill(); g.restore(); }   // 紅紅的嫩葉
       const F = []; for(let j = 0; j < 14; j++) F.push([8 + rq()*48, 8 + rq()*48, 5 + rq()*4.5, rq()*6.28, rq() < .3 ? .45 + rq()*.3 : 1, rq() < .45]);
@@ -551,7 +551,7 @@
             const p00 = A.map((c, j) => c + o(a0, ra)[j]), p01 = A.map((c, j) => c + o(a1, ra)[j]), p10 = Bp.map((c, j) => c + o(a0, rb)[j]), p11 = Bp.map((c, j) => c + o(a1, rb)[j]);
             quad([p00, p01, p11, p10], [b0,b3, b2,b3, b2,b1, b0,b1], .8); } } };
       const clump = (c, rad, n, q, bright) => { for(let k = 0; k < n; k++){ const [u0,v0,u1,v1] = tileUV(q() < .5 ? 87 : 88), off = [ (q() - .5)*2*rad, (q() - .35)*1.4*rad, (q() - .5)*2*rad ], cc = c.map((v, j) => v + off[j]);
-          const nv = nrm([q()*2 - 1, q()*1.2 - .2, q()*2 - 1]), ex = nrm(cross(Math.abs(nv[1]) < .9 ? [0,1,0] : [1,0,0], nv)), ey = cross(nv, ex), sz = .34 + q()*.22;
+          const nv = nrm([q()*2 - 1, q()*1.2 - .2, q()*2 - 1]), ex = nrm(cross(Math.abs(nv[1]) < .9 ? [0,1,0] : [1,0,0], nv)), ey = cross(nv, ex), sz = .4 + q()*.26;
           quad([[-1,-1],[1,-1],[1,1],[-1,1]].map(([a, b]) => cc.map((v, j) => v + (ex[j]*a + ey[j]*b)*sz)), [u0,v1, u1,v1, u1,v0, u0,v0], Math.min(1.08, bright + off[1]*.12)); } };
       for(const s0 of sakList){ const k0 = key(...s0); if(seen.has(k0)) continue; const comp = [], st = [s0]; seen.add(k0);
         while(st.length){ const p = st.pop(); comp.push(p); for(const [dx,dy,dz] of [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]]){ const nk = key(p[0]+dx, p[1]+dy, p[2]+dz); if(at.has(nk) && !seen.has(nk)){ seen.add(nk); st.push([p[0]+dx, p[1]+dy, p[2]+dz]); } } }
@@ -563,10 +563,12 @@
         for(let i = 0; i < nb; i++){ const a = i/nb*Math.PI*2 + q()*.6, ca = Math.cos(a), sa = Math.sin(a), rr = .65 + q()*.25;
           const M = [cx + ca*Rx*.35, bot + h*.25 + q()*.3, cz + sa*Rz*.35], E = [cx + ca*Rx*rr, bot + h*(.45 + q()*.35), cz + sa*Rz*rr];
           branch([T0, M, E], .13, .05);
-          clump(E, .65, 15, q, .98); clump(M.map((v, j) => (v + E[j])/2 + (j === 1 ? .35 : 0)), .55, 10, q, .92);
+          clump(E, .75, 22, q, .98); clump(M.map((v, j) => (v + E[j])/2 + (j === 1 ? .35 : 0)), .6, 14, q, .92);
           for(let j = 0; j < 2; j++){ const a2 = a + (j ? .6 : -.6) + (q() - .5)*.3, E2 = [E[0] + Math.cos(a2)*(.6 + q()*.5), E[1] + .3 + q()*.6, E[2] + Math.sin(a2)*(.6 + q()*.5)];
-            branch([E, E2], .05, .025); clump(E2, .6, 13, q, 1.02); } }
-        for(let i = 0; i < 12; i++){ const a = q()*Math.PI*2, rr = q()*.75; clump([cx + Math.cos(a)*Rx*rr, top - .2 - q()*h*.45, cz + Math.sin(a)*Rz*rr], .6, 10, q, 1.04); }   // 樹頂補幾叢
+            branch([E, E2], .05, .025); clump(E2, .7, 18, q, 1.02); } }
+        const Cy = bot + h*.6, Ry = h*.5 + .3;
+        for(let i = 0; i < 46; i++){ const a = q()*Math.PI*2, e = q()*1.6 - .55, rr = .7 + q()*.32, ce = Math.cos(e);   // 整個樹冠（扁扁的半球）表面和裡面都補滿花
+          clump([cx + Math.cos(a)*ce*Rx*rr, Cy + Math.sin(e)*Ry*rr, cz + Math.sin(a)*ce*Rz*rr], .6, 12, q, .96 + Math.sin(e)*.1); }   // 樹頂補幾叢
       }
     }
     const FOL_PICK = -1;   // 站長選好的樹葉款式（-1 = 還沒選，用乾淨版）；window.__fol 可以暫時換來看
