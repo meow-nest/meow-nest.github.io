@@ -1453,7 +1453,7 @@
     const tcube = (() => { const P = [], N = [], UV = [], SH = [], I = []; FACES.forEach(f => { const b = P.length/3; f.c.forEach(c => { P.push(c[0]-.5, c[1]-.5, c[2]-.5); N.push(...f.n); SH.push(f.l); }); UV.push(0,1, 1,1, 1,0, 0,0); I.push(b,b+1,b+2,b,b+2,b+3); }); return mesh(P, N, UV, SH, I); })();
     function drawFurnV(id, x, y, z, rot, t){
       const M0 = chain(T(x, y, z), RY(rot || 0)), FS = window.__fvStyle != null ? window.__fvStyle : FV_STYLE;
-      const v = FS < 0 ? (x0, y0, z0, x1, y1, z1, c) => box(chain(M0, T((x0 + x1)/32 - .5, (y0 + y1)/32, (z0 + z1)/32 - .5), S((x1 - x0)/16, (y1 - y0)/16, (z1 - z0)/16)), c)
+      const v = (FS < 0 || FV_FLAT.has(id)) ? (x0, y0, z0, x1, y1, z1, c) => box(chain(M0, T((x0 + x1)/32 - .5, (y0 + y1)/32, (z0 + z1)/32 - .5), S((x1 - x0)/16, (y1 - y0)/16, (z1 - z0)/16)), c)
         : (x0, y0, z0, x1, y1, z1, c) => { const ci = FV_COLS.indexOf(c); if(ci < 0){ box(chain(M0, T((x0 + x1)/32 - .5, (y0 + y1)/32, (z0 + z1)/32 - .5), S((x1 - x0)/16, (y1 - y0)/16, (z1 - z0)/16)), c); return; }
           const [u0,v0,u1,v1] = tileUV(128 + FS*FV_COLS.length + ci); bind(tcube); gl.uniform1f(U("mode"), 0); gl.uniform4f(U("uvR"), u0, v0, u1 - u0, v1 - v0);
           gl.uniformMatrix4fv(U("M"), false, chain(M0, T((x0 + x1)/32 - .5, (y0 + y1)/32, (z0 + z1)/32 - .5), S((x1 - x0)/16, (y1 - y0)/16, (z1 - z0)/16))); gl.uniform1f(U("alpha"), 1); gl.drawElements(gl.TRIANGLES, boundC, gl.UNSIGNED_SHORT, 0);
@@ -1492,6 +1492,7 @@
           v(2,.8,6, 7,1.1,11, SG); v(4,1.1,8, 5.5,2,9.5, PK); const fx = 8 + Math.cos(t*.8)*6, fz = 8 + Math.sin(t*.8)*5; v(fx - 1.5,.9,fz - .8, fx + 1.5,1.5,fz + .8, "#f2a65a"); break; }
       }
     }
+    const FV_FLAT = new Set(["cbox", "teaser"]);   // 這幾件不套家具材質（站長說紙箱、逗貓棒罐維持平塗）
     const FV_STYLE = 6;    // 家具材質風格（-1 平塗；0 和紙、1 像素點點、2 手繪木紋布紋、3 粉彩小圖案）
     function frame(now){
       if(dead) return; raf = requestAnimationFrame(frame);
