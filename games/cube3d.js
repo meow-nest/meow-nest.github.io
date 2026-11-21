@@ -241,7 +241,7 @@
       g.restore(); });
     // 家具材質（材質格 128 起）：4 種風格 × 每種顏色一張
     // 風格 0 和紙、1 像素點點、2 手繪木紋布紋、3 粉彩小圖案
-    for(let st = 0; st < 4; st++) FV_COLS.forEach((c, ci) => { const k = 128 + st*FV_COLS.length + ci, ox = (k % COLS)*N, oy = Math.floor(k / COLS)*N, kind = FV_KIND(c), rq = rng(k*7);
+    for(let st = 0; st < 9; st++) FV_COLS.forEach((c, ci) => { const k = 128 + st*FV_COLS.length + ci, ox = (k % COLS)*N, oy = Math.floor(k / COLS)*N, kind = FV_KIND(c), rq = rng(k*7);
       g.save(); g.translate(ox, oy); g.beginPath(); g.rect(0, 0, N, N); g.clip();
       const hx = h => [1,3,5].map(i => parseInt(h.substr(i,2),16)), mixc = (a, b2, t2) => { const x = hx(a), y2 = hx(b2); return "#" + x.map((vv,i) => Math.round(vv + (y2[i]-vv)*t2).toString(16).padStart(2,"0")).join(""); };
       const dk2 = (t2 = .15) => mixc(c, "#3a2a28", t2), lt2 = (t2 = .3) => mixc(c, "#ffffff", t2);
@@ -262,6 +262,24 @@
           g.strokeStyle = dk2(.08); g.lineWidth = 1; g.setLineDash([3, 3]); g.strokeRect(3, 3, N - 6, N - 6); g.setLineDash([]); }
         else if(kind === "rope"){ for(let y = 0; y < N; y += 5){ g.fillStyle = y % 10 ? dk2(.1) : lt2(.15); g.fillRect(0, y, N, 5); g.strokeStyle = dk2(.25); g.lineWidth = .8; for(let x = -4; x < N; x += 5){ g.beginPath(); g.moveTo(x, y + 5); g.lineTo(x + 4, y); g.stroke(); } } }
         else { const gr = g.createLinearGradient(0, 0, 0, N); gr.addColorStop(0, lt2(.3)); gr.addColorStop(1, c); g.fillStyle = gr; g.fillRect(0, 0, N, N); } }
+      else if(st === 4){   // 格紋（野餐布那種格子），木頭是刷白的木板
+        if(kind === "wood"){ g.fillStyle = lt2(.35); g.fillRect(0, 0, N, N); g.strokeStyle = dk2(.12); g.lineWidth = 1; for(let y = 0; y < N; y += 16){ g.beginPath(); g.moveTo(0, y + .5); g.lineTo(N, y + .5); g.stroke(); } g.fillStyle = "rgba(255,255,255,.35)"; for(let j = 0; j < 30; j++) g.fillRect(rq()*N, rq()*N, 6 + rq()*8, 1); }
+        else { g.fillStyle = "rgba(255,255,255,.45)"; for(let x = 0; x < N; x += 16) g.fillRect(x, 0, 8, N); for(let y = 0; y < N; y += 16) g.fillRect(0, y, N, 8); g.fillStyle = "rgba(255,255,255,.25)"; for(let x = 0; x < N; x += 16) for(let y = 0; y < N; y += 16) g.fillRect(x, y, 8, 8); } }
+      else if(st === 5){   // 條紋，木頭是深色亮亮的漆木
+        if(kind === "wood"){ g.fillStyle = dk2(.2); g.fillRect(0, 0, N, N); g.strokeStyle = "rgba(255,240,220,.22)"; g.lineWidth = 2; for(let y = 6; y < N; y += 12){ g.beginPath(); g.moveTo(0, y); g.bezierCurveTo(20, y + 2, 44, y - 2, 64, y); g.stroke(); } g.fillStyle = "rgba(255,255,255,.18)"; g.fillRect(0, 0, N, 6); }
+        else { g.fillStyle = lt2(.5); for(let x = 0; x < N; x += 12) g.fillRect(x, 0, 5, N); g.fillStyle = dk2(.06); for(let x = 8; x < N; x += 12) g.fillRect(x, 0, 1.5, N); } }
+      else if(st === 6){   // 小碎花布，木頭上有手繪小花
+        if(kind === "wood"){ g.strokeStyle = dk2(.12); g.lineWidth = 1; for(let y = 5; y < N; y += 10){ g.beginPath(); g.moveTo(0, y); g.lineTo(N, y + 1); g.stroke(); } }
+        const fl = (x, y, r2, cc) => { g.fillStyle = cc; for(let k2 = 0; k2 < 5; k2++){ const a = k2*1.2566; g.beginPath(); g.arc(x + Math.cos(a)*r2, y + Math.sin(a)*r2, r2*.8, 0, Math.PI*2); g.fill(); } g.fillStyle = "#ffe08a"; g.beginPath(); g.arc(x, y, r2*.6, 0, Math.PI*2); g.fill(); };
+        if(kind === "fabric") for(let j = 0; j < 9; j++){ const x = rq()*N, y = rq()*N; fl(x, y, 2.4, ["#ffffff", "#ffd6e0", "#d6e8ff"][j % 3]); g.fillStyle = "#8fc48a"; g.beginPath(); g.ellipse(x + 5, y + 4, 2.6, 1.2, .6, 0, Math.PI*2); g.fill(); }
+        else if(kind === "wood"){ fl(16, 20, 2.2, "#f7b6c8"); fl(46, 44, 2.2, "#ffffff"); } }
+      else if(st === 7){   // 針織毛線（一排排 V 字），木頭是編織籐
+        if(kind === "wood" || kind === "rope"){ for(let y = 0; y < N; y += 8) for(let x = 0; x < N; x += 8){ g.fillStyle = ((x + y)/8) % 2 ? dk2(.12) : lt2(.12); g.fillRect(x, y, 8, 4); g.fillStyle = ((x + y)/8) % 2 ? lt2(.12) : dk2(.12); g.fillRect(x, y + 4, 8, 4); } }
+        else { g.lineCap = "round"; for(let y = -4; y < N; y += 7) for(let x = 0; x < N; x += 8){ g.strokeStyle = (y/7 | 0) % 2 ? lt2(.22) : dk2(.06); g.lineWidth = 3.2; g.beginPath(); g.moveTo(x + 1, y); g.lineTo(x + 4, y + 6); g.lineTo(x + 7, y); g.stroke(); } g.lineCap = "butt"; } }
+      else if(st === 8){   // 亞麻帆布（細細的織紋），木頭是原木切面
+        if(kind === "wood"){ g.strokeStyle = dk2(.1); g.lineWidth = 1; for(let r2 = 6; r2 < 60; r2 += 6){ g.beginPath(); g.ellipse(10, 54, r2, r2*.7, 0, 0, Math.PI*2); g.stroke(); } }
+        else { g.globalAlpha = .35; for(let y = 0; y < N; y += 2){ g.fillStyle = y % 4 ? lt2(.3) : dk2(.12); g.fillRect(0, y, N, 1); } for(let x = 0; x < N; x += 2){ g.fillStyle = x % 4 ? lt2(.2) : dk2(.1); g.fillRect(x, 0, 1, N); } g.globalAlpha = 1;
+          for(let j = 0; j < 12; j++){ g.fillStyle = "rgba(120,90,60,.12)"; g.fillRect(rq()*N, rq()*N, 1 + rq()*3, 1); } } }
       else {   // 粉彩小圖案：點點、小愛心、條紋
         if(kind === "fabric"){ g.fillStyle = lt2(.45); for(let y = 0; y < 4; y++) for(let x = 0; x < 4; x++){ g.beginPath(); g.arc(8 + x*16 + (y % 2)*8, 8 + y*16, 3, 0, Math.PI*2); g.fill(); } }
         else if(kind === "wood"){ for(let y = 0; y < N; y += 16){ g.fillStyle = (y/16) % 2 ? dk2(.05) : lt2(.08); g.fillRect(0, y, N, 15); g.fillStyle = dk2(.15); g.fillRect(0, y + 15, N, 1); }
@@ -269,6 +287,7 @@
         else if(kind === "rope"){ for(let y = 0; y < N; y += 8){ g.fillStyle = (y/8) % 2 ? "#f7d6df" : lt2(.2); g.fillRect(0, y, N, 8); } }
         else { g.fillStyle = "rgba(255,255,255,.5)"; g.beginPath(); g.ellipse(18, 16, 10, 5, -.5, 0, Math.PI*2); g.fill(); } }
       g.restore(); });
+
     // 顏色格（材質格 52 切成 8×8 小格，給 30 款樹葉裡面那層用）
     { const ox = (127 % COLS)*N, oy = Math.floor(127 / COLS)*N; FOL_INNER.forEach((c, k) => { g.fillStyle = c; g.fillRect(ox + (k % 8)*8, oy + Math.floor(k / 8)*8, 8, 8); }); }
     return { cv, COLS, N };
