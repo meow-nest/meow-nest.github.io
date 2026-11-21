@@ -366,7 +366,7 @@ const App = (function(){
   }
   async function famLiveLoad(){
     clearTimeout(famLiveT);
-    const el = $("famLive"); if(!el || !isFam() || route !== "home" || others().length < 2 || !B.liveGames) return;
+    const el = $("famLive"); if(!el || !isFam() || (route !== "home" && route !== "games") || others().length < 2 || !B.liveGames) return;
     if(document.visibilityState === "visible"){
       let rows = null; try{ rows = await B.liveGames(WATCHABLE, 20); }catch(e){}
       const box = $("famLive"); if(!box) return;
@@ -385,7 +385,7 @@ const App = (function(){
     v.innerHTML = `<div class="gtop"><button class="btn sub" id="bBack">◀ 回小窩</button><span class="gname">觀戰・${esc(g.name)}</span></div>
       <div class="box wBar"><span class="flCats">${sprite(a.cat || "orange", "happy")}<i>VS</i>${sprite(b.cat || "white", "happy")}</span><span class="flTxt"><b>${esc(a.name)} 和 ${esc(b.name)}</b><small>只能看，不能幫忙下喔・畫面是從 ${esc(a.name)} 那邊看的</small></span><button class="btn sub" id="wCheer">加油</button></div>
       <div id="gArea" class="watching"></div>`;
-    $("bBack").addEventListener("click", () => go("home"));
+    $("bBack").addEventListener("click", () => go(isAdmin ? "games" : "home"));
     $("wCheer").addEventListener("click", () => { const t = Date.now(); if(t - (WATCH.cheerAt || 0) < 8000){ toast("加油收到了，等一下再喊～"); return; } WATCH.cheerAt = t; SFX.heart();
       B.bcast({ t: "famCheer", from: me.uid, to: [a.user_id, b.user_id], g: g.id }); toast(`你幫 ${esc(a.name)} 和 ${esc(b.name)} 加油了！`); });
     // 觀戰用的 ctx：用 A 的角度顯示，所有寫入都擋掉
