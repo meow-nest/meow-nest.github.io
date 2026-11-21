@@ -1179,10 +1179,11 @@ const App = (function(){
       <div class="box admBox admFold ${admOpen("bday", false) ? "open" : ""}" data-fold="bday"><h3 class="admFH">🎂 壽星貓<small>重設生日・預覽</small><i class="admArr">▾</i></h3><div class="admFB"><div class="k">有人生日填錯，輸入 ta 的邀請碼和暱稱，就能清掉讓 ta 重填（已經領到的壽星貓會留著）。</div>
         <div class="bdAdm"><input id="admBdC" placeholder="邀請碼" maxlength="8" autocomplete="off"><input id="admBdN" placeholder="暱稱" maxlength="10" autocomplete="off"></div>
         <button class="btn sub" id="admBdR" style="width:100%;margin-top:6px">清掉 ta 的生日</button><button class="btn sub" id="admBdP" style="width:100%;margin-top:6px">預覽生日領取畫面</button></div></div>
+      <div class="box admBox admFold ${admOpen("prep", false) ? "open" : ""}" data-fold="prep"><h3 class="admFH">🚩 配對檢舉<small id="admPrN"></small><i class="admArr">▾</i></h3><div class="admFB" id="admPr"><div class="k">讀取中…</div></div></div>
       <div class="box admBox admFold ${admOpen("survey", true) ? "open" : ""}" data-fold="survey"><h3 class="admFH">📋 意見問卷<small id="admSvN"></small><i class="admArr">▾</i></h3><div class="admFB" id="admSv"><div class="k">讀取中…</div></div></div>`;
     body.querySelectorAll(".admFH").forEach(h=>h.addEventListener("click", ()=>{ const box = h.closest(".admFold"), k = box.dataset.fold, open = !box.classList.contains("open");
       box.classList.toggle("open", open); admFoldSet(k, open); SFX.tap(); }));
-    admSurvey();
+    admSurvey(); admReports();
     { const r = $("admBdR"); if(r) r.addEventListener("click", async ()=>{ const c = $("admBdC").value.trim(), n = $("admBdN").value.trim(); if(!c || !n){ toast("邀請碼和暱稱都要填"); return; }
         if(!confirm(`確定要清掉「${n}」的生日嗎？`)) return; r.disabled = true;
         try{ const x = await B.rpc("admin_bday_reset", { p_code:c, p_name:n }); toast(x && x.ok ? "清掉了，ta 可以重新填生日了" : "找不到這個人，檢查一下邀請碼和暱稱"); }catch(e){ toast("資料庫還沒加上壽星貓的設定（更新 46）"); }
@@ -1371,6 +1372,29 @@ const App = (function(){
     o.querySelector("#svOk").addEventListener("click", ()=>o.remove());
     const u = o.querySelector("#svUse"); if(u) u.addEventListener("click", async ()=>{ u.disabled = true; me.cat = "star"; store.set("mw_cat","star");
       try{ await B.updateMe({ cat:"star" }); }catch(e){} B.track({ name:me.name, cat:"star" }); lastHdr = ""; renderHeader(); o.remove(); toast(`${sprite("star","wave")} 換好了，博士貓來囉！`); if(view==="settings") render(); });
+  }
+  // 站長：隨機配對被檢舉的人，可以禁止 ta 配對（更新 68）
+  async function admReports(){
+    const el = $("admPr"), nEl = $("admPrN"); if(!el) return;
+    let xs; try{ xs = await B.rpc("admin_party_reports"); }catch(e){ el.innerHTML = `<div class="k">${/admin_party_reports|function|schema cache/i.test(String(e && e.message || e)) ? "資料庫還沒加上配對檢舉（更新 68）" : "讀不到，等一下再看"}</div>`; return; }
+    if(!$("admPr")) return;
+    xs = Array.isArray(xs) ? xs : [];
+    const banned = xs.filter(x => x.banned).length;
+    if(nEl) nEl.textContent = xs.length ? `${xs.length} 人被檢舉${banned ? `・${banned} 人禁止中` : ""}` : "";
+    const gn = id => { const g = ptGame(id); return g ? g.name : id; };
+    const d = t => { const x = new Date(t); return `${x.getMonth()+1}/${x.getDate()} ${String(x.getHours()).padStart(2,"0")}:${String(x.getMinutes()).padStart(2,"0")}`; };
+    el.innerHTML = `<div class="k admNote">檢舉會自動封鎖：被檢舉的人不會再配到檢舉的人。被很多人檢舉的話，可以「禁止配對」，ta 就完全不能用隨機配對（用房間碼跟朋友玩不受影響）。</div>`
+      + (xs.length ? xs.map(x => `<div class="admPrR ${x.banned ? "ban" : ""}"><div class="admPrH">${sprite(x.cat || "white", x.banned ? "cry" : "normal")}<span><b>${esc(x.name || "（已經離開小窩）")}</b><small>${esc(x.anon)}・小窩 ${esc(x.code || "?")}</small></span><em class="admPrN ${x.n >= 3 ? "hot" : ""}">${x.n} 次<small>${x.who} 人檢舉</small></em></div>
+          <ul>${(x.recent || []).map(r => `<li>${esc(d(r.at))}・${esc(gn(r.game))}・${esc(r.reason)}</li>`).join("")}</ul>
+          <button class="btn ${x.banned ? "sub" : "admPrBan"}" data-ban="${esc(x.id)}" data-on="${x.banned ? 0 : 1}">${x.banned ? "解除禁止（讓 ta 可以再配對）" : "禁止 ta 隨機配對"}</button></div>`).join("")
+        : `<div class="k" style="text-align:center;padding:8px">目前沒有人被檢舉 🎉</div>`);
+    el.querySelectorAll("[data-ban]").forEach(b => { let arm = false; b.addEventListener("click", async () => {
+      const on = b.dataset.on === "1";
+      if(!arm){ arm = true; const t = b.textContent; b.textContent = on ? "確定要禁止嗎？再按一次" : "確定要解除嗎？再按一次"; setTimeout(() => { if(arm && b.isConnected){ arm = false; b.textContent = t; } }, 3000); return; }
+      b.disabled = true; clearInterval(admTimer);
+      try{ await B.rpc("admin_party_ban", { p_uid: b.dataset.ban, p_on: on }); toast(on ? "已經禁止 ta 隨機配對了" : "解除了，ta 又可以隨機配對"); }catch(e){ toast("沒有成功，再試一次"); }
+      admReports();
+    }); });
   }
   async function admSurvey(){
     const box = $("admSv"); if(!box) return; let r;
@@ -1720,7 +1744,7 @@ const App = (function(){
   async function ptMatch(game){
     if(PT.busy) return; PT.busy = true; SFX.tap();
     try{ const r = await B.rpc("party_match", { p_game: game });
-      if(r && r.error) toast(r.error === "not_solo" ? "隨機配對只開放給單人小窩喔" : r.error === "too_many" ? "配對太多次了，休息一下再來吧" : "沒有成功，再試一次");
+      if(r && r.error) toast(r.error === "banned" ? "你暫時不能使用隨機配對<br>有問題可以到設定寫信給站長" : r.error === "not_solo" ? "隨機配對只開放給單人小窩喔" : r.error === "too_many" ? "配對太多次了，休息一下再來吧" : "沒有成功，再試一次");
       else if(r){ PT.room = r; PT.waitAt = Date.now(); if(r.members && r.members.length > 1) SFX.match(); }
     }catch(e){ toast(/party_match|function|schema cache/i.test(String(e && e.message || e)) ? "資料庫還沒加上配對的功能（更新 66）" : ptErr(e), 4000); }
     PT.busy = false; ptPaint();
@@ -1742,6 +1766,24 @@ const App = (function(){
       if(B.partyBcast) B.partyBcast({ from: me.uid, qp: +b.dataset.q });
       toast(`${sprite(me.cat || "orange", QP[+b.dataset.q][0])} 你說：${esc(QP[+b.dataset.q][1])}`);
     }));
+  }
+  // 我檢舉過（封鎖）的喵友：可以解除封鎖，之後又可能配到
+  async function ptBlocks(){
+    SFX.tap();
+    const m = modal(`<h3>我檢舉過的喵友</h3><p class="k" style="text-align:center">檢舉過的喵友不會再配到你<br>解除封鎖後，之後又可能配到 ta</p><div class="ptBlkL"><div class="k" style="text-align:center;padding:10px">讀取中…</div></div><button class="btn sub" id="bkX" style="width:100%;margin-top:8px">關掉</button>`);
+    m.querySelector("#bkX").addEventListener("click", () => m.remove());
+    const L = m.querySelector(".ptBlkL");
+    let xs = null; try{ xs = await B.rpc("party_my_blocks"); }catch(e){ L.innerHTML = `<div class="k" style="text-align:center;padding:10px">${/party_my_blocks|function|schema cache/i.test(String(e && e.message || e)) ? "資料庫還沒加上這個功能（更新 68）" : "讀不到，網路不太穩"}</div>`; return; }
+    if(!xs || !xs.length){ L.innerHTML = `<div class="k" style="text-align:center;padding:10px">你還沒有檢舉過任何人</div>`; return; }
+    const gn = id => { const g = ptGame(id); return g ? g.name : ""; };
+    L.innerHTML = xs.map(x => `<div class="ptBlkR" data-id="${esc(x.id)}">${sprite(x.cat || "white", "normal")}<span><b>${esc(x.name)}</b><small>${esc(x.reason || "")}${x.game ? "・" + esc(gn(x.game)) : ""}・${new Date(x.at).getMonth()+1}/${new Date(x.at).getDate()}</small></span><button class="btn sub">解除封鎖</button></div>`).join("");
+    L.querySelectorAll(".ptBlkR").forEach(r => { const b = r.querySelector("button"); let arm = false;
+      b.addEventListener("click", async () => {
+        if(!arm){ arm = true; b.textContent = "確定？"; setTimeout(() => { if(arm && b.isConnected){ arm = false; b.textContent = "解除封鎖"; } }, 3000); return; }
+        b.disabled = true;
+        try{ await B.rpc("party_unblock", { p_other: r.dataset.id }); r.remove(); toast("解除封鎖了，之後可能又會配到 ta"); if(!L.children.length) L.innerHTML = `<div class="k" style="text-align:center;padding:10px">你還沒有檢舉過任何人</div>`; }
+        catch(e){ b.disabled = false; toast("沒有成功，再試一次"); }
+      }); });
   }
   function ptReport(){
     const o = ptOther(); if(!o) return;
@@ -1812,7 +1854,8 @@ const App = (function(){
       const pend = (()=>{ try{ return localStorage.getItem("mw_ptJoin") || ""; }catch(e){ return ""; } })();
       const matchBox = `<div class="box ptBox ptMatchBox"><div class="ptHead">${sprite(me.cat || "orange", "happy")}<p><b>找陌生的喵友一起玩</b><br>隨機配對其他小窩的人</p></div>
         <div class="ptGames">${MATCH_GAMES.map(id => { const g = ptGame(id); if(!g) return ""; return `<button class="gcard" data-pm="${id}"><span class="gi">${window.GameArt && GameArt[id] ? `<span class="ga">${GameArt[id]()}</span>` : g.icon()}</span><span class="gn">${esc(g.name)}</span><span class="gd">隨機配對</span></button>`; }).join("")}</div>
-        <div class="k ptNote">喵友只看得到你的貓咪和「喵友」編號，看不到你的暱稱<br>不能打字聊天，只能用固定的短句・遇到怪怪的人可以按「檢舉」</div></div>`;
+        <div class="k ptNote">喵友只看得到你的貓咪和「喵友」編號，看不到你的暱稱<br>不能打字聊天，只能用固定的短句・遇到怪怪的人可以按「檢舉」</div>
+        <button class="btn sub ptBlkB" id="ptBlk" style="width:100%">我檢舉過的喵友</button></div>`;
       a.innerHTML = `${matchBox}<div class="box ptBox"><div class="ptHead">${sprite(me.cat || "orange", "wave")}<p>開一間房間，把<b>房間碼</b>傳給其他小窩的朋友，<br>就能一起玩了！</p></div>
         ${PT.err ? `<div class="k ptErrT">${esc(PT.err)}</div>` : ""}
         <h3 class="ptH">開房間</h3><div class="ptGames">${PARTY_GAMES.map(id => { const g = ptGame(id); if(!g) return ""; return `<button class="gcard" data-pc="${id}"><span class="gi">${window.GameArt && GameArt[id] ? `<span class="ga">${GameArt[id]()}</span>` : g.icon()}</span><span class="gn">${esc(g.name)}</span><span class="gd">開一間房間</span></button>`; }).join("")}</div>
@@ -1820,6 +1863,7 @@ const App = (function(){
         <div class="k ptNote">你畫我猜最多 6 人、其他 2 人・房間碼只給想一起玩的朋友・一天沒玩房間會自動關掉</div></div>`;
       a.querySelectorAll("[data-pc]").forEach(b => b.addEventListener("click", () => ptCreate(b.dataset.pc)));
       a.querySelectorAll("[data-pm]").forEach(b => b.addEventListener("click", () => ptMatch(b.dataset.pm)));
+      { const bb = a.querySelector("#ptBlk"); if(bb) bb.addEventListener("click", ptBlocks); }
       const inp = a.querySelector("#ptCode");
       inp.addEventListener("input", () => { const v = inp.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6); if(v !== inp.value) inp.value = v; });
       inp.addEventListener("keydown", e => { if(e.key === "Enter") ptJoin(inp.value); });

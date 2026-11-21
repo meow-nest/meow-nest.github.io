@@ -60,7 +60,7 @@
 
 ### 加新的 SQL
 
-1. 新檔案 `supabase/update_NN_名稱.sql`，NN 接著目前最大的號碼（目前到 **67**）。開頭用中文註解說這次做什麼。要能重複執行（`if not exists`、`create or replace`）。
+1. 新檔案 `supabase/update_NN_名稱.sql`，NN 接著目前最大的號碼（目前到 **68**）。開頭用中文註解說這次做什麼。要能重複執行（`if not exists`、`create or replace`）。
 2. 加進 all.sql：`printf '\n' >> supabase/all.sql && cat supabase/update_NN_名稱.sql >> supabase/all.sql`
 3. 先在本機 Postgres 測過，再推上去給站長連結。
 
@@ -109,7 +109,7 @@ git push origin main           # GitHub Pages 約 1 分鐘後更新
 ## 目前的狀態（2026/11/20）
 
 - 最新的 SQL 是 update_65（貓貓股市多 8 家公司，共 24 家：`stock_defs`、`stock_meta` 兩個函式要一起加；前端 `games/stock.js` 的 `CO`、`INFO` 也要加）。update_64（定時訊息）站長已經跑過。站長說過 11/22（日）回來繼續更新。
-- 隨機配對（update_66＋67，11/21）：所有小窩（67 拿掉只限單人，不會配到同一個小窩的人）在「跟朋友一起玩」可以隨機配對其他小窩的人（`party_match`，遊戲 `MATCH_GAMES`：gomoku、pool、chess、banqi、battleship；不開放要打字的遊戲）。配對房間 `party_rooms.pub = true`：名字存成 `party_anon()`（喵友＋4 碼），看不到真名、不能用房間碼加入、有人離開整間關掉。只能用固定短句 `QP`（廣播 `{qp: 索引}`，不能自己打字）。檢舉 `party_report` → `party_blocks` 封鎖＋寄到回報信箱「【配對檢舉】」。等待中前端每 4 秒 `party_mine`（順便更新 last_at，超過 30 秒沒更新的房間不會被配到）。房間遊戲也多了五子棋、西洋棋、暗棋、海戰（`PARTY_GAMES`、`party_games()`）。
+- 隨機配對（update_66＋67，11/21）：所有小窩（67 拿掉只限單人，不會配到同一個小窩的人）在「跟朋友一起玩」可以隨機配對其他小窩的人（`party_match`，遊戲 `MATCH_GAMES`：gomoku、pool、chess、banqi、battleship；不開放要打字的遊戲）。配對房間 `party_rooms.pub = true`：名字存成 `party_anon()`（喵友＋4 碼），看不到真名、不能用房間碼加入、有人離開整間關掉。只能用固定短句 `QP`（廣播 `{qp: 索引}`，不能自己打字）。檢舉 `party_report` → `party_blocks` 封鎖（使用者在「我檢舉過的喵友」可以解除：`party_my_blocks`／`party_unblock`）＋`party_reports` 紀錄＋寄到回報信箱「【配對檢舉】」。站長後台「配對檢舉」（`admReports`、`admin_party_reports`）看被檢舉次數，可以禁止配對（`party_bans`、`admin_party_ban`，update_68）。等待中前端每 4 秒 `party_mine`（順便更新 last_at，超過 30 秒沒更新的房間不會被配到）。房間遊戲也多了五子棋、西洋棋、暗棋、海戰（`PARTY_GAMES`、`party_games()`）。
 - 睡衣小貓：11/30 前看到「站長去充電」通知的人自動領（`gift_got`、`claim_gift`）。
 - 推播診斷（隱藏功能）：sw.js 收到推播時會記下時間（快取 `meow-pub-assets` 的 `__diag/push`），設定頁連點「通知」標題 5 次會顯示「最近一次收到推播」（`mw_diag`），用來查某支手機收不到背景通知（小米／紅米 Redmi Note 14 還在查）。一般使用者看不到，不用發更新通知。
 - 「下載 App」按鈕：Chrome 的安裝視窗沒跳出來（小米常見）時，3.5 秒後改顯示文字說明（`doInstall`）。已裝好的 App（standalone）設定頁不會有這顆按鈕。

@@ -3928,3 +3928,20 @@ body.dockKb .careModal .ltWrap .ltBody{height:clamp(56px,calc(100dvh - var(--doc
 .ptBar .ptWho b,.ptBar .ptWho small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
 .ptBar .ptWho>span{min-width:0}
 .ptBar #ptQp,.ptBar #ptRep,.ptBar.pub #ptOut{padding:6px 8px}
+
+/* 配對檢舉：使用者的封鎖名單、站長的檢舉列表（更新 68） */
+.ptBlkB{margin-top:8px;font-size:14px}
+.ptBlkL{max-height:52vh;overflow:auto;display:grid;gap:6px;margin-top:6px}
+.ptBlkR{text-align:left;display:flex;align-items:center;gap:8px;border:2px solid var(--line);background:var(--card);padding:4px 6px}
+.ptBlkR svg{width:36px;height:auto;flex:none}
+.ptBlkR span{flex:1;min-width:0}.ptBlkR b{font-weight:400;display:block}.ptBlkR small{display:block;font-size:12px;color:var(--muted)}
+.ptBlkR .btn{width:auto;margin:0;padding:4px 10px;font-size:13px;flex:none}
+.admPrR{border:2px solid var(--line);background:var(--card);padding:6px 8px;margin-top:8px}
+.admPrR.ban{background:#f3eeee;border-style:dashed}
+.admPrH{display:flex;align-items:center;gap:8px}.admPrH svg{width:38px;height:auto;flex:none}
+.admPrH span{flex:1;min-width:0}.admPrH b{font-weight:400;display:block}.admPrH small{display:block;font-size:12px;color:var(--muted)}
+.admPrN{font-style:normal;text-align:center;font-size:18px;color:var(--ink);line-height:1.1}.admPrN small{display:block;font-size:11px;color:var(--muted)}
+.admPrN.hot{color:#c0504f}
+.admPrR ul{margin:4px 0 6px 18px;padding:0;font-size:13px;color:var(--muted)}
+.admPrR .btn{width:100%;margin:0;padding:6px;font-size:14px}
+.admPrBan{background:#e0627c;color:#fff}
