@@ -9,6 +9,8 @@
   const S = (x,y,z) => [x,0,0,0,0,y,0,0,0,0,z,0,0,0,0,1];
   const RY = a => [Math.cos(a),0,-Math.sin(a),0,0,1,0,0,Math.sin(a),0,Math.cos(a),0,0,0,0,1];
   const RX = a => [1,0,0,0,0,Math.cos(a),Math.sin(a),0,0,-Math.sin(a),Math.cos(a),0,0,0,0,1];
+  const RZ = a => [Math.cos(a),Math.sin(a),0,0,-Math.sin(a),Math.cos(a),0,0,0,0,1,0,0,0,0,1];
+  const mulPt = (m, p) => [m[0]*p[0]+m[4]*p[1]+m[8]*p[2]+m[12], m[1]*p[0]+m[5]*p[1]+m[9]*p[2]+m[13], m[2]*p[0]+m[6]*p[1]+m[10]*p[2]+m[14]];
   const chain = (...m) => m.reduce((a, b) => mul(a, b), I4());
   const sub = (a,b) => [a[0]-b[0], a[1]-b[1], a[2]-b[2]], dot = (a,b) => a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
   const cross = (a,b) => [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]], nrm = a => { const l = Math.hypot(...a) || 1; return a.map(v => v/l); };
@@ -679,18 +681,81 @@
       box(chain(W0, S(.36, .035, .2)), "#d9688a"); box(chain(W0, RY(1.1), RX(.6), S(.2, .035, .36)), "#d9688a"); box(chain(W0, RX(1.3), S(.035, .2, .36)), "#e47ea0");
       const tl = chain(T(b.x, b.y - b.r + .02, b.z), RY((b.dir || 0) + Math.PI)); box(chain(tl, T(0, 0, .25), S(.03, .02, .4)), "#e07898");   // 拖在後面的毛線
     }
-    // 飾品：把「我們的貓」的像素圖一排一排變成方塊（同顏色連在一起的畫成一個長方塊）
-    function drawWear(w, put){
-      const R = w.rows, H = R.length, Wd = Math.max(...R.map(r => r.length)); let u, x0, y0, z, d;
-      if(w.slot === "hat"){ u = Math.min(.043, .5/Wd); x0 = (w.side ? .15 : 0) - Wd*u/2; y0 = .16; z = 0; d = Math.min(.4, Wd*u*.9); }
-      else if(w.slot === "face"){ u = .44/Math.max(Wd, 11); x0 = -Wd*u/2; y0 = .03 - H*u/2; z = .205; d = .025; }
-      else { u = Math.min(.045, .38/Wd); x0 = -Wd*u/2; y0 = -.19 - H*u; z = .12; d = .12; }
-      R.forEach((row, r) => { let k = 0; while(k < row.length){ const ch = row[k]; if(ch === "." || !w.pal[ch]){ k++; continue; }
-        let n = 1; while(k + n < row.length && row[k + n] === ch) n++;
-        const cx = x0 + (k + n/2)*u, cy = y0 + (H - 1 - r + .5)*u, wx = n*u + .002, hy = u + .002;
-        if(ch === "O" && d > .05){ put(cx, cy, z + d/2 - .01, wx, hy, .02, w.pal[ch]); put(cx, cy, z - d/2 + .01, wx, hy, .02, w.pal[ch]); }   // 外框只畫前後兩面，從旁邊、上面看是飾品本來的顏色
-        else put(cx, cy, z, wx, hy, d, w.pal[ch]);
-        k += n; } });
+    // ---------- 飾品：在「我們的貓」幫牠戴的帽子、項圈、眼鏡，做成圓圓的 3D 小物件 ----------
+    // 座標是貓頭的中心：x 左右（頭寬 .46）、y 上下（頭頂 .19）、z 前後（臉在 .18）；耳朵在 x ±.14、y .24～.34
+    const ACC_C = { gold:"#ffcf4a", goldD:"#e0a92a", white:"#fffaf2", red:"#e5486a", dark:"#3a2a28", green:"#5cb87a", greenD:"#3f9a5c", pink:"#f7a7b8", yellow:"#ffe08a", brown:"#8a5a2e" };
+    function drawAcc(M, sc, w, t){
+      const pal = w.pal || {}, A = pal.A || "#f7a7b8", Bc = pal.B || shade(A, .75), C = ACC_C;
+      const sph = (x,y,z, rx,ry,rz, col, r) => { bind(ball); gl.uniform1f(U("mode"), 2); gl.disable(gl.CULL_FACE); box(chain(M, T(x,y,z), r || I4(), S(rx*1.96, ry*1.96, rz*1.96)), col); gl.enable(gl.CULL_FACE); bind(cube); gl.uniform1f(U("mode"), 1); };
+      const tb = (pts, rf, col) => tube(pts.map(p => mulPt(M, p)), u => rf(u)*sc, col, true);
+      const line = (a, b, r0, r1, col, n = 6) => tb(Array.from({ length:n }, (_, k) => { const u = k/(n-1); return [a[0]+(b[0]-a[0])*u, a[1]+(b[1]-a[1])*u, a[2]+(b[2]-a[2])*u]; }), u => r0 + (r1 - r0)*u, col);
+      const curve = (pts, r0, r1, col) => tb(smooth(pts, 6), u => r0 + (r1 - r0)*u, col);
+      // 圓圈：plane "xz" 水平（帽圈、項圈），"xy" 直的（眼鏡框）
+      const ring = (cx,cy,cz, rx,rz, th, col, plane = "xz", tilt = 0, n = 22) => tb(Array.from({ length:n+1 }, (_, k) => { const a = k/n*Math.PI*2, c = Math.cos(a)*rx, d = Math.sin(a)*rz;
+        return plane === "xz" ? [cx + c, cy + d*Math.sin(tilt), cz + d*Math.cos(tilt)] : [cx + c, cy + d, cz]; }), () => th, col);
+      const beads = (cx,cy,cz, rx,rz, r, n, cols, tilt = 0) => { for(let k = 0; k < n; k++){ const a = k/n*Math.PI*2; sph(cx + Math.cos(a)*rx, cy + Math.sin(a)*rz*Math.sin(tilt), cz + Math.sin(a)*rz*Math.cos(tilt), r, r, r, cols[k % cols.length]); } };
+      const flower = (x,y,z, r, col, mid = C.yellow, face = "up") => { for(let k = 0; k < 5; k++){ const a = k/5*Math.PI*2, dx = Math.cos(a)*r*.9, dd = Math.sin(a)*r*.9;
+        if(face === "up") sph(x + dx, y, z + dd, r*.62, r*.38, r*.62, col); else sph(x + dx, y + dd, z, r*.62, r*.62, r*.38, col); } sph(x, y + (face === "up" ? r*.15 : 0), z + (face === "up" ? 0 : r*.15), r*.45, r*.45, r*.45, mid); };
+      const bowAt = (x,y,z, k, col, dk) => { sph(x - .065*k, y, z, .06*k, .045*k, .028*k, col, RZ(.25)); sph(x + .065*k, y, z, .06*k, .045*k, .028*k, col, RZ(-.25)); sph(x, y, z + .01*k, .028*k, .028*k, .028*k, dk); };
+      const collar = (col, th = .024) => ring(0, -.17, -.01, .235, .215, th, col, "xz", -.25);
+      const bellAt = (x,y,z, col = C.gold) => { sph(x, y, z, .05, .05, .05, col); line([x - .045, y - .006, z + .01], [x + .045, y - .006, z + .01], .006, .006, shade(col, .7), 3); sph(x, y - .025, z + .035, .012, .012, .012, C.dark); };
+      const cone = (y0, r0, h, col, bend = 0, tx = 0) => curve([[tx, y0, 0], [tx + bend*.2, y0 + h*.4, -bend*.1], [tx + bend*.6, y0 + h*.75, -bend*.25], [tx + bend, y0 + h, -bend*.2]], r0, .008, col);
+      const cyl = (x,y0,z, r, h, col) => line([x, y0, z], [x, y0 + h, z], r, r, col, 3);
+      const bob = Math.sin(t*2.2)*.012;
+      switch(w.base || w.id){
+        // ---- 帽子 ----
+        case "straw": sph(0, .205, 0, .33, .022, .31, pal.Y || "#f0cf7a"); sph(0, .26, 0, .16, .1, .15, pal.Y || "#f0cf7a"); ring(0, .23, 0, .158, .148, .02, C.red); break;
+        case "crown": case "crown2": { const g = C.gold, gem = w.base === "crown2" ? A : C.red; ring(0, .215, 0, .145, .13, .028, g); ring(0, .25, 0, .15, .135, .018, g);
+          for(let k = 0; k < 5; k++){ const a = -Math.PI/2 + (k - 2)*.62, x = Math.cos(a + Math.PI/2)*.14, z = Math.sin(a + Math.PI/2)*.12; line([x, .25, z], [x*1.05, .34, z*1.05], .03, .006, g, 4); sph(x*1.06, .345, z*1.06, .016, .016, .016, g); }
+          sph(0, .235, .14, .028, .028, .016, gem); sph(-.085, .235, .115, .02, .02, .012, gem); sph(.085, .235, .115, .02, .02, .012, gem); break; }
+        case "wizard": { const v = pal.V || "#9b6fd6"; sph(0, .2, 0, .3, .022, .28, v); cone(.2, .16, .38, v, .12); sph(.05, .33, .12, .03, .03, .015, C.yellow); sph(.12, .5, -.02, .025, .025, .025, C.yellow); break; }
+        case "phones": { const k = pal.K || "#f0708d"; curve([[-.25, .02, 0], [-.22, .2, 0], [0, .29, 0], [.22, .2, 0], [.25, .02, 0]], .022, .022, shade(k, .85)); for(const sx of [-1, 1]){ sph(sx*.255, .02, 0, .045, .085, .08, k); sph(sx*.27, .02, 0, .035, .065, .062, shade(k, .7)); } break; }
+        case "santa": { cone(.21, .17, .3, C.red, .22); ring(0, .2, 0, .19, .175, .045, C.white); sph(.22, .5, -.05, .05, .05, .05, C.white); break; }
+        case "wreath": { ring(0, .2, 0, .18, .165, .025, C.green); const cs = ["#f7a7b8", "#ffe08a", "#ffffff", "#cdb4f0", "#f28b82"];
+          for(let k = 0; k < 8; k++){ const a = k/8*Math.PI*2; flower(Math.cos(a)*.18, .215, Math.sin(a)*.165, .04, cs[k % cs.length]); } break; }
+        case "beret": sph(.03, .225, -.01, .25, .07, .22, A, RZ(.18)); sph(.06, .29, -.01, .018, .03, .018, Bc); break;
+        case "beanie": sph(0, .19, -.01, .25, .19, .22, A); ring(0, .145, -.01, .245, .225, .032, Bc); sph(0, .36, -.02, .055, .055, .055, C.white); break;
+        case "clip": bowAt(.17, .21, .06, 1, A, Bc); break;
+        case "flowerclip": flower(.17, .2, .08, .055, A, C.yellow, "front"); break;
+        case "party": { const x = .05; cone(.18, .11, .3, A, .03, x); ring(x, .23, 0, .085, .085, .014, C.white); ring(x + .01, .3, -.005, .055, .055, .012, C.white); sph(x + .035, .49, -.006, .035, .035, .035, C.yellow); break; }
+        case "bunny": for(const sx of [-1, 1]){ const r = RZ(-sx*.12); sph(sx*.1, .38, -.02, .055, .16, .035, A, r); sph(sx*.1, .38, .002, .03, .12, .02, "#ffb3c6", r); } curve([[-.21, .12, 0], [-.14, .21, 0], [0, .24, 0], [.14, .21, 0], [.21, .12, 0]], .016, .016, A); break;
+        case "tophat": { sph(0, .205, 0, .27, .02, .25, A); cyl(0, .21, 0, .13, .2, A); sph(0, .41, 0, .13, .012, .13, A); ring(0, .245, 0, .133, .133, .026, Bc); break; }
+        case "frog": { sph(0, .19, -.01, .25, .17, .23, A); ring(0, .13, -.01, .245, .225, .026, Bc); for(const sx of [-1, 1]){ sph(sx*.1, .33, .06, .065, .065, .06, A); sph(sx*.1, .34, .105, .045, .045, .03, C.white); sph(sx*.1, .34, .13, .022, .026, .01, C.dark); } sph(0, .29, .175, .06, .012, .02, "#ff8fa8"); break; }
+        case "antler": { const b = "#a0703f"; for(const sx of [-1, 1]){ curve([[sx*.09, .18, -.02], [sx*.13, .3, -.03], [sx*.2, .42, -.05], [sx*.24, .5, -.06]], .024, .012, b); curve([[sx*.15, .34, -.035], [sx*.1, .43, -.03], [sx*.09, .48, -.03]], .016, .009, b); curve([[sx*.19, .41, -.05], [sx*.28, .44, -.05]], .013, .008, b); } break; }
+        case "halo": ring(0, .42 + bob, -.02, .15, .13, .022, C.gold); ring(0, .42 + bob, -.02, .15, .13, .01, "#fff3b0"); break;
+        case "horns": { const k = pal.K || "#c9372c"; for(const sx of [-1, 1]) curve([[sx*.09, .17, .02], [sx*.13, .26, .03], [sx*.13, .33, .0], [sx*.1, .37, -.03]], .04, .006, k); break; }
+        case "chef": { cyl(0, .19, 0, .14, .1, C.white); sph(0, .34, 0, .2, .12, .18, C.white); sph(-.1, .33, .04, .1, .1, .1, C.white); sph(.1, .33, .04, .1, .1, .1, C.white); sph(0, .36, -.06, .11, .1, .1, C.white); break; }
+        case "sailor": { const b = pal.B || "#2f437d"; cyl(0, .19, 0, .16, .07, C.white); ring(0, .21, 0, .165, .165, .025, b); sph(0, .27, 0, .2, .04, .19, C.white); sph(0, .29, 0, .05, .02, .05, b); break; }
+        case "rainhat": { const y = pal.Y || "#ffd36b"; sph(0, .18, -.02, .24, .17, .22, y); sph(0, .15, .03, .32, .025, .3, y, RX(-.18)); break; }
+        case "pumpkinhat": { const o = pal.A || "#f29a3c"; for(let k = 0; k < 6; k++){ const a = k/6*Math.PI*2; sph(Math.cos(a)*.08, .2, Math.sin(a)*.07, .13, .13, .12, k % 2 ? o : shade(o, .9)); } sph(0, .22, 0, .14, .15, .13, o); curve([[0, .34, 0], [.02, .39, 0], [.05, .41, 0]], .022, .015, C.greenD); sph(-.06, .36, .02, .05, .012, .03, C.green, RZ(.4)); break; }
+        case "sprout": { curve([[0, .18, .02], [0, .25, .02], [.01, .3, .02]], .012, .01, C.greenD); sph(-.05, .31, .02, .055, .02, .03, C.green, RZ(.35)); sph(.06, .32, .02, .055, .02, .03, C.green, RZ(-.35)); break; }
+        case "cherry": { for(const [dx, dz] of [[-.03, 0], [.04, .02]]){ curve([[.17 + dx*.3, .3, .04], [.17 + dx, .25, .05 + dz]], .007, .007, C.greenD); sph(.17 + dx, .22, .06 + dz, .04, .04, .04, "#d93a4e"); sph(.165 + dx, .235, .09 + dz, .01, .01, .006, C.white); } sph(.19, .3, .04, .03, .01, .018, C.green, RZ(.4)); break; }
+        // ---- 脖子 ----
+        case "bow": bowAt(0, -.22, .16, 1.1, pal.K || C.red, shade(pal.K || C.red, .75)); break;
+        case "bell": case "bell2": { const c = w.base === "bell2" ? A : (pal.R || C.red); collar(c); bellAt(0, -.27, .17); break; }
+        case "scarf": case "scarf2": { const c = w.base === "scarf2" ? A : (pal.B || "#6fb7e8"); collar(c, .048); sph(.1, -.31, .15, .055, .1, .025, c, RZ(.15)); sph(.1, -.39, .15, .056, .02, .026, w.base === "scarf2" ? Bc : C.white, RZ(.15)); break; }
+        case "pearls": beads(0, -.17, -.01, .225, .205, .024, 20, ["#fffaf2", "#f4eee6"], -.25); break;
+        case "tie": { collar(Bc, .012); sph(0, -.22, .17, .03, .03, .02, A); curve([[0, -.24, .17], [0, -.3, .175], [0, -.36, .17], [0, -.4, .16]], .028, .045, A); break; }
+        case "bowtie": collar(shade(A, .6), .012); bowAt(0, -.22, .165, 1, A, Bc); break;
+        case "heartN": case "starN": { collar(w.base === "starN" ? C.gold : "#e6c46a", .01); const c = w.base === "starN" ? C.yellow : A;
+          if(w.base === "starN"){ for(let k = 0; k < 5; k++){ const a = -Math.PI/2 + k/5*Math.PI*2; sph(Math.cos(a)*.022, -.27 - Math.sin(a)*.022, .18, .022, .012, .012, c, RZ(a)); } sph(0, -.27, .18, .02, .02, .014, c); }
+          else { sph(-.017, -.26, .18, .024, .024, .016, c); sph(.017, -.26, .18, .024, .024, .016, c); sph(0, -.285, .18, .025, .025, .014, c, RZ(Math.PI/4)); } break; }
+        case "bib": { sph(0, -.24, .15, .17, .1, .035, C.white, RX(-.2)); ring(0, -.24, .15, .17, .1, .012, "#f7a7b8", "xy"); sph(0, -.23, .185, .03, .025, .01, "#f7a7b8"); break; }
+        case "lei": { const cs = ["#f7a7b8", "#ffe08a", "#ffffff", "#f28b82", "#cdb4f0"]; for(let k = 0; k < 12; k++){ const a = k/12*Math.PI*2, z = Math.sin(a)*.205; flower(Math.cos(a)*.225, -.17 + Math.sin(a)*.205*Math.sin(-.25), -.01 + z*Math.cos(-.25), .045, cs[k % cs.length]); } break; }
+        // ---- 臉 ----
+        case "glasses": case "cglass": case "monocle": case "glass3d": case "shades": {
+          const fr = w.base === "cglass" ? A : w.base === "monocle" ? C.gold : w.base === "glass3d" ? C.white : C.dark, z = .205, y = .035;
+          const eyes = w.base === "monocle" ? [.11] : [-.11, .11];
+          eyes.forEach((x, k) => { ring(x, y, z, .068, .062, .012, fr, "xy");
+            const lens = w.base === "shades" ? "#2b2430" : w.base === "glass3d" ? (k ? "#6fb7e8" : "#e5486a") : null;
+            if(lens) sph(x, y, z - .004, .066, .06, .006, lens); else { gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); bind(ball); gl.uniform1f(U("mode"), 2); box(chain(M, T(x, y, z), S(.13, .12, .012)), pal.S || "#dff2ff", .35); bind(cube); gl.uniform1f(U("mode"), 1); gl.disable(gl.BLEND); }
+            sph(x - .028, y + .025, z + .006, .012, .008, .003, "#ffffff"); });
+          if(eyes.length > 1){ curve([[-.045, y + .01, z], [0, y + .025, z + .01], [.045, y + .01, z]], .009, .009, fr); for(const sx of [-1, 1]) line([sx*.178, y + .01, z - .01], [sx*.235, y + .03, -.05], .009, .009, fr, 3); }
+          else curve([[.11, y - .06, z + .005], [.14, -.08, .19], [.17, -.16, .14]], .005, .005, C.goldD);
+          break; }
+        case "blush": for(const sx of [-1, 1]) sph(sx*.16, -.075, .188, .055, .035, .008, pal.K || "#ff8fa8"); break;
+        case "star_eye": for(const sx of [-1, 1]){ const x = sx*.17; for(let k = 0; k < 5; k++){ const a = -Math.PI/2 + k/5*Math.PI*2; sph(x + Math.cos(a)*.03, -.06 - Math.sin(a)*.03, .19, .03, .016, .006, C.yellow, RZ(a)); } sph(x, -.06, .192, .024, .024, .006, C.yellow); } break;
+      }
     }
     function drawCat(e, t){
       const k = e.col, s = e.s, sw = Math.sin(e.walk*10)*.5*Math.min(1, e.spd || 0), hop = e.hop ? Math.sin((.6 - e.hop)/.6*Math.PI)*.35 : 0;
@@ -711,7 +776,7 @@
         for(const wy of [-.08,-.12]) at(sx*.21,wy,.18, .14,.012,.012, "#ffffff", hd);             // 鬍鬚
       }
       at(0,-.05,.205, .06,.04,.02, "#ff8fa8", hd);                    // 鼻子
-      if(e.v && e.v.wear) e.v.wear.forEach(w => drawWear(w, (x,y,z, sx,sy,sz, col) => at(x,y,z, sx,sy,sz, col, hd)));   // 在小窩幫牠戴的飾品
+      if(e.v && e.v.wear && e.v.wear.length){ const HM = chain(W0, hd); e.v.wear.forEach(w => drawAcc(HM, s, w, t)); }   // 在小窩幫牠戴的飾品（圓圓的 3D 小物件）
       for(const [lx, lz, p0] of [[-.13,.24,0],[.13,.24,Math.PI],[-.13,-.24,Math.PI],[.13,-.24,0]])
         at(lx, .1 + Math.max(0, Math.sin(ph+p0))*.05*wk, lz + Math.sin(ph+p0)*.07*wk, .11,.2,.11, k.b);   // 腳
       for(const [lx, lz] of [[-.13,.24],[.13,.24]]) at(lx, .015, lz + .02, .12,.03,.12, k.l);            // 白襪子

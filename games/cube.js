@@ -49,7 +49,7 @@ App.registerGame({
     (async () => { try{
       const r = ctx.getState ? await ctx.getState("pet") : null, st = r && r.state, cats = st ? (st.v === 2 ? st.cats : [st]) : [];
       const WR = (st && st.deco && st.deco.wear) || {}, PD = window.PetDeco;
-      const wearOf = i => PD && PD.rows ? ["hat","neck","face"].map(sl => { const id = (WR[i] || {})[sl], x = id && PD.BY[id], r = x && PD.rows(id); return r ? { slot:sl, id, side:!!x.side, rows:r.rows, pal:r.pal } : null; }).filter(Boolean) : [];
+      const wearOf = i => PD && PD.rows ? ["hat","neck","face"].map(sl => { const id = (WR[i] || {})[sl], x = id && PD.BY[id], r = x && PD.rows(id); return r ? { slot:sl, id, base:x.fam || id, side:!!x.side, pal:r.pal } : null; }).filter(Boolean) : [];
       fam = (cats || []).filter(c => c && c.name).slice(0, 2).map((c, i) => { const g = stg(c);
         return { id:"fam" + i, fam:true, p:"fam", name:c.name, color:c.color || "orange", scale:g.scale, stage:g.name, full:PL && PL.fullness ? PL.fullness(c) : null, pitch:1.15 - i*.1, wear:wearOf(i), wearArt:(WR[i] && PD) ? ["hat","neck","face"].map(sl => (WR[i] || {})[sl]).filter(id => id && PD.BY[id]) : [] }; });
     }catch(e){} paintFam(); })();
