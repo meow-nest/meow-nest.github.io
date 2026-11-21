@@ -173,7 +173,11 @@
     HYD.forEach(([cols, n, sz, lv, lay], k) => { const ox = ((52 + k) % COLS)*N, oy = Math.floor((52 + k) / COLS)*N; g.save(); g.translate(ox, oy); g.beginPath(); g.rect(0, 0, N, N); g.clip(); g.clearRect(0, 0, N, N);
       const E2 = (x, y, rx, ry, a, c) => { g.save(); g.translate(x, y); g.rotate(a); g.beginPath(); g.ellipse(0, 0, rx, ry, 0, 0, Math.PI*2); g.fillStyle = c; g.fill(); g.restore(); };
       if(lv) for(const [x, y, a] of [[14, 48, -.8], [50, 46, .8]]){ g.save(); g.translate(x, y); g.rotate(a); g.beginPath(); g.ellipse(0, 0, 9, 14, 0, 0, Math.PI*2); g.fillStyle = "#7fbf7a"; g.fill(); g.strokeStyle = "rgba(255,255,255,.4)"; g.lineWidth = 1; g.beginPath(); g.moveTo(0, -12); g.lineTo(0, 12); g.stroke(); g.restore(); }
-      const floret = (x, y, s, c) => { for(let j = 0; j < 4; j++) E2(x + Math.cos(j*1.57 + .4)*3.2*s, y + Math.sin(j*1.57 + .4)*3.2*s, 3.4*s, 2.4*s, j*1.57 + .4, c); g.beginPath(); g.arc(x, y, 1*s, 0, Math.PI*2); g.fillStyle = "#fff"; g.fill(); };
+      const floret = (x, y, s, c) => {   // 一朵小花：底下一點點影子、四片花瓣中間深外面淺、白白的花心
+        g.beginPath(); g.arc(x + .8*s, y + 1.3*s, 6*s, 0, Math.PI*2); g.fillStyle = "rgba(70,50,100,.05)"; g.fill();
+        for(let j = 0; j < 4; j++){ const an = j*1.57 + .4, px = x + Math.cos(an)*3.2*s, py = y + Math.sin(an)*3.2*s; g.save(); g.translate(px, py); g.rotate(an); const gr = g.createRadialGradient(-2.4*s, 0, .2, 0, 0, 3.6*s); gr.addColorStop(0, mixC(c, "#5a4a80", .07)); gr.addColorStop(1, mixC(c, "#ffffff", .35)); g.beginPath(); g.ellipse(0, 0, 3.5*s, 2.5*s, 0, 0, Math.PI*2); g.fillStyle = gr; g.fill(); g.restore(); }
+        g.beginPath(); g.arc(x, y, 1.1*s, 0, Math.PI*2); g.fillStyle = "#fffbe8"; g.fill(); };
+      const mixC = (a, b, k) => { const p = h => [1,3,5].map(i => parseInt(h.substr(i,2),16)), A = p(a), B2 = p(b); return "#" + A.map((v,i) => Math.round(v + (B2[i]-v)*k).toString(16).padStart(2,"0")).join(""); };
       if(lay === "ball"){ for(const [cx, cy, rr] of [[22, 24, 13], [44, 28, 12], [32, 46, 13]]){ g.beginPath(); g.arc(cx, cy, rr, 0, Math.PI*2); g.fillStyle = cols[2]; g.fill(); for(let j = 0; j < 9; j++){ const an = j*2.4, d = Math.sqrt(j/9)*rr*.75; floret(cx + Math.cos(an)*d, cy + Math.sin(an)*d, .62, cols[j % 2]); } } }
       else for(let j = 0; j < n; j++){ const an = j*2.4, d = Math.sqrt(j/n)*25; floret(32 + Math.cos(an)*d, 32 + Math.sin(an)*d, sz, lay === "mix" ? cols[(j*7) % cols.length] : cols[j % cols.length]); }
       g.restore(); });
@@ -499,9 +503,12 @@
       const open = FACES.filter(f => !isF(x+f.n[0], y+f.n[1], z+f.n[2]));
       if(mode === "face" || mode === "hang"){
         for(const f of open){ const [nx, ny, nz] = f.n; const nb = world.get(x+nx, y+ny, z+nz); if(nb && !BT[nb].clear && !shaped(x+nx, y+ny, z+nz)) continue;
-          if(swUV) quad(f.c.map(c => [x + .5 + (c[0] - .5)*.86, y + .5 + (c[1] - .5)*.86, z + .5 + (c[2] - .5)*.86]), swUV, f.l*.95);
+          if(swUV) quad(f.c.map(c => [x + c[0], y + c[1], z + c[2]]), swUV, f.l*.92);   // 裡面那層貼齊方塊，格子之間不會有縫
           if(mode === "hang" && ny === 1) continue;
-          const t1 = nx ? [0, 1, 0] : [1, 0, 0], t2 = cross(f.n, t1), nC = mode === "hang" ? 2 : 3;
+          const t1 = nx ? [0, 1, 0] : [1, 0, 0], t2 = cross(f.n, t1), nC = mode === "hang" ? 2 : 5;
+          // 樹冠邊邊：往外斜斜地多放一把，讓輪廓圓一點、不會方方的
+          if(mode === "face") for(const tg of [t1, t2, t1.map(v => -v), t2.map(v => -v)]){ if(isF(x + tg[0], y + tg[1], z + tg[2])) continue; const dg = nrm([f.n[0] + tg[0], f.n[1] + tg[1], f.n[2] + tg[2]]), cc = [x + .5 + (f.n[0] + tg[0])*.46, y + .5 + (f.n[1] + tg[1])*.46, z + .5 + (f.n[2] + tg[2])*.46], ex = nrm(cross(dg, tg)), a2 = q()*6.28, ca = Math.cos(a2), sa = Math.sin(a2), ey0 = cross(dg, ex);
+            card(cc, ex.map((v, i) => v*ca + ey0[i]*sa), ey0.map((v, i) => v*ca - ex[i]*sa), .42 + q()*.1, Math.min(1.05, f.l + .05)); }
           for(let k = 0; k < nC; k++){ const a = mode === "hang" ? 0 : q()*6.28, ca = Math.cos(a), sa = Math.sin(a), ja = (q() - .5)*.7, jb = (q() - .5)*.7, off = .5 + .03 + q()*.06;
             const ex = mode === "hang" && !ny ? nrm(cross([0,1,0], f.n)) : [t1[0]*ca + t2[0]*sa, t1[1]*ca + t2[1]*sa, t1[2]*ca + t2[2]*sa], ey = mode === "hang" && !ny ? [0, 1, 0] : cross(f.n, ex);
             const cc = [x + .5 + nx*off + t1[0]*ja + t2[0]*jb, y + .5 + ny*off + t1[1]*ja + t2[1]*jb - (mode === "hang" ? .35 : 0), z + .5 + nz*off + t1[2]*ja + t2[2]*jb];
