@@ -265,7 +265,7 @@
       { n:[1,0,0], c:[[1,0,1],[1,0,0],[1,1,0],[1,1,1]], t:1, l:.8 }, { n:[-1,0,0], c:[[0,0,0],[0,0,1],[0,1,1],[0,1,0]], t:1, l:.8 },
       { n:[0,0,1], c:[[0,0,1],[1,0,1],[1,1,1],[0,1,1]], t:1, l:.9 }, { n:[0,0,-1], c:[[1,0,0],[0,0,0],[0,1,0],[1,1,0]], t:1, l:.7 },
     ];
-    let chunks = [], puffs = [], puffOK = true;   // 樹葉、櫻花畫成圓圓蓬蓬的一團（太多的時候改回方塊，免得手機卡）
+    let chunks = [], puffs = [], trees = [], puffOK = true;   // 樹葉、櫻花畫成圓圓蓬蓬的一團（太多的時候改回方塊，免得手機卡）
     // ---------- 有形狀的方塊：屋瓦會變成斜斜的屋頂、貓抓柱是圓柱、紙窗是薄薄的一片 ----------
     const isRoof = (x,y,z) => world.get(x,y,z) === B.ROOF;
     const fullAt = (x,y,z) => { const b = world.get(x,y,z); return b && !BT[b].clear && !shaped(x,y,z); };
@@ -370,7 +370,18 @@
         }
         flush(); chunks.push(out);
       }
+      groupTrees();
     }
+    // 連在一起的樹葉算一棵樹（60 格以內），整棵畫成一個可愛的造型（140 格以內）；太大或形狀很怪的照舊一格一顆毛球
+    function groupTrees(){ trees = []; const seen = new Set(), key = (x,y,z) => x + ',' + y + ',' + z, rest = [];
+      for(const pf of puffs){ const [x0, y0, z0, b] = pf, k0 = key(x0, y0, z0); if(seen.has(k0)) continue; const comp = [], st = [pf]; seen.add(k0);
+        const at = new Map(puffs.map(q => [key(q[0], q[1], q[2]), q]));
+        while(st.length){ const q = st.pop(); comp.push(q); for(const [dx, dy, dz] of [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]]){ const kk = key(q[0]+dx, q[1]+dy, q[2]+dz), n = at.get(kk); if(n && n[3] === b && !seen.has(kk)){ seen.add(kk); st.push(n); } } }
+        const xs = comp.map(q => q[0]), ys = comp.map(q => q[1]), zs = comp.map(q => q[2]), mn = a => Math.min(...a), mx = a => Math.max(...a);
+        const w = mx(xs) - mn(xs) + 1, h = mx(ys) - mn(ys) + 1, d = mx(zs) - mn(zs) + 1;
+        if(comp.length >= 4 && comp.length <= 140 && w <= 9 && d <= 9 && h <= 7) trees.push({ b, cx: (mn(xs) + mx(xs) + 1)/2, cy: (mn(ys) + mx(ys) + 1)/2, cz: (mn(zs) + mx(zs) + 1)/2, w, h, d, bot: mn(ys), seed: (x0*31 + z0*17) >>> 0, blocks: comp });
+        else rest.push(...comp); }
+      puffs = rest; }
     buildWorld();
     // 小方塊（貓、花）
     const cube = (() => { const P = [], N = [], UV = [], SH = [], I = []; FACES.forEach(f => { const b = P.length/3; f.c.forEach(c => { P.push(c[0]-.5, c[1]-.5, c[2]-.5); N.push(...f.n); UV.push(0,0); SH.push(1); }); I.push(b,b+1,b+2,b,b+2,b+3); }); return mesh(P, N, UV, SH, I); })();
@@ -977,7 +988,7 @@
       return out; })();
     const PETALS = Array.from({ length: 34 }, (_, k) => ({ x: world.spawn[0] + (Math.random() - .5)*20, y: world.spawn[1] + Math.random()*8, z: world.spawn[2] + (Math.random() - .5)*20, r: Math.random()*6, w: .6 + Math.random()*1.4, p: Math.random()*6, c: k % 3 ? "#f9c4d2" : "#ffe3ea" }));
     // ---------- 樹葉的 20 種樣子 ----------
-    const LEAF_STYLE = 0;
+    const LEAF_STYLE = 0, TREE_STYLE = -1;   // TREE_STYLE：整棵樹的造型（-1 = 還沒選，照舊一格一顆毛球）
     function drawLeaf(st, x, y, z, b, top, t, puff){
       const h = ((x*73856093) ^ (y*19349663) ^ (z*83492791)) >>> 0, k = (h % 7)/7, sw = Math.sin(t*1.2 + x*.7 + z*.5)*.03, sak = b === B.SAKURA;
       const cx = x + .5 + sw, cy = y + .5, cz = z + .5, P3 = (c3) => c3[h % c3.length];
@@ -1005,6 +1016,40 @@
         case 17: S3(0, 0, 0, 1.45, .8, 1.45, P3(G)); if(top) S3(0, .32, 0, 1.05, .45, 1.05, HL); break;   // 修剪盆栽
         case 18: S3(0, 0, 0, 1.3, 1.2, 1.3, P3(G)); for(let i = 0; i < 3; i++){ const a = t*.8 + h + i*2.1; S3(Math.cos(a)*.75, .2 + Math.sin(t*2 + i)*.15, Math.sin(a)*.75, .07, .07, .07, "#fff3a0"); } break;   // 螢火點點
         case 19: { const c = sak ? P3(G) : ["#f6d35a", "#f2c84a", "#f8dc72"][h % 3]; for(let i = 0; i < 5; i++){ const a = h + i*1.26; S3(Math.cos(a)*.3, (i % 2)*.2 - .1, Math.sin(a)*.3, .7, .22, .55, c, chain(RY(a), RX(.5))); } S3(0, 0, 0, .9, .85, .9, c); break; }   // 銀杏黃扇
+      }
+    }
+    // ---------- 整棵樹的 20 種可愛造型（drawTree） ----------
+    function drawTree(st, tr, t, puff){
+      const sak = tr.b === B.SAKURA, R = Math.max(tr.w, tr.d)/2 + .25, Hh = tr.h/2 + .3, cx = tr.cx, cy = tr.cy, cz = tr.cz, sd = tr.seed;
+      const sw = Math.sin(t*1.1 + sd)*.04;
+      const C = sak ? { a:"#f7bccb", b:"#f4a8bc", c:"#fde4ea", d:"#e88aa4" } : { a:"#a8d89c", b:"#94cc8c", c:"#d2f0c4", d:"#7fbf7a" };
+      const ball = (x, y, z, rx, ry, rz, col, r, a) => puff(chain(T(cx + x + sw, cy + y, cz + z), r || I4(), S(rx*2, ry*2, rz*2)), col, a);
+      const tb = (pts, rf, col) => tube(pts.map(p => [cx + p[0] + sw, cy + p[1], cz + p[2]]), rf, col, false);
+      const ring = (y, r, th, col, n = 24) => tb(Array.from({ length: n + 1 }, (_, k) => [Math.cos(k/n*Math.PI*2)*r, y, Math.sin(k/n*Math.PI*2)*r]), () => th, col);
+      const cone = (y0, r0, h, col) => tb([[0, y0 + h, 0], [0, y0 + h*.5, 0], [0, y0, 0]], u => r0*u + .02, col);   // 從尖端往下畫，起點的圓球才會很小
+      const shine = (x, y, z, s) => ball(x, y, z, s, s*.75, s, "#ffffff", null, .75);
+      const flower = (x, y, z, s, col) => { for(let k = 0; k < 5; k++){ const a = k*1.2566; ball(x + Math.cos(a)*s*.7, y, z + Math.sin(a)*s*.7, s*.55, s*.3, s*.55, col); } ball(x, y + s*.1, z, s*.4, s*.35, s*.4, "#ffd36b"); };
+      switch(st){
+        case 0: ball(0, 0, 0, R, Hh, R, C.a); shine(-R*.35, Hh*.45, R*.4, R*.22); break;   // 1 棒棒糖
+        case 1: ball(0, -.1, 0, R*.8, Hh*.75, R*.8, C.a); for(let k = 0; k < 4; k++){ const a = k*1.5708 + .4; ball(Math.cos(a)*R*.55, -.15 + (k % 2)*.2, Math.sin(a)*R*.55, R*.52, Hh*.55, R*.52, k % 2 ? C.b : C.a); } ball(0, Hh*.55, 0, R*.5, Hh*.45, R*.5, C.c); break;   // 2 棉花糖雲
+        case 2: for(let i = 0; i < 3; i++){ const y = -Hh*.6 + i*Hh*.6, r = R*(1 - i*.25); ball(0, y, 0, r, Hh*.28, r, i % 2 ? C.b : C.a); ring(y - Hh*.12, r*.96, .07, C.c); } ball(0, Hh*.55, 0, .22, .22, .22, sak ? "#ffffff" : "#ef5a6a"); break;   // 3 三層蛋糕
+        case 3: { const s = R*.62; ball(-s*.55, s*.25, 0, s, s, s*.8, C.a); ball(s*.55, s*.25, 0, s, s, s*.8, C.a); ball(0, -s*.55, 0, s*.95, s*.95, s*.75, C.a, RZ(Math.PI/4)); shine(-s*.75, s*.7, s*.6, s*.25); break; }   // 4 愛心樹
+        case 4: cone(-Hh*.2, R*.65, Hh*.2 + .1, sak ? "#e8b07a" : "#e8c07a"); ball(0, Hh*.25, 0, R*.85, Hh*.65, R*.85, C.a); ball(0, Hh*.75, 0, R*.25, R*.25, R*.25, sak ? "#ef5a6a" : "#f7a7b8"); break;   // 5 冰淇淋甜筒
+        case 5: ball(0, Hh*.1, 0, R*1.05, Hh*.62, R*1.05, sak ? "#ef8aa0" : "#ef7a7a"); ball(0, -Hh*.25, 0, R*.95, Hh*.2, R*.95, "#fff4e6"); for(let k = 0; k < 6; k++){ const a = k*1.05 + sd; ball(Math.cos(a)*R*.62, Hh*.35 + (k % 2)*.12, Math.sin(a)*R*.62, .18, .1, .18, "#ffffff"); } break;   // 6 蘑菇傘
+        case 6: for(let i = 0; i < 3; i++) cone(-Hh + i*Hh*.55, R*(1 - i*.22), Hh*.9, i % 2 ? C.b : C.d); ball(0, Hh*.95, 0, .2, .2, .2, "#ffe066"); break;   // 7 聖誕圓錐
+        case 7: for(let k = 0; k < 22; k++){ const a = k*2.4 + sd, e = (k/22)*2 - 1, r = Math.sqrt(1 - e*e); ball(Math.cos(a)*r*R*.72, e*Hh*.72, Math.sin(a)*r*R*.72, R*.32, R*.3, R*.32, k % 3 ? C.a : C.c); } break;   // 8 爆米花
+        case 8: ring(0, R*.62, R*.36, C.a, 28); for(let k = 0; k < 8; k++){ const a = k*.785; ball(Math.cos(a)*R*.62, R*.33, Math.sin(a)*R*.62, .1, .04, .05, ["#ff8fb0", "#7fc9ff", "#ffe066", "#ffffff"][k % 4], RY(a)); } break;   // 9 甜甜圈
+        case 9: ball(0, 0, 0, R, Hh, R, C.a); for(let i = 0; i < 3; i++) ring(-Hh*.45 + i*Hh*.45, Math.sqrt(Math.max(.05, 1 - Math.pow((-.45 + i*.45), 2)))*R*1.01, .05, C.d, 26); break;   // 10 毛線球
+        case 10: ball(0, -Hh*.15, 0, R*.9, Hh*.7, R*.9, C.a); tb([[0, Hh*.2, 0], [.05, Hh*.7, 0], [.15, Hh*1.05, 0]], u => R*.55*(1 - u) + .03, C.a); shine(-R*.3, 0, R*.5, R*.2); break;   // 11 胖水滴
+        case 11: ball(0, -Hh*.35, 0, R*.95, Hh*.5, R*.95, C.a); ball(0, Hh*.45, 0, R*.65, Hh*.42, R*.65, C.b); ball(0, Hh*.95, 0, R*.25, R*.18, R*.25, C.c); break;   // 12 葫蘆
+        case 12: ball(0, 0, 0, R*.85, Hh*.8, R*.85, C.a); for(let k = 0; k < 7; k++){ const a = k*.8976 + sd*.1; flower(Math.cos(a)*R*.82, Math.sin(k*1.7)*Hh*.3, Math.sin(a)*R*.82, .18, sak ? "#ffffff" : ["#f7a7b8", "#ffffff", "#cdb4f0"][k % 3]); } break;   // 13 開滿小花
+        case 13: for(let i = 0; i < 3; i++){ const a = sd + i*2.1; ball(Math.cos(a)*R*.35*(i ? 1 : 0), -Hh*.5 + i*Hh*.5, Math.sin(a)*R*.35*(i ? 1 : 0), R*(1 - i*.2), Hh*.24, R*(1 - i*.2), i % 2 ? C.b : C.a); } break;   // 14 雲朵扁扁
+        case 14: gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); ball(0, 0, 0, R*.55, Hh*.55, R*.55, C.d); ball(0, 0, 0, R, Hh, R, C.a, null, .55); gl.disable(gl.BLEND); shine(-R*.35, Hh*.45, R*.45, R*.2); break;   // 15 果凍球
+        case 15: ball(0, Hh*.2, 0, R, Hh*.65, R, C.a); for(let k = 0; k < 12; k++){ const a = k*.5236, x = Math.cos(a)*R*.85, z = Math.sin(a)*R*.85, s2 = Math.sin(t*1.4 + k)*.06; tb([[x, Hh*.05, z], [x*1.04 + s2, -Hh*.6, z*1.04], [x*1.06 + s2*1.6, -Hh*1.2, z*1.06]], () => .05, k % 2 ? C.b : C.a); } break;   // 16 柳樹
+        case 16: ball(0, -Hh*.2, 0, .28, .28, .28, "#c98a5a"); for(let k = 0; k < 7; k++){ const a = k*.8976 + sd*.1, dx = Math.cos(a), dz = Math.sin(a); tb([[0, -Hh*.1, 0], [dx*R*.6, Hh*.35, dz*R*.6], [dx*R*1.15, -Hh*.05, dz*R*1.15]], u => .2*(1 - u*.7), k % 2 ? C.a : C.d); } break;   // 17 椰子樹
+        case 17: ball(0, Hh*.15, 0, R*.95, Hh*.7, R*.95, C.a); ring(-Hh*.3, R*.9, .1, C.d, 28); for(let k = 0; k < 6; k++){ const a = k*1.047; const x = Math.cos(a)*R*.75, z = Math.sin(a)*R*.75; tb([[x, -Hh*.35, z], [x, -Hh*.6, z]], () => .02, C.d); ball(x, -Hh*.7, z, .15, .17, .15, sak ? "#ffffff" : "#ffe066"); } break;   // 18 鈴鐺花
+        case 18: ball(0, 0, 0, R, Hh*.95, R, C.a); for(const sx of [-1, 1]){ tb([[sx*R*.45, Hh*.55, 0], [sx*R*.55, Hh*1.05, 0], [sx*R*.62, Hh*1.3, 0]], u => R*.32*(1 - u) + .02, C.a); ball(sx*R*.5, Hh*.8, R*.08, R*.12, R*.16, .05, sak ? "#ffffff" : "#f7b6c8"); } shine(-R*.3, Hh*.3, R*.55, R*.18); break;   // 19 貓耳樹
+        case 19: ball(0, -Hh*.2, 0, R*.8, Hh*.62, R*.75, C.a); for(let k = 0; k < 4; k++){ const a = -1.05 + k*.7; ball(Math.sin(a)*R*.78, Hh*.55 + Math.cos(a)*Hh*.08 - Math.abs(a)*.15, 0, R*.3, R*.32, R*.3, C.b); } ball(0, -Hh*.25, R*.62, R*.42, R*.32, .1, sak ? "#ffffff" : "#f7b6c8"); break;   // 20 貓掌樹
       }
     }
     function frame(now){
@@ -1063,8 +1108,9 @@
       gl.uniform1f(U("mode"), 1); bind(cube);
       const puff = (m, col, a = 1) => { bind(ball); gl.uniform1f(U("mode"), 2); gl.disable(gl.CULL_FACE); box(m, col, a); gl.enable(gl.CULL_FACE); bind(cube); gl.uniform1f(U("mode"), 1); };
       // 樹葉、櫻花：照 LEAF_STYLE 畫（window.__leafStyle 可以換，給站長挑樣式用）
-      const LS = window.__leafStyle != null ? window.__leafStyle : LEAF_STYLE;
-      puffs.forEach(([x, y, z, b, top]) => drawLeaf(LS, x, y, z, b, top, t, puff));
+      puffs.forEach(([x, y, z, b, top]) => drawLeaf(0, x, y, z, b, top, t, puff));
+      const TS = window.__treeStyle != null ? window.__treeStyle : TREE_STYLE;
+      trees.forEach(tr => { if(TS < 0) tr.blocks.forEach(([x, y, z, b, top]) => drawLeaf(0, x, y, z, b, top, t, puff)); else drawTree(TS, tr, t, puff); });
       // 小花、小蘑菇（被方塊蓋住的就不畫）
       world.flowers.forEach(f => { const ix = Math.floor(f.x), iz = Math.floor(f.z); if(world.get(ix, f.y, iz) || !world.get(ix, f.y - 1, iz)) return; const s = f.s;
         if(f.m){ box(chain(T(f.x, f.y + .08*s, f.z), S(.07*s, .16*s, .07*s)), "#fff6ea"); puff(chain(T(f.x, f.y + .19*s, f.z), S(.24*s, .13*s, .24*s)), "#ef8a8a"); puff(chain(T(f.x + .05*s, f.y + .24*s, f.z + .04*s), S(.05*s, .03*s, .05*s)), "#ffffff"); return; }
