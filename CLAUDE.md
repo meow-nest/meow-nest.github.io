@@ -9,7 +9,7 @@
 - 有使用者看得到的改動時，順便提一則「更新通知」的文字給她看（她同意才加進 changelog.js）。修 bug、站長後台的改動不用通知。
 - 需要跑 SQL 時：把 SQL 放進 `supabase/update_NN_名稱.sql`，推上去後給她 **GitHub 檔案連結**（請她按右上角複製按鈕），和 Supabase 的 SQL 頁面：
   https://supabase.com/dashboard/project/rtwgkdqekhzshuvkoxig/sql/new
-  跳出 RLS 警告時，請她按黃色的 **Run without RLS**。很短的 SQL（例如查資料）可以直接放在 code block 裡。
+  跳出 RLS 警告時，請她按黃色的 **Run without RLS**。**就算是很短的查詢 SQL 也一樣放成檔案、推上去給連結**（站長要用連結複製，不要只給 code block）。查詢檔不要寫進使用者名字，用條件找。
 - 如果前端要用到新的 SQL，一定提醒她**先跑 SQL 再讓大家更新**。
 - 她很在意好不好看：不喜歡醜、平、粗糙的設計。被退件好幾次時，請她給參考圖照著做。遊戲裡**不要用 emoji 當圖示**，用像素圖（`Pix.icon`、`Pix.sprite`）。
 - 誠實說明測試方式：是本機 Postgres ＋ 模擬手機（假後端）測的，不是真的線上資料。
