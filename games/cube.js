@@ -43,13 +43,15 @@ App.registerGame({
     const PL = window.PetLogic, stg = c => PL ? PL.stage(c) : (() => { const e = c.exp || 0, S = [[0,"小奶貓",.5],[8,"小貓",.62],[25,"大貓",.74],[60,"胖胖貓",.86],[120,"貓咪大王",.9]]; let i = 0; while(i+1 < S.length && e >= S[i+1][0]) i++; return { name:S[i][1], scale:S[i][2] }; })();
     function paintFam(){
       const f = el.querySelector("#cbFam"); if(!f) return;
-      f.innerHTML = fam.length ? `<div class="cbPickT">一起來玩的貓咪</div><div class="cbFamL">${fam.map(c => `<div>${sprite(c.color, "happy")}<b>${esc(c.name)}</b><small>${esc(c.stage)}</small></div>`).join("")}</div>`
+      f.innerHTML = fam.length ? `<div class="cbPickT">一起來玩的貓咪</div><div class="cbFamL">${fam.map(c => `<div>${sprite(c.color, "happy")}<b>${esc(c.name)}</b><small>${esc(c.stage)}</small>${c.wearArt.length ? `<span class="cbWear">${c.wearArt.map(id => `<i title="${esc(window.PetDeco.BY[id].n)}">${window.PetDeco.art(id)}</i>`).join("")}</span>` : ""}</div>`).join("")}</div>`
         : `<p class="k cbFamNo">在「我們的貓」領養貓咪之後，牠也會跟你一起來島上玩喔</p>`;
     }
     (async () => { try{
       const r = ctx.getState ? await ctx.getState("pet") : null, st = r && r.state, cats = st ? (st.v === 2 ? st.cats : [st]) : [];
+      const WR = (st && st.deco && st.deco.wear) || {}, PD = window.PetDeco;
+      const wearOf = i => PD && PD.rows ? ["hat","neck","face"].map(sl => { const id = (WR[i] || {})[sl], x = id && PD.BY[id], r = x && PD.rows(id); return r ? { slot:sl, id, side:!!x.side, rows:r.rows, pal:r.pal } : null; }).filter(Boolean) : [];
       fam = (cats || []).filter(c => c && c.name).slice(0, 2).map((c, i) => { const g = stg(c);
-        return { id:"fam" + i, fam:true, p:"fam", name:c.name, color:c.color || "orange", scale:g.scale, stage:g.name, full:PL && PL.fullness ? PL.fullness(c) : null, pitch:1.15 - i*.1 }; });
+        return { id:"fam" + i, fam:true, p:"fam", name:c.name, color:c.color || "orange", scale:g.scale, stage:g.name, full:PL && PL.fullness ? PL.fullness(c) : null, pitch:1.15 - i*.1, wear:wearOf(i), wearArt:(WR[i] && PD) ? ["hat","neck","face"].map(sl => (WR[i] || {})[sl]).filter(id => id && PD.BY[id]) : [] }; });
     }catch(e){} paintFam(); })();
     el.querySelector("#cbGo").addEventListener("click", () => {
       if(!window.Cube3D) return;

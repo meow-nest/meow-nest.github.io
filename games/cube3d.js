@@ -679,6 +679,19 @@
       box(chain(W0, S(.36, .035, .2)), "#d9688a"); box(chain(W0, RY(1.1), RX(.6), S(.2, .035, .36)), "#d9688a"); box(chain(W0, RX(1.3), S(.035, .2, .36)), "#e47ea0");
       const tl = chain(T(b.x, b.y - b.r + .02, b.z), RY((b.dir || 0) + Math.PI)); box(chain(tl, T(0, 0, .25), S(.03, .02, .4)), "#e07898");   // 拖在後面的毛線
     }
+    // 飾品：把「我們的貓」的像素圖一排一排變成方塊（同顏色連在一起的畫成一個長方塊）
+    function drawWear(w, put){
+      const R = w.rows, H = R.length, Wd = Math.max(...R.map(r => r.length)); let u, x0, y0, z, d;
+      if(w.slot === "hat"){ u = Math.min(.043, .5/Wd); x0 = (w.side ? .15 : 0) - Wd*u/2; y0 = .16; z = 0; d = Math.min(.4, Wd*u*.9); }
+      else if(w.slot === "face"){ u = .44/Math.max(Wd, 11); x0 = -Wd*u/2; y0 = .03 - H*u/2; z = .205; d = .025; }
+      else { u = Math.min(.045, .38/Wd); x0 = -Wd*u/2; y0 = -.19 - H*u; z = .12; d = .12; }
+      R.forEach((row, r) => { let k = 0; while(k < row.length){ const ch = row[k]; if(ch === "." || !w.pal[ch]){ k++; continue; }
+        let n = 1; while(k + n < row.length && row[k + n] === ch) n++;
+        const cx = x0 + (k + n/2)*u, cy = y0 + (H - 1 - r + .5)*u, wx = n*u + .002, hy = u + .002;
+        if(ch === "O" && d > .05){ put(cx, cy, z + d/2 - .01, wx, hy, .02, w.pal[ch]); put(cx, cy, z - d/2 + .01, wx, hy, .02, w.pal[ch]); }   // 外框只畫前後兩面，從旁邊、上面看是飾品本來的顏色
+        else put(cx, cy, z, wx, hy, d, w.pal[ch]);
+        k += n; } });
+    }
     function drawCat(e, t){
       const k = e.col, s = e.s, sw = Math.sin(e.walk*10)*.5*Math.min(1, e.spd || 0), hop = e.hop ? Math.sin((.6 - e.hop)/.6*Math.PI)*.35 : 0;
       const sl = e.sleep || 0, W0 = chain(T(e.x, e.y + hop - sl*.12*s, e.z), RY(e.yaw), S(s, s, s));
@@ -698,6 +711,7 @@
         for(const wy of [-.08,-.12]) at(sx*.21,wy,.18, .14,.012,.012, "#ffffff", hd);             // 鬍鬚
       }
       at(0,-.05,.205, .06,.04,.02, "#ff8fa8", hd);                    // 鼻子
+      if(e.v && e.v.wear) e.v.wear.forEach(w => drawWear(w, (x,y,z, sx,sy,sz, col) => at(x,y,z, sx,sy,sz, col, hd)));   // 在小窩幫牠戴的飾品
       for(const [lx, lz, p0] of [[-.13,.24,0],[.13,.24,Math.PI],[-.13,-.24,Math.PI],[.13,-.24,0]])
         at(lx, .1 + Math.max(0, Math.sin(ph+p0))*.05*wk, lz + Math.sin(ph+p0)*.07*wk, .11,.2,.11, k.b);   // 腳
       for(const [lx, lz] of [[-.13,.24],[.13,.24]]) at(lx, .015, lz + .02, .12,.03,.12, k.l);            // 白襪子

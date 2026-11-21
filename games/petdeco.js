@@ -209,5 +209,5 @@ const ART = {}; const art = id => ART[id] || (ART[id] = A[id] ? px(A[id][0], A[i
 const cols = id => A[id] ? Math.max(...A[id][0].map(r=>r.length)) : 10;
 const coin = `<i class="pdCoin">${px([".OOO.","OYYYO","OYWYO","OYYYO",".OOO."], { Y:"#ffcf4a", W:"#fff6c8" })}</i>`;
 const frames = id => A[id] ? [px(A[id][0], A[id][1])].concat((FR[id]||[]).map(r => px(r, A[id][1]))) : [];
-window.PetDeco = { ITEMS, BY, art, cols, coin, px, frames };
+window.PetDeco = { ITEMS, BY, art, cols, coin, px, frames, rows: id => A[id] ? { rows:A[id][0], pal:Object.assign({ O }, A[id][1]) } : null };   // rows：方塊島把飾品變成 3D 方塊用
 })();
