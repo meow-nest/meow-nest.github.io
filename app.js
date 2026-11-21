@@ -147,7 +147,7 @@ const App = (function(){
   async function notifyPartner(text){ const p=partner(); if(!p || isOnline(p.user_id)) return; try{ const row=await B.send(text,"game",me.name,me.cat); addMessage(row); }catch(e){} }
 
   const ctx = { get me(){return me}, partner, isOnline, nameOf, catOf, players, sprite, icon, SFX, burst, toast, floatSvg, esc,
-    getState: g => getState(gk(g)), update: (g, fn) => { soloPlayed(g); return update(gk(g), fn); }, onState: (g, h) => onState(gk(g), h), notifyPartner, back: ()=>go("home") };
+    getState: g => getState(gk(g)), update: (g, fn) => { soloPlayed(g); famAnnounce(g); return update(gk(g), fn); }, onState: (g, h) => onState(gk(g), h), notifyPartner, back: ()=>go("home") };
   ctx.rawGetState = getState; ctx.rawOnState = onState;
   ctx.rpc = (fn, args) => B.rpc ? B.rpc(fn, args) : Promise.reject(new Error("no_rpc")); ctx.mode = () => roomMode; ctx.pw = pw; ctx.isAdmin = () => isAdmin;
   // 站長測試模式：只改自己這支手機看到的畫面（家具、房間、龍舟賽道全部當作已解鎖），不會動到伺服器上的資料
@@ -377,6 +377,26 @@ const App = (function(){
       }
     }
     famLiveT = setTimeout(famLiveLoad, 15000);
+  }
+  // 家人在下棋時，聊天室貼一則「誰跟誰在玩什麼」，其他家人點一下就能觀戰（同一組同一個遊戲 30 分鐘最多一則）
+  async function famAnnounce(g){
+    if(!isFam() || others().length < 2 || !WATCHABLE.includes(g)) return;
+    const p = partner(); if(!p) return;
+    const key = gk(g), lk = "mw_famAnn:" + key, now = Date.now();
+    try{ if(now - (+localStorage.getItem(lk) || 0) < 30 * 60000) return; localStorage.setItem(lk, String(now)); }catch(e){ return; }
+    const dup = () => messages.some(m => m.kind === "watch" && String(m.media || "").includes(key) && Date.now() - new Date(m.created_at).getTime() < 30 * 60000);
+    if(dup()) return;
+    await new Promise(r => setTimeout(r, 1000 + Math.random() * 2500));   // 兩個人同時開始時，晚一點的人看到已經有了就不貼
+    if(dup()) return;
+    const gm = games.find(z => z.id === g); if(!gm) return;
+    const media = JSON.stringify({ k: key, g, a: me.uid, b: p.user_id });
+    try{ const row = await B.send(`${me.name} 和 ${p.name} 在玩「${gm.name}」，大家可以來觀戰！`, "watch", me.name, me.cat, media); addMessage(row); }catch(e){}
+  }
+  function famWatchOpen(media){
+    let o = null; try{ o = JSON.parse(media); }catch(e){}
+    const a = o && members.find(m => m.user_id === o.a), b = o && members.find(m => m.user_id === o.b);
+    if(!o || !a || !b || !WATCHABLE.includes(o.g)){ toast("找不到這場遊戲了"); return; }
+    SFX.tap(); WATCH = { key: o.k, g: o.g, a, b }; go("watch");
   }
   function viewWatch(v){
     const W = WATCH, g = W && games.find(z => z.id === W.g);
@@ -643,6 +663,8 @@ const App = (function(){
     const mine = m.sender===me.uid;
     if(m.kind==="game") return `<div class="msg sys"><div class="bub">${/^[🏳🤝💗]/u.test(m.body)||m.body.includes("心情")?"":"🎮 "}${esc(m.body)}</div></div>`;
     if(m.kind==="ping") return "";
+    if(m.kind==="watch"){ let o = null; try{ o = JSON.parse(m.media || ""); }catch(e){} const inIt = o && (o.a === me.uid || o.b === me.uid);
+      return `<div class="msg sys watchMsg"><div class="bub">${esc(m.body)}${o && !inIt ? `<button class="btn" data-watch="${esc(m.media)}">去觀戰</button>` : ""}</div></div>`; }
     if(m.kind==="memo" && String(m.body||"").startsWith("📮") && m.sender===me.uid && partner()) return "";   // 這則是推播給另一個人的
     if(m.kind==="memo" && isAdmin && String(m.body||"").startsWith("📮") && !String(m.body||"").startsWith("📮 站長回覆")) return `<div class="msg sys memoMsg"><button class="bub" data-goadm="1">${esc(m.body)}</button></div>`;
     if(m.kind==="memo") return String(m.body||"").startsWith("📮 站長回覆") ? `<div class="msg sys memoMsg"><button class="bub" data-gofb="1">${esc(m.body)}</button></div>` : `<div class="msg sys memoMsg"><button class="bub" data-gonotes="1">${esc(m.body)}</button></div>`;
@@ -725,6 +747,7 @@ const App = (function(){
     $("stk").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{ if(b.dataset.s==="poke"){ sendMsg("poke","poke"); SFX.meow(); } else sendMsg(b.dataset.s,"sticker"); $("stk").classList.add("hidden"); }));
     bindVoiceLongPress($("list")); bindSwipeReply($("list")); drawPinBar(); drawReplyBar(); $("list").addEventListener("click", e=>{ const im=e.target.closest(".pic img"); if(im && im.src){ viewPhoto(im.src); return; }
       if(e.target.closest("[data-goalbum]")){ go("album"); return; }
+      { const w = e.target.closest("[data-watch]"); if(w){ famWatchOpen(w.dataset.watch); return; } }
       const cb = e.target.closest("[data-callback]"); if(cb){ startCall(cb.dataset.callback==="1"); return; }
       if(e.target.closest("[data-gonotes]")){ SFX.tap(); go("game-notes"); return; }
       if(e.target.closest("[data-gofb]")){ askFeedback(); return; }
@@ -2619,7 +2642,7 @@ const App = (function(){
   function bindVoiceLongPress(L){
     let t = null, el = null;
     const clear = () => { clearTimeout(t); t = null; };
-    L.addEventListener("pointerdown", e=>{ const b = e.target.closest("[data-mid]"); if(!b || e.target.closest(".letterBub,[data-makeup],[data-goalbum]")) return; el = b; clear();
+    L.addEventListener("pointerdown", e=>{ const b = e.target.closest("[data-mid]"); if(!b || e.target.closest(".letterBub,[data-makeup],[data-goalbum],[data-watch]")) return; el = b; clear();
       t = setTimeout(()=>{ t = null; b._lp = true; const v = b.querySelector("[data-voice]"); if(v) v._lp = true; haptic(); msgMenu(+b.dataset.mid); }, 520); });
     ["pointerup","pointercancel","pointerleave","scroll"].forEach(ev=>L.addEventListener(ev, clear, {passive:true}));
     L.addEventListener("pointermove", e=>{ if(t && el && (Math.abs(e.movementX)+Math.abs(e.movementY) > 6)) clear(); });
