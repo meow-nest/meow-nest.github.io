@@ -1741,7 +1741,7 @@ const App = (function(){
   // 現在在等連線的喵友（更新 69）：大廳開著時每 5 秒更新一次，點一位就直接一起玩
   async function ptWaitTick(){
     clearTimeout(PT.wt);
-    if(!PT.view || PT.room || !$("ptWaitL")) return;
+    if(!PT.view || (PT.room && !(PT.room.pub && ptMembers().length < 2)) || !$("ptWaitL")){ PT.wt = 0; return; }
     if(document.visibilityState === "visible"){
       try{ PT.waiting = await B.rpc("party_waiting"); PT.wErr = ""; }
       catch(e){ PT.wErr = /party_waiting|function|schema cache/i.test(String(e && e.message || e)) ? "db" : "net"; }
@@ -1758,7 +1758,7 @@ const App = (function(){
     if(n) n.textContent = xs && xs.length ? `${xs.length} 位` : "";
     if(PT.wErr === "db"){ L.innerHTML = `<div class="k" style="text-align:center;padding:6px">資料庫還沒加上這個功能（更新 69）</div>`; return; }
     if(!xs){ return; }
-    if(!xs.length){ L.innerHTML = `<div class="ptWaitE">${sprite(me.cat || "orange", "sleep")}<span>現在沒有人在等～<br>按上面的遊戲開始找，別人就會看到你喔</span></div>`; return; }
+    if(!xs.length){ L.innerHTML = PT.room ? `<div class="ptWaitE">${sprite("white", "sleep")}<span>現在只有你在等～<br>別人打開配對就會看到你喔</span></div>` : `<div class="ptWaitE">${sprite(me.cat || "orange", "sleep")}<span>現在沒有人在等～<br>按下面的遊戲開始找，別人就會看到你喔</span></div>`; return; }
     const ago = t => t < 60 ? "剛剛" : `${Math.floor(t / 60)} 分鐘`;
     L.innerHTML = xs.map(x => { const g = ptGame(x.game);
       return `<div class="ptWR">${sprite(x.cat || "white", "happy")}<span><b>${esc(x.name)}</b><small>想玩「${esc(g ? g.name : x.game)}」・等了${ago(x.since)}</small></span><button class="btn" data-meet="${esc(x.room)}">一起玩</button></div>`; }).join("");
@@ -1900,7 +1900,7 @@ const App = (function(){
       a.querySelectorAll("[data-pc]").forEach(b => b.addEventListener("click", () => ptCreate(b.dataset.pc)));
       a.querySelectorAll("[data-pm]").forEach(b => b.addEventListener("click", () => ptMatch(b.dataset.pm)));
       { const bb = a.querySelector("#ptBlk"); if(bb) bb.addEventListener("click", ptBlocks); }
-      ptWaitPaint(); ptWaitTick();
+      ptWaitPaint(); PT.wtRoom = null; ptWaitTick();
       const inp = a.querySelector("#ptCode");
       inp.addEventListener("input", () => { const v = inp.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6); if(v !== inp.value) inp.value = v; });
       inp.addEventListener("keydown", e => { if(e.key === "Enter") ptJoin(inp.value); });
@@ -1915,9 +1915,12 @@ const App = (function(){
       const long = Date.now() - PT.waitAt > 45000;
       a.innerHTML = `<div class="box ptBox ptWait ptSeek"><div class="ptSeekCats"><i>${sprite(me.cat || "orange", "happy")}</i><em>${icon("star")}</em><i class="q">${sprite("white", "sleep")}</i></div>
         <p class="ptSeekT">正在幫你找喵友一起玩「${esc(g ? g.name : "")}」<span class="ptDots"><b>.</b><b>.</b><b>.</b></span></p>
-        <div class="k ptNote">${long ? "現在找喵友的人比較少，可以多等一下，或換一個遊戲試試<br>" : ""}配到人會自動開始，可以先放著</div>
-        <button class="btn sub" id="ptOut" style="width:100%">不找了</button></div>`;
+        <div class="k ptNote">${long ? "現在找喵友的人比較少，可以多等一下，或換一個遊戲試試<br>" : ""}有人也在找「${esc(g ? g.name : "")}」會自動開始，可以先放著</div>
+        <button class="btn sub" id="ptOut" style="width:100%">不找了</button></div>
+        <div class="box ptBox"><h3 class="ptH ptWaitH">其他在等連線的喵友<small id="ptWaitN"></small></h3><div class="ptWaitL" id="ptWaitL"></div>
+        <div class="k ptNote">想玩別的遊戲也可以，按「一起玩」就會直接換過去</div></div>`;
       a.querySelector("#ptOut").addEventListener("click", async () => { PT.waitAt = 0; ptLeave(); });
+      ptWaitPaint(); if(!PT.wt || PT.wtRoom !== R.id){ PT.wtRoom = R.id; ptWaitTick(); }
       return;
     }
     if(!two){
