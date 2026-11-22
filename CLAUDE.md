@@ -60,7 +60,7 @@
 
 ### 加新的 SQL
 
-1. 新檔案 `supabase/update_NN_名稱.sql`，NN 接著目前最大的號碼（目前到 **73**）。開頭用中文註解說這次做什麼。要能重複執行（`if not exists`、`create or replace`）。
+1. 新檔案 `supabase/update_NN_名稱.sql`，NN 接著目前最大的號碼（目前到 **74**）。開頭用中文註解說這次做什麼。要能重複執行（`if not exists`、`create or replace`）。
 2. 加進 all.sql：`printf '\n' >> supabase/all.sql && cat supabase/update_NN_名稱.sql >> supabase/all.sql`
 3. 先在本機 Postgres 測過，再推上去給站長連結。
 
@@ -128,5 +128,6 @@ git push origin main           # GitHub Pages 約 1 分鐘後更新
   - 玩法：島上撿材料（貝殼、櫻花瓣、羽毛、小石頭、星星碎片，每天有上限）、自家貓偶爾叼禮物（單人小窩比較常）→ 旅行貓固定時段來擺攤（每天 4 件、全小窩一樣，家人模式在廣場）→ 照標好的材料數換家具（不抽獎、不隨機）→ 背包、點一下擺／轉／收。材料可以送給同小窩的人；雙人家具／全家家具要一起湊。不要用小魚乾。
   - 島、材料、在線狀態要存伺服器 → 需要 SQL。
 - **即時訊息用量（11/22）**：Supabase 免費方案每月 220 萬則，11 月超過（寬限到 12/22）。即時遊戲的同步頻率已經調低：一起煮飯位置 150ms 且沒動不送（2.5 秒補一次）、快照 450ms；划船 140ms；守護小窩 220ms；你畫我猜 150ms；全家一起玩 famHere 每 9 秒（26 秒沒收到算離開）。**新做的即時遊戲不要每秒送超過 5～7 次**；家人模式的廣播會送到全家每支手機（couple channel），越多人越貴。
+- **日誌擷取用量（11/22）**：免費方案每月 1GB，11 月超過。update_74 把每分鐘的排程合併成一個 `meow-tick` → `meow_tick()`（依序跑 truce_tick、fire_memos、fire_sched，每 5 分鐘 log_online，每小時清 3 天前的 cron.job_run_details）；**以後要加每分鐘的排程，請加進 `meow_tick()`，不要另外 cron.schedule**。前端家人「誰在玩」首頁列表和浮動通知共用一次查詢（`famLiveRows`，12 秒內不重複查）。
 - 定時訊息（11/20 上線）：聊天頁左上「定時」（`schedWriter`）。`sched_msgs` 表不開權限，用 `sched_add`／`sched_list`／`sched_cancel`；pg_cron `meow-sched` 每分鐘跑 `fire_sched()`，用寫的人的名字插入 messages（kind `text`、media `{"sch":1}`，前端 `isSched` 顯示「定時訊息」標籤），推播照舊。送出前只有自己看得到；500 字、1 分鐘後～1 年內、每人最多 30 則；單人小窩沒有按鈕。
 - 等級稱號：Lv40 之後有天使／惡魔翅膀（惡魔 6 種顏色），排行榜有本週／總排行，站長小窩可以展示但不參加排行。
