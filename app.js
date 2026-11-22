@@ -73,7 +73,7 @@ const App = (function(){
       piano:{ n:"鋼琴", fn(c,o,t,k){ const f={k0:523,k1:659,k2:784,k3:880,sp:392,del:349,ent:1047}[k]; for(const [m,v] of [[1,.45],[2,.16],[3,.08]]) kOsc(c,o,t,{f:f*m,dur:.5/m+.15,vol:v,type:m===1?"triangle":"sine",att:.004}); if(k==="ent"){ kOsc(c,o,t+.06,{f:f*1.26,dur:.45,vol:.3,type:"triangle"}); kOsc(c,o,t+.12,{f:f*1.5,dur:.45,vol:.3,type:"triangle"}); } } },
       bell:{ n:"小鈴鐺", fn(c,o,t,k){ const f={k0:2349,k1:2637,k2:2793,k3:3136,sp:1760,del:1568,ent:3520}[k]; kOsc(c,o,t,{f,dur:.32,vol:.32}); kOsc(c,o,t,{f:f*2.76,dur:.12,vol:.12}); if(k==="ent") kOsc(c,o,t+.09,{f:f*1.25,dur:.35,vol:.28}); } },
       drop:{ n:"水滴", fn(c,o,t,k){ const f={k0:500,k1:560,k2:630,k3:700,sp:380,del:300,ent:760}[k]; kOsc(c,o,t,{f,to:f*2.6,dur:.09,tt:.05,vol:.6}); if(k==="ent") kOsc(c,o,t+.08,{f:f*1.3,to:f*3,dur:.09,tt:.05,vol:.45}); } },
-      meow:{ n:"小貓喵", fn(c,o,t,k){ const p={k0:1,k1:1.08,k2:1.16,k3:1.24,sp:.85,del:.75,ent:1.3}[k], d=k==="ent"?.2:.11; const s=c.createOscillator(), g=c.createGain(), bp=c.createBiquadFilter(); s.type="sawtooth"; bp.type="bandpass"; bp.Q.value=2.5; s.frequency.setValueAtTime(700*p,t); s.frequency.linearRampToValueAtTime(1050*p,t+d*.35); s.frequency.linearRampToValueAtTime(820*p,t+d); bp.frequency.setValueAtTime(1500,t); bp.frequency.linearRampToValueAtTime(2600,t+d*.35); bp.frequency.linearRampToValueAtTime(1600,t+d); g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.7,t+.015); g.gain.exponentialRampToValueAtTime(.0001,t+d); s.connect(bp); bp.connect(g); g.connect(o); s.start(t); s.stop(t+d+.02); } },
+      meow:{ n:"小貓喵", sample:"sounds/meow.mp3?v=1", sGain:.4, fn(c,o,t,k){ const p={k0:1,k1:1.08,k2:1.16,k3:1.24,sp:.85,del:.75,ent:1.3}[k], d=k==="ent"?.2:.11; const s=c.createOscillator(), g=c.createGain(), bp=c.createBiquadFilter(); s.type="sawtooth"; bp.type="bandpass"; bp.Q.value=2.5; s.frequency.setValueAtTime(700*p,t); s.frequency.linearRampToValueAtTime(1050*p,t+d*.35); s.frequency.linearRampToValueAtTime(820*p,t+d); bp.frequency.setValueAtTime(1500,t); bp.frequency.linearRampToValueAtTime(2600,t+d*.35); bp.frequency.linearRampToValueAtTime(1600,t+d); g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.7,t+.015); g.gain.exponentialRampToValueAtTime(.0001,t+d); s.connect(bp); bp.connect(g); g.connect(o); s.start(t); s.stop(t+d+.02); } },
       game:{ n:"電玩", fn(c,o,t,k){ const f={k0:PENTA[0],k1:PENTA[1],k2:PENTA[2],k3:PENTA[3],sp:784,del:520,ent:PENTA[4]}[k]; if(k==="del"){ kOsc(c,o,t,{f,to:300,dur:.05,vol:.5,type:"square",lp:2000}); return; } kOsc(c,o,t,{f,dur:.035,vol:.5,type:"square",lp:4000}); kOsc(c,o,t+.01,{f:f*2,dur:.02,vol:.2,type:"triangle"}); if(k==="ent") kOsc(c,o,t+.05,{f:f*1.5,dur:.06,vol:.4,type:"square",lp:4000}); } },
       soft:{ n:"輕輕的", fn(c,o,t,k){ kNoise(c,o,t,{dur:k==="sp"?.03:.018,lp:k==="sp"?900:1600,vol:.7,decay:5}); if(k==="ent") kOsc(c,o,t+.02,{f:1320,dur:.08,vol:.15}); } },
       // ↓ 11/22 加的「真的鍵盤」系列（按下＋放開兩聲都錄在一起；G 是讓大小跟上面那些差不多）
@@ -102,9 +102,19 @@ const App = (function(){
     const kbStyle=()=>{ const s=store.get("mw_kbsfx"); if(s) return s; return store.get("mw_kbsnd")==="0" ? "off" : "pop"; };
     const kbVolOf=()=>({s:.45,m:1,l:1.8})[store.get("mw_kbvol")||"m"]||1;
     function kbOut(c){ if(!kbGain){ kbGain=c.createGain(); kbGain.connect(master); } kbGain.gain.value=1.6*kbVolOf(); return kbGain; }
+    // 真的錄音做的聲音（sample）：先下載解碼，一般鍵用開頭那一小段、選字用整聲，音高用播放速度變化
+    const kbSamp={};
+    function kbSample(url){ if(!kbSamp[url]) kbSamp[url]=fetch(url).then(r=>r.arrayBuffer()).then(a=>new Promise((ok,no)=>{ try{ const p=ctx.decodeAudioData(a,ok,no); if(p&&p.then) p.then(ok,no); }catch(e){ no(e); } })); return kbSamp[url]; }
+    const SAMP_RATE={k0:1,k1:1.06,k2:.95,k3:1.12,sp:.86,del:.8,ent:1.1};
     function kbRender(st){ if(kbBufs[st]||kbBusy[st]) return; const OAC=window.OfflineAudioContext||window.webkitOfflineAudioContext; if(!OAC||!ctx) return; kbBusy[st]=1; const S=KB_SOUNDS[st], sr=ctx.sampleRate, res={};
-      Promise.all(["k0","k1","k2","k3","sp","del","ent"].map(k=>new Promise(ok=>{ try{ const len=Math.ceil(sr*(st==="type"&&k==="ent"||st==="piano"?.75:.4)); const oc=new OAC(1,len,sr); S.fn(oc,oc.destination,0,k); const p=oc.startRendering(); if(p&&p.then) p.then(b=>{res[k]=b;ok();},()=>ok()); else oc.oncomplete=e=>{res[k]=e.renderedBuffer;ok();}; }catch(e){ ok(); } })))
-        .then(()=>{ kbBusy[st]=0; if(Object.keys(res).length===7) kbBufs[st]=res; }); }
+      const one=(k,len,draw)=>new Promise(ok=>{ try{ const oc=new OAC(1,len,sr); draw(oc); const p=oc.startRendering(); if(p&&p.then) p.then(b=>{res[k]=b;ok();},()=>ok()); else oc.oncomplete=e=>{res[k]=e.renderedBuffer;ok();}; }catch(e){ ok(); } });
+      const KS=["k0","k1","k2","k3","sp","del","ent"];
+      const job = S.sample
+        ? kbSample(S.sample).then(full=>Promise.all(KS.map(k=>{ const r=SAMP_RATE[k], whole=k==="ent", dur=whole?full.duration:Math.min(full.duration,.27);
+            return one(k, Math.ceil(sr*(dur/r+.02)), oc=>{ const src=oc.createBufferSource(); src.buffer=full; src.playbackRate.value=r; const g=oc.createGain(); const T=dur/r, v=S.sGain||1;
+              g.gain.setValueAtTime(v,0); g.gain.setValueAtTime(v,Math.max(0,T-(whole?.1:.06))); g.gain.linearRampToValueAtTime(0,T); src.connect(g); g.connect(oc.destination); src.start(0, 0, dur); }); })))
+        : Promise.all(KS.map(k=>one(k, Math.ceil(sr*(st==="type"&&k==="ent"||st==="piano"?.75:.4)), oc=>S.fn(oc,oc.destination,0,k))));
+      job.catch(()=>{}).then(()=>{ kbBusy[st]=0; if(Object.keys(res).length===7) kbBufs[st]=res; else if(S.sample) kbBusy[st]=0; }); }
     let kbLast=0;
     function kb(kind, style){ const st=style||kbStyle(); if(st==="off") return; const S=KB_SOUNDS[st]||KB_SOUNDS.pop, c=ensure(); if(!c) return;
       const k = kind==="del"?"del" : kind==="space"?"sp" : (kind==="pick"||kind==="enter")?"ent" : "k"+(kbLast=(kbLast+1+((Math.random()*2)|0))%4);
@@ -112,7 +122,7 @@ const App = (function(){
       if(b){ const s=c.createBufferSource(); s.buffer=b; s.connect(out); s.start(); return; }
       kbRender(st); try{ S.fn(c,out,c.currentTime,k); }catch(e){} }
     const N={C5:523,E5:659,G5:784,A5:880,C6:1047,E6:1319,G6:1568};
-    return { tone, kb, kbStyle, KB_SOUNDS, kbWarm(){ if(ensure()) kbRender(kbStyle()); }, get on(){return on}, toggle(){ on=!on; store.set("mw_sfx",on?"1":"0"); if(on) this.select(); return on; },
+    return { tone, kb, kbStyle, KB_SOUNDS, get kbReady(){ return Object.keys(kbBufs); }, kbWarm(){ if(ensure()) kbRender(kbStyle()); }, get on(){return on}, toggle(){ on=!on; store.set("mw_sfx",on?"1":"0"); if(on) this.select(); return on; },
       tap(){ const f=900+Math.random()*300; tone(f,.06,{to:f*1.6,vol:.18,lp:3000}); },
       select(){ tone(N.E5,.07,{vol:.3}); tone(N.A5,.1,{vol:.3,delay:.07}); },
       match(){ [N.C5,N.E5,N.G5,N.C6].forEach((f,i)=>tone(f,.13,{vol:.32,delay:i*.09})); tone(N.E6,.25,{vol:.22,delay:.38,type:"triangle"}); tone(N.G6,.3,{vol:.18,delay:.46,type:"triangle"}); },
