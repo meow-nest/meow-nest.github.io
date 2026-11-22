@@ -442,16 +442,21 @@
     if(cur) return cur;
     let last = performance.now(), raf = 0, dead = false, t0 = last, offAll = () => {};
     const CFG = loadCfg();
+    // 按鈕上的小圖示（向量圖，不是 emoji）
+    const SVG = { jump:'<svg viewBox="0 0 30 30"><path d="M15 5 6.5 14.5h5.5v9h6v-9h5.5z" fill="currentColor"/></svg>',
+      put:'<svg viewBox="0 0 30 30"><path d="M15 4 26 10v11l-11 6-11-6V10z" fill="currentColor" opacity=".35"/><path d="M15 4 26 10 15 16 4 10z" fill="currentColor"/></svg>',
+      take:'<svg viewBox="0 0 26 26"><path d="M8 13V7.5a1.6 1.6 0 0 1 3.2 0V12m0-5.5a1.6 1.6 0 0 1 3.2 0V12m0-4a1.6 1.6 0 0 1 3.2 0V13m0-2.5a1.6 1.6 0 0 1 3.2 0V15c0 4-2.8 7-6.8 7-3 0-4.6-1.4-6.4-4l-2.6-4a1.7 1.7 0 0 1 2.8-1.9L8 13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      rot:'<svg viewBox="0 0 24 24"><path d="M19 12a7 7 0 1 1-2.1-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M18.5 3v4.5H14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>' };
     const root = document.createElement("div"); root.className = "p3d";
     root.innerHTML = `<canvas class="p3dC"></canvas><div class="p3dL" id="p3dL"></div>
       <div class="p3dTop"><button class="p3dX" id="p3dX"><span class="p3dBack"></span><span>離開</span></button><span class="p3dT">喵喵方塊島</span><span class="p3dF" id="p3dF" hidden></span><span class="p3dFps" id="p3dFps" hidden></span><button class="p3dX p3dBuildT" id="p3dBuildT">${o.icon ? `<span class="p3dIc">${o.icon("home")}</span>` : ""}<span>蓋房子</span></button><button class="p3dX p3dGear" id="p3dGear">${o.icon ? `<span class="p3dIc">${o.icon("gear")}</span>` : ""}<span>設定</span></button></div>
       <div class="p3dSet" id="p3dSet" hidden></div>
       <div class="p3dTalk" id="p3dTalk" hidden></div>
-      <div class="p3dBuild" id="p3dBuild" hidden><div class="p3dCross" id="p3dCross"></div><div class="p3dTool" id="p3dTool"><button data-t="put" class="on">方塊</button><button data-t="furn">家具</button></div><div class="p3dActs"><button class="p3dFRot" id="p3dFRot" hidden>轉向</button><button class="p3dTake" id="p3dTake">拿</button><button class="p3dPut" id="p3dPut">放</button></div><button class="p3dUndo" id="p3dUndo">復原</button><div class="p3dBar" id="p3dBar"></div><div class="p3dBHint" id="p3dBHint"></div><div class="p3dCnt" id="p3dCnt"></div></div><div class="p3dClock" id="p3dClock"></div>
+      <div class="p3dBuild" id="p3dBuild" hidden><div class="p3dCross" id="p3dCross"></div><div class="p3dTool" id="p3dTool"><button data-t="put" class="on">方塊</button><button data-t="furn">家具</button></div><div class="p3dActs"><button class="p3dFRot" id="p3dFRot" hidden><i class="p3dSv">${SVG.rot}</i>轉向</button><button class="p3dTake" id="p3dTake"><i class="p3dSv">${SVG.take}</i><span>拿</span></button><button class="p3dPut" id="p3dPut"><i class="p3dSv">${SVG.put}</i><span>放</span></button></div><button class="p3dUndo" id="p3dUndo">復原</button><div class="p3dBar" id="p3dBar"></div><div class="p3dBHint" id="p3dBHint"></div><div class="p3dCnt" id="p3dCnt"></div></div><div class="p3dClock" id="p3dClock"></div>
       <div class="p3dHint" id="p3dHint">左下搖桿走路・右邊拖曳轉鏡頭</div>
       <div class="p3dRot" id="p3dRot"><div class="p3dRotPh"><i></i></div><div>把手機轉橫的玩</div><button id="p3dRotX">直的也沒關係</button></div>
       <div class="p3dJoy" id="p3dJoy"><i></i></div>
-      <div class="p3dBtns"><div class="p3dAct" id="p3dAct"></div><button class="p3dJump" id="p3dJump">跳</button></div>`;
+      <div class="p3dBtns"><div class="p3dAct" id="p3dAct"></div><button class="p3dJump" id="p3dJump"><i class="p3dSv">${SVG.jump}</i><span>跳</span></button></div>`;
     document.body.appendChild(root); document.body.classList.add("p3dOn");
     // 全螢幕＋轉成橫的（Android 可以鎖橫向；鎖不了的手機就顯示「轉橫的玩」的小提示）
     const lockLand = () => { try{ const so = screen.orientation; if(so && so.lock) return so.lock("landscape").catch(() => {}); }catch(e){} return Promise.resolve(); };
@@ -1113,7 +1118,7 @@
     const clockEl = root.querySelector("#p3dClock"), fpsEl = root.querySelector("#p3dFps"), setEl = root.querySelector("#p3dSet"); let fpsN = 0, fpsT = performance.now();
     const CAMD = { s:3.6, m:5, l:6.6 };
     function applyCfg(first){
-      root.dataset.joy = CFG.joy; root.dataset.ui = "g";   // 11/22 站長說不夠高級 → G 精緻玻璃風（以前選的 C 精緻像素樣式還留在 style.css） fpsEl.hidden = !CFG.showFps; cam.dist = CAMD[CFG.camD] || 5;
+      root.dataset.joy = CFG.joy; root.dataset.ui = "w";   // 11/22 站長從 16 種按鈕選了第 8 種「和紙貼紙」（W）；G 玻璃風、C 精緻像素的樣式還留在 style.css fpsEl.hidden = !CFG.showFps; cam.dist = CAMD[CFG.camD] || 5;
       if(!first){ resize(); saveCfg(CFG); }
     }
     const seg = (k, opts) => `<div class="p3dSeg" data-k="${k}">${opts.map(([v, t]) => `<button data-v="${v}" class="${String(CFG[k]) === String(v) ? "on" : ""}">${t}</button>`).join("")}</div>`;

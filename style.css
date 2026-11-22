@@ -4095,3 +4095,45 @@ body.dockKb .careModal .ltWrap .ltBody{height:clamp(56px,calc(100dvh - var(--doc
 .p3d[data-ui="g"] .p3dCnt.full{background:rgba(214,84,120,.85);color:#fff}
 .p3d[data-ui="g"] .p3dEmpty{color:var(--gk)}
 .p3d[data-ui="g"] .p3dCross::before,.p3d[data-ui="g"] .p3dCross::after{box-shadow:0 0 0 1.5px rgba(40,30,45,.45),0 0 6px rgba(40,30,45,.25);border-radius:2px}
+
+/* ===== 方塊島介面 W：和紙貼紙（11/22 站長從 16 種選的第 8 種）：米色和紙、虛線縫邊、微微歪一點、像貼上去的 ===== */
+.p3d .p3dSv{display:block;font-style:normal;line-height:0}.p3d .p3dSv svg{width:100%;height:100%;display:block}
+.p3d[data-ui="w"]{--wp:#fbf3e4;--wk:#6a4a50;--wd:#d9a7b2;--wpk:#f6c8d2;--wsh:2px 3px 0 rgba(120,80,60,.25);--wfib:repeating-linear-gradient(115deg,rgba(255,255,255,.35) 0 1px,transparent 1px 7px),repeating-linear-gradient(25deg,rgba(150,110,90,.05) 0 1px,transparent 1px 9px)}
+.p3d[data-ui="w"] .p3dX,.p3d[data-ui="w"] .p3dF{border:0;border-radius:10px;background:var(--wfib),var(--wp);color:var(--wk);outline:2px dashed var(--wd);outline-offset:-6px;box-shadow:var(--wsh);padding:8px 15px;transform:rotate(-1deg)}
+.p3d[data-ui="w"] .p3dGear{transform:rotate(1.2deg)}
+.p3d[data-ui="w"] .p3dX:active{transform:rotate(-1deg) translate(1px,2px);box-shadow:1px 1px 0 rgba(120,80,60,.25)}
+.p3d[data-ui="w"] .p3dBuildT.on,.p3d[data-ui="w"].building .p3dBuildT{background:var(--wfib),var(--wpk);outline-color:#fff}
+.p3d[data-ui="w"] .p3dT{color:#fff;text-shadow:0 1px 0 rgba(106,74,80,.6),0 0 6px rgba(106,74,80,.35);letter-spacing:1px}
+.p3d[data-ui="w"] .p3dClock{background:var(--wp);color:var(--wk);border-radius:8px;outline:1.5px dashed var(--wd);outline-offset:-4px;padding:2px 12px;box-shadow:var(--wsh)}
+.p3d[data-ui="w"] .p3dHint,.p3d[data-ui="w"] .p3dBHint{background:rgba(106,74,80,.72);border-radius:10px;padding:5px 16px;outline:1.5px dashed rgba(255,255,255,.45);outline-offset:-4px}
+.p3d[data-ui="w"] .p3dBHint.bad{background:rgba(214,84,120,.85)}
+.p3d[data-ui="w"] .p3dJoy{background:rgba(251,243,228,.45);border:0;outline:2px dashed rgba(255,255,255,.9);outline-offset:-9px;box-shadow:var(--wsh)}
+.p3d[data-ui="w"] .p3dJoy i{border:0;background:var(--wfib),var(--wpk);outline:2px dashed #fff;outline-offset:-6px;box-shadow:var(--wsh)}
+.p3d[data-ui="w"] .p3dJump,.p3d[data-ui="w"] .p3dTake,.p3d[data-ui="w"] .p3dPut{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border:0;border-radius:50%;background:var(--wfib),var(--wp);color:var(--wk);outline:2px dashed var(--wd);outline-offset:-6px;box-shadow:var(--wsh)!important;font-size:12px!important}
+.p3d[data-ui="w"] .p3dJump{width:68px;height:68px}
+.p3d[data-ui="w"] .p3dJump .p3dSv{width:26px;height:26px}.p3d[data-ui="w"] .p3dTake .p3dSv{width:24px;height:24px}.p3d[data-ui="w"] .p3dPut .p3dSv{width:30px;height:30px}
+.p3d[data-ui="w"] .p3dPut{background:var(--wfib),var(--wpk);outline-color:#fff;color:#7a4a58;transform:rotate(-2deg)}
+.p3d[data-ui="w"] .p3dTake{transform:rotate(1.5deg)}
+.p3d[data-ui="w"] .p3dJump:active,.p3d[data-ui="w"] .p3dActs button:active{transform:translate(1px,2px);box-shadow:1px 1px 0 rgba(120,80,60,.25)!important}
+.p3d[data-ui="w"] .p3dFRot{display:flex;align-items:center;gap:4px;border:0;border-radius:8px;background:var(--wfib),var(--wp);color:var(--wk);outline:1.5px dashed var(--wd);outline-offset:-4px;box-shadow:var(--wsh)}
+.p3d[data-ui="w"] .p3dFRot[hidden]{display:none}
+.p3d[data-ui="w"] .p3dFRot .p3dSv{width:14px;height:14px}
+.p3d[data-ui="w"] .p3dBar{border-radius:10px;background:var(--wfib),var(--wp);outline:2px dashed var(--wd);outline-offset:-5px;box-shadow:var(--wsh);padding:8px 9px;gap:5px}
+.p3d[data-ui="w"] .p3dBar button{border:0;border-radius:8px;background:transparent;color:var(--wk)}
+.p3d[data-ui="w"] .p3dBar button.on{background:var(--wpk);box-shadow:inset 0 0 0 2px #fff,1px 2px 0 rgba(120,80,60,.2);transform:rotate(-2deg)}
+.p3d[data-ui="w"] .p3dBar .p3dPg{color:#b08890}
+.p3d[data-ui="w"] .p3dBar button b{border-radius:4px;background:#c97a8e}
+.p3d[data-ui="w"] .p3dTool{border:0;border-radius:8px;background:var(--wp);outline:1.5px dashed var(--wd);outline-offset:-4px;box-shadow:var(--wsh);padding:3px}
+.p3d[data-ui="w"] .p3dTool button{border:0!important;border-radius:6px;padding:4px 16px;color:var(--wk)}
+.p3d[data-ui="w"] .p3dTool button.on{background:var(--wpk);color:#7a4a58;box-shadow:none}
+.p3d[data-ui="w"] .p3dUndo,.p3d[data-ui="w"] .p3dCnt{border:0;border-radius:8px;background:var(--wp);color:var(--wk);outline:1.5px dashed var(--wd);outline-offset:-4px;box-shadow:var(--wsh);padding:4px 12px}
+.p3d[data-ui="w"] .p3dCnt.full{background:#f6c8d2}
+.p3d[data-ui="w"] .p3dEmpty{color:var(--wk)}
+.p3d[data-ui="w"] .p3dActs button:disabled{opacity:.5}
+.p3d[data-ui="w"] .p3dAct .p3dNm{background:rgba(106,74,80,.72);border-radius:8px}
+.p3d[data-ui="w"] .p3dActB button{border:0;border-radius:10px;background:var(--wfib),var(--wp);color:var(--wk);outline:2px dashed var(--wd);outline-offset:-6px;box-shadow:var(--wsh);padding:9px 16px;min-width:0}
+.p3d[data-ui="w"] .p3dActB button+button{background:var(--wfib),var(--wpk);outline-color:#fff;color:#7a4a58}
+.p3d[data-ui="w"] .p3dTalkIn{border:0;border-radius:12px;background:var(--wfib),var(--wp);outline:2px dashed var(--wd);outline-offset:-8px;box-shadow:3px 5px 0 rgba(120,80,60,.22);padding:18px 20px 12px;color:var(--wk)}
+.p3d[data-ui="w"] .p3dTalkNm{border:0;border-radius:8px;background:var(--wpk);color:#7a4a58;outline:1.5px dashed #fff;outline-offset:-4px;box-shadow:var(--wsh);padding:3px 14px;top:-14px;transform:rotate(-2deg)}
+.p3d[data-ui="w"] .p3dNmTag{border-radius:8px}
+.p3d[data-ui="w"] .p3dCross::before,.p3d[data-ui="w"] .p3dCross::after{box-shadow:0 0 0 1.5px rgba(106,74,80,.55);border-radius:2px}
