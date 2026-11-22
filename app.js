@@ -61,6 +61,9 @@ const App = (function(){
     function kOsc(c,out,t,o){ const g=c.createGain(), s=c.createOscillator(); s.type=o.type||"sine"; s.frequency.setValueAtTime(o.f,t); if(o.to) s.frequency.exponentialRampToValueAtTime(o.to,t+(o.tt||o.dur)); const v=o.vol??.5, a=o.att||.002; g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(v,t+a); g.gain.exponentialRampToValueAtTime(.0001,t+o.dur); let n=s; if(o.lp){ const f=c.createBiquadFilter(); f.type="lowpass"; f.frequency.value=o.lp; n.connect(f); n=f; } n.connect(g); g.connect(out); s.start(t); s.stop(t+o.dur+.02); }
     function kNoise(c,out,t,o){ const len=Math.max(1,Math.floor(c.sampleRate*o.dur)), buf=c.createBuffer(1,len,c.sampleRate), d=buf.getChannelData(0); for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,o.decay||3); const s=c.createBufferSource(); s.buffer=buf; let n=s; for(const [ty,fq] of [["lowpass",o.lp],["highpass",o.hp],["bandpass",o.bp]]) if(fq){ const f=c.createBiquadFilter(); f.type=ty; f.frequency.value=fq; if(ty==="bandpass") f.Q.value=o.q||1.2; n.connect(f); n=f; } const g=c.createGain(); g.gain.value=o.vol??.5; n.connect(g); g.connect(out); s.start(t); }
     const PENTA=[1046,1175,1318,1568,1760];
+    // 真的鍵盤系列：每顆鍵音高差一點點，空白／選字是大鍵比較低
+    const KPM={k0:1,k1:1.05,k2:.96,k3:1.09,sp:.6,del:.9,ent:.78};
+    const kG=(c,o,v)=>{ const g=c.createGain(); g.gain.value=v; g.connect(o); return g; };
     // k0~k3 一般按鍵（四種音高輪流，聽起來不會一直同一聲）、sp 空白、del 刪除、ent 選字／確定
     const KB_SOUNDS={
       pop:{ n:"泡泡", fn(c,o,t,k){ const f={k0:880,k1:990,k2:1100,k3:1240,sp:620,del:520,ent:1320}[k]; kOsc(c,o,t,{f:f*1.5,to:f*.8,dur:.07,vol:.55,tt:.05}); if(k==="ent") kOsc(c,o,t+.06,{f:f*1.9,to:f*1.2,dur:.08,vol:.4}); } },
@@ -73,6 +76,27 @@ const App = (function(){
       meow:{ n:"小貓喵", fn(c,o,t,k){ const p={k0:1,k1:1.08,k2:1.16,k3:1.24,sp:.85,del:.75,ent:1.3}[k], d=k==="ent"?.2:.11; const s=c.createOscillator(), g=c.createGain(), bp=c.createBiquadFilter(); s.type="sawtooth"; bp.type="bandpass"; bp.Q.value=2.5; s.frequency.setValueAtTime(700*p,t); s.frequency.linearRampToValueAtTime(1050*p,t+d*.35); s.frequency.linearRampToValueAtTime(820*p,t+d); bp.frequency.setValueAtTime(1500,t); bp.frequency.linearRampToValueAtTime(2600,t+d*.35); bp.frequency.linearRampToValueAtTime(1600,t+d); g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.7,t+.015); g.gain.exponentialRampToValueAtTime(.0001,t+d); s.connect(bp); bp.connect(g); g.connect(o); s.start(t); s.stop(t+d+.02); } },
       game:{ n:"電玩", fn(c,o,t,k){ const f={k0:PENTA[0],k1:PENTA[1],k2:PENTA[2],k3:PENTA[3],sp:784,del:520,ent:PENTA[4]}[k]; if(k==="del"){ kOsc(c,o,t,{f,to:300,dur:.05,vol:.5,type:"square",lp:2000}); return; } kOsc(c,o,t,{f,dur:.035,vol:.5,type:"square",lp:4000}); kOsc(c,o,t+.01,{f:f*2,dur:.02,vol:.2,type:"triangle"}); if(k==="ent") kOsc(c,o,t+.05,{f:f*1.5,dur:.06,vol:.4,type:"square",lp:4000}); } },
       soft:{ n:"輕輕的", fn(c,o,t,k){ kNoise(c,o,t,{dur:k==="sp"?.03:.018,lp:k==="sp"?900:1600,vol:.7,decay:5}); if(k==="ent") kOsc(c,o,t+.02,{f:1320,dur:.08,vol:.15}); } },
+      // ↓ 11/22 加的「真的鍵盤」系列（按下＋放開兩聲都錄在一起；G 是讓大小跟上面那些差不多）
+      kBlue:{ n:"青軸", real:1, fn(c,o,t,k){ const m=KPM[k]; o=kG(c,o,3.5);
+        kNoise(c,o,t,{dur:.008,bp:5600*m,q:4,vol:.55,decay:5}); kNoise(c,o,t+.012,{dur:.008,bp:4300*m,q:5,vol:.35,decay:5});
+        kNoise(c,o,t+.012,{dur:.015,bp:2100*m,q:2,vol:.12}); kNoise(c,o,t+.07,{dur:.006,bp:5000*m,q:4,vol:.16,decay:5}); } },
+      kRed:{ n:"紅軸", real:1, fn(c,o,t,k){ const m=KPM[k]; o=kG(c,o,4.2);
+        kNoise(c,o,t,{dur:.03,bp:1150*m,q:5,vol:.55,decay:5}); kOsc(c,o,t,{f:620*m,to:420*m,dur:.03,vol:.1,att:.004});
+        kNoise(c,o,t+.09,{dur:.015,bp:1400*m,q:4,vol:.1,decay:5}); } },
+      kCream:{ n:"奶油軸", real:1, fn(c,o,t,k){ const m=KPM[k]; o=kG(c,o,3);
+        kOsc(c,o,t,{f:330*m,to:230*m,dur:.05,vol:.15,att:.006}); kNoise(c,o,t,{dur:.03,lp:650*m,vol:.18,decay:5}); } },
+      kLaptop:{ n:"筆電鍵盤", real:1, fn(c,o,t,k){ const m=KPM[k]; o=kG(c,o,5.8);
+        kNoise(c,o,t,{dur:.007,bp:2900*m,q:2,vol:.35,decay:5}); kNoise(c,o,t+.04,{dur:.005,bp:3300*m,q:2,vol:.1,decay:5}); } },
+      kSpring:{ n:"彈簧鍵盤", real:1, fn(c,o,t,k){ const m=KPM[k]; o=kG(c,o,3);
+        kNoise(c,o,t,{dur:.02,bp:2600*m,q:3,vol:.45,decay:4}); kOsc(c,o,t,{f:2400*m,dur:.28,vol:.05}); kOsc(c,o,t,{f:3720*m,dur:.18,vol:.03});
+        kNoise(c,o,t+.09,{dur:.012,bp:2900*m,q:3,vol:.2,decay:4}); kOsc(c,o,t+.09,{f:2400*m,dur:.15,vol:.025}); } },
+      kSilent:{ n:"靜音鍵盤", real:1, fn(c,o,t,k){ const m=KPM[k]; o=kG(c,o,3.7);
+        kNoise(c,o,t,{dur:.03,lp:420*m,vol:.35,decay:5}); } },
+      kCeramic:{ n:"陶瓷鍵帽", real:1, fn(c,o,t,k){ const m=KPM[k]; o=kG(c,o,2.4);
+        kOsc(c,o,t,{f:3150*m,dur:.1,vol:.14}); kOsc(c,o,t,{f:3150*m*2.71,dur:.04,vol:.05}); kNoise(c,o,t,{dur:.02,bp:3150*m,q:10,vol:.25,decay:5}); kOsc(c,o,t+.08,{f:3600*m,dur:.06,vol:.05}); } },
+      kWood:{ n:"木頭鍵帽", real:1, fn(c,o,t,k){ const m=KPM[k]; o=kG(c,o,3.1);
+        kNoise(c,o,t,{dur:.06,bp:760*m,q:9,vol:.6,decay:4}); kOsc(c,o,t,{f:760*m,to:700*m,dur:.05,vol:.12});
+        kNoise(c,o,t,{dur:.015,bp:1650*m,q:6,vol:.18,decay:5}); kNoise(c,o,t+.09,{dur:.03,bp:900*m,q:8,vol:.15,decay:5}); } },
     };
     let kbGain=null; const kbBufs={}, kbBusy={};
     const kbStyle=()=>{ const s=store.get("mw_kbsfx"); if(s) return s; return store.get("mw_kbsnd")==="0" ? "off" : "pop"; };
@@ -1127,7 +1151,9 @@ const App = (function(){
   }
 
   // ---------- 鍵盤設定（設定頁和鍵盤上的齒輪共用） ----------
-  const kbSndHtml = () => { const cur = SFX.kbStyle(); return `<div class="kbSnd">${[["off","關"]].concat(Object.entries(SFX.KB_SOUNDS).map(([k,v])=>[k,v.n])).map(([k,n])=>`<button data-snd="${k}" class="${cur===k?"on":""}">${k==="off"?"":`<i class="kbWave"><b></b><b></b><b></b></i>`}${n}</button>`).join("")}</div>
+  const kbSndHtml = () => { const cur = SFX.kbStyle(), E = Object.entries(SFX.KB_SOUNDS), btn = ([k,n]) => `<button data-snd="${k}" class="${cur===k?"on":""}">${k==="off"?"":`<i class="kbWave"><b></b><b></b><b></b></i>`}${n}</button>`;
+    return `<div class="kbSnd">${[["off","關"]].concat(E.filter(([,v])=>!v.real).map(([k,v])=>[k,v.n])).map(btn).join("")}</div>
+    <div class="kbSndSub">真的鍵盤</div><div class="kbSnd">${E.filter(([,v])=>v.real).map(([k,v])=>[k,v.n]).map(btn).join("")}</div>
     <div class="kbOpt"><span>音量</span><div class="seg" data-kbvol>${[["s","小"],["m","中"],["l","大"]].map(([v,n])=>`<button data-v="${v}" class="${(store.get("mw_kbvol")||"m")===v?"on":""}">${n}</button>`).join("")}</div></div>`; };
   function kbSndBind(root){
     root.querySelectorAll("[data-snd]").forEach(b=>b.addEventListener("click", ()=>{ const k = b.dataset.snd; store.set("mw_kbsfx", k); store.set("mw_kbsnd", k==="off"?"0":"1"); root.querySelectorAll("[data-snd]").forEach(x=>x.classList.toggle("on", x===b));
