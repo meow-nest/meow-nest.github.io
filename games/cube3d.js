@@ -295,6 +295,13 @@
 
     // 顏色格（材質格 52 切成 8×8 小格，給 30 款樹葉裡面那層用）
     { const ox = (127 % COLS)*N, oy = Math.floor(127 / COLS)*N; FOL_INNER.forEach((c, k) => { g.fillStyle = c; g.fillRect(ox + (k % 8)*8, oy + Math.floor(k / 8)*8, 8, 8); }); }
+    // 裂痕（按住「拿」時一格一格裂開）：材質格 246～250，背景透明，越後面裂越多
+    { const q = rng(77), segs = []; const walk = (x, y, a, n, d) => { for(let i = 0; i < n; i++){ const L = 5 + q()*6, nx = x + Math.cos(a)*L, ny = y + Math.sin(a)*L; segs.push([x, y, nx, ny, d]); x = nx; y = ny; a += (q() - .5)*1.1; if(q() < .3) walk(x, y, a + (q() < .5 ? 1 : -1)*(.8 + q()*.6), 2 + Math.floor(q()*2), d + 1); } };
+      for(let k = 0; k < 6; k++) walk(32 + (q() - .5)*10, 32 + (q() - .5)*10, k/6*Math.PI*2 + q()*.5, 4, 0);
+      for(let st = 0; st < 5; st++){ const ox = ((246 + st) % COLS)*N, oy = Math.floor((246 + st)/COLS)*N, lim = Math.ceil(segs.length*(st + 1)/5);
+        g.save(); g.translate(ox, oy); g.clearRect(0, 0, N, N); g.lineCap = "round";
+        for(const [w, c] of [[3.2, "rgba(255,250,240,.35)"], [1.8, "rgba(60,35,40,.72)"]]){ g.lineWidth = w; g.strokeStyle = c; g.beginPath(); segs.slice(0, lim).forEach(([a, b, c2, d]) => { g.moveTo(a, b); g.lineTo(c2, d); }); g.stroke(); }
+        g.restore(); } }
     return { cv, COLS, N };
   }
   void TILE_N;
@@ -932,7 +939,7 @@
       if(near < 0){ act.innerHTML = ""; return; }
       const c = npc[near]; if(!c){ act.innerHTML = ""; return; }
       const p = pets[near], lv = FL[friendLv(c.id)];
-      if(p && p.fam){ act.innerHTML = `<div class="p3dNm fam"><b>${o.esc(c.name)}</b><small>我們家的貓${c.stage ? "・" + o.esc(c.stage) : ""}</small></div><div class="p3dActB three"><button data-a="talk">${IC("chat")}<span>聊天</span></button><button data-a="pet">${IC("paw")}<span>摸摸</span></button><button data-a="ball">${IC("yarn")}<span>丟球</span></button></div>`; return; }
+      if(p && p.fam){ act.innerHTML = `<div class="p3dNm fam"><b>${o.esc(c.name)}</b><small>我們家的貓${c.stage ? "・" + o.esc(c.stage) : ""}</small></div><div class="p3dActB"><button data-a="pet">${IC("paw")}<span>摸摸</span></button><button data-a="ball">${IC("yarn")}<span>丟球</span></button></div>`; return; }
       act.innerHTML = `<div class="p3dNm"><b>${o.esc(c.name)}</b>${hearts(friendLv(c.id))}<small>${lv}</small></div><div class="p3dActB"><button data-a="talk">${IC("chat")}<span>聊天</span></button><button data-a="pet">${IC("paw")}<span>摸摸</span></button></div>`;
       void p;
     }
@@ -962,10 +969,10 @@
       if(b.dataset.a === "talk"){ hideHint(); startTalk(near); return; }
       if(b.dataset.a === "ball"){ hideHint(); tossBall(p); return; }
       addFriend(p.v && p.v.id, "p"); p.sleep = 0;
-      if(TK && p.v){ talkLv = friendLv(p.v.id); talkLines = [TK.petLine(p.v)]; talkIdx = near; talkK = 0; showLine(); clearTimeout(p._pt); p._pt = setTimeout(() => { if(talkIdx === p.i && talkLines.length === 1) endTalk(); }, 2200); }
+      if(TK && p.v && !p.fam){ talkLv = friendLv(p.v.id); /* 自己養的貓不講話（站長說只有之後賣東西的旅行貓會講話） */ talkLines = [TK.petLine(p.v)]; talkIdx = near; talkK = 0; showLine(); clearTimeout(p._pt); p._pt = setTimeout(() => { if(talkIdx === p.i && talkLines.length === 1) endTalk(); }, 2200); }
       p.love = 2.2; p.hop = .6; p.tx = null; p.wait = 2.5; p.pets = (p.pets || 0) + 1;
       player.yaw = Math.atan2(p.x - player.x, p.z - player.z); player.petT = .5;   // 轉向小貓
-      if(!TK) CFG.sound && o.sfx && o.sfx.meow && o.sfx.meow(1.2); hideHint();
+      if(!TK || p.fam) CFG.sound && o.sfx && o.sfx.meow && o.sfx.meow((p.v && p.v.pitch || 1)*1.1); hideHint();
     });
     paintAct();
 
@@ -1002,7 +1009,26 @@
       barEl.querySelectorAll("[data-f]").forEach(x => x.addEventListener("click", () => { fPick = x.dataset.f; fRot = 0; paintFurnBar(); aimKey = ""; CFG.sound && o.sfx && o.sfx.tap && o.sfx.tap(); }));
     }
     rotBtn.addEventListener("click", () => { fRot = (fRot + 1) % 4; aimKey = ""; CFG.sound && o.sfx && o.sfx.tap && o.sfx.tap(); });
-    putBtn.addEventListener("click", () => doPut()); takeBtn.addEventListener("click", () => doTake());
+    putBtn.addEventListener("click", () => doPut());
+    // 「拿」要按住：方塊／家具慢慢裂開，裂完才拿起來；中途放開就停（裂痕也消失）
+    let holdTake = false, brk = null;
+    const BRK_T = { [B.STONE]:1.1, [B.BRICK]:1.1, [B.ROOF]:1, [B.PLANK]:.8, [B.LOG]:.8, [B.GLASS]:.45 };
+    takeBtn.addEventListener("pointerdown", e => { e.preventDefault(); try{ takeBtn.setPointerCapture(e.pointerId); }catch(_){} holdTake = true; brk = null; takeBtn.classList.add("hold");
+      const tk = AIM && AIM.take; if(tk && tk.bad) o.toast && o.toast(tk.bad); });
+    const takeEnd = () => { holdTake = false; brk = null; takeBtn.classList.remove("hold"); };
+    for(const ev of ["pointerup", "pointercancel", "lostpointercapture"]) takeBtn.addEventListener(ev, takeEnd);
+    function breakStep(dt){
+      if(!holdTake || !buildOn){ brk = null; return; }
+      const tk = AIM && AIM.take; if(!tk || tk.bad){ brk = null; return; }
+      const key = tk.kind === "furn" ? "f" + tk.i : tk.x + "," + tk.y + "," + tk.z;
+      if(!brk || brk.key !== key) brk = { key, t:0, c:0, dur: tk.kind === "furn" ? .7 : (BRK_T[world.get(tk.x, tk.y, tk.z)] || .6) };   // 換了目標就重新開始
+      brk.t += dt; brk.c -= dt;
+      if(brk.c <= 0){ brk.c = .13;   // 一邊裂一邊掉小碎屑
+        const b = tk.kind === "furn" ? furnCells(FSAVE.placed[tk.i]).box : [tk.x, tk.y, tk.z, tk.x + 1, tk.y + 1, tk.z + 1];
+        const cols = tk.kind === "furn" ? ["#f2a7bd", "#fbd3de", "#dcbf96"] : TILE_COL[BT[world.get(tk.x, tk.y, tk.z)].t[1]] || ["#ffffff"];
+        for(let k = 0; k < 2; k++) fx.push({ x:b[0] + Math.random()*(b[3] - b[0]), y:b[4] - .05, z:b[2] + Math.random()*(b[5] - b[2]), vx:(Math.random() - .5)*1.6, vy:1 + Math.random()*1.5, vz:(Math.random() - .5)*1.6, life:.45, c:cols[k % cols.length] }); }
+      if(brk.t >= brk.dur){ brk = null; doTake(); }
+    }
     // 放得下嗎：每一格下面要有地、上面要是空的，不能跟別的家具重疊（平平的地毯、池塘只跟平的比）、不能壓到人和貓
     function furnFits(f, skip){ const c = furnCells(f), flat = F_FLAT.has(f.id);
       for(const [x, z] of c.cells){ const gb = world.get(x, f.y - 1, z); if(!gb || !BT[gb].solid) return "這裡下面沒有地";
@@ -1045,8 +1071,8 @@
       AIM = buildOn ? computeAim() : null; if(!buildOn) return;
       const put = AIM && AIM.put, take = AIM && AIM.take;
       const tf = take && take.kind === "furn" && !take.bad ? fName(FSAVE.placed[take.i].id) : "";
-      const txt = tf ? `按「拿」拿起${tf}（可以搬到別的地方）` : tool === "furn" && !fPick ? "背包空了：對準家具按「拿」可以收回來" : put && put.bad ? put.bad : !put ? (tool === "furn" ? "把準星對準地面" : "把準星對準方塊")
-        : tool === "furn" ? `按「放」把${fName(fPick)}放在這裡` : "按「放」蓋方塊，「拿」挖掉";
+      const txt = tf ? `按住「拿」拿起${tf}（可以搬到別的地方）` : tool === "furn" && !fPick ? "背包空了：對準家具按住「拿」可以收回來" : put && put.bad ? put.bad : !put ? (tool === "furn" ? "把準星對準地面" : "把準星對準方塊")
+        : tool === "furn" ? `按「放」把${fName(fPick)}放在這裡` : "按「放」蓋方塊，按住「拿」挖掉";
       const k = [txt, !!(put && !put.bad), !!(take && !take.bad), tool].join("|"); if(k === aimKey) return; aimKey = k;
       bHint.textContent = txt; bHint.classList.toggle("bad", !!(put && put.bad));
       putBtn.disabled = !put || !!put.bad; takeBtn.disabled = !take || !!take.bad; rotBtn.hidden = tool !== "furn";
@@ -1700,7 +1726,7 @@
       if(yarn) drawBall();
       (window.__furn || []).forEach(f => (f.v ? drawFurnV : drawFurn)(f.id, f.x, f.y, f.z, f.r, t));   // 測試用
       { const ai = AIM && AIM.take && AIM.take.kind === "furn" ? AIM.take.i : -1;   // 準星瞄到的家具會輕輕跳
-        FSAVE.placed.forEach((f, i) => drawFurnV(f.id, f.x + .5, f.y + (i === ai ? .05 + Math.sin(t*7)*.04 : 0), f.z + .5, f.r, t)); }
+        FSAVE.placed.forEach((f, i) => { const sh = brk && i === ai ? Math.sin(t*55)*.025 : 0; drawFurnV(f.id, f.x + .5 + sh, f.y + (i === ai && !brk ? .05 + Math.sin(t*7)*.04 : 0), f.z + .5 - sh, f.r, t); }); }
       // 挖方塊噴出來的小碎塊、剛放好的方塊閃一下
       for(let k = fx.length - 1; k >= 0; k--){ const f = fx[k]; f.life -= dt; if(f.life <= 0){ fx.splice(k, 1); continue; } f.vy -= 12*dt; f.x += f.vx*dt; f.y += f.vy*dt; f.z += f.vz*dt; box(chain(T(f.x, f.y, f.z), S(.12, .12, .12)), f.c); }
       // 腳下的影子：人、貓、家具下面淡淡的一圈，看起來是站在地上（不是浮著）
@@ -1713,6 +1739,7 @@
         for(const f of FSAVE.placed){ const b = furnCells(f).box; blob((b[0] + b[3])/2, f.y, (b[2] + b[5])/2, (b[3] - b[0])*1.08, (b[5] - b[2])*1.08, F_FLAT.has(f.id) ? .06 : .17); }
         gl.disable(gl.POLYGON_OFFSET_FILL); gl.depthMask(true); gl.disable(gl.BLEND); bind(cube); }
       if(buildOn) paintAim();
+      breakStep(dt);
       if(buildOn && AIM){   // 準星的預覽：瞄到的方塊外框、要放的位置半透明
         gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         const tk = AIM.take; if(tk && tk.kind === "block" && tool !== "furn"){ const c = tk.bad ? "#d0506e" : "#3a2830", e = .035, q = .5;
@@ -1723,6 +1750,11 @@
         if(pp && pp.kind === "block"){ gl.depthMask(false); box(chain(T(pp.x + .5, pp.y + .5, pp.z + .5), S(1, 1, 1)), pp.bad ? "#ff7a8a" : (TILE_COL[BT[pick].t[1]] || ["#ffffff"])[0], .5); gl.depthMask(true); }
         if(pp && pp.kind === "furn"){ gl.depthMask(false); FV_A = .55; if(pp.bad) gl.uniform3fv(U("tint"), [1, .45, .5]);
           drawFurnV(pp.f.id, pp.f.x + .5, pp.f.y, pp.f.z + .5, pp.f.r, t); FV_A = 1; gl.uniform3fv(U("tint"), TINT); gl.depthMask(true); }
+        if(brk && AIM.take){   // 裂痕：貼在要拿的方塊（或家具外框）上，越按越裂
+          const tk = AIM.take, b = tk.kind === "furn" ? furnCells(FSAVE.placed[tk.i]).box : [tk.x, tk.y, tk.z, tk.x + 1, tk.y + 1, tk.z + 1], st = Math.min(4, Math.floor(brk.t/brk.dur*5)), [u0, v0, u1, v1] = tileUV(246 + st);
+          bind(tcube); gl.uniform1f(U("mode"), 0); gl.uniform4f(U("uvR"), u0, v0, u1 - u0, v1 - v0); gl.uniform1f(U("cut"), .05); gl.depthFunc(gl.LEQUAL); gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(-2, -4);
+          gl.uniformMatrix4fv(U("M"), false, chain(T((b[0] + b[3])/2, (b[1] + b[4])/2, (b[2] + b[5])/2), S(b[3] - b[0] + .012, b[4] - b[1] + .012, b[5] - b[2] + .012))); gl.uniform1f(U("alpha"), 1); gl.drawElements(gl.TRIANGLES, boundC, gl.UNSIGNED_SHORT, 0);
+          gl.disable(gl.POLYGON_OFFSET_FILL); gl.depthFunc(gl.LESS); gl.uniform1f(U("cut"), .08); gl.uniform4f(U("uvR"), 0, 0, 1, 1); gl.uniform1f(U("mode"), 1); bind(cube); }
         gl.disable(gl.BLEND); }
       if(flash.t > 0){ flash.t -= dt; gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); box(chain(T(flash.x + .5, flash.y + .5, flash.z + .5), S(1.04, 1.04, 1.04)), "#ffffff", flash.t*2); gl.disable(gl.BLEND); }
       // 雲海和飄來飄去的雲（白白的大方塊，半透明）

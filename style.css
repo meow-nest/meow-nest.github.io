@@ -4137,3 +4137,4 @@ body.dockKb .careModal .ltWrap .ltBody{height:clamp(56px,calc(100dvh - var(--doc
 .p3d[data-ui="w"] .p3dTalkNm{border:0;border-radius:8px;background:var(--wpk);color:#7a4a58;outline:1.5px dashed #fff;outline-offset:-4px;box-shadow:var(--wsh);padding:3px 14px;top:-14px;transform:rotate(-2deg)}
 .p3d[data-ui="w"] .p3dNmTag{border-radius:8px}
 .p3d[data-ui="w"] .p3dCross::before,.p3d[data-ui="w"] .p3dCross::after{box-shadow:0 0 0 1.5px rgba(106,74,80,.55);border-radius:2px}
+.p3d .p3dTake.hold{transform:scale(.92)!important;filter:brightness(.95)}
