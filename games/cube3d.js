@@ -449,21 +449,23 @@
     if(cur) return cur;
     let last = performance.now(), raf = 0, dead = false, t0 = last, offAll = () => {};
     const CFG = loadCfg();
+    // 兩種模式：生存（方塊要自己挖、放一個少一個；家具要換）／創造（方塊家具無限、可以飛、一下就拆）。創造模式是另一座島，存檔分開（鍵名後面加 _c），不會影響生存的進度
+    const CREATIVE = o.mode === "c", MK = CREATIVE ? "_c" : "";
     // 按鈕上的小圖示（向量圖，不是 emoji）
     const SVG = { jump:'<svg viewBox="0 0 30 30"><path d="M15 5 6.5 14.5h5.5v9h6v-9h5.5z" fill="currentColor"/></svg>',
       put:'<svg viewBox="0 0 30 30"><path d="M15 4 26 10v11l-11 6-11-6V10z" fill="currentColor" opacity=".35"/><path d="M15 4 26 10 15 16 4 10z" fill="currentColor"/></svg>',
       take:'<svg viewBox="0 0 26 26"><path d="M8 13V7.5a1.6 1.6 0 0 1 3.2 0V12m0-5.5a1.6 1.6 0 0 1 3.2 0V12m0-4a1.6 1.6 0 0 1 3.2 0V13m0-2.5a1.6 1.6 0 0 1 3.2 0V15c0 4-2.8 7-6.8 7-3 0-4.6-1.4-6.4-4l-2.6-4a1.7 1.7 0 0 1 2.8-1.9L8 13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
       rot:'<svg viewBox="0 0 24 24"><path d="M19 12a7 7 0 1 1-2.1-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M18.5 3v4.5H14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>' };
-    const root = document.createElement("div"); root.className = "p3d";
+    const root = document.createElement("div"); root.className = "p3d " + (CREATIVE ? "modeC" : "modeS");
     root.innerHTML = `<canvas class="p3dC"></canvas><div class="p3dL" id="p3dL"></div>
-      <div class="p3dTop"><button class="p3dX" id="p3dX"><span class="p3dBack"></span><span>離開</span></button><span class="p3dT">喵喵方塊島</span><span class="p3dF" id="p3dF" hidden></span><span class="p3dFps" id="p3dFps" hidden></span><button class="p3dX p3dBuildT" id="p3dBuildT">${o.icon ? `<span class="p3dIc">${o.icon("home")}</span>` : ""}<span>蓋房子</span></button><button class="p3dX p3dGear" id="p3dGear">${o.icon ? `<span class="p3dIc">${o.icon("gear")}</span>` : ""}<span>設定</span></button></div>
+      <div class="p3dTop"><button class="p3dX" id="p3dX"><span class="p3dBack"></span><span>離開</span></button><span class="p3dT">喵喵方塊島<small class="p3dMode">${CREATIVE ? "創造模式" : "生存模式"}</small></span><span class="p3dF" id="p3dF" hidden></span><span class="p3dFps" id="p3dFps" hidden></span><button class="p3dX p3dBuildT" id="p3dBuildT">${o.icon ? `<span class="p3dIc">${o.icon("home")}</span>` : ""}<span>蓋房子</span></button><button class="p3dX p3dGear" id="p3dGear">${o.icon ? `<span class="p3dIc">${o.icon("gear")}</span>` : ""}<span>設定</span></button></div>
       <div class="p3dSet" id="p3dSet" hidden></div>
       <div class="p3dTalk" id="p3dTalk" hidden></div>
       <div class="p3dBuild" id="p3dBuild" hidden><div class="p3dCross" id="p3dCross"></div><div class="p3dTool" id="p3dTool"><button data-t="put" class="on">方塊</button><button data-t="furn">家具</button></div><div class="p3dActs"><button class="p3dFRot" id="p3dFRot" hidden><i class="p3dSv">${SVG.rot}</i>轉向</button><button class="p3dTake" id="p3dTake"><i class="p3dSv">${SVG.take}</i><span>拿</span></button><button class="p3dPut" id="p3dPut"><i class="p3dSv">${SVG.put}</i><span>放</span></button></div><button class="p3dUndo" id="p3dUndo">復原</button><div class="p3dBar" id="p3dBar"></div><div class="p3dBHint" id="p3dBHint"></div><div class="p3dCnt" id="p3dCnt"></div></div><div class="p3dClock" id="p3dClock"></div>
       <div class="p3dHint" id="p3dHint">左下搖桿走路・右邊拖曳轉鏡頭</div>
       <div class="p3dRot" id="p3dRot"><div class="p3dRotPh"><i></i></div><div>把手機轉橫的玩</div><button id="p3dRotX">直的也沒關係</button></div>
       <div class="p3dJoy" id="p3dJoy"><i></i></div>
-      <div class="p3dBtns"><div class="p3dAct" id="p3dAct"></div><button class="p3dJump" id="p3dJump"><i class="p3dSv">${SVG.jump}</i><span>跳</span></button></div>`;
+      <div class="p3dBtns"><div class="p3dAct" id="p3dAct"></div><button class="p3dFly" id="p3dFly" hidden>飛</button><button class="p3dDown" id="p3dDown" hidden>下</button><button class="p3dJump" id="p3dJump"><i class="p3dSv">${SVG.jump}</i><span>跳</span></button></div>`;
     document.body.appendChild(root); document.body.classList.add("p3dOn");
     // 全螢幕＋轉成橫的（Android 可以鎖橫向；鎖不了的手機就顯示「轉橫的玩」的小提示）
     const lockLand = () => { try{ const so = screen.orientation; if(so && so.lock) return so.lock("landscape").catch(() => {}); }catch(e){} return Promise.resolve(); };
@@ -503,26 +505,29 @@
     // 自己蓋的方塊（存在手機 localStorage mw_cube_edits：{"x,y,z": 方塊種類}）
     // 上限：一座島最多改 MAX_EDITS 格（放或挖都算一格；改回原本的樣子就不算），以後存到伺服器時每座島大約 12 KB 以內
     const MAX_EDITS = 3000, ORIG = makeWorld();
-    let EDITS = {}; try{ EDITS = JSON.parse(localStorage.getItem("mw_cube_edits") || "{}") || {}; }catch(e){}
+    let EDITS = {}; try{ EDITS = JSON.parse(localStorage.getItem("mw_cube_edits" + MK) || "{}") || {}; }catch(e){}
     let nEdit = 0;
     for(const k in EDITS){ const [x, y, z] = k.split(",").map(Number);
       if(!(y > 0 && y < H) || (ORIG.get(x, y, z) || 0) === EDITS[k] || nEdit >= MAX_EDITS){ delete EDITS[k]; continue; } world.set(x, y, z, EDITS[k]); nEdit++; }
-    const saveEdits = () => { try{ localStorage.setItem("mw_cube_edits", JSON.stringify(EDITS)); }catch(e){} };
+    const saveEdits = () => { try{ localStorage.setItem("mw_cube_edits" + MK, JSON.stringify(EDITS)); }catch(e){} };
     // 記一格的改變：改回原本的就刪掉，回傳 false 代表超過上限
     function editCell(x, y, z, b){ const k = `${x},${y},${z}`, orig = ORIG.get(x, y, z) || 0;
       if(b === orig){ if(k in EDITS){ delete EDITS[k]; nEdit--; } return true; }
       if(!(k in EDITS)){ if(nEdit >= MAX_EDITS) return false; nEdit++; } EDITS[k] = b; return true; }
     // ---------- 家具：背包＋擺在島上（存在手機 mw_cube_furn：{ inv:{id:數量}, placed:[{id,x,y,z,r}] }，x/y/z 是腳下那一格） ----------
     // 之後要跟旅行貓換；現在試玩頁先每件送 1 個
-    let FS_ = null; try{ FS_ = JSON.parse(localStorage.getItem("mw_cube_furn") || "null"); }catch(e){}
+    let FS_ = null; try{ FS_ = JSON.parse(localStorage.getItem("mw_cube_furn" + MK) || "null"); }catch(e){}
     const FSAVE = FS_ && FS_.inv && Array.isArray(FS_.placed) ? FS_ : { inv:null, placed:[] };
     // 島上的小花／小蘑菇可以採（按住「拿」）：今天採過的記在 mw_cube_pick（隔天會再長出來），採到的放進材料背包 mw_cube_mat
     const dayNo = () => { const d = new Date(); return d.getFullYear()*10000 + (d.getMonth()+1)*100 + d.getDate(); };
-    let MAT = {}; try{ MAT = JSON.parse(localStorage.getItem("mw_cube_mat") || "{}") || {}; }catch(e){}
-    let PICK = { d:dayNo(), i:[] }; try{ const q = JSON.parse(localStorage.getItem("mw_cube_pick") || "null"); if(q && q.d === PICK.d && Array.isArray(q.i)) PICK = q; }catch(e){}
+    let MAT = {}; try{ MAT = JSON.parse(localStorage.getItem("mw_cube_mat" + MK) || "{}") || {}; }catch(e){}
+    let PICK = { d:dayNo(), i:[] }; try{ const q = JSON.parse(localStorage.getItem("mw_cube_pick" + MK) || "null"); if(q && q.d === PICK.d && Array.isArray(q.i)) PICK = q; }catch(e){}
     (world.flowers || []).forEach((f, i) => { if(PICK.i.includes(i)) f.gone = true; });
-    const savePick = () => { try{ localStorage.setItem("mw_cube_pick", JSON.stringify(PICK)); localStorage.setItem("mw_cube_mat", JSON.stringify(MAT)); }catch(e){} };
-    const saveFurn = () => { try{ localStorage.setItem("mw_cube_furn", JSON.stringify(FSAVE)); }catch(e){} };
+    const savePick = () => { try{ localStorage.setItem("mw_cube_pick" + MK, JSON.stringify(PICK)); localStorage.setItem("mw_cube_mat" + MK, JSON.stringify(MAT)); }catch(e){} };
+    // 生存模式的方塊背包（mw_cube_inv：{方塊種類: 數量}）：挖下來的方塊放進來，放一個少一個
+    let BINV = {}; try{ BINV = JSON.parse(localStorage.getItem("mw_cube_inv") || "{}") || {}; }catch(e){}
+    const saveInv = () => { try{ localStorage.setItem("mw_cube_inv", JSON.stringify(BINV)); }catch(e){} };
+    const saveFurn = () => { try{ localStorage.setItem("mw_cube_furn" + MK, JSON.stringify(FSAVE)); }catch(e){} };
     const F_FLAT = new Set(["rug", "pond"]), F_WALK = new Set(["rug", "pond", "cushion", "bowl"]);   // 平平的可以疊在上面放別的；走得過去的不擋路
     let FCAP = null, FSOL = new Set(), FV_A = 1; const FBOX = {}, FEXT = {};
     function furnBoxes(id){ if(!FBOX[id]){ FCAP = []; try{ drawFurnV(id, 0, 0, 0, 0, 0); } finally { FBOX[id] = FCAP; FCAP = null; } } return FBOX[id]; }
@@ -535,7 +540,7 @@
       const cells = []; for(let cx = Math.floor(f.x + .5 + x0 + .1); cx <= Math.floor(f.x + .5 + x1 - .1); cx++) for(let cz = Math.floor(f.z + .5 + z0 + .1); cz <= Math.floor(f.z + .5 + z1 - .1); cz++) cells.push([cx, cz]);
       return { cells, h:Math.max(1, Math.ceil(e[4] - .05)), box:[f.x + .5 + x0, f.y + e[1], f.z + .5 + z0, f.x + .5 + x1, f.y + Math.max(e[4], .3), f.z + .5 + z1] }; }
     function furnSolidRebuild(){ FSOL = new Set(); for(const f of FSAVE.placed){ if(F_WALK.has(f.id)) continue; const c = furnCells(f); for(const [x, z] of c.cells) for(let y = f.y; y < f.y + c.h; y++) FSOL.add(`${x},${y},${z}`); } }
-    function furnInit(){ if(!FSAVE.inv){ FSAVE.inv = {}; FURN.forEach(([id]) => FSAVE.inv[id] = 1); } FSAVE.placed = FSAVE.placed.filter(f => FURN.some(q => q[0] === f.id)); furnSolidRebuild(); }
+    function furnInit(){ if(CREATIVE){ FSAVE.inv = {}; FURN.forEach(([id]) => FSAVE.inv[id] = 99); } else if(!FSAVE.inv){ FSAVE.inv = {}; FURN.forEach(([id]) => FSAVE.inv[id] = 1); } FSAVE.placed = FSAVE.placed.filter(f => FURN.some(q => q[0] === f.id)); furnSolidRebuild(); }
     // 家具小圖示：用小方塊在 2D 畫一個斜斜的立體圖（遠的先畫）
     const shadeHex = (h, k) => { const n = parseInt(h.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255].map(v => Math.round(v*k)); return `rgb(${c.join(",")})`; };
     function furnIcon(id){ const bx = furnBoxes(id).slice(), c = document.createElement("canvas"), S2 = 96; c.width = c.height = S2; const g = c.getContext("2d");
@@ -882,7 +887,7 @@
           if(!hits(nx + ox, e.y, nz + oz, w, h) && !hits(e.x + ox, e.y, e.z + oz, w, h)){ const m = Math.min(off, sp); e.x += px*m*sg; e.z += pz*m*sg; return; } }
       };
       step(0, mx*dt); step(2, mz*dt);
-      e.vy = Math.max(-22, e.vy - 20*dt); const ny = e.y + e.vy*dt;
+      if(e === player && FLY) e.vy = (flyUp ? 5.5 : 0) - (flyDn ? 5.5 : 0); else e.vy = Math.max(-22, e.vy - 20*dt); const ny = e.y + e.vy*dt;
       // 上下：腳底剛好碰到地面就算站著（不會一直在地面上下抖、跳不起來）
       const at4 = y => { for(const dx of [-w*.9, w*.9]) for(const dz of [-w*.9, w*.9]) if(solid(e.x+dx, y, e.z+dz)) return true; return false; };
       if(e.vy <= 0 && at4(ny)){ e.y = Math.floor(ny) + 1; e.vy = 0; e.onG = true; e.air = 0; }
@@ -925,7 +930,15 @@
     function jump(){ jumpBuf = .15; }
     function tryJump(dt){ if(jumpBuf <= 0) return; jumpBuf -= dt;
       if(player.onG || (player.air || 0) < .1 && player.vy <= 0){ player.vy = 7.2; player.onG = false; player.air = 1; jumpBuf = 0; CFG.sound && o.sfx && o.sfx.tap && o.sfx.tap(); } }
-    root.querySelector("#p3dJump").addEventListener("pointerdown", e => { e.preventDefault(); jump(); });
+    // 創造模式可以飛：按「飛」開關；飛的時候按住「跳」往上、按住「下」往下
+    let FLY = false, flyUp = false, flyDn = false;
+    const flyB = root.querySelector("#p3dFly"), dnB = root.querySelector("#p3dDown"), jB = root.querySelector("#p3dJump");
+    flyB.hidden = !CREATIVE;
+    flyB.addEventListener("click", () => { FLY = !FLY; flyB.classList.toggle("on", FLY); dnB.hidden = !FLY; jB.querySelector("span").textContent = FLY ? "上" : "跳"; if(FLY){ player.vy = 0; player.y += .3; } CFG.sound && o.sfx && o.sfx.tap && o.sfx.tap(); });
+    const hold = (el, set) => { el.addEventListener("pointerdown", e => { e.preventDefault(); try{ el.setPointerCapture(e.pointerId); }catch(_){} set(true); }); for(const ev of ["pointerup", "pointercancel", "lostpointercapture"]) el.addEventListener(ev, () => set(false)); };
+    hold(dnB, v => { flyDn = v; });
+    jB.addEventListener("pointerdown", e => { e.preventDefault(); if(FLY){ flyUp = true; try{ jB.setPointerCapture(e.pointerId); }catch(_){} } else jump(); });
+    for(const ev of ["pointerup", "pointercancel", "lostpointercapture"]) jB.addEventListener(ev, () => { flyUp = false; });
     root.querySelector("#p3dX").addEventListener("click", close);
     root.querySelector("#p3dRotX").addEventListener("click", () => { root.classList.add("rotOk"); });
 
@@ -1010,7 +1023,7 @@
       fPg = Math.max(0, Math.min(pages - 1, fPg));
       const nav = (d, on) => `<button class="p3dPg" data-pg="${d}" ${on ? "" : "disabled"}>${d < 0 ? "◀" : "▶"}</button>`;
       barEl.innerHTML = !own.length ? `<div class="p3dEmpty">背包裡沒有家具了<br><small>準星對準島上的家具按「拿」可以收回來</small></div>`
-        : nav(-1, fPg > 0) + own.slice(fPg*PER, fPg*PER + PER).map(([id, nm]) => `<button data-f="${id}" class="fu${id === fPick ? " on" : ""}"><img src="${FICON[id] || (FICON[id] = furnIcon(id))}" alt=""><i>${nm}</i>${FSAVE.inv[id] > 1 ? `<b>${FSAVE.inv[id]}</b>` : ""}</button>`).join("") + nav(1, fPg < pages - 1);
+        : nav(-1, fPg > 0) + own.slice(fPg*PER, fPg*PER + PER).map(([id, nm]) => `<button data-f="${id}" class="fu${id === fPick ? " on" : ""}"><img src="${FICON[id] || (FICON[id] = furnIcon(id))}" alt=""><i>${nm}</i>${!CREATIVE && FSAVE.inv[id] > 1 ? `<b>${FSAVE.inv[id]}</b>` : ""}</button>`).join("") + nav(1, fPg < pages - 1);
       barEl.querySelectorAll("[data-pg]").forEach(x => x.addEventListener("click", () => { fPg += +x.dataset.pg; paintFurnBar(); }));
       barEl.querySelectorAll("[data-f]").forEach(x => x.addEventListener("click", () => { fPick = x.dataset.f; fRot = 0; paintFurnBar(); aimKey = ""; CFG.sound && o.sfx && o.sfx.tap && o.sfx.tap(); }));
     }
@@ -1027,7 +1040,7 @@
       if(!holdTake || !buildOn){ brk = null; return; }
       const tk = AIM && AIM.take; if(!tk || tk.bad){ brk = null; return; }
       const key = tk.kind === "furn" ? "f" + tk.i : tk.kind === "flower" ? "fl" + tk.i : tk.x + "," + tk.y + "," + tk.z;
-      if(!brk || brk.key !== key) brk = { key, t:0, c:0, dur: tk.kind === "flower" ? .3 : tk.kind === "furn" ? .7 : (BRK_T[world.get(tk.x, tk.y, tk.z)] || .6) };
+      if(!brk || brk.key !== key) brk = { key, t:0, c:0, dur: (tk.kind === "flower" ? .3 : tk.kind === "furn" ? .7 : (BRK_T[world.get(tk.x, tk.y, tk.z)] || .6))*(CREATIVE ? .2 : 1) };
       if(tk.kind === "flower"){ brk.t += dt; if(brk.t >= brk.dur){ brk = null; holdTake = false; takeBtn.classList.remove("hold"); doTake(); } return; }   // 換了目標就重新開始
       brk.t += dt; brk.c -= dt;
       if(brk.c <= 0){ brk.c = .13;   // 一邊裂一邊掉小碎屑
@@ -1092,9 +1105,11 @@
     }
     function doPut(){
       const p = AIM && AIM.put; if(!p) return; if(p.bad){ o.toast && o.toast(p.bad); return; }
-      if(p.kind === "furn"){ const f = p.f; FSAVE.placed.push(f); FSAVE.inv[f.id]--; if(FSAVE.inv[f.id] <= 0) delete FSAVE.inv[f.id];
+      if(p.kind === "furn"){ const f = p.f; FSAVE.placed.push(f); if(!CREATIVE){ FSAVE.inv[f.id]--; if(FSAVE.inv[f.id] <= 0) delete FSAVE.inv[f.id]; }
         saveFurn(); furnSolidRebuild(); paintFurnBar(); Object.assign(flash, { t:.25, x:f.x, y:f.y - 1, z:f.z }); }
+      else if(!CREATIVE && !(BINV[pick] > 0)){ o.toast && o.toast("背包裡沒有這種方塊了，先去挖一些吧"); return; }
       else if(!setBlock(p.x, p.y, p.z, pick, true)) return;
+      else if(!CREATIVE){ BINV[pick]--; if(BINV[pick] <= 0) delete BINV[pick]; saveInv(); paintBar(); }
       else Object.assign(flash, { t:.25, x:p.x, y:p.y, z:p.z });
       aimKey = ""; CFG.sound && o.sfx && o.sfx.tap && o.sfx.tap();
     }
@@ -1103,17 +1118,21 @@
       if(p.kind === "flower"){ const f = world.flowers[p.i]; if(!f || f.gone) return; f.gone = true; PICK.i.push(p.i); const k = f.m ? "mush" : "flower"; MAT[k] = (MAT[k] || 0) + 1; savePick();
         for(let n = 0; n < 6; n++) fx.push({ x:f.x, y:f.y + .25, z:f.z, vx:(Math.random() - .5)*1.5, vy:.8 + Math.random()*1.4, vz:(Math.random() - .5)*1.5, life:.5, c:f.m ? "#ef8a8a" : f.c });
         o.toast && o.toast(f.m ? `採到一朵小蘑菇！（背包裡有 ${MAT.mush} 朵）` : `採到一朵小花！（背包裡有 ${MAT.flower} 朵）`); aimKey = ""; CFG.sound && o.sfx && o.sfx.tap && o.sfx.tap(); return; }
-      if(p.kind === "furn"){ const f = FSAVE.placed[p.i]; if(!f) return; FSAVE.placed.splice(p.i, 1); FSAVE.inv[f.id] = (FSAVE.inv[f.id] || 0) + 1; saveFurn(); furnSolidRebuild();
+      if(p.kind === "furn"){ const f = FSAVE.placed[p.i]; if(!f) return; FSAVE.placed.splice(p.i, 1); if(!CREATIVE) FSAVE.inv[f.id] = (FSAVE.inv[f.id] || 0) + 1; saveFurn(); furnSolidRebuild();
         fPick = f.id; fRot = 0; if(tool !== "furn"){ tool = "furn"; paintTool(); } paintBar();   // 拿起來就拿在手上，對準別的地方按「放」＝搬家具
         if(!tookTip){ tookTip = true; o.toast && o.toast(`${fName(f.id)}拿起來了，對準別的地方按「放」就能搬過去`); } }
-      else { const b = world.get(p.x, p.y, p.z); if(!setBlock(p.x, p.y, p.z, 0, true)) return; burst(p.x, p.y, p.z, b); Object.assign(flash, { t:.25, x:p.x, y:p.y, z:p.z }); }
+      else { const b = world.get(p.x, p.y, p.z); if(!setBlock(p.x, p.y, p.z, 0, true)) return;
+        if(!CREATIVE && b !== B.WATER){ const g = b === B.CLOUDB ? B.CLOUD : b; BINV[g] = (BINV[g] || 0) + 1; saveInv(); if(tool === "put") paintBar(); }   /* 生存：挖下來的放進背包 */ burst(p.x, p.y, p.z, b); Object.assign(flash, { t:.25, x:p.x, y:p.y, z:p.z }); }
       aimKey = ""; CFG.sound && o.sfx && o.sfx.tap && o.sfx.tap();
     }
     function paintBar(){
       if(tool === "furn"){ paintFurnBar(); return; }
-      const pages = Math.ceil(PALETTE.length/PER); barPg = Math.max(0, Math.min(pages - 1, barPg));
+      const LIST = CREATIVE ? PALETTE : PALETTE.filter(b => BINV[b] > 0);
+      if(!CREATIVE && !LIST.length){ barEl.innerHTML = `<div class="p3dEmpty">背包裡還沒有方塊<br><small>準星對準方塊，按住「拿」挖下來就會放進背包</small></div>`; return; }
+      if(!LIST.includes(pick)) pick = LIST[0];
+      const pages = Math.ceil(LIST.length/PER); barPg = Math.max(0, Math.min(pages - 1, barPg));
       const nav = (d, on) => `<button class="p3dPg" data-pg="${d}" ${on ? "" : "disabled"}>${d < 0 ? "◀" : "▶"}</button>`;
-      barEl.innerHTML = nav(-1, barPg > 0) + PALETTE.slice(barPg*PER, barPg*PER + PER).map(b => `<button data-b="${b}" class="${b === pick ? "on" : ""}"><img src="${ICONS[b] || (ICONS[b] = blockIcon(b))}" alt=""><i>${BNAME[b]}</i></button>`).join("") + nav(1, barPg < pages - 1);
+      barEl.innerHTML = nav(-1, barPg > 0) + LIST.slice(barPg*PER, barPg*PER + PER).map(b => `<button data-b="${b}" class="${b === pick ? "on" : ""}"><img src="${ICONS[b] || (ICONS[b] = blockIcon(b))}" alt=""><i>${BNAME[b]}</i>${!CREATIVE ? `<b class="bq">${BINV[b]}</b>` : ""}</button>`).join("") + nav(1, barPg < pages - 1);
       barEl.querySelectorAll("[data-pg]").forEach(x => x.addEventListener("click", () => { barPg += +x.dataset.pg; paintBar(); }));
       barEl.querySelectorAll("[data-b]").forEach(x => x.addEventListener("click", () => { pick = +x.dataset.b; tool = "put"; paintTool(); paintBar(); CFG.sound && o.sfx && o.sfx.tap && o.sfx.tap(); }));
     }
@@ -1196,7 +1215,7 @@
       setEl.querySelector("#p3dSetX").onclick = () => { setEl.hidden = true; };
       const wipe = setEl.querySelector("#p3dWipe");
       wipe.onclick = () => { if(!wipe._sure){ wipe._sure = 1; wipe.textContent = "確定嗎？再按一次就會清掉"; setTimeout(() => { if(wipe.isConnected){ wipe._sure = 0; wipe.textContent = "把島恢復原狀（清掉自己蓋的方塊）"; } }, 3000); return; }
-        try{ localStorage.removeItem("mw_cube_edits"); }catch(e){} for(const k in EDITS){ const [x, y, z] = k.split(",").map(Number); world.set(x, y, z, ORIG.get(x, y, z) || 0); }
+        try{ localStorage.removeItem("mw_cube_edits" + MK); }catch(e){} if(!CREATIVE){ BINV = {}; saveInv(); }   // 生存：島恢復原狀，背包裡挖來的方塊也一起清掉 for(const k in EDITS){ const [x, y, z] = k.split(",").map(Number); world.set(x, y, z, ORIG.get(x, y, z) || 0); }
         EDITS = {}; nEdit = 0; undo.length = 0; buildWorld(); wipe._sure = 0; wipe.textContent = "已經恢復原狀了"; };
       setEl.querySelector("#p3dReset").onclick = () => { Object.assign(CFG, DEF); applyCfg(); paintSet(); };
       setEl.querySelectorAll(".p3dSeg").forEach(g => g.querySelectorAll("button").forEach(b => b.onclick = () => {

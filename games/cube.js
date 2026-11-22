@@ -18,14 +18,20 @@ App.registerGame({
     const save = () => { try{ localStorage.setItem("mw_cube_av", JSON.stringify(av)); }catch(e){} };
     el.innerHTML = `<div class="box card cbStart">
       <h3>喵喵方塊島</h3>
-      <p class="k">穿上貓咪睡衣，在飄在白雲上的方塊小島到處走走：<br>左下搖桿走路、右邊拖曳轉鏡頭、按「跳」跳起來，<br>家裡養的貓會跟著你一起生活：追毛線球、玩鬼抓人，<br>走過去可以聊天、摸摸，晚上在你旁邊睡覺。</p>
+      <p class="k">穿上貓咪睡衣，在飄在白雲上的方塊小島到處走走：<br>左下搖桿走路、右邊拖曳轉鏡頭、按「跳」跳起來，<br>家裡養的貓會跟著你一起生活：追毛線球、玩鬼抓人，<br>走過去可以摸摸、丟毛線球，晚上在你旁邊睡覺。</p>
       <div class="cbMe" id="cbMe"></div>
       <div class="cbPickT">貓咪睡衣</div><div class="cbPick" id="cbPick"></div>
       <div class="cbPickT">髮型</div><div class="cbPick hs" id="cbHair"></div>
       <div class="cbPickT">髮色</div><div class="cbHc" id="cbHc"></div>
       <div class="cbFam" id="cbFam"></div>
+      <div class="cbPickT">模式</div>
+      <div class="cbMode" id="cbMode">
+        <button data-m="s"><b>生存模式</b><small>方塊要自己挖、放一個少一個<br>家具要慢慢收集</small></button>
+        <button data-m="c"><b>創造模式</b><small>方塊、家具隨便用<br>可以飛、一下就拆</small></button>
+      </div>
+      <p class="k cbModeN">兩個模式是不同的島，蓋的東西分開存</p>
       <button class="btn" id="cbGo">開始</button>
-      <p class="k cbNote">之後會加上：放方塊蓋房子、看得到${p ? esc(p.name) : "一起玩的人"}、探索撿東西</p>
+      <p class="k cbNote">按「蓋房子」可以放方塊、擺家具、採小花；之後會加上：看得到${p ? esc(p.name) : "一起玩的人"}、旅行貓擺攤換家具</p>
     </div>`;
     function paint(){
       if(!C3) return; const cur = C3.avOf(av);
@@ -38,6 +44,11 @@ App.registerGame({
       el.querySelectorAll("[data-hc]").forEach(b => b.addEventListener("click", () => { SFX.tap && SFX.tap(); av.hc = b.dataset.hc; save(); paint(); }));
     }
     paint();
+    // 模式：生存 s／創造 c（記在手機 mw_cube_mode）
+    let mode = "s"; try{ mode = localStorage.getItem("mw_cube_mode") === "c" ? "c" : "s"; }catch(e){}
+    const paintMode = () => el.querySelectorAll("[data-m]").forEach(b => b.classList.toggle("on", b.dataset.m === mode));
+    el.querySelectorAll("[data-m]").forEach(b => b.addEventListener("click", () => { SFX.tap && SFX.tap(); mode = b.dataset.m; try{ localStorage.setItem("mw_cube_mode", mode); }catch(e){} paintMode(); }));
+    paintMode();
     // 我們家的貓（「我們的貓」養的）也一起來島上玩
     let fam = [];
     const PL = window.PetLogic, stg = c => PL ? PL.stage(c) : (() => { const e = c.exp || 0, S = [[0,"小奶貓",.5],[8,"小貓",.62],[25,"大貓",.74],[60,"胖胖貓",.86],[120,"貓咪大王",.9]]; let i = 0; while(i+1 < S.length && e >= S[i+1][0]) i++; return { name:S[i][1], scale:S[i][2] }; })();
@@ -57,7 +68,7 @@ App.registerGame({
       if(!window.Cube3D) return;
       SFX.tap && SFX.tap();
       const npcs = [];   // 站長不要村民：島上只有自己養的貓
-      game = window.Cube3D.open({ avatar: Object.assign({}, av), meName: ctx.me.name, partnerName: p ? p.name : "", npcs: npcs.concat(fam), sfx: SFX, icon: ctx.icon, esc, toast: ctx.toast, onClose: () => { game = null; } });
+      game = window.Cube3D.open({ mode, avatar: Object.assign({}, av), meName: ctx.me.name, partnerName: p ? p.name : "", npcs: npcs.concat(fam), sfx: SFX, icon: ctx.icon, esc, toast: ctx.toast, onClose: () => { game = null; } });
     });
   },
   unmount(){ const g = document.querySelector(".p3d"); if(g){ const x = g.querySelector("#p3dX"); if(x) x.click(); } },
