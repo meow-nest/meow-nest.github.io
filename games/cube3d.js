@@ -1066,6 +1066,8 @@
         for(let k = 0; k < 3; k++){ const lo = b[k], hi = b[k + 3] + (k === 1 ? .05 : 0), inv = 1/(d[k] || 1e-9); let a = (lo - eye[k])*inv, c = (hi - eye[k])*inv; if(a > c) [a, c] = [c, a]; t0 = Math.max(t0, a); t1 = Math.min(t1, c); }
         if(t0 <= t1 && (!best || t0 < best.t)) best = { i, t:t0 }; });
       return best; }
+    // 生存模式：島的地基挖不動（原本就在的雲，只要不是最上面那一層草地／雲朵），島才不會被挖穿；自己蓋的都可以挖。創造模式不限制
+    const isBase = (x, y, z) => { if(CREATIVE) return false; const b = world.get(x, y, z), ob = ORIG.get(x, y, z); return b === ob && (b === B.CLOUDB || ((b === B.CLOUD || b === B.GRASS) && y < GY)); };
     const underFurn = (x, y, z) => FSAVE.placed.some(f => y >= f.y && y < f.y + furnCells(f).h && furnCells(f).cells.some(([cx, cz]) => cx === x && cz === z));
     // 準星（畫面正中間）瞄到什麼：「拿」的目標（家具優先，再來是方塊）和「放」的位置
     function computeAim(){
@@ -1080,7 +1082,7 @@
       const far = (x, y, z) => Math.hypot(x + .5 - player.x, y + .5 - (player.y + .7), z + .5 - player.z) > 7.5;
       const A = { take:null, put:null };
       if(fi >= 0){ const f = FSAVE.placed[fi]; A.take = { kind:"furn", i:fi, bad: far(f.x, f.y, f.z) ? "太遠了，走近一點" : "" }; }
-      else if(h){ A.take = { kind:"block", x:h.x, y:h.y, z:h.z, bad: h.y <= 0 ? "最底下的雲不能挖喔" : far(h.x, h.y, h.z) ? "太遠了，走近一點" : FSAVE.placed.some(f => f.y - 1 === h.y && furnCells(f).cells.some(([x, z]) => x === h.x && z === h.z)) ? "上面有家具，先把家具拿起來" : "" }; }
+      else if(h){ A.take = { kind:"block", x:h.x, y:h.y, z:h.z, bad: h.y <= 0 ? "最底下的雲不能挖喔" : isBase(h.x, h.y, h.z) ? "這是島的地基，挖不動喔" : far(h.x, h.y, h.z) ? "太遠了，走近一點" : FSAVE.placed.some(f => f.y - 1 === h.y && furnCells(f).cells.some(([x, z]) => x === h.x && z === h.z)) ? "上面有家具，先把家具拿起來" : "" }; }
       if(tool === "furn"){
         if(fPick && h && h.face && h.face[1] === 1 && fi < 0){
           const f = { id:fPick, x:h.x, y:h.y + 1, z:h.z, r:0 }, a = Math.atan2(player.x - (f.x + .5), player.z - (f.z + .5));
