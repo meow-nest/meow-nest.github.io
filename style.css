@@ -4004,6 +4004,19 @@ body.dockKb .careModal .ltWrap .ltBody{height:clamp(56px,calc(100dvh - var(--doc
 #famBan .flTxt b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #famBan .btn{width:auto;margin:0;padding:5px 12px;font-size:14px;flex:none}
 #famBan .fbX{flex:none;background:none;border:0;font:inherit;font-size:20px;color:var(--muted);padding:0 4px;cursor:pointer}
+/* 全站飄屏：有喵友在等配對（粉紅框，跟家人觀戰的通知分開） */
+#ptBan{position:fixed;left:8px;right:8px;top:calc(env(safe-area-inset-top,0px) + 6px);z-index:81;display:flex;align-items:center;gap:8px;background:#fff4f7;border:3px solid var(--line);box-shadow:4px 4px 0 var(--shadow);padding:5px 6px 5px 6px;max-width:520px;margin:0 auto}
+#ptBan.low{top:calc(env(safe-area-inset-top,0px) + 66px)}
+#ptBan.pop{animation:fbPop .45s steps(4)}
+#ptBan .pbCat{flex:none;width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:#ffd6e2;border:2px solid var(--line)}
+#ptBan .pbCat svg{width:34px;height:auto}
+#ptBan .flTxt b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#ptBan .pbTag{display:flex!important;align-items:center;gap:3px;color:var(--pinkT)!important}
+#ptBan .pbTag svg{width:12px;height:12px}
+#ptBan .pbTag{white-space:nowrap;overflow:hidden}
+#ptBan .pbTag em{font-style:normal;color:var(--muted);flex:none}
+#ptBan .btn{width:auto;margin:0;padding:5px 12px;font-size:14px;flex:none}
+#ptBan .fbX{flex:none;background:none;border:0;font:inherit;font-size:20px;color:var(--muted);padding:0 4px;cursor:pointer}
 
 /* 家人模式：兩個人／全家一起玩 切換 */
 .famAllSw{display:flex;gap:0;margin:0 0 8px;border:3px solid var(--line);box-shadow:3px 3px 0 var(--shadow);background:var(--card)}

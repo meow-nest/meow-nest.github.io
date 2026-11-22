@@ -261,6 +261,28 @@
     };
     B.partyClose = () => { if (B._pch) { const c = B._pch; B._pch = null; try { sb.removeChannel(c); } catch (e) {} } };
     B.partyBcast = (payload) => { try { if (B._pch) B._pch.send({ type: "broadcast", event: "g", payload }); } catch (e) {} };
+    // 全站頻道 meow-lobby：「有喵友在等配對」（更新 75）。只能收聽，只有伺服器能發。
+    // 資料庫還沒更新 75 時會一直被拒絕，試 3 次就放棄，不會一直重連。
+    B.lobbyConnect = (h) => {
+      B._lobH = h; if (B._lch) return; let tries = 0;
+      const go = async () => {
+        try { const { data } = await sb.auth.getSession(); if (data && data.session) sb.realtime.setAuth(data.session.access_token); } catch (e) {}
+        const ch = sb.channel("meow-lobby", { config: { private: true } });
+        ch.on("broadcast", { event: "w" }, m => { if (m && m.payload && B._lobH) B._lobH("w", m.payload); });
+        ch.on("broadcast", { event: "x" }, m => { if (m && m.payload && B._lobH) B._lobH("x", m.payload); });
+        let ok = false;
+        ch.subscribe(st => {
+          if (B._lch !== ch) return;
+          if (st === "SUBSCRIBED") { ok = true; tries = 0; return; }
+          if (st !== "CHANNEL_ERROR" && st !== "TIMED_OUT" && st !== "CLOSED") return;
+          B._lch = null; try { sb.removeChannel(ch); } catch (e) {}
+          if (!ok && ++tries > 3) return;
+          B._lch = 1; setTimeout(go, Math.min(60000, 2000 * Math.pow(2, tries)));
+        });
+        B._lch = ch;
+      };
+      B._lch = 1; go();
+    };
     B.track = (meta) => { B._meta = meta; if (B._ch) B._ch.track(meta).catch(() => {}); };
     B.bcast = (payload) => { try { if (B._ch) B._ch.send({ type: "broadcast", event: "g", payload }); } catch (e) {} };
     B.on = (what, h) => { B._h[what].push(h); };
@@ -283,6 +305,7 @@
       if (ev.t === "bc" && ev.from !== B.uid) B._h.bc.forEach(h => h(ev.payload));
     };
     B.bcast = (payload) => { call("bc", { cid: B.coupleId, uid: B.uid, payload }); };
+    B.lobbyConnect = (h) => { window.__lobby = h; };   // 測試：用 window.__lobby("w", {...}) 假裝伺服器發飄屏
     B.init = async () => { let id = LS.get("mock_uid"); if (!id) { id = "u" + Math.random().toString(36).slice(2, 8); LS.set("mock_uid", id); } B.uid = id; await call("hello", { uid: id }); return id; };
     B.membership = async () => { const m = await call("membership", { uid: B.uid }); if (m) { B.coupleId = m.couple_id; B.code = m.code; } return m; };
     B.createCouple = async (name, cat) => { const d = await call("create", { uid: B.uid, name, cat }); B.coupleId = d.couple_id; B.code = d.code; return d; };

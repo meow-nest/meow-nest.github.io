@@ -1905,6 +1905,43 @@ const App = (function(){
       return `<div class="ptWR">${sprite(x.cat || "white", "happy")}<span><b>${esc(x.name)}</b><small>想玩「${esc(g ? g.name : x.game)}」・等了${ago(x.since)}</small></span><button class="btn" data-meet="${esc(x.room)}">一起玩</button></div>`; }).join("");
     L.querySelectorAll("[data-meet]").forEach(b => b.addEventListener("click", () => ptMeet(b.dataset.meet)));
   }
+  // ---- 全站飄屏：有喵友在等配對（更新 75：伺服器從 meow-lobby 頻道發 w＝在等、x＝結束了）----
+  // 第一次收到顯示 25 秒；同一位還在等的話，3 分鐘後才會再跳一次。自己小窩的人（c＝小窩的雜湊）不顯示。
+  const LOBBY = new Map(), lobHide = new Set(); let lobT = 0, lobMyC = "", lobPop = 0;
+  const lobOff = () => { try{ return localStorage.getItem("mw_lobOff") === "1"; }catch(e){ return false; } };   // 設定「配對提醒」可以關掉
+  async function lobbyStart(){
+    try{ const h = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(String(B.coupleId)));
+      lobMyC = [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 12); }catch(e){}
+    if(B.lobbyConnect) B.lobbyConnect(lobbyMsg);
+  }
+  function lobbyMsg(ev, p){
+    if(!p || !p.room) return;
+    if(ev === "x"){ LOBBY.delete(p.room); lobbyPaint(); return; }
+    if(!MATCH_GAMES.includes(p.game) || (lobMyC && p.c === lobMyC) || lobHide.has(p.room)) return;
+    const now = Date.now(), o = LOBBY.get(p.room) || {};
+    Object.assign(o, { room:p.room, game:p.game, name:String(p.name || "喵友").slice(0, 12), cat:p.cat, at:now });
+    if((!o.shown || now - o.shown > 180000) && now - lobPop > 90000){ o.shown = now; o.until = now + 25000; o.pop = true; lobPop = now; }   // 人多也不洗版：每 90 秒最多跳一次
+    LOBBY.set(p.room, o); lobbyPaint();
+  }
+  function lobbyPaint(){
+    clearTimeout(lobT); const now = Date.now();
+    for(const [k, v] of LOBBY) if(now - v.at > 150000) LOBBY.delete(k);   // 2 分半沒再聽到＝大概不等了
+    const off = route === "party" || route === "watch" || PT.room || lobOff();
+    const x = off ? null : [...LOBBY.values()].filter(v => v.until > now && !lobHide.has(v.room)).sort((a, b) => b.until - a.until)[0];
+    let el = $("ptBan");
+    if(!x){ if(el) el.remove(); return; }
+    if(!el){ el = document.createElement("div"); el.id = "ptBan"; document.body.appendChild(el); }
+    el.classList.toggle("low", !!$("famBan"));
+    if(el.dataset.k !== x.room){
+      el.dataset.k = x.room; const g = ptGame(x.game);
+      el.innerHTML = `<span class="pbCat">${sprite(x.cat || "white", "happy")}</span><span class="flTxt"><small class="pbTag">${icon("star")}${esc(x.name)} 在等配對<em id="pbMore"></em></small><b>想玩「${esc(g ? g.name : x.game)}」</b></span><button class="btn" id="pbGo">一起玩</button><button class="fbX" id="pbX" aria-label="關掉">×</button>`;
+      el.querySelector("#pbGo").addEventListener("click", () => { SFX.tap(); lobHide.add(x.room); el.remove(); PT.pendMeet = x.room; go("party"); });
+      el.querySelector("#pbX").addEventListener("click", () => { SFX.tap(); lobHide.add(x.room); el.remove(); });
+    }
+    { const more = LOBBY.size - 1, m = el.querySelector("#pbMore"); if(m) m.textContent = more > 0 ? `・還有${more}位` : ""; }
+    if(x.pop){ x.pop = false; el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop"); SFX.pop && SFX.pop(); }
+    lobT = setTimeout(lobbyPaint, Math.max(400, x.until - now + 50));
+  }
   async function ptMeet(room){
     if(PT.busy) return; PT.busy = true; SFX.tap();
     try{ const r = await B.rpc("party_meet", { p_room: room });
@@ -2047,6 +2084,7 @@ const App = (function(){
       inp.addEventListener("keydown", e => { if(e.key === "Enter") ptJoin(inp.value); });
       a.querySelector("#ptGo").addEventListener("click", () => ptJoin(inp.value));
       if(pend && !PT.busy && !PT.autoTried){ PT.autoTried = true; ptJoin(pend); }
+      else if(PT.pendMeet && !PT.busy){ const rm = PT.pendMeet; PT.pendMeet = null; ptMeet(rm); }   // 從飄屏按「一起玩」過來
       return;
     }
     const g = ptGame(R.game), two = ptMembers().length >= 2;
@@ -3476,7 +3514,7 @@ const App = (function(){
       ${moveBox()}
       ${lockBox()}
       ${privacyBox()}
-      <div class="box set"><h2>其他</h2><div class="row" style="justify-content:flex-start"><button class="btn sub" id="bSnd">${SFX.on?"♪ 音效 開":"♪ 音效 關"}</button><button class="btn sub" id="bNews">📢 更新紀錄</button><button class="btn sub" id="bReload">重新整理</button><a class="btn sub" href="about.html" style="text-decoration:none;color:inherit">📜 網站聲明</a></div>
+      <div class="box set"><h2>其他</h2><div class="row" style="justify-content:flex-start"><button class="btn sub" id="bSnd">${SFX.on?"♪ 音效 開":"♪ 音效 關"}</button><button class="btn sub" id="bLob">${lobOff()?"配對提醒 關":"配對提醒 開"}</button><button class="btn sub" id="bNews">📢 更新紀錄</button><button class="btn sub" id="bReload">重新整理</button><a class="btn sub" href="about.html" style="text-decoration:none;color:inherit">📜 網站聲明</a></div>
         <div class="fbRow"><button class="btn sub" id="bFeedback">📮 站長信箱・回報問題${fbUnread ? ` <span class="fbDot">${fbUnread}</span>` : ""}</button><div class="k">遇到 bug、有建議，或想請站長幫忙，都可以寫給站長。</div></div>
         <div class="delNest">${isFam() && members.length > 2 ? `<button class="btn sub" id="bDelNest">離開這個家</button><div class="k">只有你會離開，家裡其他人的聊天和紀錄都會留著。家裡人數多的時候，為了安全不能一個人刪掉整個小窩。</div>` : `<button class="btn sub" id="bDelNest">🗑 刪除小窩</button><div class="k">把這個小窩的聊天、遊戲紀錄、記事本全部刪掉，${isFam() ? "家裡的人" : "兩個人"}都會看不到，刪了就救不回來。</div>`}</div>
         </div>`;
@@ -3520,6 +3558,7 @@ const App = (function(){
     $("thm").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{ store.set("mw_kb",b.dataset.t); applyKbTheme(); $("thm").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); SFX.select(); }));
     $("anm").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{ store.set("mw_anim",b.dataset.a); $("anm").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); SFX.key(); previewAnim(b); }));
     $("bSnd").addEventListener("click", e=>{ SFX.toggle(); e.target.textContent = SFX.on?"♪ 音效 開":"♪ 音效 關"; });
+    $("bLob").addEventListener("click", e=>{ const off = !lobOff(); try{ localStorage.setItem("mw_lobOff", off ? "1" : "0"); }catch(_){} e.target.textContent = off ? "配對提醒 關" : "配對提醒 開"; toast(off ? "不會再跳出「有喵友在等配對」" : "有喵友在等配對時會提醒你"); lobbyPaint(); });
     $("bDelNest").addEventListener("click", ()=>askDeleteNest());
     $("bFeedback").addEventListener("click", ()=>askFeedback());
     const bis=$("bInstS"); if(bis) bis.addEventListener("click", doInstall);
@@ -3747,6 +3786,7 @@ const App = (function(){
     if(curGame && curGame.unmount){ try{ curGame.unmount(); }catch(e){} } curGame=null; famAllLeave(); closeSheet(); kb=null; document.body.classList.remove("kbd"); const ofab=$("fab"); if(ofab) ofab.remove(); stkClose(true); Object.keys(RS).forEach(k=>{ RS[k].un && RS[k].un(); delete RS[k]; }); rqBar(null);
     route = r.startsWith("game-") ? "game" : r;
     if(route !== "watch") setTimeout(() => famBanPaint(famBanLast), 0);
+    setTimeout(lobbyPaint, 0);
     document.body.classList.toggle("admsolo", isAdmin && isSolo());
     document.body.classList.toggle("compact", route!=="home");
     document.body.classList.toggle("ingame", route==="game");
@@ -3888,7 +3928,7 @@ const App = (function(){
     let seenT = 0; const touchSeen = () => { if(!B.touchSeen || Date.now() - seenT < 1.1e5) return; seenT = Date.now(); B.touchSeen().catch(e=>{ seenT = /touch_seen|function|404/i.test(String(e&&e.message||e)) ? Date.now() + 36e5 : 0; }); };   // 資料庫還沒更新的話，1 小時後再試
     touchSeen(); setInterval(()=>{ if(document.visibilityState==="visible") touchSeen(); }, 1.2e5);
     document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible") touchSeen(); });
-    B.connect();
+    B.connect(); lobbyStart();
     if(justCreated) location.hash = isSolo() ? "home" : "settings"; else if(!location.hash || location.hash==="#") location.hash="home";
     ptRefresh();
     { const rc = new URLSearchParams(location.search).get("room");
