@@ -1747,8 +1747,13 @@
             const off = ax ? [0, s1*q, s2*q] : ay ? [s1*q, 0, s2*q] : [s1*q, s2*q, 0];
             box(chain(T(tk.x + .5 + off[0], tk.y + .5 + off[1], tk.z + .5 + off[2]), S(ax ? 1.04 : e, ay ? 1.04 : e, az ? 1.04 : e)), c, .85); } }
         const pp = AIM.put;
-        if(pp && pp.kind === "block"){ gl.depthMask(false); box(chain(T(pp.x + .5, pp.y + .5, pp.z + .5), S(1, 1, 1)), pp.bad ? "#ff7a8a" : (TILE_COL[BT[pick].t[1]] || ["#ffffff"])[0], .5); gl.depthMask(true); }
-        if(pp && pp.kind === "furn"){ gl.depthMask(false); FV_A = .55; if(pp.bad) gl.uniform3fv(U("tint"), [1, .45, .5]);
+        if(pp && pp.kind === "block"){ gl.depthMask(false);   // 要放的位置：很淡的方塊＋細細的邊框（站長說太亮）
+          const pc = pp.bad ? "#e0607a" : (TILE_COL[BT[pick].t[1]] || ["#ffffff"])[0];
+          box(chain(T(pp.x + .5, pp.y + .5, pp.z + .5), S(.98, .98, .98)), pc, .16);
+          for(const [ax, ay, az] of [[1,0,0],[0,1,0],[0,0,1]]) for(const s1 of [-1, 1]) for(const s2 of [-1, 1]){ const off = ax ? [0, s1*.5, s2*.5] : ay ? [s1*.5, 0, s2*.5] : [s1*.5, s2*.5, 0];
+            box(chain(T(pp.x + .5 + off[0], pp.y + .5 + off[1], pp.z + .5 + off[2]), S(ax ? 1.02 : .025, ay ? 1.02 : .025, az ? 1.02 : .025)), pp.bad ? "#e0607a" : "#ffffff", .55); }
+          gl.depthMask(true); }
+        if(pp && pp.kind === "furn"){ gl.depthMask(false); FV_A = .38; if(pp.bad) gl.uniform3fv(U("tint"), [1, .45, .5]);
           drawFurnV(pp.f.id, pp.f.x + .5, pp.f.y, pp.f.z + .5, pp.f.r, t); FV_A = 1; gl.uniform3fv(U("tint"), TINT); gl.depthMask(true); }
         if(brk && AIM.take){   // 裂痕：貼在要拿的方塊（或家具外框）上，越按越裂
           const tk = AIM.take, b = tk.kind === "furn" ? furnCells(FSAVE.placed[tk.i]).box : [tk.x, tk.y, tk.z, tk.x + 1, tk.y + 1, tk.z + 1], st = Math.min(4, Math.floor(brk.t/brk.dur*5)), [u0, v0, u1, v1] = tileUV(246 + st);
