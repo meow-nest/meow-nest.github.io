@@ -1173,6 +1173,7 @@ const App = (function(){
   const KB_TOGS = [["mw_kbvib","按鍵震動"],["mw_kbpop","按鍵放大預覽"],["mw_kbsmart","智慧觸控（猜下一個注音）"],["mw_kbhint","微微提示下一個注音"],["mw_kbnum","長按第一排打數字"]];
   function kbQuickSettings(host, close, redraw){
     host.innerHTML = `<h4>按鍵聲音</h4>${kbSndHtml()}
+      <h4>游標樣式</h4><div class="isAnm isCar" data-kbcar>${CARETS.map(([v,n])=>`<button data-v="${v}" class="${(store.get("mw_caret")||"ear")===v?"on":""}">${n}</button>`).join("")}</div>
       <h4>手感</h4>
       <div class="kbOpt"><span>按鍵大小</span><div class="seg" data-kbsz>${[["s","小"],["m","中"],["l","大"]].map(([v,n])=>`<button data-v="${v}" class="${(store.get("mw_kbsize")||"m")===v?"on":""}">${n}</button>`).join("")}</div></div>
       ${KB_TOGS.map(([k,n])=>`<div class="kbOpt"><span>${n}</span><button class="tog ${store.get(k)!=="0"?"on":""}" data-tog="${k}"><i></i></button></div>`).join("")}
@@ -1180,6 +1181,7 @@ const App = (function(){
       <h4>打字動畫</h4><div class="isAnm">${KB_ANIMS.map(([id,n])=>`<button data-a="${id}" class="${(store.get("mw_anim")||"jelly")===id?"on":""}">${n}</button>`).join("")}</div>
       <div class="isTip">長按「，」有更多標點・點兩下 ⇧ 鎖定大寫・按住 ⌫ 越刪越快・在空白鍵上左右滑可以移動游標</div>`;
     kbSndBind(host);
+    host.querySelectorAll("[data-kbcar] [data-v]").forEach(b=>b.addEventListener("click", ()=>{ store.set("mw_caret", b.dataset.v); caretRefresh(); SFX.kb("key"); host.querySelectorAll("[data-kbcar] button").forEach(x=>x.classList.toggle("on", x===b)); }));
     host.querySelectorAll("[data-kbsz] [data-v]").forEach(b=>b.addEventListener("click", ()=>{ store.set("mw_kbsize", b.dataset.v); applyKbSize(); SFX.kb("key"); host.querySelectorAll("[data-kbsz] button").forEach(x=>x.classList.toggle("on", x===b)); redraw(); }));
     host.querySelectorAll("[data-tog]").forEach(b=>b.addEventListener("click", ()=>{ const k = b.dataset.tog, on = store.get(k)==="0"; store.set(k, on?"1":"0"); b.classList.toggle("on", on); SFX.kb("key"); if(k==="mw_kbvib" && on) haptic(); if(k==="mw_kbnum"||k==="mw_kbhint") redraw(); }));
     host.querySelectorAll(".isThm [data-t]").forEach(b=>b.addEventListener("click", ()=>{ store.set("mw_kb", b.dataset.t); applyKbTheme(); host.querySelectorAll(".isThm button").forEach(x=>x.classList.toggle("on", x===b)); SFX.kb("pick"); }));
@@ -2695,14 +2697,15 @@ const App = (function(){
 
   // ---------- custom pixel caret for the chat box ----------
   const CARETS = [["ear","貓耳"],["paw","貓掌"],["heart","愛心"],["fish","小魚"],["bar","經典"]];
+  // 游標樣式：換的時候畫面上已經有的游標也馬上換（經典＝用手機原本的直線游標）
+  function caretLook(c){ const style = store.get("mw_caret") || "ear", txt = c._txt;
+    c.className = "pxCaret " + style; c.hidden = style === "bar"; if(txt) txt.classList.toggle("pxCaretOn", style !== "bar");
+    c.innerHTML = style==="paw" ? `<i class="pcHead">${icon("paw")}</i>` : style==="heart" ? `<i class="pcHead">${icon("heart")}</i>` : style==="fish" ? `<i class="pcHead">${icon("fish")}</i>` : `<i class="pcEar l"></i><i class="pcEar r"></i>`; }
+  const caretRefresh = () => document.querySelectorAll(".pxCaret").forEach(caretLook);
   function setupCaret(txt){
     const bar = txt.parentElement; if(!bar || bar._caret) return; bar._caret = true;
-    const style = store.get("mw_caret") || "ear";
-    if(style==="bar"){ txt.classList.remove("pxCaretOn"); return; }
-    txt.classList.add("pxCaretOn");
-    const c = document.createElement("span"); c.className = "pxCaret " + style;
-    c.innerHTML = style==="paw" ? `<i class="pcHead">${icon("paw")}</i>` : style==="heart" ? `<i class="pcHead">${icon("heart")}</i>` : style==="fish" ? `<i class="pcHead">${icon("fish")}</i>` : `<i class="pcEar l"></i><i class="pcEar r"></i>`;
-    bar.appendChild(c);
+    const c = document.createElement("span"); c._txt = txt;
+    bar.appendChild(c); caretLook(c);
     const mirror = document.createElement("div"); mirror.className = "pxMirror"; document.body.appendChild(mirror);
     const PROPS = ["boxSizing","width","fontFamily","fontSize","fontWeight","lineHeight","letterSpacing","paddingTop","paddingRight","paddingBottom","paddingLeft","borderTopWidth","borderRightWidth","borderBottomWidth","borderLeftWidth","wordSpacing","textIndent","whiteSpace","wordBreak","overflowWrap"];
     let raf = 0;
@@ -3637,15 +3640,6 @@ const App = (function(){
       <div class="k">${(() => { const hh = stateCache.moqi && stateCache.moqi.state ? stateCache.moqi.state.hearts || 0 : 0; return lvOf(hh) >= 40 ? "你們已經是 Lv40 了！選好的顏色會馬上換上" : `親密等級到 Lv40（${lvNeed(40)} 條小魚乾）會換成會發光的大翅膀，可以先選好顏色`; })()}</div><button class="btn sub" id="wBook" style="margin-top:8px">${icon("star")} 看所有稱號</button></div>
       <div class="box set"><h2>整體風格</h2><div class="sthemes" id="sthm">${SITE_THEMES.map(([id,n,bg,pa,ln,ac,sh])=>`<button data-st="${id}" class="${(store.get("mw_theme")||"cream")===id?"on":""}"><span class="stPrev" style="background-color:${bg};background-image:linear-gradient(${ln}14 1px,transparent 1px),linear-gradient(90deg,${ln}14 1px,transparent 1px)"><b style="background:${pa};border-color:${ln};box-shadow:2px 2px 0 ${sh}"></b><i style="background:${ac};border-color:${ln}"></i><s>${icon("heart",{K:ac,W:pa,O:ln})}</s></span>${n}</button>`).join("")}</div></div>
       <div class="box set"><h2>字體</h2><div class="fontPick" id="fPick"><button data-f="pixel" class="${store.get("mw_font")==="sys"?"":"on"}" style="font-family:Cubic11">像素字 喵喵小窩</button><button data-f="sys" class="${store.get("mw_font")==="sys"?"on":""}" style="font-family:-apple-system,'PingFang TC','Noto Sans TC',sans-serif">一般字 喵喵小窩</button></div></div>
-      <div class="box set"><h2>鍵盤設定</h2>
-        <div class="kbOpt"><span>游標樣式</span><div class="seg" id="caretSty">${CARETS.map(([v,n])=>`<button data-v="${v}" class="${(store.get("mw_caret")||"ear")===v?"on":""}">${n}</button>`).join("")}</div></div>
-        <div class="kbOpt"><span>按鍵大小</span><div class="seg" id="kbSize">${[["s","小"],["m","中"],["l","大"]].map(([v,n])=>`<button data-v="${v}" class="${(store.get("mw_kbsize")||"m")===v?"on":""}">${n}</button>`).join("")}</div></div>
-        <h3 class="kbSndH">按鍵聲音</h3>${kbSndHtml()}
-        ${[["mw_kbsmart","智慧觸控（猜下一個注音）"],["mw_kbhint","微微提示下一個注音"],["mw_kbvib","按鍵震動"],["mw_kbpop","按鍵放大預覽"],["mw_kbnum","長按第一排打數字"]].map(([k,n])=>`<div class="kbOpt"><span>${n}</span><button class="tog ${store.get(k)!=="0"?"on":""}" data-tog="${k}"><i></i></button></div>`).join("")}
-        <div class="k">打字的時候，鍵盤左上角的齒輪也可以直接改這些設定。<br>小技巧：長按「，」有更多標點・點兩下 ⇧ 鎖定大寫・按住 ⌫ 越刪越快・打完字會出現「聯想詞」</div></div>
-      <div class="box set"><h2>鍵盤配色</h2><div class="themes" id="thm">${KB_THEMES.map(([id,n,bg,ac])=>`<button data-t="${id}" class="${(store.get("mw_kb")||"strawberry")===id?"on":""}"><span class="sw" style="background:${bg}"><i style="background:${ac}"></i><i></i><i></i></span>${n}</button>`).join("")}</div>
-        <h2 style="margin-top:8px">打字動畫</h2><div class="anims" id="anm">${KB_ANIMS.map(([id,n])=>`<button data-a="${id}" class="${(store.get("mw_anim")||"jelly")===id?"on":""}">${n}</button>`).join("")}</div>
-        <div class="k">點一下可以預覽，只會改變你自己的手機。</div></div>
       <div class="box set"><h2>聊天背景</h2><div class="walls" id="wls">${WALLS.map(([id,n])=>`<button data-w="${id}" class="${(store.get("mw_wall")||"paws")===id?"on":""}"><span class="wv" data-wall="${id}"><span class="chat"><span class="list"></span></span></span>${n}</button>`).join("")}</div>
         <div class="k">「我的照片」可以選一張你們的合照當背景（只存在這支手機）。</div></div>
       <div class="box set"><h2>通知</h2><div class="k">${ps==="on"?(isSolo()?"✅ 已開啟：記事提醒時間到了手機會跳通知":"✅ 已開啟：ta 傳訊息時你的手機會跳通知"):ps==="denied"?"❌ 通知被封鎖了，請到手機的瀏覽器設定裡允許通知":ps==="ios-home"?"📱 iPhone 要先把這個網頁「加入主畫面」，從主畫面圖示打開後才能開通知":ps==="unsupported"?"這個瀏覽器不支援通知，請用 Chrome（Android）或 Safari 加入主畫面（iPhone）":"還沒開啟"}</div>
@@ -3695,8 +3689,6 @@ const App = (function(){
       $("wls").querySelectorAll(".wv").forEach(v=>{ v.querySelector(".list").style.cssText = wallCss(v.dataset.wall); });
       toast(`${sprite(me.cat||"orange","love")} 聊天背景換好了！`);
     }));
-    $("thm").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{ store.set("mw_kb",b.dataset.t); applyKbTheme(); $("thm").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); SFX.select(); }));
-    $("anm").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{ store.set("mw_anim",b.dataset.a); $("anm").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); SFX.key(); previewAnim(b); }));
     $("bSnd").addEventListener("click", e=>{ SFX.toggle(); e.target.textContent = SFX.on?"♪ 音效 開":"♪ 音效 關"; });
     $("bLob").addEventListener("click", e=>{ const off = !lobOff(); try{ localStorage.setItem("mw_lobOff", off ? "1" : "0"); }catch(_){} e.target.textContent = off ? "配對提醒 關" : "配對提醒 開"; toast(off ? "不會再跳出「有喵友在等配對」" : "有喵友在等配對時會提醒你"); lobbyPaint(); });
     $("bDelNest").addEventListener("click", ()=>askDeleteNest());
@@ -3721,9 +3713,6 @@ const App = (function(){
     $("wcPick") && $("wcPick").querySelectorAll("[data-wc]").forEach(b=>b.addEventListener("click", async ()=>{ const c = b.dataset.wc; if(c===roomWc) return; SFX.select();
       roomWc = c; $("wcPick").querySelectorAll("[data-wc]").forEach(x=>x.classList.toggle("on", x===b)); lastHdr = ""; renderHeader(); renderMeter();
       try{ await update("room", st=>Object.assign(st||{}, { wc:c })); }catch(e){} toast(`Lv40 翅膀換成「${S40C[c].n}」了`); }));
-    kbSndBind($("caretSty").closest(".set"));
-    $("caretSty").querySelectorAll("[data-v]").forEach(b=>b.addEventListener("click", ()=>{ store.set("mw_caret", b.dataset.v); SFX.select(); $("caretSty").querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b)); }));
-    $("kbSize").querySelectorAll("[data-v]").forEach(b=>b.addEventListener("click", ()=>{ store.set("mw_kbsize", b.dataset.v); applyKbSize(); SFX.select(); $("kbSize").querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b)); }));
     v.querySelectorAll("[data-tog]").forEach(b=>b.addEventListener("click", ()=>{ const k = b.dataset.tog, on = store.get(k)==="0"; store.set(k, on?"1":"0"); b.classList.toggle("on", on); SFX.select(); }));
     $("fPick").querySelectorAll("[data-f]").forEach(b=>b.addEventListener("click", ()=>{ store.set("mw_font", b.dataset.f); applyFont(); SFX.select(); $("fPick").querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b)); }));
     $("sthm").querySelectorAll("[data-st]").forEach(b=>b.addEventListener("click", ()=>{ store.set("mw_theme", b.dataset.st); applyTheme(); SFX.select(); $("sthm").querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b)); }));

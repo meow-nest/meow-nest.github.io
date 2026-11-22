@@ -4203,3 +4203,5 @@ body.dockKb .ntSheet{padding-bottom:var(--dockH,300px)}
 body.dockKb .ntEd{max-height:calc(100dvh - var(--dockH,300px) - 12px)}
 .askBtns{display:flex;gap:10px}.askBtns .btn{flex:1}
 .kbSndSub{font-size:12px;opacity:.7;margin:6px 0 4px}
+.imeSet .isCar{grid-template-columns:repeat(5,1fr)}
+.imeSet .kbOpt>span{white-space:nowrap}
