@@ -272,7 +272,9 @@ App.registerGame({
     const newsTxt = n => { if(n.sec) return (n.good ? SEC_GOOD : SEC_BAD)[n.k - 50](SEC[n.sec][0]);
       const c = CO[n.sym];
       if(n.k === 100){ const a = CO[n.src][0]; return n.rival ? (n.good ? `對手${a}出包，客人都跑來${c[0]}這邊` : `對手${a}生意大好，搶走了${c[0]}不少客人`) : (n.good ? `${a}生意大好，${c[0]}也跟著接到更多訂單` : `${a}出狀況，${c[0]}的生意也被拖累了`); }
-      return n.k === 10 ? `今天除息，每股發放現金股利 ${f2(n.pct)}，持有的股東已經領到了` : n.k === 11 ? `公布財報，每股盈餘比上一季${n.good ? "成長" : "衰退"} ${Math.abs(n.pct).toFixed(1)}%` : (n.good ? GOOD : BAD)[n.k](c[0], c[1]); };
+      return n.k === 10 ? `今天除息，每股發放現金股利 ${f2(n.pct)}，持有的股東已經領到了` : n.k === 11 ? `公布財報，每股盈餘比上一季${n.good ? "成長" : "衰退"} ${Math.abs(n.pct).toFixed(1)}%` : coTxt(n, c); };
+    const coTxt = (n, c) => { const L = (window.STOCK_NEWS || {})[n.sym], arr = L && (n.good ? L.g : L.b); let h = 7; for(const ch of n.sym + ":" + n.t + ":" + n.k) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+      if(arr && arr.length && h % 4) return arr[(h >>> 3) % arr.length].replace(/\{c\}/g, c[1]); return (n.good ? GOOD : BAD)[n.k](c[0], c[1]); };
     const newsLine = n => { const c = n.sec ? [SEC[n.sec][0] + "類股"] : CO[n.sym]; return `<div class="skNews ${n.good ? "up" : "dn"}${n.sec ? " sec" : ""}${n.k === 100 ? " link" : ""}"><em>${new Date(n.t*60000).toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit", hour12: false })}</em><div><b>${c[0]}</b> ${esc(newsTxt(n))}<span>${n.k === 10 ? "除息" : sign(n.pct) + "%"}</span></div></div>`; };
 
     const hm = t => { const d = new Date((t + 8 * 3600) * 1000); return d.getUTCHours() + ":" + String(d.getUTCMinutes()).padStart(2, "0"); };
