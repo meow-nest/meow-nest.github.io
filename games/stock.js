@@ -102,11 +102,14 @@ const r2 = v => Math.round(v * 100) / 100;
 const rt = p => Math.max(.01, r2(Math.round(p / tk(p)) * tk(p)));
 const upL = r => { const x = r * 1.1, t = tk(x); return r2(Math.floor(x / t + 1e-7) * t); };
 const dnL = r => { const x = r * .9, t = tk(x); return Math.max(.01, r2(Math.ceil(x / t - 1e-7) * t)); };
-const fq = q => { q = Math.round(q); const l = Math.floor(q / 1000), r = q % 1000; return l ? `${l.toLocaleString("en-US")} 張${r ? ` ${r} 股` : ""}` : `${r} 股`; };
-const fv = v => { const l = v / 1000; return l >= 10000 ? (l / 10000).toFixed(1) + " 萬張" : l >= 10 ? Math.round(l).toLocaleString("en-US") + " 張" : l.toFixed(1) + " 張"; };
+// 數字格式：先建好一次重複用（每次呼叫 toLocaleString 都會重新建，手機上很慢）
+const DTF_T = new Intl.DateTimeFormat("zh-TW", { hour: "2-digit", minute: "2-digit", hour12: false }), DTF_D = new Intl.DateTimeFormat("zh-TW", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
+const NF0 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }), NF2 = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fq = q => { q = Math.round(q); const l = Math.floor(q / 1000), r = q % 1000; return l ? `${NF0.format(l)} 張${r ? ` ${r} 股` : ""}` : `${r} 股`; };
+const fv = v => { const l = v / 1000; return l >= 10000 ? (l / 10000).toFixed(1) + " 萬張" : l >= 10 ? NF0.format(Math.round(l)) + " 張" : l.toFixed(1) + " 張"; };
 const num = (v, d) => { v = Number(v); return Number.isFinite(v) ? v : (d || 0); };
-const f2 = v => num(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const f0 = v => Math.round(num(v)).toLocaleString("en-US");
+const f2 = v => NF2.format(num(v));
+const f0 = v => NF0.format(Math.round(num(v)));
 const START = 10000;
 
 App.registerGame({
@@ -275,7 +278,7 @@ App.registerGame({
       return n.k === 10 ? `今天除息，每股發放現金股利 ${f2(n.pct)}，持有的股東已經領到了` : n.k === 11 ? `公布財報，每股盈餘比上一季${n.good ? "成長" : "衰退"} ${Math.abs(n.pct).toFixed(1)}%` : coTxt(n, c); };
     const coTxt = (n, c) => { const L = (window.STOCK_NEWS || {})[n.sym], arr = L && (n.good ? L.g : L.b); let h = 7; for(const ch of n.sym + ":" + n.t + ":" + n.k) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
       if(arr && arr.length && h % 4) return arr[(h >>> 3) % arr.length].replace(/\{c\}/g, c[1]); return (n.good ? GOOD : BAD)[n.k](c[0], c[1]); };
-    const newsLine = n => { const c = n.sec ? [SEC[n.sec][0] + "類股"] : CO[n.sym]; return `<div class="skNews ${n.good ? "up" : "dn"}${n.sec ? " sec" : ""}${n.k === 100 ? " link" : ""}"><em>${new Date(n.t*60000).toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit", hour12: false })}</em><div><b>${c[0]}</b> ${esc(newsTxt(n))}<span>${n.k === 10 ? "除息" : sign(n.pct) + "%"}</span></div></div>`; };
+    const newsLine = n => { const c = n.sec ? [SEC[n.sec][0] + "類股"] : CO[n.sym]; return `<div class="skNews ${n.good ? "up" : "dn"}${n.sec ? " sec" : ""}${n.k === 100 ? " link" : ""}"><em>${DTF_T.format(new Date(n.t*60000))}</em><div><b>${c[0]}</b> ${esc(newsTxt(n))}<span>${n.k === 10 ? "除息" : sign(n.pct) + "%"}</span></div></div>`; };
 
     const hm = t => { const d = new Date((t + 8 * 3600) * 1000); return d.getUTCHours() + ":" + String(d.getUTCMinutes()).padStart(2, "0"); };
     const nextTxt = () => { if(!S || !S.next) return ""; const tw = t => Math.floor((t + 8 * 3600) / 86400); return (tw(S.next) > tw(Date.now() / 1000) ? "明天 " : "") + hm(S.next); };
@@ -294,10 +297,10 @@ App.registerGame({
       if(tab === "hold"){ const hs = SYMS.filter(s => hold(s).q > 0);
         body = `${hs.length ? `<div class="skList">${hs.map(s => { const h = hold(s), v = h.q*px(s), g = v - h.c;
             return `<button class="skRow" data-s="${s}">${cat(CO[s][2])}<span class="skNm"><b>${CO[s][0]}</b><small>${fq(h.q)}・均價 ${f2(h.c/h.q)}</small></span><span class="skPx ${cls(g)}"><b>${f2(v)}</b><small>${sign(g)}（${sign(h.c ? g/h.c*100 : 0)}%）</small></span></button>`; }).join("")}</div>` : `<p class="skMsg">還沒有持股，去「行情」挑一檔吧！</p>`}
-          <div class="skSub">交易紀錄</div>${S.trades.length ? `<div class="skLog">${S.trades.map(x => `<div class="${x.kind === "d" || x.qty > 0 ? "up" : "dn"}"><em>${new Date(x.at*1000).toLocaleString("zh-TW", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })}</em><b>${x.kind === "d" ? "息" : x.qty > 0 ? "買" : "賣"}</b><span>${x.kind === "d" ? `${CO[x.sym][0]} 股利入帳 +${f2(-x.fee)}（每股 ${f2(x.price)}）` : `${CO[x.sym][0]} ${fq(Math.abs(x.qty))} @ ${f2(x.price)}${x.kind === "l" ? "・限價" : ""}`}</span><i>${x.kind === "d" ? "" : "費 " + f2(x.fee)}</i></div>`).join("")}</div>` : `<p class="skMsg small">還沒有交易</p>`}<button class="skReset" id="skReset">破產重來</button>`; }
+          <div class="skSub">交易紀錄</div>${S.trades.length ? `<div class="skLog">${S.trades.map(x => `<div class="${x.kind === "d" || x.qty > 0 ? "up" : "dn"}"><em>${DTF_D.format(new Date(x.at*1000))}</em><b>${x.kind === "d" ? "息" : x.qty > 0 ? "買" : "賣"}</b><span>${x.kind === "d" ? `${CO[x.sym][0]} 股利入帳 +${f2(-x.fee)}（每股 ${f2(x.price)}）` : `${CO[x.sym][0]} ${fq(Math.abs(x.qty))} @ ${f2(x.price)}${x.kind === "l" ? "・限價" : ""}`}</span><i>${x.kind === "d" ? "" : "費 " + f2(x.fee)}</i></div>`).join("")}</div>` : `<p class="skMsg small">還沒有交易</p>`}<button class="skReset" id="skReset">破產重來</button>`; }
       if(tab === "ord"){ const ST = { o: "委託中", d: "已成交", c: "已取消", x: "已失效" }, op = S.orders.filter(x => x.status === "o");
         body = `<div class="skMe">委託中 <b>${op.length}</b> 筆<small>掛買單保留的現金 ${f2(S.resv)}・可用現金 ${f2(Math.max(0, S.cash - S.resv))}</small></div>
-          ${S.orders.length ? `<div class="skOrds">${S.orders.map(x => `<div class="${x.status}"><span class="${x.side === "b" ? "up" : "dn"}">${x.side === "b" ? "買" : "賣"}</span><div><b>${CO[x.sym][0]}</b><small>限價 ${f2(x.price)}・${fq(x.qty)}${x.status === "d" ? `・成交價 ${f2(x.done)}` : ""}</small><small>${new Date(x.at*1000).toLocaleString("zh-TW", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })}</small></div>${x.status === "o" ? `<button data-cx="${x.id}">取消</button>` : `<em>${ST[x.status]}</em>`}</div>`).join("")}</div>` : `<p class="skMsg">還沒有委託。在個股的「下單」選「限價」，就可以自己設定價格掛單。</p>`}
+          ${S.orders.length ? `<div class="skOrds">${S.orders.map(x => `<div class="${x.status}"><span class="${x.side === "b" ? "up" : "dn"}">${x.side === "b" ? "買" : "賣"}</span><div><b>${CO[x.sym][0]}</b><small>限價 ${f2(x.price)}・${fq(x.qty)}${x.status === "d" ? `・成交價 ${f2(x.done)}` : ""}</small><small>${DTF_D.format(new Date(x.at*1000))}</small></div>${x.status === "o" ? `<button data-cx="${x.id}">取消</button>` : `<em>${ST[x.status]}</em>`}</div>`).join("")}</div>` : `<p class="skMsg">還沒有委託。在個股的「下單」選「限價」，就可以自己設定價格掛單。</p>`}
           <div class="skFoot">限價單：到了你設定的價格才會成交・一次最多掛 10 筆<br>委託都是「當日有效」，每天 0:00 換日後還沒成交的會自動失效</div>`; }
       if(tab === "news") body = S.news.length ? `<div class="skFeed">${S.news.map(newsLine).join("")}</div>` : `<p class="skMsg">目前風平浪靜，沒有新聞</p>`;
       if(tab === "rank"){ const pt = ctx.partner(), ta = pt && S.nest.find(x => x.uid === pt.user_id);
