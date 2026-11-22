@@ -277,7 +277,7 @@ body.ingame #nav{display:none}
 body.ingame{padding-bottom:calc(20px + env(safe-area-inset-bottom))}
 body.ingame:not(.solo):not(.admsolo){padding-bottom:calc(88px + env(safe-area-inset-bottom))}   /* 遊戲底部留空間，滑到最下面時不會被右下角的聊天按鈕蓋住 */
 body.ingame .fab{bottom:calc(18px + env(safe-area-inset-bottom))}
-body.ingame .gtop{position:sticky;top:0;z-index:6}
+body.ingame .gtop{position:sticky;top:0;z-index:6;background:var(--bg);padding:6px 0 8px;margin-bottom:4px;box-shadow:-24px 0 0 var(--bg),24px 0 0 var(--bg),0 2px 0 var(--shadow)}
 /* fight */
 .ft{padding:10px 8px 12px}
 .ftStage{position:relative;display:flex;justify-content:space-between;align-items:flex-end;height:210px;padding:0 6px 10px;border:3px solid var(--line);border-radius:12px;
@@ -4272,3 +4272,5 @@ body.dockKb .whCard{max-height:calc(100dvh - var(--dockH,300px) - 24px)}
 @keyframes pkWig{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
 .pkCard.pick .fr{box-shadow:0 0 0 4px var(--pink),3px 4px 0 var(--shadow)}
 .pkCard.dim .fr{opacity:.55}
+html.skLock,html.skLock body{overflow:hidden;overscroll-behavior:none}
+.skDet .cmBox{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}

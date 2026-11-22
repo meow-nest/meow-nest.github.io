@@ -361,6 +361,9 @@ App.registerGame({
       const o = document.createElement("div"); o.className = "careModal skDet";
       let view = S.pro ? "tl" : "5m", sub = "vol", pane = "order", side = "buy", unit = "s", ot = "m", lp = 0, qty = 1, all = null, Q = null;
       o.innerHTML = `<div class="cmBox skBox"><div id="skD"></div></div>`; document.body.appendChild(o);
+      // 打開股票詳細時，後面的股市首頁不能跟著滑（關掉就恢復）
+      document.documentElement.classList.add("skLock");
+      const lockOb = new MutationObserver(() => { if(!o.isConnected){ lockOb.disconnect(); if(!document.querySelector(".skDet")) document.documentElement.classList.remove("skLock"); } }); lockOb.observe(document.body, { childList: true });
       const box = o.querySelector("#skD"), W = 320;
       const openSell = () => S.orders.filter(x => x.status === "o" && x.sym === s && x.side === "s").reduce((a, x) => a + x.qty, 0);
       const maxBuy = P => { const av = Math.max(0, S.cash - S.resv); let q = Math.floor(av / (P * 1.001425)); while(q > 0 && q * P + buyFee(q * P) > av + 1e-6) q--; return Math.max(0, q); };
@@ -518,7 +521,7 @@ App.registerGame({
     }
 
     render(); load().then(schedule);
-    this._stop = () => { alive = false; clearTimeout(timer); document.removeEventListener("visibilitychange", onVis); document.querySelectorAll(".skDet,.skTut,.skAlM").forEach(x => x.remove()); };
+    this._stop = () => { alive = false; clearTimeout(timer); document.removeEventListener("visibilitychange", onVis); document.querySelectorAll(".skDet,.skTut,.skAlM").forEach(x => x.remove()); document.documentElement.classList.remove("skLock"); };
   },
   unmount(){ if(this._stop) this._stop(); },
 });
