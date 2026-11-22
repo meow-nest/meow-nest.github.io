@@ -174,7 +174,7 @@ App.registerGame({
     function clean(r){
       if(!r || typeof r !== "object" || !r.px) return null;
       const have = ALL.filter(x => r.px[x] != null); if(have.length) SYMS = have;
-      const o = { t: num(r.t), px: {}, ref: {}, cash: num(r.cash), hold: {}, assets: num(r.assets), bail: num(r.bail), can_bail: !!r.can_bail, rank: num(r.rank), players: num(r.players), open: r.open !== false, next: num(r.next), fun: !!r.badges, now: num(r.now, Date.now() / 1000), badges: {}, stories: {}, new_badges: [],
+      const o = { t: num(r.t), px: {}, ref: {}, cash: num(r.cash), hold: {}, assets: num(r.assets), bail: num(r.bail), gift: num(r.gift), can_bail: !!r.can_bail, rank: num(r.rank), players: num(r.players), open: r.open !== false, next: num(r.next), fun: !!r.badges, now: num(r.now, Date.now() / 1000), badges: {}, stories: {}, new_badges: [],
         dy_base: num(r.dy_base), wk_base: num(r.wk_base), wpct: num(r.wpct), wrank: num(r.wrank, 1), wplayers: num(r.wplayers), nprofit: r.nprofit == null ? null : num(r.nprofit), ntotal: num(r.ntotal), nrank: num(r.nrank, 1), nests: num(r.nests), nsolo: !!r.nsolo, pro: !!r.pro, td: {}, fund: {}, watch: [], alerts: {}, hits: [], orders: [], resv: num(r.resv), rank_ok: r.rank_ok !== false, rank_ok_at: num(r.rank_ok_at), ydy: String(r.ydy || "").replace(/[^0-9-]/g, "").slice(0, 10), ybase: num(r.ybase), ydiff: num(r.ydiff), yref: null };
       if(r.yref && typeof r.yref === "object"){ o.yref = {}; for(const s of SYMS) o.yref[s] = num(r.yref[s]); }
       if(r.badges && typeof r.badges === "object") for(const k of Object.keys(BADGES)) if(r.badges[k]) o.badges[k] = num(r.badges[k]);
@@ -260,7 +260,7 @@ App.registerGame({
     const spark = s => { const pts = S.spark.map(x => x[s]).filter(v => v > 0); if(pts.length < 2) return ""; const lo = Math.min(...pts), hi = Math.max(...pts), sp = (hi - lo) || 1;
       return `<svg class="skSpark ${cls(chg(s))}" viewBox="0 0 60 22" preserveAspectRatio="none"><polyline fill="none" stroke-width="1.6" points="${pts.map((v, i) => `${(i/(pts.length - 1)*60).toFixed(1)},${(20 - (v - lo)/sp*18).toFixed(1)}`).join(" ")}"/></svg>`; };
     const badge = s => { const l = lim(s); return l > 0 ? `<i class="skLim up">漲停</i>` : l < 0 ? `<i class="skLim dn">跌停</i>` : ""; };
-    const pnl = () => S.assets - START - S.bail*2000;
+    const pnl = () => S.assets - START - S.bail*2000 - (S.gift || 0);   // 救濟金、站長紅包都不算賺到的
     const newsTxt = n => { if(n.sec) return (n.good ? SEC_GOOD : SEC_BAD)[n.k - 50](SEC[n.sec][0]);
       const c = CO[n.sym];
       if(n.k === 100){ const a = CO[n.src][0]; return n.rival ? (n.good ? `對手${a}出包，客人都跑來${c[0]}這邊` : `對手${a}生意大好，搶走了${c[0]}不少客人`) : (n.good ? `${a}生意大好，${c[0]}也跟著接到更多訂單` : `${a}出狀況，${c[0]}的生意也被拖累了`); }
