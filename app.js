@@ -364,11 +364,14 @@ const App = (function(){
       return { key: r.game, g, a: ms[0], b: ms[1], at: r.updated_at }; }).filter(Boolean)
       .sort((x, y) => String(y.at).localeCompare(String(x.at)));
   }
+  // 首頁列表和上方浮動通知共用同一次查詢（12 秒內不重複查，省連線紀錄）
+  let FLR = { t:0, p:null };
+  function famLiveRows(){ if(FLR.p && Date.now() - FLR.t < 12000) return FLR.p; FLR.t = Date.now(); FLR.p = B.liveGames(WATCHABLE, 30); FLR.p.catch(() => { FLR.t = 0; }); return FLR.p; }
   async function famLiveLoad(){
     clearTimeout(famLiveT);
     const el = $("famLive"); if(!el || !isFam() || (route !== "home" && route !== "games") || others().length < 2 || !B.liveGames) return;
     if(document.visibilityState === "visible"){
-      let rows = null; try{ rows = (await B.liveGames(WATCHABLE, 30)).filter(r => !r.win); }catch(e){}
+      let rows = null; try{ rows = (await famLiveRows()).filter(r => !r.win); }catch(e){}
       const box = $("famLive"); if(!box) return;
       if(rows){ const xs = famLiveParse(rows);
         box.innerHTML = xs.length ? `<div class="box famLive"><h3>家人正在玩<small>點進去觀戰</small></h3>${xs.slice(0, 4).map(x => { const g = games.find(z => z.id === x.g);
@@ -432,7 +435,7 @@ const App = (function(){
   const famBanHide = new Set(), famBanSeen = new Set(); let famBanLast = [];
   async function famLivePoll(){
     if(!isFam() || others().length < 2 || !B.liveGames || document.visibilityState !== "visible"){ famBanPaint([]); return; }
-    let rows; try{ rows = await B.liveGames(WATCHABLE, 30); }catch(e){ return; }
+    let rows; try{ rows = await famLiveRows(); }catch(e){ return; }
     famBanPaint(famLiveParse(rows.filter(r => !r.win)));
   }
   function famBanPaint(xs){
