@@ -6037,7 +6037,8 @@ select jobname, schedule from cron.job order by jobname;
 --   有人在「跟陌生人玩」等配對時，伺服器透過即時頻道 meow-lobby 跟所有在線上的人說一聲，
 --   大家不管在哪一頁都會看到上方的飄屏，點「一起玩」就直接配對。
 --   只有伺服器能發（沒有開放寫入的權限），所以不能被拿來亂發訊息；內容只有遊戲、匿名的「喵友＋4 碼」、貓的顏色。
---   等待中每 60 秒再說一次（給剛上線的人看到）；配對到、不等了、房間關掉時說「結束了」，飄屏就會收起來。
+--   人很多時不會一直洗版：全站每 30 秒最多說一則，同一位還在等的話 3 分鐘才再說一次（給剛上線的人看到）；
+--   說過的房間配對到、不等了、關掉時才說「結束了」，飄屏就會收起來。
 
 alter table public.party_rooms add column if not exists ann_at timestamptz;
 
@@ -6059,13 +6060,14 @@ exception when others then null;
 end $$;
 revoke all on function public.party_lobby_send(text, jsonb) from public, anon, authenticated;
 
--- 這間房間還有一個人在等：超過 60 秒沒說就再說一次
+-- 這間房間還有一個人在等：這位 3 分鐘內沒說過、而且全站 30 秒內沒人說過，才說一次
 create or replace function public.party_announce(p_room uuid) returns void
 language plpgsql security definer set search_path = public as $$
 declare r party_rooms; m record;
 begin
   select * into r from party_rooms where id = p_room;
-  if r.id is null or not r.pub or (r.ann_at is not null and r.ann_at > now() - interval '60 seconds') then return; end if;
+  if r.id is null or not r.pub or (r.ann_at is not null and r.ann_at > now() - interval '3 minutes') then return; end if;
+  if exists (select 1 from party_rooms where ann_at > now() - interval '30 seconds') then return; end if;
   if (select count(*) from party_members where room_id = p_room) <> 1 then return; end if;
   select pm.user_id, pm.cat into m from party_members pm where pm.room_id = p_room limit 1;
   update party_rooms set ann_at = now() where id = p_room;
@@ -6080,7 +6082,7 @@ declare v_room uuid := coalesce(new.room_id, old.room_id);
 begin
   if not exists (select 1 from party_rooms where id = v_room and pub) then return null; end if;
   if tg_op = 'INSERT' and (select count(*) from party_members where room_id = v_room) = 1 then perform party_announce(v_room);
-  else perform party_lobby_send('x', jsonb_build_object('room', v_room)); end if;
+  elsif exists (select 1 from party_rooms where id = v_room and ann_at is not null) then perform party_lobby_send('x', jsonb_build_object('room', v_room)); end if;
   return null;
 end $$;
 revoke all on function public.party_lobby_trg() from public, anon, authenticated;
@@ -6090,7 +6092,7 @@ create trigger party_lobby_mem after insert or delete on public.party_members fo
 create or replace function public.party_lobby_gone() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
-  if old.pub then perform party_lobby_send('x', jsonb_build_object('room', old.id)); end if;
+  if old.pub and old.ann_at is not null then perform party_lobby_send('x', jsonb_build_object('room', old.id)); end if;
   return null;
 end $$;
 revoke all on function public.party_lobby_gone() from public, anon, authenticated;
@@ -6122,7 +6124,7 @@ begin
         return party_info(o.id);
       end if;
     end if;
-    perform party_announce(v_id);   -- 還在等：每 60 秒再跟全站說一次（update 75）
+    perform party_announce(v_id);   -- 還在等：有機會就再跟全站說一次（update 75，有限制次數）
   else
     -- 換了貓咪或暱稱，房間裡也跟著換
     update party_members pm set name = mm.name, cat = coalesce(mm.cat, pm.cat) from members mm
