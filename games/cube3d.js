@@ -76,7 +76,12 @@
       g.lineWidth = 1.2; g.strokeStyle = "rgba(90,60,50,.16)"; g.strokeRect(.6, .6, N - 1.2, N - 1.2); };
     const plum = (x, y, s, c) => { for(let k = 0; k < 5; k++){ const a = -Math.PI/2 + k*Math.PI*2/5; el(x + Math.cos(a)*s*.55, y + Math.sin(a)*s*.55, s*.42, s*.42); g.fillStyle = c; g.fill(); } el(x, y, s*.22, s*.22); g.fillStyle = "#e8c070"; g.fill(); };   // 小梅花
     const W = WASHI, T = [
-      () => { bg(W.g); sh(() => el(18, 20, 10, 7), lt(W.g, .15)); sh(() => el(44, 42, 12, 8), lt(W.g, .1)); plum(46, 14, 5, W.f); plum(16, 48, 4.5, "#f3d6da"); edge(); },
+      () => { // 0 草地上面：接起來看不出一格一格（沒有邊框、圖案會繞到另一邊），淡淡的深淺＋一根一根的小草
+        g.fillStyle = W.g; g.fillRect(0, 0, N, N); const wrap = f => { for(const dx of [-N, 0, N]) for(const dy of [-N, 0, N]) f(dx, dy); };
+        for(let k = 0; k < 12; k++){ const x = r()*N, y = r()*N, a = 6 + r()*11, c = r() < .5 ? "rgba(255,255,235,.11)" : "rgba(70,125,60,.08)"; wrap((dx, dy) => { el(x + dx, y + dy, a, a*.7); g.fillStyle = c; g.fill(); }); }
+        g.lineCap = "round"; g.lineWidth = 1.1;
+        for(let k = 0; k < 110; k++){ const x = r()*N, y = r()*N, l = 2 + r()*3.2, a = -Math.PI/2 + (r() - .5)*.9, c = r() < .55 ? "rgba(255,255,235,.32)" : "rgba(55,115,55,.2)";
+          wrap((dx, dy) => { g.strokeStyle = c; g.beginPath(); g.moveTo(x + dx, y + dy); g.lineTo(x + dx + Math.cos(a)*l, y + dy + Math.sin(a)*l); g.stroke(); }); } },
       () => { bg(W.d); sh(() => el(20, 46, 5, 4), dk(W.d, .12)); sh(() => el(46, 54, 4, 3), dk(W.d, .12)); sh(() => { g.beginPath(); g.moveTo(0, 0); g.lineTo(N, 0); for(let x = N; x >= 0; x -= 2) g.lineTo(x, 20 + Math.sin(x/N*Math.PI*3)*4); g.closePath(); }, W.g, 20); edge(); },
       () => { bg(W.d); for(const [x, y, q] of [[16,16,6],[44,20,5],[28,40,7],[50,48,5],[12,52,4]]) sh(() => el(x, y, q, q*.8), dk(W.d, .16), 4); edge(); },
       () => { bg(W.s); for(const [x, y, a, b] of [[18,18,12,9],[46,16,10,8],[30,42,14,10],[54,48,8,7],[10,50,7,6]]) sh(() => el(x, y, a, b), lt(W.s, .2), 6); edge(); },
@@ -90,7 +95,7 @@
       () => { bg(W.m); for(let row = 0; row < 4; row++) for(let k = -1; k < 3; k++){ const x = k*32 + (row % 2 ? 16 : 0) + 2, y = row*16 + 2; sh(() => rr(x, y, 28, 12, 4), row % 2 ? W.b : lt(W.b, .1), 5); } edge(); },
       () => { bg(W.wo); g.lineCap = "round"; for(let y = 2; y < N; y += 10) for(let x = 0; x < N; x += 12){ g.strokeStyle = lt(W.wo, .3); g.lineWidth = 3; g.beginPath(); g.moveTo(x + 2, y + 1); g.lineTo(x + 6, y + 7); g.lineTo(x + 10, y + 1); g.stroke(); } g.lineCap = "butt"; edge(); },
       () => { g.clearRect(0, 0, N, N); g.fillStyle = "rgba(230,240,240,.4)"; g.fillRect(0, 0, N, N); g.strokeStyle = "rgba(120,90,70,.75)"; g.lineWidth = 4; g.strokeRect(2, 2, N - 4, N - 4); g.lineWidth = 2; g.beginPath(); g.moveTo(N/2, 2); g.lineTo(N/2, N - 2); g.moveTo(2, N/2); g.lineTo(N - 2, N/2); g.stroke(); },   // 障子風格的窗
-      () => { bg(W.cl); for(const [x, y, q] of [[18,18,10],[44,40,12]]){ el(x, y, q, q*.7); g.fillStyle = "rgba(255,255,255,.6)"; g.fill(); } edge(); },
+      () => { bg(W.cl); for(const [x, y, q] of [[18,18,10],[44,40,12]]){ el(x, y, q, q*.7); g.fillStyle = "rgba(255,255,255,.6)"; g.fill(); } },   // 雲朵上面：沒有邊框，接起來軟軟一片
       () => { bg(mix(W.cl, "#dfe4ee", .5)); sh(() => { g.beginPath(); g.moveTo(0, 0); g.lineTo(N, 0); for(let x = N; x >= 0; x -= 2) g.lineTo(x, 14 + Math.sin(x/N*Math.PI*4)*3); g.closePath(); }, W.cl, 10); edge(); },
       () => { bg(mix(W.cl, "#c9d3e4", .6)); edge(); },
       () => { bg(dk(W.sk, .1)); for(const [x, y, q] of [[14,14,13],[46,14,14],[30,34,15],[10,50,12],[52,50,13]]) sh(() => el(x, y, q, q), q % 2 ? W.sk : lt(W.sk, .18), 8); plum(20, 22, 4, "#fff6f8"); plum(46, 44, 4, "#fff6f8"); edge(); },   // 17 櫻花
@@ -305,15 +310,15 @@
     const get = (x,y,z) => (x>=0&&x<W&&y>=0&&y<H&&z>=0&&z<D) ? v[at(x,y,z)] : B.AIR;
     const r = rng(2026), CX = 28, CZ = 28;
     // 一塊雲：上面平平的，下面胖胖圓圓
-    const blob = (cx, cz, top, R, seed) => { const q = rng(seed);
+    const blob = (cx, cz, top, R, seed, grass) => { const q = rng(seed);
       const bumps = Array.from({ length: 6 }, () => [q()*Math.PI*2, .75 + q()*.5]);
       for(let x = Math.floor(cx-R-3); x <= cx+R+3; x++) for(let z = Math.floor(cz-R-3); z <= cz+R+3; z++){
         const ang = Math.atan2(z-cz, x-cx); let rr = R; for(const [ph, k] of bumps) rr += Math.cos(ang*3 - ph)*k*.6;
         const d = Math.hypot(x+.5-cx, z+.5-cz); if(d > rr) continue;
         const depth = 1 + Math.floor((1 - d/rr) * Math.min(5, R*.45)) + (q() < .3 ? 1 : 0);
-        for(let y = top - depth; y <= top; y++) set(x, y, z, y === top ? B.CLOUD : B.CLOUDB);
+        for(let y = top - depth; y <= top; y++) set(x, y, z, y === top ? (grass && d < rr - 1.3 ? B.GRASS : B.CLOUD) : B.CLOUDB);   // 主島上面是草地，邊邊一圈軟軟的雲
       } };
-    blob(CX, CZ, GY, 14.5, 11);
+    blob(CX, CZ, GY, 14.5, 11, true);
     for(const [x,z,t,R,sd] of [[8,22,GY+1,3,21],[10,40,GY+2,2.6,22],[46,12,GY+1,3.2,23],[48,40,GY+3,2.8,24],[28,7,GY+2,2.4,25],[30,50,GY,3,26]]) blob(x, z, t, R, sd);
     const topY = (x,z) => { for(let y = H-1; y >= 0; y--) if(get(x,y,z) && get(x,y,z) !== B.WATER) return y; return -1; };
     // 貓屋：磚地基、木板牆、玻璃窗、粉紅屋頂、裡面鋪毛毯（材質都是暫時的）
@@ -338,8 +343,8 @@
     bigSakura(18, 22); bigSakura(37, 19);
     // 小花、小蘑菇（裝飾，不會擋路）
     const flowers = [], FC = ["#f7a7b8", "#ffe08a", "#ffffff", "#cdb4f0", "#f28b82", "#a8d8ff"];
-    for(let k = 0; k < 70; k++){ const x = CX - 13 + r()*26, z = CZ - 13 + r()*26, ix = Math.floor(x), iz = Math.floor(z), ty = topY(ix, iz);
-      if(ty !== GY || get(ix, ty, iz) !== B.CLOUD) continue; if(x > hx - 2 && x < hx + hw + 1 && z > hz - 2 && z < hz + hd + 4) continue;
+    for(let k = 0; k < 150; k++){ const x = CX - 13 + r()*26, z = CZ - 13 + r()*26, ix = Math.floor(x), iz = Math.floor(z), ty = topY(ix, iz);
+      if(ty !== GY || (get(ix, ty, iz) !== B.CLOUD && get(ix, ty, iz) !== B.GRASS)) continue; if(x > hx - 2 && x < hx + hw + 1 && z > hz - 2 && z < hz + hd + 4) continue;
       flowers.push({ x, y: ty + 1, z, c: FC[k % FC.length], m: k % 9 === 0, s: .8 + r()*.5, a: r()*6 }); }
     return { v, get, set, topY, flowers, spawn:[dx+.5, fy+1, hz+hd+2.5], house:{ x:hx+hw/2, z:hz+hd/2 }, floor: fy };
   }
@@ -460,6 +465,14 @@
     const shd = (t, s) => { const x = gl.createShader(t); gl.shaderSource(x, s); gl.compileShader(x); if(!gl.getShaderParameter(x, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(x)); return x; };
     const PR = gl.createProgram(); gl.attachShader(PR, shd(gl.VERTEX_SHADER, VS)); gl.attachShader(PR, shd(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(PR); gl.useProgram(PR);
     const UL = {}, U = n => UL[n] || (UL[n] = gl.getUniformLocation(PR, n));
+    // 天空：上面深一點的藍、靠近地平線淡淡的（另外一個很小的著色器，畫在最後面）
+    const SPR = gl.createProgram(); gl.attachShader(SPR, shd(gl.VERTEX_SHADER, "attribute vec2 q; varying float vy; void main(){ vy = q.y*.5 + .5; gl_Position = vec4(q, .9999, 1.); }"));
+    gl.attachShader(SPR, shd(gl.FRAGMENT_SHADER, "precision mediump float; varying float vy; uniform vec3 a, b; void main(){ gl_FragColor = vec4(mix(b, a, smoothstep(.35, 1.1, vy)), 1.); }")); gl.linkProgram(SPR);
+    const SKYQ = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, SKYQ); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+    const SA = gl.getAttribLocation(SPR, "q"), SUa = gl.getUniformLocation(SPR, "a"), SUb = gl.getUniformLocation(SPR, "b");
+    function drawSky(){ gl.useProgram(SPR); gl.disable(gl.DEPTH_TEST); gl.bindBuffer(gl.ARRAY_BUFFER, SKYQ); for(let i = 0; i < 8; i++) gl.disableVertexAttribArray(i); gl.enableVertexAttribArray(SA); gl.vertexAttribPointer(SA, 2, gl.FLOAT, false, 0, 0);
+      gl.uniform3fv(SUb, SKY); gl.uniform3fv(SUa, SKY.map((v, i) => Math.min(1, v*.74 + [.0, .05, .12][i]))); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      gl.disableVertexAttribArray(SA); gl.useProgram(PR); gl.enable(gl.DEPTH_TEST); }
     gl.uniform1f(U("cut"), .08); gl.uniform4f(U("uvR"), 0, 0, 1, 1);
     const AL = { p:gl.getAttribLocation(PR,"p"), n:gl.getAttribLocation(PR,"n"), uv:gl.getAttribLocation(PR,"uv"), sh:gl.getAttribLocation(PR,"sh") };
     const buf = (a, t = gl.ARRAY_BUFFER, A = Float32Array) => { const b = gl.createBuffer(); gl.bindBuffer(t, b); gl.bufferData(t, new A(a), gl.STATIC_DRAW); return b; };
@@ -600,6 +613,10 @@
         const q = f.c.map(c => [x + bx[c[0]], y + c[1], z + bz[c[2]]]), uvs = [[u0,v1],[u1,v1],[u1,v0],[u0,v0]];
         tri3(Pp, Nn, UVv, SHh, Ii, q[0], q[1], q[2], uvs[0], uvs[1], uvs[2]); tri3(Pp, Nn, UVv, SHh, Ii, q[0], q[2], q[3], uvs[0], uvs[2], uvs[3]); }
     }
+    const AO_L = [.6, .74, .87, 1], occ = (x, y, z) => { const q = world.get(x, y, z); return q && !BT[q].clear && !shaped(x, y, z) ? 1 : 0; };
+    const vnoise = (() => { const h = (i, j) => { let n = Math.imul(i, 374761393) ^ Math.imul(j, 668265263); n = Math.imul(n ^ (n >>> 13), 1274126177); return ((n ^ (n >>> 16)) >>> 0)/4294967295; };
+      return (x, z) => { x /= 6; z /= 6; const i = Math.floor(x), j = Math.floor(z), fx = x - i, fz = z - j, sx = fx*fx*(3 - 2*fx), sz = fz*fz*(3 - 2*fz);
+        return (h(i, j)*(1 - sx) + h(i + 1, j)*sx)*(1 - sz) + (h(i, j + 1)*(1 - sx) + h(i + 1, j + 1)*sx)*sz; }; })();
     function buildWorld(){
       chunks.forEach(c => c.forEach(m => [m.p,m.n,m.uv,m.sh,m.i].forEach(b => gl.deleteBuffer(b)))); chunks = []; puffs = [];
       { let n = 0; for(let i = 0; i < world.v.length; i++) if(world.v[i] === B.LEAF || world.v[i] === B.SAKURA) n++; puffOK = n <= 600; }
@@ -621,9 +638,17 @@
             if(nb && (!BT[nb].clear || nb === b) && !shaped(x+f.n[0], y+f.n[1], z+f.n[2])) continue;
             if(b === B.WATER && f.n[1] !== 1 && nb) continue;
             const [u0,v0,u1,v1] = tileUV(bt.t[f.t]), base = P.length/3, yo = b === B.WATER && f.n[1] === 1 ? -.12 : 0;
-            f.c.forEach((c, k) => { P.push(x+c[0], y+c[1]+(c[1] ? yo : 0), z+c[2]); N.push(...f.n); SH.push(f.l * (y < 2 && f.n[1] === 0 ? .9 : 1)); });
+            // 角落陰影（兩個方塊相接的角落暗一點，看起來比較立體）＋地面一大片一大片的深淺（不會一整片平平的）
+            const na = f.n[0] ? 0 : f.n[1] ? 1 : 2, a1 = na === 0 ? 1 : 0, a2 = na === 2 ? 1 : 2, ao = [];
+            f.c.forEach((c, k) => { let mul = 1;
+              if(!pass){ const o = [x + f.n[0], y + f.n[1], z + f.n[2]], s1 = c[a1] ? 1 : -1, s2 = c[a2] ? 1 : -1;
+                const p1 = o.slice(), p2 = o.slice(), p3 = o.slice(); p1[a1] += s1; p2[a2] += s2; p3[a1] += s1; p3[a2] += s2;
+                const o1 = occ(...p1), o2 = occ(...p2), o3 = occ(...p3), lv = o1 && o2 ? 0 : 3 - o1 - o2 - o3; ao.push(lv); mul = AO_L[lv];
+                if(f.n[1] === 1 && (b === B.GRASS || b === B.CLOUD)) mul *= .93 + .1*vnoise(x + c[0], z + c[2]); }
+              P.push(x+c[0], y+c[1]+(c[1] ? yo : 0), z+c[2]); N.push(...f.n); SH.push(f.l * mul * (y < 2 && f.n[1] === 0 ? .9 : 1)); });
             UV.push(u0,v1, u1,v1, u1,v0, u0,v0);
-            I.push(base, base+1, base+2, base, base+2, base+3);
+            if(ao.length && ao[0] + ao[2] < ao[1] + ao[3]) I.push(base+1, base+2, base+3, base+1, base+3, base);   // 換對角線，陰影才不會歪
+            else I.push(base, base+1, base+2, base, base+2, base+3);
             if(P.length/3 > 60000) flush();
           }
         }
@@ -1088,7 +1113,7 @@
     const clockEl = root.querySelector("#p3dClock"), fpsEl = root.querySelector("#p3dFps"), setEl = root.querySelector("#p3dSet"); let fpsN = 0, fpsT = performance.now();
     const CAMD = { s:3.6, m:5, l:6.6 };
     function applyCfg(first){
-      root.dataset.joy = CFG.joy; root.dataset.ui = "c";   // 站長選了 C 精緻像素 fpsEl.hidden = !CFG.showFps; cam.dist = CAMD[CFG.camD] || 5;
+      root.dataset.joy = CFG.joy; root.dataset.ui = "g";   // 11/22 站長說不夠高級 → G 精緻玻璃風（以前選的 C 精緻像素樣式還留在 style.css） fpsEl.hidden = !CFG.showFps; cam.dist = CAMD[CFG.camD] || 5;
       if(!first){ resize(); saveCfg(CFG); }
     }
     const seg = (k, opts) => `<div class="p3dSeg" data-k="${k}">${opts.map(([v, t]) => `<button data-v="${v}" class="${String(CFG[k]) === String(v) ? "on" : ""}">${t}</button>`).join("")}</div>`;
@@ -1645,7 +1670,7 @@
       lastCam = { eye, tgt };
       const V = lookAt(eye, tgt, [0,1,0]), P = persp(CFG.fov*Math.PI/180, cv.width/cv.height, .05, Math.max(CFG.view + 12, STAR > .02 ? 90 : 0));
 
-      gl.viewport(0, 0, cv.width, cv.height); gl.clearColor(SKY[0], SKY[1], SKY[2], 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      gl.viewport(0, 0, cv.width, cv.height); gl.clearColor(SKY[0], SKY[1], SKY[2], 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); drawSky();
       gl.enable(gl.DEPTH_TEST); gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK); gl.frontFace(gl.CCW);
       gl.uniformMatrix4fv(U("V"), false, V); gl.uniformMatrix4fv(U("P"), false, P); gl.uniform2f(U("fogR"), CFG.fog ? CFG.view*.45 : 1e4, CFG.fog ? CFG.view : 1e4 + 1); gl.uniform3fv(U("tint"), TINT); gl.uniform3fv(U("sky"), SKY);
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tex); gl.uniform1i(U("tex"), 0);
@@ -1673,6 +1698,15 @@
         FSAVE.placed.forEach((f, i) => drawFurnV(f.id, f.x + .5, f.y + (i === ai ? .05 + Math.sin(t*7)*.04 : 0), f.z + .5, f.r, t)); }
       // 挖方塊噴出來的小碎塊、剛放好的方塊閃一下
       for(let k = fx.length - 1; k >= 0; k--){ const f = fx[k]; f.life -= dt; if(f.life <= 0){ fx.splice(k, 1); continue; } f.vy -= 12*dt; f.x += f.vx*dt; f.y += f.vy*dt; f.z += f.vz*dt; box(chain(T(f.x, f.y, f.z), S(.12, .12, .12)), f.c); }
+      // 腳下的影子：人、貓、家具下面淡淡的一圈，看起來是站在地上（不是浮著）
+      { gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(-1, -2);
+        bind(ball); gl.uniform1f(U("mode"), 1);
+        const blob = (x, y, z, w, d, a) => box(chain(T(x, y + .015, z), S(w, .01, d)), "#2e2333", a);
+        const under = e => { let gy = e.y, k = 0; while(k < 5 && !solid(e.x, gy - .05, e.z)){ gy = Math.floor(gy - .05); k++; } return { gy, h: e.y - gy }; };
+        if((cam.bk || 0) < .5){ const u = under(player); blob(player.x, u.gy, player.z, .62/(1 + u.h*.5), .62/(1 + u.h*.5), .2/(1 + u.h)); }
+        for(const pt of pets){ const u = under(pt); blob(pt.x, u.gy, pt.z, .55*pt.s, .55*pt.s, .16/(1 + u.h)); }
+        for(const f of FSAVE.placed){ const b = furnCells(f).box; blob((b[0] + b[3])/2, f.y, (b[2] + b[5])/2, (b[3] - b[0])*1.08, (b[5] - b[2])*1.08, F_FLAT.has(f.id) ? .06 : .17); }
+        gl.disable(gl.POLYGON_OFFSET_FILL); gl.depthMask(true); gl.disable(gl.BLEND); bind(cube); }
       if(buildOn) paintAim();
       if(buildOn && AIM){   // 準星的預覽：瞄到的方塊外框、要放的位置半透明
         gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
