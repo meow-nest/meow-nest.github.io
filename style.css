@@ -4153,3 +4153,52 @@ body.dockKb .careModal .ltWrap .ltBody{height:clamp(56px,calc(100dvh - var(--doc
 .p3d[data-ui="w"] .p3dFly.on{background:var(--wfib),var(--wpk);outline-color:#fff}
 .p3dBtns{align-items:flex-end;gap:8px}
 .p3dBtns .p3dFly{position:absolute;right:80px;bottom:6px}.p3dBtns .p3dDown{position:absolute;right:80px;bottom:68px}
+/* ===== 鍵盤上的齒輪＋快速設定面板 ===== */
+.ime .cands button.setk,.ime .cands button.setk:first-child{flex:none;height:30px;padding:0 9px 0 5px;display:flex;align-items:center;gap:2px;font-size:13px;background:var(--kb-fn);color:var(--kb-text);border-radius:10px;position:relative}
+.ime .cands button.setk svg{width:20px;height:20px;flex:none}
+.ime .cands .setk~.hint{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ime .cands button.setk:active svg{transform:rotate(45deg)}
+.ime .cands button.setk.new::after{content:"";position:absolute;right:-4px;top:-4px;width:10px;height:10px;border-radius:50%;background:var(--kb-accent);border:2px solid var(--kb-line);animation:setkDot 1.2s ease-in-out infinite}
+@keyframes setkDot{50%{transform:scale(1.35)}}
+.imeSet{position:absolute;left:0;right:0;top:0;bottom:0;z-index:20;background:var(--kb-bg);background-image:radial-gradient(var(--kb-dot) 1.5px,transparent 1.6px);background-size:14px 14px;border-top:3px solid var(--kb-line);display:flex;flex-direction:column;animation:isIn .18s ease-out;color:var(--kb-text)}
+.imeSet.out{animation:isOut .16s ease-in forwards}
+@keyframes isIn{from{transform:translateY(24px);opacity:0}}
+@keyframes isOut{to{transform:translateY(24px);opacity:0}}
+.imeSet .isHd{display:flex;align-items:center;justify-content:space-between;padding:8px 12px 6px;border-bottom:2px dashed var(--kb-shadow)}
+.imeSet .isHd b{font-weight:400;font-size:17px;letter-spacing:2px}
+.imeSet .isX{border:2px solid var(--kb-line);background:var(--kb-accent);color:var(--kb-accent-text);font:inherit;font-size:14px;padding:4px 14px;border-radius:999px;box-shadow:0 2px 0 var(--kb-shadow)}
+.imeSet .isBody{flex:1;overflow-y:auto;padding:4px 12px 14px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.imeSet h4{margin:10px 0 6px;font-weight:400;font-size:13px;color:var(--kb-muted);letter-spacing:1px}
+.imeSet .kbOpt{font-size:14px;padding:3px 0;color:var(--kb-text)}
+.imeSet .seg{border-color:var(--kb-line);border-radius:10px;overflow:hidden}
+.imeSet .seg button{background:var(--kb-key);color:var(--kb-text);padding:3px 12px}
+.imeSet .seg button+button{border-left-color:var(--kb-line)}
+.imeSet .seg button.on{background:var(--kb-accent);color:var(--kb-accent-text)}
+.imeSet .tog{border-color:var(--kb-line);background:var(--kb-key);border-radius:999px}
+.imeSet .tog i{border-radius:50%;background:var(--kb-muted)}
+.imeSet .tog.on{background:var(--kb-tone)}.imeSet .tog.on i{background:var(--kb-accent)}
+.kbSnd{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:2px 0 6px}
+.kbSnd button{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;border:2px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:13px;padding:7px 2px 6px;border-radius:10px;box-shadow:0 2px 0 var(--shadow)}
+.kbSnd button.on{background:var(--pink);color:var(--onPink)}
+.kbSnd .kbWave{display:flex;gap:2px;align-items:flex-end;height:12px}
+.kbSnd .kbWave b{display:block;width:3px;height:5px;background:currentColor;border-radius:2px;opacity:.55}
+.kbSnd .kbWave b:nth-child(2){height:10px}.kbSnd .kbWave b:nth-child(3){height:7px}
+.kbSnd button[data-snd="off"]{justify-content:center}
+.kbSnd button.play .kbWave b{animation:kbWv .5s ease-in-out 2}
+.kbSnd button.play .kbWave b:nth-child(2){animation-delay:.08s}.kbSnd button.play .kbWave b:nth-child(3){animation-delay:.16s}
+@keyframes kbWv{50%{transform:scaleY(1.9);opacity:1}}
+.imeSet .kbSnd button{border-color:var(--kb-line);background:var(--kb-key);color:var(--kb-text);box-shadow:0 2px 0 var(--kb-shadow)}
+.imeSet .kbSnd button.on{background:var(--kb-accent);color:var(--kb-accent-text)}
+.imeSet .isThm{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.imeSet .isThm button,.imeSet .isAnm button{border:2px solid var(--kb-line);background:var(--kb-key);color:var(--kb-text);font:inherit;font-size:12px;padding:5px 2px;border-radius:10px;display:flex;flex-direction:column;align-items:center;gap:3px;box-shadow:0 2px 0 var(--kb-shadow)}
+.imeSet .isThm .sw{display:block;width:34px;height:18px;border:2px solid var(--kb-line);border-radius:6px;position:relative;overflow:hidden}
+.imeSet .isThm .sw i{position:absolute;right:3px;top:3px;width:9px;height:9px;border-radius:50%}
+.imeSet .isThm button.on,.imeSet .isAnm button.on{outline:3px solid var(--kb-accent);outline-offset:-1px}
+.imeSet .isAnm{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.imeSet .isAnm button{font-size:13px;padding:7px 2px}
+.imeSet .isTip{margin-top:12px;font-size:12px;line-height:1.6;color:var(--kb-muted)}
+.kbSndH{margin:8px 0 6px;font-weight:400;font-size:14px}
+/* 喵喵鍵盤打開時，從下面滑出來的面板要讓出鍵盤的位置 */
+body.dockKb .ntSheet{padding-bottom:var(--dockH,300px)}
+body.dockKb .ntEd{max-height:calc(100dvh - var(--dockH,300px) - 12px)}
+.askBtns{display:flex;gap:10px}.askBtns .btn{flex:1}

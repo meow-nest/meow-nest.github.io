@@ -133,5 +133,11 @@ git push origin main           # GitHub Pages 約 1 分鐘後更新
   - 島、材料、在線狀態要存伺服器 → 需要 SQL。
 - **即時訊息用量（11/22）**：Supabase 免費方案每月 220 萬則，11 月超過（寬限到 12/22）。即時遊戲的同步頻率已經調低：一起煮飯位置 150ms 且沒動不送（2.5 秒補一次）、快照 450ms；划船 140ms；守護小窩 220ms；你畫我猜 150ms；全家一起玩 famHere 每 9 秒（26 秒沒收到算離開）。**新做的即時遊戲不要每秒送超過 5～7 次**；家人模式的廣播會送到全家每支手機（couple channel），越多人越貴。
 - **日誌擷取用量（11/22）**：免費方案每月 1GB，11 月超過。update_74 把每分鐘的排程合併成一個 `meow-tick` → `meow_tick()`（依序跑 truce_tick、fire_memos、fire_sched，每 5 分鐘 log_online，每小時清 3 天前的 cron.job_run_details）；**以後要加每分鐘的排程，請加進 `meow_tick()`，不要另外 cron.schedule**。前端家人「誰在玩」首頁列表和浮動通知共用一次查詢（`famLiveRows`，12 秒內不重複查）。
+- **貓貓股市專屬新聞（11/22）**：`games/stock_news.js`（`window.STOCK_NEWS[代號] = {g:[15 則], b:[15 則]}`，`{c}`＝負責人）。前端 `coTxt` 用新聞的 sym＋t＋k 算雜湊，約 3/4 用專屬、1/4 用原本通用的 GOOD/BAD，只換文字不影響漲跌、不用 SQL。新增公司時這裡也要加一組。
+- **喵喵鍵盤升級（11/22）**：
+  - 按鍵聲音 10 種（`SFX.KB_SOUNDS`：pop/type/mech/wood/piano/bell/drop/meow/game/soft，`mw_kbsfx`，"off"＝關；舊的 `mw_kbsnd` 還會一起寫）、音量 `mw_kbvol`（s/m/l）。聲音用 OfflineAudioContext 先錄成 buffer（k0~k3/sp/del/ent），`SFX.kb(kind)` 播；IME 的 fx 種類：key、del、pick、space。
+  - 鍵盤上的齒輪「設定」（候選列沒打字時最左邊，`opt.settings` → `kbQuickSettings`，第一次有小紅點 `mw_kbSetSeen`）；設定頁共用 `kbSndHtml`／`kbSndBind`。
+  - 效能：按鍵位置快取（`measure`／`rectOf`，相對 `#imeBody`）、候選字下一格畫面才算（`renderCands`，先畫 24 個、捲動或「更多字」再補）、候選字按鈕重複使用＋事件委派、字典載好後閒置時先整理單音字（`warm`）；聊天打字特效 `typeFx` 也延到下一格畫面。
+  - **全站自動喵喵鍵盤**：app.js `kbEligible`／`kbAuto`（document 的 pointerdown＋focusin），所有文字 input/textarea 自動 `caretField`＋`dockKeyboard`；數字框（inputmode numeric/decimal）、type number 等不套用，`data-nokb` 可排除。房間碼這種 `autocapitalize="characters"` 會用英文大寫開（IME `startMode`／`startCaps`）。單行框按「完成」會送出 Enter 的 keydown。`ctx.askText(標題, 預設值, 字數)` 取代 prompt()。默契大考驗自己出題改用 `ctx.keyboard`（跟聊天室同一套設定）。
 - 定時訊息（11/20 上線）：聊天頁左上「定時」（`schedWriter`）。`sched_msgs` 表不開權限，用 `sched_add`／`sched_list`／`sched_cancel`；pg_cron `meow-sched` 每分鐘跑 `fire_sched()`，用寫的人的名字插入 messages（kind `text`、media `{"sch":1}`，前端 `isSched` 顯示「定時訊息」標籤），推播照舊。送出前只有自己看得到；500 字、1 分鐘後～1 年內、每人最多 30 則；單人小窩沒有按鈕。
 - 等級稱號：Lv40 之後有天使／惡魔翅膀（惡魔 6 種顏色），排行榜有本週／總排行，站長小窩可以展示但不參加排行。

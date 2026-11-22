@@ -744,9 +744,9 @@ App.registerGame({
       busy = false;
       if(ns){ s = P.norm(clone(ns)); lastLog = logKey(s); setTimeout(()=>pop("+1 ⭐", xOf(i)), 400); render(); grewMsg(i, before, P.stage(s.cats[i])); }
     }
-    function rename(){
+    async function rename(){
       const i = sel, c = cats()[i];
-      const nm = prompt(`幫 ${c.name} 取新名字（最多 8 個字）`, c.name); if(nm==null) return;
+      const nm = ctx.askText ? await ctx.askText(`幫 ${c.name} 取新名字（最多 8 個字）`, c.name, 8) : prompt(`幫 ${c.name} 取新名字（最多 8 個字）`, c.name); if(nm==null) return;
       const v = nm.trim().slice(0,8); if(!v || v===c.name) return;
       ctx.update("pet", st=>{ st = P.norm(st ? clone(st) : null); if(!st || !st.cats[i]) return undefined; st.cats[i].name = v; st.log = (st.log||[]).concat([{by:me(),a:"rename",c:i,at:Date.now()}]).slice(-24); return st; });
     }

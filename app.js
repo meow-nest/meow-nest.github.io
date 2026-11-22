@@ -57,8 +57,38 @@ const App = (function(){
     function ensure(){ if(!on) return null; try{ if(!ctx){ const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return null; ctx=new AC(); master=ctx.createGain(); master.gain.value=.22; master.connect(ctx.destination);} if(ctx.state==="suspended") ctx.resume(); }catch(e){return null} return ctx; }
     function tone(f,dur,o={}){ const c=ensure(); if(!c) return; const t=c.currentTime+(o.delay||0); const osc=c.createOscillator(), g=c.createGain(); osc.type=o.type||"square"; osc.frequency.setValueAtTime(f,t); if(o.to) osc.frequency.exponentialRampToValueAtTime(o.to,t+dur); const v=o.vol??.5; g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(v,t+.008); g.gain.exponentialRampToValueAtTime(.0001,t+dur); let n=osc; if(o.lp){const lp=c.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=o.lp; osc.connect(lp); n=lp;} n.connect(g); g.connect(master); osc.start(t); osc.stop(t+dur+.02); }
     function meow(p=1,delay=0){ const c=ensure(); if(!c) return; const t=c.currentTime+delay, d=.42; const osc=c.createOscillator(), g=c.createGain(), bp=c.createBiquadFilter(), vib=c.createOscillator(), vg=c.createGain(); osc.type="sawtooth"; bp.type="bandpass"; bp.Q.value=2.2; osc.frequency.setValueAtTime(520*p,t); osc.frequency.linearRampToValueAtTime(820*p,t+.12); osc.frequency.linearRampToValueAtTime(600*p,t+d); bp.frequency.setValueAtTime(900,t); bp.frequency.linearRampToValueAtTime(2200,t+.12); bp.frequency.linearRampToValueAtTime(1000,t+d); vib.frequency.value=7; vg.gain.value=14*p; vib.connect(vg); vg.connect(osc.frequency); g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.55,t+.05); g.gain.setValueAtTime(.5,t+.25); g.gain.exponentialRampToValueAtTime(.0001,t+d); osc.connect(bp); bp.connect(g); g.connect(master); osc.start(t); vib.start(t); osc.stop(t+d+.05); vib.stop(t+d+.05); }
+    // ---------- 鍵盤按鍵聲音：每種風格先「錄」成幾段聲音（OfflineAudioContext），打字時直接播，手機比較不會卡 ----------
+    function kOsc(c,out,t,o){ const g=c.createGain(), s=c.createOscillator(); s.type=o.type||"sine"; s.frequency.setValueAtTime(o.f,t); if(o.to) s.frequency.exponentialRampToValueAtTime(o.to,t+(o.tt||o.dur)); const v=o.vol??.5, a=o.att||.002; g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(v,t+a); g.gain.exponentialRampToValueAtTime(.0001,t+o.dur); let n=s; if(o.lp){ const f=c.createBiquadFilter(); f.type="lowpass"; f.frequency.value=o.lp; n.connect(f); n=f; } n.connect(g); g.connect(out); s.start(t); s.stop(t+o.dur+.02); }
+    function kNoise(c,out,t,o){ const len=Math.max(1,Math.floor(c.sampleRate*o.dur)), buf=c.createBuffer(1,len,c.sampleRate), d=buf.getChannelData(0); for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,o.decay||3); const s=c.createBufferSource(); s.buffer=buf; let n=s; for(const [ty,fq] of [["lowpass",o.lp],["highpass",o.hp],["bandpass",o.bp]]) if(fq){ const f=c.createBiquadFilter(); f.type=ty; f.frequency.value=fq; if(ty==="bandpass") f.Q.value=o.q||1.2; n.connect(f); n=f; } const g=c.createGain(); g.gain.value=o.vol??.5; n.connect(g); g.connect(out); s.start(t); }
+    const PENTA=[1046,1175,1318,1568,1760];
+    // k0~k3 一般按鍵（四種音高輪流，聽起來不會一直同一聲）、sp 空白、del 刪除、ent 選字／確定
+    const KB_SOUNDS={
+      pop:{ n:"泡泡", fn(c,o,t,k){ const f={k0:880,k1:990,k2:1100,k3:1240,sp:620,del:520,ent:1320}[k]; kOsc(c,o,t,{f:f*1.5,to:f*.8,dur:.07,vol:.55,tt:.05}); if(k==="ent") kOsc(c,o,t+.06,{f:f*1.9,to:f*1.2,dur:.08,vol:.4}); } },
+      type:{ n:"打字機", fn(c,o,t,k){ if(k==="ent"){ kOsc(c,o,t,{f:2093,dur:.5,vol:.32,type:"triangle"}); kOsc(c,o,t,{f:4186,dur:.25,vol:.1}); return; } const hv=k==="sp"; kNoise(c,o,t,{dur:.025,bp:hv?1800:3200+(+k.slice(1)||0)*200,q:1.5,vol:.9}); kOsc(c,o,t,{f:hv?130:180,dur:.05,vol:.45,type:"triangle"}); if(k==="del") kNoise(c,o,t+.03,{dur:.03,bp:1500,vol:.5}); } },
+      mech:{ n:"機械鍵盤", fn(c,o,t,k){ const lo=k==="sp"||k==="ent"; kNoise(c,o,t,{dur:.012,hp:4000,vol:.55}); kNoise(c,o,t+.004,{dur:lo?.06:.04,lp:lo?700:1100+(+k.slice(1)||0)*120,vol:1,decay:4}); kOsc(c,o,t+.004,{f:lo?95:150,dur:lo?.07:.045,vol:.5}); } },
+      wood:{ n:"木琴", fn(c,o,t,k){ const f={k0:523,k1:587,k2:659,k3:784,sp:392,del:330,ent:880}[k]; kOsc(c,o,t,{f,dur:.28,vol:.6}); kOsc(c,o,t,{f:f*4,dur:.06,vol:.22}); if(k==="ent") kOsc(c,o,t+.08,{f:f*1.5,dur:.3,vol:.45}); } },
+      piano:{ n:"鋼琴", fn(c,o,t,k){ const f={k0:523,k1:659,k2:784,k3:880,sp:392,del:349,ent:1047}[k]; for(const [m,v] of [[1,.45],[2,.16],[3,.08]]) kOsc(c,o,t,{f:f*m,dur:.5/m+.15,vol:v,type:m===1?"triangle":"sine",att:.004}); if(k==="ent"){ kOsc(c,o,t+.06,{f:f*1.26,dur:.45,vol:.3,type:"triangle"}); kOsc(c,o,t+.12,{f:f*1.5,dur:.45,vol:.3,type:"triangle"}); } } },
+      bell:{ n:"小鈴鐺", fn(c,o,t,k){ const f={k0:2349,k1:2637,k2:2793,k3:3136,sp:1760,del:1568,ent:3520}[k]; kOsc(c,o,t,{f,dur:.32,vol:.32}); kOsc(c,o,t,{f:f*2.76,dur:.12,vol:.12}); if(k==="ent") kOsc(c,o,t+.09,{f:f*1.25,dur:.35,vol:.28}); } },
+      drop:{ n:"水滴", fn(c,o,t,k){ const f={k0:500,k1:560,k2:630,k3:700,sp:380,del:300,ent:760}[k]; kOsc(c,o,t,{f,to:f*2.6,dur:.09,tt:.05,vol:.6}); if(k==="ent") kOsc(c,o,t+.08,{f:f*1.3,to:f*3,dur:.09,tt:.05,vol:.45}); } },
+      meow:{ n:"小貓喵", fn(c,o,t,k){ const p={k0:1,k1:1.08,k2:1.16,k3:1.24,sp:.85,del:.75,ent:1.3}[k], d=k==="ent"?.2:.11; const s=c.createOscillator(), g=c.createGain(), bp=c.createBiquadFilter(); s.type="sawtooth"; bp.type="bandpass"; bp.Q.value=2.5; s.frequency.setValueAtTime(700*p,t); s.frequency.linearRampToValueAtTime(1050*p,t+d*.35); s.frequency.linearRampToValueAtTime(820*p,t+d); bp.frequency.setValueAtTime(1500,t); bp.frequency.linearRampToValueAtTime(2600,t+d*.35); bp.frequency.linearRampToValueAtTime(1600,t+d); g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.7,t+.015); g.gain.exponentialRampToValueAtTime(.0001,t+d); s.connect(bp); bp.connect(g); g.connect(o); s.start(t); s.stop(t+d+.02); } },
+      game:{ n:"電玩", fn(c,o,t,k){ const f={k0:PENTA[0],k1:PENTA[1],k2:PENTA[2],k3:PENTA[3],sp:784,del:520,ent:PENTA[4]}[k]; if(k==="del"){ kOsc(c,o,t,{f,to:300,dur:.05,vol:.5,type:"square",lp:2000}); return; } kOsc(c,o,t,{f,dur:.035,vol:.5,type:"square",lp:4000}); kOsc(c,o,t+.01,{f:f*2,dur:.02,vol:.2,type:"triangle"}); if(k==="ent") kOsc(c,o,t+.05,{f:f*1.5,dur:.06,vol:.4,type:"square",lp:4000}); } },
+      soft:{ n:"輕輕的", fn(c,o,t,k){ kNoise(c,o,t,{dur:k==="sp"?.03:.018,lp:k==="sp"?900:1600,vol:.7,decay:5}); if(k==="ent") kOsc(c,o,t+.02,{f:1320,dur:.08,vol:.15}); } },
+    };
+    let kbGain=null; const kbBufs={}, kbBusy={};
+    const kbStyle=()=>{ const s=store.get("mw_kbsfx"); if(s) return s; return store.get("mw_kbsnd")==="0" ? "off" : "pop"; };
+    const kbVolOf=()=>({s:.45,m:1,l:1.8})[store.get("mw_kbvol")||"m"]||1;
+    function kbOut(c){ if(!kbGain){ kbGain=c.createGain(); kbGain.connect(master); } kbGain.gain.value=1.6*kbVolOf(); return kbGain; }
+    function kbRender(st){ if(kbBufs[st]||kbBusy[st]) return; const OAC=window.OfflineAudioContext||window.webkitOfflineAudioContext; if(!OAC||!ctx) return; kbBusy[st]=1; const S=KB_SOUNDS[st], sr=ctx.sampleRate, res={};
+      Promise.all(["k0","k1","k2","k3","sp","del","ent"].map(k=>new Promise(ok=>{ try{ const len=Math.ceil(sr*(st==="type"&&k==="ent"||st==="piano"?.75:.4)); const oc=new OAC(1,len,sr); S.fn(oc,oc.destination,0,k); const p=oc.startRendering(); if(p&&p.then) p.then(b=>{res[k]=b;ok();},()=>ok()); else oc.oncomplete=e=>{res[k]=e.renderedBuffer;ok();}; }catch(e){ ok(); } })))
+        .then(()=>{ kbBusy[st]=0; if(Object.keys(res).length===7) kbBufs[st]=res; }); }
+    let kbLast=0;
+    function kb(kind, style){ const st=style||kbStyle(); if(st==="off") return; const S=KB_SOUNDS[st]||KB_SOUNDS.pop, c=ensure(); if(!c) return;
+      const k = kind==="del"?"del" : kind==="space"?"sp" : (kind==="pick"||kind==="enter")?"ent" : "k"+(kbLast=(kbLast+1+((Math.random()*2)|0))%4);
+      const out=kbOut(c), b=kbBufs[st] && kbBufs[st][k];
+      if(b){ const s=c.createBufferSource(); s.buffer=b; s.connect(out); s.start(); return; }
+      kbRender(st); try{ S.fn(c,out,c.currentTime,k); }catch(e){} }
     const N={C5:523,E5:659,G5:784,A5:880,C6:1047,E6:1319,G6:1568};
-    return { tone, get on(){return on}, toggle(){ on=!on; store.set("mw_sfx",on?"1":"0"); if(on) this.select(); return on; },
+    return { tone, kb, kbStyle, KB_SOUNDS, kbWarm(){ if(ensure()) kbRender(kbStyle()); }, get on(){return on}, toggle(){ on=!on; store.set("mw_sfx",on?"1":"0"); if(on) this.select(); return on; },
       tap(){ const f=900+Math.random()*300; tone(f,.06,{to:f*1.6,vol:.18,lp:3000}); },
       select(){ tone(N.E5,.07,{vol:.3}); tone(N.A5,.1,{vol:.3,delay:.07}); },
       match(){ [N.C5,N.E5,N.G5,N.C6].forEach((f,i)=>tone(f,.13,{vol:.32,delay:i*.09})); tone(N.E6,.25,{vol:.22,delay:.38,type:"triangle"}); tone(N.G6,.3,{vol:.18,delay:.46,type:"triangle"}); },
@@ -110,7 +140,7 @@ const App = (function(){
   let hapLabel=null;
   function setupHaptic(){ try{ const inp=document.createElement("input"); inp.type="checkbox"; inp.setAttribute("switch",""); inp.id="hapSw"; const lab=document.createElement("label"); lab.htmlFor="hapSw"; const w=document.createElement("div"); w.setAttribute("aria-hidden","true"); w.style.cssText="position:fixed;left:-9999px;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none"; w.append(inp,lab); document.body.appendChild(w); hapLabel=lab; }catch(e){} }
   const kbPrefs = () => ({ preview: store.get("mw_kbpop")!=="0", altnum: store.get("mw_kbnum")!=="0", smart: store.get("mw_kbsmart")!=="0", hint: store.get("mw_kbhint")!=="0" });
-  const kbSound = () => store.get("mw_kbsnd")!=="0", kbVib = () => store.get("mw_kbvib")!=="0";
+  const kbSound = () => SFX.kbStyle()!=="off", kbVib = () => store.get("mw_kbvib")!=="0";
   function applyKbSize(){ document.body.dataset.kbsize = store.get("mw_kbsize") || "m"; }
   function haptic(){ try{ if(typeof navigator.vibrate==="function"){ navigator.vibrate(12); return; } if(hapLabel) hapLabel.click(); }catch(e){} }
   function burst(){ for(let i=0;i<10;i++) setTimeout(()=>{ const d=document.createElement("div"); d.className="float"; d.innerHTML=icon(i%3===0?"fish":i%3===1?"heart":"star"); d.style.left=(8+Math.random()*80)+"vw"; d.style.top=(60+Math.random()*20)+"vh"; document.body.appendChild(d); setTimeout(()=>d.remove(),2300); }, i*80); }
@@ -193,8 +223,8 @@ const App = (function(){
     d.querySelectorAll("[data-x]").forEach(b=>b.addEventListener("click", ()=>{ clearTimeout(tm); close(); }));
     const gb = d.querySelector("[data-go]"); if(gb) gb.addEventListener("click", ()=>{ clearTimeout(tm); close(); go("game-" + g.id); });
   });
-  ctx.keyboard = (host, o) => IME.mount(host, Object.assign({ dictUrl:"zhuyin.txt", prefs: kbPrefs, haptic: ()=>{ if(kbVib()) haptic(); }, anim: ()=>store.get("mw_anim")||"jelly", art: kbArt(), phrases: [], kaomoji: window.KAOMOJI,
-    fx: (k)=>{ if(!kbSound()) return; if(k==="del") SFX.del(); else SFX.key(); } }, o));
+  ctx.keyboard = (host, o) => IME.mount(host, Object.assign({ dictUrl:"zhuyin.txt", prefs: kbPrefs, settings: kbQuickSettings, haptic: ()=>{ if(kbVib()) haptic(); }, anim: ()=>store.get("mw_anim")||"jelly", art: kbArt(), phrases: QK[MI().qk], kaomoji: window.KAOMOJI, mascot: sprite(me.cat||"orange","loaf"),
+    fx: (k)=>SFX.kb(k) }, o));
 
   // ---------- header ----------
   let lastHdr="", wasOnline=null;
@@ -772,11 +802,11 @@ const App = (function(){
     const autoSize = () => { txt.style.height="44px"; txt.style.height=Math.min(110,txt.scrollHeight)+"px"; if(chatUpdSend) chatUpdSend(); };
     const showKb = (on) => {
       $("kbd").classList.toggle("hidden", !on); document.body.classList.toggle("kbd", on);
-      if(on){ $("stk").classList.add("hidden"); if(!kb) kb = IME.mount($("kbd"), { dictUrl:"zhuyin.txt", prefs: kbPrefs, haptic: ()=>{ if(kbVib()) haptic(); }, field: ()=>$("txt"), textBefore: ()=>txt.value.slice(0, txt.selectionStart==null ? txt.value.length : txt.selectionStart), mascot: sprite(me.cat||"orange","loaf"), anim: ()=>store.get("mw_anim")||"jelly", art: kbArt(), phrases: QK[MI().qk], kaomoji: window.KAOMOJI,
+      if(on){ $("stk").classList.add("hidden"); if(!kb) kb = IME.mount($("kbd"), { dictUrl:"zhuyin.txt", prefs: kbPrefs, settings: kbQuickSettings, haptic: ()=>{ if(kbVib()) haptic(); }, field: ()=>$("txt"), textBefore: ()=>txt.value.slice(0, txt.selectionStart==null ? txt.value.length : txt.selectionStart), mascot: sprite(me.cat||"orange","loaf"), anim: ()=>store.get("mw_anim")||"jelly", art: kbArt(), phrases: QK[MI().qk], kaomoji: window.KAOMOJI,
         commit: t => { insertAt(t); autoSize(); },
         backspace: () => { delBefore(); autoSize(); },
         send: () => sendText(), toSys: () => toSys(), hide: () => showKb(false),
-        fx: (k,n) => { if(k==="del") typeFx("del"); else if(k==="pick"){ if(kbSound()) SFX.select(); typeFx("key", n||1); } else typeFx("key", n||1); setTimeout(()=>chatUpdSend && chatUpdSend(), 0); } });
+        fx: (k,n) => { typeFx(k, n||1); setTimeout(()=>chatUpdSend && chatUpdSend(), 0); } });
         const L=$("list"); setTimeout(()=>{ L.scrollTop=L.scrollHeight; }, 50); }
     };
     function toSys(){ return toSys_(); }
@@ -829,29 +859,39 @@ const App = (function(){
   // typing sound + effects
   let combo = 0, comboT = null;
   const TYPE_ICONS = ["heart","star","spark","paw","fish","sq"];
+  // 打字的小特效：聲音馬上播，飄出來的小圖示等下一格畫面再畫（不要卡住打字）
+  const typeIco = {}; const tIcon = (k, c) => typeIco[k + (c||"")] || (typeIco[k + (c||"")] = c ? icon(k, {O:c}) : icon(k));
+  let typeQ = 0, typeRaf = 0, typeRect = null, typeRectAt = 0;
   function typeFx(kind, n=1){
-    if(kind==="del"){ if(kbSound()) SFX.del(); combo=Math.max(0,combo-1); showCombo(); return; }
-    if(kbSound()) SFX.key();
-    const bar = document.querySelector(".chat .bar"); if(!bar) return;
-    const r = bar.getBoundingClientRect(), t=$("txt").getBoundingClientRect();
-    for(let i=0;i<Math.min(n,4);i++){
+    SFX.kb(kind);
+    if(kind==="del"){ combo=Math.max(0,combo-1); showCombo(); return; }
+    if(kind==="space") n = 0;
+    typeQ = Math.min(4, typeQ + n);
+    if(!typeRaf) typeRaf = requestAnimationFrame(typeDraw);
+    combo += n; showCombo();
+    if(n && combo>0 && combo%10 < n){ requestAnimationFrame(()=>{ const T = typeRect; if(!T) return; SFX.combo(); const c=document.createElement("div"); c.className="float"; c.style.cssText+=`;left:${T.l+T.w/2-22}px;top:${T.top-50}px`; c.innerHTML=sprite(me.cat||"orange", combo%20<n?"love":"happy"); document.body.appendChild(c); setTimeout(()=>c.remove(),2300); }); }
+  }
+  function typeDraw(){
+    typeRaf = 0; const n = typeQ; typeQ = 0;
+    const bar = document.querySelector(".chat .bar"), tx = $("txt"); if(!bar || !tx){ typeRect = null; return; }
+    const now = performance.now(); if(!typeRect || now - typeRectAt > 400){ const r = bar.getBoundingClientRect(), t = tx.getBoundingClientRect(); typeRect = { top: r.top, l: t.left, w: t.width }; typeRectAt = now; }
+    const T = typeRect;
+    for(let i=0;i<n;i++){
       const d=document.createElement("div"); const k=TYPE_ICONS[(Math.random()*TYPE_ICONS.length)|0];
       const sz = k==="spark"||k==="sq" ? 10 : 18;
-      d.style.cssText=`position:fixed;left:${t.left+20+Math.random()*(t.width-40)}px;top:${r.top-4}px;width:${sz}px;height:${sz}px;pointer-events:none;z-index:45`;
-      d.innerHTML = (k==="spark"||k==="sq") ? icon(k,{O:SPARK_COLS[(Math.random()*6)|0]}) : icon(k);
+      d.style.cssText=`position:fixed;left:${T.l+20+Math.random()*(T.w-40)}px;top:${T.top-4}px;width:${sz}px;height:${sz}px;pointer-events:none;z-index:45`;
+      d.innerHTML = (k==="spark"||k==="sq") ? tIcon(k, SPARK_COLS[(Math.random()*6)|0]) : tIcon(k);
       document.body.appendChild(d);
       const dx=(Math.random()-.5)*60, dy=-50-Math.random()*60;
       d.animate([{transform:"translate(0,0) scale(.3)",opacity:0},{transform:`translate(${dx*.5}px,${dy*.6}px) scale(1.15)`,opacity:1,offset:.35},{transform:`translate(${dx}px,${dy}px) scale(.7)`,opacity:0}],{duration:700,easing:"steps(8,end)",fill:"forwards"});
       setTimeout(()=>d.remove(),750);
     }
-    combo += n; showCombo();
-    if(combo>0 && combo%10===0){ SFX.combo(); const c=document.createElement("div"); c.className="float"; c.style.cssText+=`;left:${t.left+t.width/2-22}px;top:${r.top-50}px`; c.innerHTML=sprite(me.cat||"orange", combo%20===0?"love":"happy"); document.body.appendChild(c); setTimeout(()=>c.remove(),2300); }
   }
   function showCombo(){
     const c=$("combo"); if(!c) return;
     clearTimeout(comboT);
     if(combo<3){ c.classList.add("hidden"); }
-    else { c.classList.remove("hidden"); c.innerHTML=`${icon("star")}<b>${combo}</b> 連擊！`; c.animate([{transform:"scale(1.3)"},{transform:"scale(1)"}],{duration:160,easing:"steps(2,end)"}); }
+    else { c.classList.remove("hidden"); c.innerHTML=`${tIcon("star")}<b>${combo}</b> 連擊！`; c.animate([{transform:"scale(1.3)"},{transform:"scale(1)"}],{duration:160,easing:"steps(2,end)"}); }
     comboT=setTimeout(()=>{ combo=0; c.classList.add("hidden"); },1600);
   }
   async function sendText(){
@@ -1085,7 +1125,31 @@ const App = (function(){
       inp.click();
     });
   }
-  function kbArt(){ const p=palOf(me.cat||"orange"); return { paw: icon("bigpaw",{F:p.Y,O:p.O,P:'#f7a7b8'}), heart: icon("heart"), star: icon("star"), cat: sprite(me.cat||"orange","happy"), mic: icon("mic") }; }
+
+  // ---------- 鍵盤設定（設定頁和鍵盤上的齒輪共用） ----------
+  const kbSndHtml = () => { const cur = SFX.kbStyle(); return `<div class="kbSnd">${[["off","關"]].concat(Object.entries(SFX.KB_SOUNDS).map(([k,v])=>[k,v.n])).map(([k,n])=>`<button data-snd="${k}" class="${cur===k?"on":""}">${k==="off"?"":`<i class="kbWave"><b></b><b></b><b></b></i>`}${n}</button>`).join("")}</div>
+    <div class="kbOpt"><span>音量</span><div class="seg" data-kbvol>${[["s","小"],["m","中"],["l","大"]].map(([v,n])=>`<button data-v="${v}" class="${(store.get("mw_kbvol")||"m")===v?"on":""}">${n}</button>`).join("")}</div></div>`; };
+  function kbSndBind(root){
+    root.querySelectorAll("[data-snd]").forEach(b=>b.addEventListener("click", ()=>{ const k = b.dataset.snd; store.set("mw_kbsfx", k); store.set("mw_kbsnd", k==="off"?"0":"1"); root.querySelectorAll("[data-snd]").forEach(x=>x.classList.toggle("on", x===b));
+      if(k!=="off"){ SFX.kbWarm(); SFX.kb("key", k); setTimeout(()=>SFX.kb("key", k), 130); setTimeout(()=>SFX.kb("pick", k), 300); b.classList.remove("play"); void b.offsetWidth; b.classList.add("play"); } }));
+    const vs = root.querySelector("[data-kbvol]"); if(vs) vs.querySelectorAll("[data-v]").forEach(b=>b.addEventListener("click", ()=>{ store.set("mw_kbvol", b.dataset.v); vs.querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b)); SFX.kb("key"); setTimeout(()=>SFX.kb("key"), 120); }));
+  }
+  const KB_TOGS = [["mw_kbvib","按鍵震動"],["mw_kbpop","按鍵放大預覽"],["mw_kbsmart","智慧觸控（猜下一個注音）"],["mw_kbhint","微微提示下一個注音"],["mw_kbnum","長按第一排打數字"]];
+  function kbQuickSettings(host, close, redraw){
+    host.innerHTML = `<h4>按鍵聲音</h4>${kbSndHtml()}
+      <h4>手感</h4>
+      <div class="kbOpt"><span>按鍵大小</span><div class="seg" data-kbsz>${[["s","小"],["m","中"],["l","大"]].map(([v,n])=>`<button data-v="${v}" class="${(store.get("mw_kbsize")||"m")===v?"on":""}">${n}</button>`).join("")}</div></div>
+      ${KB_TOGS.map(([k,n])=>`<div class="kbOpt"><span>${n}</span><button class="tog ${store.get(k)!=="0"?"on":""}" data-tog="${k}"><i></i></button></div>`).join("")}
+      <h4>配色</h4><div class="isThm">${KB_THEMES.map(([id,n,bg,ac])=>`<button data-t="${id}" class="${(store.get("mw_kb")||"strawberry")===id?"on":""}"><span class="sw" style="background:${bg}"><i style="background:${ac}"></i></span>${n}</button>`).join("")}</div>
+      <h4>打字動畫</h4><div class="isAnm">${KB_ANIMS.map(([id,n])=>`<button data-a="${id}" class="${(store.get("mw_anim")||"jelly")===id?"on":""}">${n}</button>`).join("")}</div>
+      <div class="isTip">長按「，」有更多標點・點兩下 ⇧ 鎖定大寫・按住 ⌫ 越刪越快・在空白鍵上左右滑可以移動游標</div>`;
+    kbSndBind(host);
+    host.querySelectorAll("[data-kbsz] [data-v]").forEach(b=>b.addEventListener("click", ()=>{ store.set("mw_kbsize", b.dataset.v); applyKbSize(); SFX.kb("key"); host.querySelectorAll("[data-kbsz] button").forEach(x=>x.classList.toggle("on", x===b)); redraw(); }));
+    host.querySelectorAll("[data-tog]").forEach(b=>b.addEventListener("click", ()=>{ const k = b.dataset.tog, on = store.get(k)==="0"; store.set(k, on?"1":"0"); b.classList.toggle("on", on); SFX.kb("key"); if(k==="mw_kbvib" && on) haptic(); if(k==="mw_kbnum"||k==="mw_kbhint") redraw(); }));
+    host.querySelectorAll(".isThm [data-t]").forEach(b=>b.addEventListener("click", ()=>{ store.set("mw_kb", b.dataset.t); applyKbTheme(); host.querySelectorAll(".isThm button").forEach(x=>x.classList.toggle("on", x===b)); SFX.kb("pick"); }));
+    host.querySelectorAll(".isAnm [data-a]").forEach(b=>b.addEventListener("click", ()=>{ store.set("mw_anim", b.dataset.a); host.querySelectorAll(".isAnm button").forEach(x=>x.classList.toggle("on", x===b)); SFX.kb("key"); }));
+  }
+  function kbArt(){ const p=palOf(me.cat||"orange"); return { paw: icon("bigpaw",{F:p.Y,O:p.O,P:'#f7a7b8'}), heart: icon("heart"), star: icon("star"), cat: sprite(me.cat||"orange","happy"), mic: icon("mic"), gear: icon("gear") }; }
 
 
   // ================= 吵架救援：心情、休戰旗、和好信箱、和好儀式 =================
@@ -2631,6 +2695,7 @@ const App = (function(){
   // A real text box that the meow keyboard types into AT THE CARET, like the chat box:
   // tap or drag inside it to move the cursor, select text to replace it, delete in the middle.
   function caretField(input, max){
+    if(input._cf) return input._cf;
     input.setAttribute("inputmode", "none"); input.setAttribute("autocomplete", "off"); input.setAttribute("autocorrect", "off"); input.setAttribute("spellcheck", "false");
     if(max) input.maxLength = max;
     const caret = () => { const n = input.value.length; let a = input.selectionStart, b = input.selectionEnd; if(a==null || (document.activeElement!==input && !input._touched)) a = b = n; return [Math.min(a,n), Math.min(b,n)]; };
@@ -2639,7 +2704,7 @@ const App = (function(){
     input.addEventListener("pointerdown", ()=>{ input._touched = true; });
     // one-line boxes use the phone's own cursor (always exactly between the letters); multi-line boxes get the cat-ear cursor
     if(input.tagName === "TEXTAREA") setupCaret(input); else input.classList.add("nativeCaret");
-    return {
+    const fld = {
       el: input,
       get value(){ return input.value; },
       set value(v){ input.value = v; input._touched = false; if(input._caretUpdate) input._caretUpdate(); },
@@ -2649,6 +2714,7 @@ const App = (function(){
         const last = [...input.value.slice(0, a)].pop() || ""; input.setRangeText("", a - last.length, a, "end"); keep(); fire(); },
       focus: keep,
     };
+    input._cf = fld; return fld;
   }
   ctx.caretField = caretField;
   // The same meow keyboard as the chat, docked at the bottom of the screen, for any caretField:
@@ -2669,17 +2735,19 @@ const App = (function(){
       if(dock && dock.fld === fld) { fld.focus(); return; }
       if(dock) dock.close();
       const host = document.createElement("div"); host.className = "dockKbHost"; document.body.appendChild(host);
-      const kb = IME.mount(host, { dictUrl:"zhuyin.txt", prefs: kbPrefs, haptic: ()=>{ if(kbVib()) haptic(); }, textBefore: ()=>fld.before(), field: ()=>fld.el, mascot: sprite(me.cat||"orange","loaf"),
-        anim: ()=>store.get("mw_anim")||"jelly", art: kbArt(), phrases: o.phrases || QK[MI().qk], kaomoji: window.KAOMOJI, enterLabel: o.enterLabel || "完成",
+      const kb = IME.mount(host, { dictUrl:"zhuyin.txt", prefs: kbPrefs, settings: kbQuickSettings, haptic: ()=>{ if(kbVib()) haptic(); }, textBefore: ()=>fld.before(), field: ()=>fld.el, mascot: sprite(me.cat||"orange","loaf"),
+        anim: ()=>store.get("mw_anim")||"jelly", art: kbArt(), phrases: o.phrases || QK[MI().qk], kaomoji: window.KAOMOJI, enterLabel: o.enterLabel || "完成", startMode: o.startMode, startCaps: o.startCaps,
         commit: t => fld.insert(t), backspace: () => fld.del(), send: () => { if(o.onEnter) o.onEnter(); else close(); },
         hide: () => close(), toSys: () => { store.set("mw_sysKb", "1"); close(); applyMode(); try{ fld.el.focus(); }catch(e){} toast("換成手機鍵盤了，想換回來按框框旁邊的 ⌨"); },
-        fx: (k) => { if(!kbSound()) return; if(k==="del") SFX.del(); else SFX.key(); } });
+        fx: (k) => SFX.kb(k) });
       dock = { host, kb, fld, close };
       // 打字的框被關掉了（例如對話框關了），鍵盤也跟著收起來
       const watch = setInterval(() => { if(!dock || dock.fld !== fld){ clearInterval(watch); return; } if(!fld.el.isConnected){ clearInterval(watch); close(); } }, 400);
       document.body.classList.add("dockKb");
       requestAnimationFrame(() => { document.body.style.setProperty("--dockH", host.offsetHeight + "px"); fld.focus();
-        const r = fld.el.getBoundingClientRect(), top = window.innerHeight - host.offsetHeight; if(r.bottom > top - 8) window.scrollBy({ top: r.bottom - top + 16, behavior: "smooth" }); });
+        const r = fld.el.getBoundingClientRect(), top = window.innerHeight - host.offsetHeight; if(r.bottom > top - 8) window.scrollBy({ top: r.bottom - top + 16, behavior: "smooth" });
+        // 框框在會自己捲的視窗裡（例如記事本、對話框）：等一下再看一次，還被鍵盤蓋住就捲到中間
+        setTimeout(() => { if(!fld.el.isConnected) return; const r2 = fld.el.getBoundingClientRect(); if(r2.bottom > window.innerHeight - host.offsetHeight - 4 || r2.top < 0) try{ fld.el.scrollIntoView({ block: "center", behavior: "smooth" }); }catch(e){} }, 350); });
     }
     applyMode();
     fld.el.addEventListener("click", () => { if(!sysMode()) open(); });
@@ -2687,6 +2755,30 @@ const App = (function(){
     return { open, close, composing: () => !!(dock && dock.fld === fld && dock.kb.composing()), flush: () => { if(dock && dock.fld === fld) dock.kb.flush(); }, isOpen: () => !!(dock && dock.fld === fld) };
   }
   ctx.dockKeyboard = dockKeyboard;
+  // 全站所有要打字的框框都自動換成喵喵鍵盤（數字框、檔案、滑桿這些不算；data-nokb 可以排除）
+  const KB_SKIP_TYPES = /^(range|file|checkbox|radio|color|number|date|time|datetime-local|month|week|hidden|button|submit|reset|image|password|email|tel)$/;
+  function kbEligible(el){
+    if(!el || el._cf || el._noAuto) return false;
+    if(el.tagName === "TEXTAREA"){ if(el.id === "txt") return false; }
+    else if(el.tagName === "INPUT"){ if(KB_SKIP_TYPES.test(el.type || "text")) return false; const im = el.getAttribute("inputmode"); if(im && im !== "text" && im !== "search" && im !== "none") return false; }
+    else return false;
+    return !el.readOnly && !el.disabled && !el.closest("[data-nokb]");
+  }
+  function kbAuto(el){
+    const one = el.tagName === "INPUT";
+    const code = one && (el.getAttribute("autocapitalize") === "characters" || /text-transform:\s*uppercase/.test(el.getAttribute("style") || ""));
+    const fld = caretField(el, el.maxLength > 0 ? el.maxLength : 0);
+    const hint = el.getAttribute("enterkeyhint");
+    const kb = dockKeyboard(fld, { startMode: code ? "en" : undefined, startCaps: code,
+      enterLabel: !one ? "換行" : hint === "send" ? "送出" : hint === "search" ? "搜尋" : "完成",
+      onEnter: () => { if(!one){ fld.insert("\n"); return; }
+        const ev = new KeyboardEvent("keydown", { key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true, cancelable: true });
+        const go = el.dispatchEvent(ev); el.dispatchEvent(new KeyboardEvent("keyup", { key: "Enter", code: "Enter", keyCode: 13, bubbles: true }));
+        if(go && hint !== "send" && hint !== "search"){ const k = dock && dock.fld === fld ? dock.close : null; if(k) k(); el.blur(); } } });
+    el._autoKb = kb; return kb;
+  }
+  document.addEventListener("pointerdown", e => { const el = e.target; if(kbEligible(el)) kbAuto(el); }, true);   // 按下去之前先換好，手機鍵盤才不會跳出來；放開後 click 會打開喵喵鍵盤
+  document.addEventListener("focusin", e => { const el = e.target; if(!kbEligible(el)) return; const kb = kbAuto(el); setTimeout(() => { if(document.activeElement === el) kb.open(); }, 0); }, true);
   // ---------- voice messages ----------
   let chatUpdSend = null, voiceRec = null, voiceAudio = null, voicePlaying = 0;
   const voiceCache = {};
@@ -3040,6 +3132,17 @@ const App = (function(){
     getState("rq_" + id).then(c => rqPaint(id, c ? c.state : null)).catch(()=>{});
     return () => { if(RS[id] === r){ r.un && r.un(); delete RS[id]; rqBar(null); } };
   };
+  // 取代手機的 prompt()：用小窩的對話框＋喵喵鍵盤問一行字，回傳字串（按取消回傳 null）
+  ctx.askText = (title, value, max) => new Promise(done => {
+    const o = modal(`<h3>${esc(title)}</h3><input class="askTxt" maxlength="${max||20}" value="${esc(value||"")}" enterkeyhint="done" style="width:100%;box-sizing:border-box;font:inherit;font-size:18px;padding:8px;border:3px solid var(--line);margin:6px 0 10px;text-align:center"><div class="askBtns"><button class="btn sub" data-x>取消</button><button class="btn" data-ok>好</button></div>`);
+    const inp = o.querySelector(".askTxt"); let fin = false;
+    const end = v => { if(fin) return; fin = true; const d = document.querySelector(".dockKbHost"); if(inp._autoKb) inp._autoKb.close(); o.remove(); done(v); };
+    o.querySelector("[data-x]").addEventListener("click", () => end(null));
+    o.querySelector("[data-ok]").addEventListener("click", () => { if(inp._autoKb) inp._autoKb.flush(); end(inp.value); });
+    inp.addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); end(inp.value); } });
+    new MutationObserver((m, ob) => { if(!o.isConnected){ ob.disconnect(); if(!fin){ fin = true; if(inp._autoKb) inp._autoKb.close(); done(null); } } }).observe(document.body, { childList: true });
+    setTimeout(() => { try{ inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }catch(e){} }, 250);
+  });
   ctx.askRestart = async id => {
     const o = RS[id]; if(!o) return; const p = partner();
     if(o.done() || !p){ await o.run(); return; }
@@ -3501,8 +3604,9 @@ const App = (function(){
       <div class="box set"><h2>鍵盤設定</h2>
         <div class="kbOpt"><span>游標樣式</span><div class="seg" id="caretSty">${CARETS.map(([v,n])=>`<button data-v="${v}" class="${(store.get("mw_caret")||"ear")===v?"on":""}">${n}</button>`).join("")}</div></div>
         <div class="kbOpt"><span>按鍵大小</span><div class="seg" id="kbSize">${[["s","小"],["m","中"],["l","大"]].map(([v,n])=>`<button data-v="${v}" class="${(store.get("mw_kbsize")||"m")===v?"on":""}">${n}</button>`).join("")}</div></div>
-        ${[["mw_kbsmart","智慧觸控（猜下一個注音）"],["mw_kbhint","微微提示下一個注音"],["mw_kbvib","按鍵震動"],["mw_kbsnd","按鍵音效"],["mw_kbpop","按鍵放大預覽"],["mw_kbnum","長按第一排打數字"]].map(([k,n])=>`<div class="kbOpt"><span>${n}</span><button class="tog ${store.get(k)!=="0"?"on":""}" data-tog="${k}"><i></i></button></div>`).join("")}
-        <div class="k">小技巧：長按「，」有更多標點・點兩下 ⇧ 鎖定大寫・按住 ⌫ 越刪越快・打完字會出現「聯想詞」</div></div>
+        <h3 class="kbSndH">按鍵聲音</h3>${kbSndHtml()}
+        ${[["mw_kbsmart","智慧觸控（猜下一個注音）"],["mw_kbhint","微微提示下一個注音"],["mw_kbvib","按鍵震動"],["mw_kbpop","按鍵放大預覽"],["mw_kbnum","長按第一排打數字"]].map(([k,n])=>`<div class="kbOpt"><span>${n}</span><button class="tog ${store.get(k)!=="0"?"on":""}" data-tog="${k}"><i></i></button></div>`).join("")}
+        <div class="k">打字的時候，鍵盤左上角的齒輪也可以直接改這些設定。<br>小技巧：長按「，」有更多標點・點兩下 ⇧ 鎖定大寫・按住 ⌫ 越刪越快・打完字會出現「聯想詞」</div></div>
       <div class="box set"><h2>鍵盤配色</h2><div class="themes" id="thm">${KB_THEMES.map(([id,n,bg,ac])=>`<button data-t="${id}" class="${(store.get("mw_kb")||"strawberry")===id?"on":""}"><span class="sw" style="background:${bg}"><i style="background:${ac}"></i><i></i><i></i></span>${n}</button>`).join("")}</div>
         <h2 style="margin-top:8px">打字動畫</h2><div class="anims" id="anm">${KB_ANIMS.map(([id,n])=>`<button data-a="${id}" class="${(store.get("mw_anim")||"jelly")===id?"on":""}">${n}</button>`).join("")}</div>
         <div class="k">點一下可以預覽，只會改變你自己的手機。</div></div>
@@ -3581,6 +3685,7 @@ const App = (function(){
     $("wcPick") && $("wcPick").querySelectorAll("[data-wc]").forEach(b=>b.addEventListener("click", async ()=>{ const c = b.dataset.wc; if(c===roomWc) return; SFX.select();
       roomWc = c; $("wcPick").querySelectorAll("[data-wc]").forEach(x=>x.classList.toggle("on", x===b)); lastHdr = ""; renderHeader(); renderMeter();
       try{ await update("room", st=>Object.assign(st||{}, { wc:c })); }catch(e){} toast(`Lv40 翅膀換成「${S40C[c].n}」了`); }));
+    kbSndBind($("caretSty").closest(".set"));
     $("caretSty").querySelectorAll("[data-v]").forEach(b=>b.addEventListener("click", ()=>{ store.set("mw_caret", b.dataset.v); SFX.select(); $("caretSty").querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b)); }));
     $("kbSize").querySelectorAll("[data-v]").forEach(b=>b.addEventListener("click", ()=>{ store.set("mw_kbsize", b.dataset.v); applyKbSize(); SFX.select(); $("kbSize").querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b)); }));
     v.querySelectorAll("[data-tog]").forEach(b=>b.addEventListener("click", ()=>{ const k = b.dataset.tog, on = store.get(k)==="0"; store.set(k, on?"1":"0"); b.classList.toggle("on", on); SFX.select(); }));
@@ -3625,7 +3730,7 @@ const App = (function(){
     // play the chosen animation on a little demo keyboard key
     let host = document.getElementById("animDemo");
     if(!host){ host=document.createElement("div"); host.id="animDemo"; btn.closest(".set").appendChild(host); }
-    host.innerHTML=""; const k = IME.mount(host, { dictUrl:"zhuyin.txt", anim: ()=>store.get("mw_anim")||"jelly", art: kbArt(), phrases:[], emojis:[], commit(){}, backspace(){}, send(){}, fx(){ SFX.key(); } });
+    host.innerHTML=""; const k = IME.mount(host, { dictUrl:"zhuyin.txt", anim: ()=>store.get("mw_anim")||"jelly", art: kbArt(), phrases:[], emojis:[], commit(){}, backspace(){}, send(){}, fx(k){ SFX.kb(k); } });
     const key = host.querySelector('.k[data-k="ㄇ"]'); if(key){ setTimeout(()=>key.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true})), 60); }
   }
   async function shareInvite(){

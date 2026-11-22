@@ -871,14 +871,12 @@ App.registerGame({
         el.addEventListener("click",()=>{ if(mkKb && mkKb.composing()) mkKb.flush(); active = f; paint(); }); });
       box.querySelectorAll(".mkKind button").forEach(b=>b.addEventListener("click",()=>{ kind=b.dataset.k; paint(); }));
       const order = ["q","o0","o1","o2","o3"];
-      const mkKb = IME.mount(box.querySelector("#mkKb"), { dictUrl:"zhuyin.txt", anim: ()=>{ try{ return localStorage.getItem("mw_anim")||"jelly"; }catch(e){ return "jelly"; } },
-        art: { heart: icon("heart"), star: icon("star"), cat: sprite(ctx.me.cat,"happy"), paw: icon("paw") },
-        phrases: [], emojis: ["❤️","😂","🥺","😍","🐱","🍰","✨","❓"], enterLabel: "下一格",
+      // 跟聊天室同一個喵喵鍵盤（設定、聲音、配色都一樣）
+      const mkKb = ctx.keyboard(box.querySelector("#mkKb"), { enterLabel: "下一格",
         textBefore: () => FLD[active] ? FLD[active].before() : "",
         commit: t => { FLD[active].insert(t); },
         backspace: () => { FLD[active].del(); },
-        send: () => { const i = order.indexOf(active); active = order[Math.min(i+1, order.length-1)]; paint(); FLD[active].focus(); },
-        fx: () => SFX.key() });
+        send: () => { const i = order.indexOf(active); active = order[Math.min(i+1, order.length-1)]; paint(); FLD[active].focus(); } });
       box.querySelector("#mkCancel").addEventListener("click", ()=>{ editing=false; draw(); });
       box.querySelector("#mkSave").addEventListener("click", async ()=>{
         if(mkKb.composing()) mkKb.flush();

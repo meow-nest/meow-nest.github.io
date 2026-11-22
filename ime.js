@@ -32,6 +32,10 @@ const IME = (function(){
     return loading;
   }
   const parsed = new Map(), NONE = [];
+  // 字典載入後，趁手機有空的時候先把單一個音的字整理好（第一次打字就不會卡）
+  let warmed = false;
+  function warm(){ if(warmed || !dict) return; warmed = true; let i = 0; const idle = window.requestIdleCallback || (f => setTimeout(() => f({ timeRemaining: () => 8 }), 30));
+    const step = dl => { while(i < sylList.length && dl.timeRemaining() > 2){ lookupKey(sylCode[sylList[i]]); i++; } if(i < sylList.length) idle(step); else if(!sylFreq) idle(() => buildSylFreq()); }; idle(step); }
   function lookupKey(key){
     const raw = dict && dict.get(key); if(!raw) return NONE;
     if(typeof raw !== "string") return raw;   // 已經整理過的直接用
@@ -141,22 +145,25 @@ const IME = (function(){
 
   // ---------- keyboard ----------
   function mount(root, opt){
-    let mode = "zh", shift = false, caps = false, lastText = "zh", pickTab = "recent", kaoCat = null, assoc = null, lastShiftAt = 0, lastSpaceAt = 0;
+    let mode = opt.startMode === "en" ? "en" : "zh", shift = false, caps = !!opt.startCaps, lastText = mode, pickTab = "recent", kaoCat = null, assoc = null, lastShiftAt = 0, lastSpaceAt = 0;
     const pref = k => (opt.prefs && opt.prefs()[k]);
-    let probs = null, lastXY = null;
+    let probs = null, lastXY = null, likelyEls = [], keyMap = new Map(), kRects = null, geo = { bx: 0, by: 0 };
+    // 按鍵位置先量好存起來（相對鍵盤本體），每按一下就不用重新量全部的鍵（手機上會卡）
+    function measure(){ const B = body.getBoundingClientRect(); kRects = new Map(); for(const k of body.querySelectorAll(".k")){ const r = k.getBoundingClientRect(); kRects.set(k, { x: r.left - B.left, y: r.top - B.top, w: r.width, h: r.height }); } }
+    function rectOf(el){ if(!kRects) measure(); let r = kRects.get(el); if(!r){ const a = el.getBoundingClientRect(), B = body.getBoundingClientRect(); r = { x: a.left - B.left, y: a.top - B.top, w: a.width, h: a.height }; } return r; }
     function updateProbs(){
-      probs = null; body.querySelectorAll(".k.likely").forEach(x=>x.classList.remove("likely"));
+      probs = null; for(const x of likelyEls) x.classList.remove("likely"); likelyEls = [];
       if(mode!=="zh" || !dict) return;
       probs = nextKeyProbs(st.cur);
       if(pref("hint")===false) return;
       const top = Object.entries(probs).filter(([k,v])=>v>=0.07).sort((a,b)=>b[1]-a[1]).slice(0,4);
-      for(const [k] of top){ const el = k===" " ? body.querySelector('.k[data-a="space"]') : body.querySelector(`.row .k[data-k="${k}"]`); if(el) el.classList.add("likely"); }
+      for(const [k] of top){ const el = k===" " ? keyMap.get(" ") : keyMap.get(k); if(el){ el.classList.add("likely"); likelyEls.push(el); } }
     }
     // smart touch: a tap near the edge of a key goes to the neighbour if that one is much more likely
     function resolveKey(b){
       if(mode!=="zh" || !probs || !lastXY || pref("smart")===false) return b;
       const [x,y] = lastXY, cands = [];
-      body.querySelectorAll(".row:not(.bottom) .k").forEach(k=>{ const r = k.getBoundingClientRect(); const dx = (x-(r.left+r.width/2))/r.width, dy = (y-(r.top+r.height/2))/r.height; const d = Math.hypot(dx, dy*0.9); if(d < 1.0) cands.push([k, d]); });
+      for(const k of zhKeys){ const r = rectOf(k); const dx = (x-(r.x+r.w/2))/r.w, dy = (y-(r.y+r.h/2))/r.h; const d = Math.hypot(dx, dy*0.9); if(d < 1.0) cands.push([k, d]); }
       if(cands.length < 2) return b;
       const pOf = k => probs[k.dataset.k] || 0, maxP = Math.max(...cands.map(([k])=>pOf(k)), 0.0001);
       let best = b, bestS = Infinity;
@@ -206,10 +213,10 @@ const IME = (function(){
       else { candEl.style.left = candEl.style.width = candEl.style.top = candEl.style.height = ""; }
       ime.classList.toggle("candGrid", imeGrid); moreEl.classList.toggle("on", imeGrid);
       if(imeGrid){ const cr = candEl.getBoundingClientRect(); moreEl.style.left = (cr.right - 36) + "px"; moreEl.style.top = (cr.top + 6) + "px"; moreEl.style.right = moreEl.style.bottom = "auto"; } else { moreEl.style.left = moreEl.style.top = moreEl.style.right = moreEl.style.bottom = ""; } }
-    let imeGrid = false;
-    moreEl.addEventListener("click", ()=>{ setGrid(!imeGrid); opt.fx("key"); });
+    let imeGrid = false, zhKeys = [], enterEl = null;
+    moreEl.addEventListener("click", ()=>{ setGrid(!imeGrid); if(imeGrid) moreCands(); opt.fx("key"); });
     let dictReady = false;
-    load(opt.dictUrl).then(()=>{ dictReady = true; refresh(); }).catch(()=>{ candEl.innerHTML = `<span class="hint">字典載入失敗，請檢查網路後重開聊天室</span>`; });
+    load(opt.dictUrl).then(()=>{ dictReady = true; refresh(); warm(); }).catch(()=>{ candEl.innerHTML = `<span class="hint">字典載入失敗，請檢查網路後重開聊天室</span>`; });
 
     function candidates(){
       if(!dictReady) return [];
@@ -233,29 +240,72 @@ const IME = (function(){
       scored.sort((a, b) => (b.l > 0) - (a.l > 0) || (a.l > 0 && b.l > 0 ? (b.c.n + (b.c.takeCur?1:0)) - (a.c.n + (a.c.takeCur?1:0)) || b.l - a.l : 0) || a.i - b.i);
       return scored.map(x => x.c).slice(0,150);
     }
+    // 打一個注音：上面那排的組字馬上更新，候選字等下一格畫面再一起算（打很快的時候不會每個鍵都算一次）
+    let candRaf = 0, curCs = [], candShown = 0;
+    const CAND_FIRST = 24;
+    // 候選字按鈕重複使用（只換字，不要每按一下就整排重畫）
+    function setCands(n){ const kids = candEl.children; let i = 0;
+      if(kids.length && !kids[0].hasAttribute("data-i")) candEl.textContent = "";
+      for(; i < n; i++){ let b = kids[i]; const w = curCs[i].w; if(!b){ b = document.createElement("button"); b.dataset.i = i; candEl.appendChild(b); } if(b.textContent !== w) b.textContent = w; }
+      while(candEl.children.length > n) candEl.lastChild.remove(); }
     function refresh(){
-      setTimeout(updateProbs, 0);
+      if(!probT) probT = setTimeout(()=>{ probT = 0; updateProbs(); }, 0);
       const conv = dictReady ? convert(st.syl) : st.syl.join("").replace(/\*/g,"");
-      preEl.innerHTML = composing() ? `<u>${esc(conv)}</u><b>${esc(curStr())}</b>` : "";
-      const cs = candidates();
+      const ph = composing() ? `<u>${esc(conv)}</u><b>${esc(curStr())}</b>` : "";
+      if(preEl._h !== ph){ preEl._h = ph; preEl.innerHTML = ph; }
+      if(!candRaf) candRaf = requestAnimationFrame(renderCands);
+    }
+    let probT = 0;
+    function candBtns(from, to){ let h = ""; for(let i=from;i<to;i++) h += `<button data-i="${i}">${esc(curCs[i].w)}</button>`; return h; }
+    function moreCands(){ if(candShown >= curCs.length) return; const to = curCs.length; candEl.insertAdjacentHTML("beforeend", candBtns(candShown, to)); candShown = to; }
+    function renderCands(){
+      candRaf = 0;
       if(!composing()){
+        curCs = []; candShown = 0;
         if(assoc){ // 聯想詞 after committing a word
-          candEl.innerHTML = `<span class="hint as">聯想</span>` + assoc.map((w,i)=>`<button class="asc" data-a="${i}">${esc(w)}</button>`).join("") + `<button class="sysk asx">✕</button>`;
-          candEl.scrollLeft = 0;
-          candEl.querySelectorAll("[data-a]").forEach(b=>{ b.addEventListener("pointerdown", ()=>pop(b)); b.addEventListener("click", ()=>{ const w = assoc[+b.dataset.a]; opt.commit(w); opt.fx("pick", [...w].length); setAssoc(w); refresh(); }); });
-          candEl.querySelector(".asx").addEventListener("click", ()=>{ assoc = null; refresh(); });
+          candEl.innerHTML = `<span class="hint as">聯想</span>` + assoc.map((w,i)=>`<button class="asc" data-as="${i}">${esc(w)}</button>`).join("") + `<button class="sysk asx">✕</button>`;
+          candEl.scrollLeft = 0; if(moreEl) moreEl.hidden = true;
           return;
         }
         const canPaste = !!(navigator.clipboard && navigator.clipboard.readText);
-        candEl.innerHTML = `<span class="hint">${dictReady ? (mode==="zh"?"免聲調也能打":mode==="en"?"⇧ 點兩下＝大寫鎖定":"") : "字典載入中…"}</span>${canPaste?`<button class="sysk pastek">📋 貼上</button>`:""}${opt.toSys?`<button class="sysk syskb">📱 手機鍵盤</button>`:""}${opt.hide?`<button class="sysk hidek">收起 ▾</button>`:""}`;
-        const sk=candEl.querySelector(".syskb"); if(sk) sk.addEventListener("click", ()=>opt.toSys());
-        const hk=candEl.querySelector(".hidek"); if(hk) hk.addEventListener("click", ()=>opt.hide());
-        const pk=candEl.querySelector(".pastek"); if(pk) pk.addEventListener("click", async ()=>{ try{ const t = await navigator.clipboard.readText(); if(t){ opt.commit(t); opt.fx("pick", Math.min(4,[...t].length)); } }catch(e){ pk.textContent = "沒辦法貼上"; } });
+        const gear = opt.settings ? `<button class="sysk setk${LS_.get("mw_kbSetSeen")?"":" new"}" aria-label="鍵盤設定">${art("gear")}<span>設定</span></button>` : "";
+        const idle = `${gear}<span class="hint">${dictReady ? (mode==="zh"?"免聲調也能打":mode==="en"?"⇧ 點兩下＝大寫鎖定":"") : "字典載入中…"}</span>${canPaste?`<button class="sysk pastek">📋 貼上</button>`:""}${opt.toSys?`<button class="sysk syskb">📱 手機鍵盤</button>`:""}${opt.hide?`<button class="sysk hidek">收起 ▾</button>`:""}`;
+        if(candEl._idle !== idle){ candEl.innerHTML = idle; candEl._idle = idle; } else if(!candEl.querySelector(".hint")) candEl.innerHTML = idle;
+        if(moreEl) moreEl.hidden = true;
         return; }
-      candEl.innerHTML = cs.map((c,i)=>`<button data-i="${i}">${esc(c.w)}</button>`).join("") || `<span class="hint">沒有這個音，按 ⌫ 修改</span>`;
+      candEl._idle = null;
+      curCs = candidates();
+      candShown = Math.min(curCs.length, CAND_FIRST);
+      if(candShown) setCands(candShown); else candEl.innerHTML = `<span class="hint">沒有這個音，按 ⌫ 修改</span>`;
       candEl.scrollLeft = 0; candEl.scrollTop = 0;
-      candEl.querySelectorAll("button[data-i]").forEach(b=>{ b.addEventListener("pointerdown", ()=>pop(b)); b.addEventListener("click", ()=>pick(cs[+b.dataset.i])); });
-      if(moreEl) moreEl.hidden = cs.length < 5;
+      if(moreEl) moreEl.hidden = curCs.length < 5;
+      if(imeGrid) moreCands();
+    }
+    // 候選字列只掛一次事件（不用每次都幫每個字掛）
+    candEl.addEventListener("scroll", ()=>{ if(candShown < curCs.length && (candEl.scrollLeft + candEl.clientWidth * 2 > candEl.scrollWidth || candEl.scrollTop + candEl.clientHeight * 2 > candEl.scrollHeight)) moreCands(); }, { passive: true });
+    candEl.addEventListener("pointerdown", e=>{ const b = e.target.closest("button[data-i],button[data-as]"); if(b) pop(b); });
+    candEl.addEventListener("click", async e=>{
+      const b = e.target.closest("button"); if(!b || !candEl.contains(b)) return;
+      if(candRaf) return;   // 候選字還沒更新好（剛按了注音），這一下先不算
+      if(b.dataset.i != null){ const c = curCs[+b.dataset.i]; if(c) pick(c); return; }
+      if(b.dataset.as != null){ const w = assoc && assoc[+b.dataset.as]; if(!w) return; opt.commit(w); opt.fx("pick", [...w].length); setAssoc(w); refresh(); return; }
+      if(b.classList.contains("asx")){ assoc = null; refresh(); return; }
+      if(b.classList.contains("syskb")){ opt.toSys(); return; }
+      if(b.classList.contains("hidek")){ opt.hide(); return; }
+      if(b.classList.contains("setk")){ openSettings(); return; }
+      if(b.classList.contains("pastek")){ try{ const t = await navigator.clipboard.readText(); if(t){ opt.commit(t); opt.fx("pick", Math.min(4,[...t].length)); } }catch(err){ b.textContent = "沒辦法貼上"; } }
+    });
+    // 鍵盤上的齒輪：直接在鍵盤上改設定（內容由主程式 opt.settings 畫）
+    function openSettings(){
+      if(imeEl.querySelector(".imeSet")) return;
+      LS_.set("mw_kbSetSeen", "1"); candEl._idle = null; refresh();
+      opt.fx("key");
+      const p = document.createElement("div"); p.className = "imeSet";
+      p.innerHTML = `<div class="isHd"><b>鍵盤設定</b><button class="isX" aria-label="關閉">完成</button></div><div class="isBody"></div>`;
+      imeEl.appendChild(p);
+      const close = () => { p.classList.add("out"); setTimeout(()=>p.remove(), 160); };
+      p.querySelector(".isX").addEventListener("click", ()=>{ opt.fx("key"); close(); });
+      opt.settings(p.querySelector(".isBody"), close, () => { kRects = null; draw(); refresh(); });
     }
     function pick(c){
       learnAdd(c.takeCur ? [...st.syl.slice(0, c.n), curStr() + "*"] : st.syl.slice(0, c.n), c.w);
@@ -325,7 +375,8 @@ const IME = (function(){
       const en = (isText?mode:lastText)==="en";
       const kPunct = key(en?",":"，","fn punct","punct", en?",":"，", en?PUNCT_EN:PUNCT_ZH);
       h += `<div class="row bottom">${k123}${kLang}${kPick}${kPunct}${key(art("mic")||"🎤","fn mic","mic","")}${key("ฅ 空白 ฅ","space","space")}${mode==="zh"||mode==="pick"?key("⌫","fn","back"):""}${key(composing()?"確定":(opt.enterLabel||"傳送 ฅ"),"send","enter")}</div>`;
-      body.innerHTML = h;
+      body.innerHTML = h; kRects = null; likelyEls = []; keyMap = new Map(); zhKeys = [];
+      for(const k of body.querySelectorAll(".k")){ if(k.closest(".row.bottom")){ if(k.dataset.a==="space") keyMap.set(" ", k); else if(k.dataset.a==="enter") enterEl = k; continue; } if(!k.dataset.a && k.closest(".row")){ keyMap.set(k.dataset.k, k); zhKeys.push(k); } }
       body.querySelectorAll("[data-pt]").forEach(b=>b.addEventListener("click", ()=>{ pickTab = b.dataset.pt; opt.fx("key"); draw(); }));
       body.querySelectorAll("[data-kc]").forEach(b=>b.addEventListener("click", ()=>{ kaoCat = b.dataset.kc; opt.fx("key"); draw(); const gr = body.querySelector(".grid"); if(gr) gr.scrollTop = 0; }));
       const typeChar = ch => {
@@ -349,7 +400,8 @@ const IME = (function(){
         else if(mode==="zh") { const rb = resolveKey(b); if(rb!==b){ rb.classList.add("down"); setTimeout(()=>rb.classList.remove("down"), 110); } zhKey(rb.dataset.k); updEnter(); }
         else { typeChar(k); }
       };
-      if(!body._xy){ body._xy = 1; body.addEventListener("pointerdown", e=>{ lastXY = [e.clientX, e.clientY]; }, true); }
+      if(!body._xy){ body._xy = 1; body.addEventListener("pointerdown", e=>{ const B = body.getBoundingClientRect(), I = imeEl.getBoundingClientRect(); geo = { bx: B.left - I.left, by: B.top - I.top }; lastXY = [e.clientX - B.left, e.clientY - B.top]; }, true);
+        if(window.ResizeObserver) new ResizeObserver(()=>{ kRects = null; }).observe(body); }
       setTimeout(updateProbs, 0);
       body.querySelectorAll(".k").forEach(b=>{
         if(b.dataset.a==="ins"){ // list keys: a tap must not fire while scrolling the list
@@ -465,7 +517,7 @@ const IME = (function(){
       setTimeout(()=>{ if(rec!==r0 || r0._cancel) return; micUi("正在聽…說說看 🐾", "on");
         try{ r0.start(); }catch(e){ rec = null; sysFallback("語音輸入開不起來，改用手機鍵盤的 🎤 試試"); } }, hooks.listen ? 480 : 0);
     }
-    function updEnter(){ const e = body.querySelector('.k[data-a="enter"]'); if(e) (e.querySelector(".kv")||e).innerHTML = composing() ? "確定" : (opt.enterLabel||"傳送 ฅ"); }
+    function updEnter(){ const e = enterEl && enterEl.isConnected ? enterEl : body.querySelector('.k[data-a="enter"]'); if(!e) return; const v = composing() ? "確定" : (opt.enterLabel||"傳送 ฅ"); if(e._v !== v){ e._v = v; (e.querySelector(".kv")||e).innerHTML = v; } }
     // key press animations (chosen in settings)
     const ANIMS = {
       jelly(b){ b.animate([{transform:"scale(1)"},{transform:"scale(1.32) translateY(-5px)",offset:.3},{transform:"scale(.88)",offset:.62},{transform:"scale(1.06)",offset:.82},{transform:"scale(1)"}],{duration:340,easing:"ease-out"}); },
@@ -484,20 +536,23 @@ const IME = (function(){
     };
     function art(n){ return (opt.art && opt.art[n]) || ""; }
     function overlay(b, html, size, frames, dur, delay){
-      const r=b.getBoundingClientRect(), R=imeEl.getBoundingClientRect();
+      const r = keyPos(b);
       const d=document.createElement("div"); d.className="kfx"; d.innerHTML=html;
-      d.style.cssText=`left:${r.left-R.left+r.width/2}px;top:${r.top-R.top+r.height/2}px;width:${size}px;height:${size}px`;
+      d.style.cssText=`left:${r.x+r.w/2}px;top:${r.y+r.h/2}px;width:${size}px;height:${size}px`;
       imeEl.appendChild(d);
       d.animate(frames,{duration:dur,delay:delay||0,easing:"ease-out",fill:"both"});
       setTimeout(()=>d.remove(), dur+(delay||0)+40);
     }
+    let lastBub = null;
+    // 按鍵相對整個鍵盤（.ime）的位置：鍵盤本體裡的鍵用存好的位置，其他（候選字）才現量
+    function keyPos(b){ if(body.contains(b)){ const r = rectOf(b); return { x: r.x + geo.bx, y: r.y + geo.by, w: r.w, h: r.h }; } const a = b.getBoundingClientRect(), I = imeEl.getBoundingClientRect(); return { x: a.left - I.left, y: a.top - I.top, w: a.width, h: a.height }; }
     function pop(b){ const a = (opt.anim && opt.anim()) || "jelly"; (ANIMS[a]||ANIMS.jelly)(b.querySelector(".kv") || b); }
     function bubble(b, text){
       const t = text || b.dataset.bub; if(!t || (!text && opt.anim && opt.anim()==="peek")) return;
-      imeEl.querySelectorAll(".keybub").forEach(x=>x.remove());
-      const r = b.getBoundingClientRect(), R = imeEl.getBoundingClientRect();
-      const d = document.createElement("div"); d.className = "keybub"; d.textContent = t;
-      d.style.left = (r.left - R.left + r.width/2) + "px"; d.style.top = (r.top - R.top) + "px";
+      if(lastBub && lastBub.isConnected) lastBub.remove();
+      const r = keyPos(b);
+      const d = lastBub = document.createElement("div"); d.className = "keybub"; d.textContent = t;
+      d.style.left = (r.x + r.w/2) + "px"; d.style.top = r.y + "px";
       imeEl.appendChild(d);
       d.animate([{transform:"translate(-50%,-30%) scale(.4)",opacity:0},{transform:"translate(-50%,-115%) scale(1.15)",opacity:1,offset:.35},{transform:"translate(-50%,-110%) scale(1)",opacity:1,offset:.7},{transform:"translate(-50%,-140%) scale(.8)",opacity:0}],{duration:420,easing:"ease-out",fill:"forwards"});
       setTimeout(()=>d.remove(),450);
