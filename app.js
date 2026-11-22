@@ -213,6 +213,8 @@ const App = (function(){
   const ctx = { get me(){return me}, partner, isOnline, nameOf, catOf, players, sprite, icon, SFX, burst, toast, floatSvg, esc,
     getState: g => getState(gk(g)), update: (g, fn) => { soloPlayed(g); famAnnounce(g); return update(gk(g), fn); }, onState: (g, h) => onState(gk(g), h), notifyPartner, back: ()=>go("home") };
   ctx.rawGetState = getState; ctx.rawOnState = onState;
+  // 用自己的名字在聊天室說一句話（例如轉盤結果「傳給 ta」）；成功回傳 true
+  ctx.say = async text => { try{ const row = await B.send(String(text).slice(0, 500), "text", me.name, me.cat); addMessage(row); return true; }catch(e){ return false; } };
   ctx.rpc = (fn, args) => B.rpc ? B.rpc(fn, args) : Promise.reject(new Error("no_rpc")); ctx.mode = () => roomMode; ctx.pw = pw; ctx.isAdmin = () => isAdmin;
   // 站長測試模式：只改自己這支手機看到的畫面（家具、房間、龍舟賽道全部當作已解鎖），不會動到伺服器上的資料
   ctx.testAll = () => { try{ return isAdmin && localStorage.getItem("mw_testAll") === "1"; }catch(e){ return false; } }; ctx.isBusy = uid => isBusy(uid); Object.defineProperty(ctx, "backend", { get: () => B });
