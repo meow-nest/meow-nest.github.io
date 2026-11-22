@@ -442,7 +442,7 @@
       <div class="p3dTop"><button class="p3dX" id="p3dX"><span class="p3dBack"></span><span>離開</span></button><span class="p3dT">喵喵方塊島</span><span class="p3dF" id="p3dF" hidden></span><span class="p3dFps" id="p3dFps" hidden></span><button class="p3dX p3dBuildT" id="p3dBuildT">${o.icon ? `<span class="p3dIc">${o.icon("home")}</span>` : ""}<span>蓋房子</span></button><button class="p3dX p3dGear" id="p3dGear">${o.icon ? `<span class="p3dIc">${o.icon("gear")}</span>` : ""}<span>設定</span></button></div>
       <div class="p3dSet" id="p3dSet" hidden></div>
       <div class="p3dTalk" id="p3dTalk" hidden></div>
-      <div class="p3dBuild" id="p3dBuild" hidden><div class="p3dTool" id="p3dTool"><button data-t="put" class="on">放方塊</button><button data-t="dig">挖方塊</button><button data-t="furn">擺家具</button></div><div class="p3dFAct" id="p3dFAct" hidden></div><button class="p3dUndo" id="p3dUndo">復原</button><div class="p3dBar" id="p3dBar"></div><div class="p3dBHint" id="p3dBHint">點畫面上的方塊：放在那一面／挖掉它</div><div class="p3dCnt" id="p3dCnt"></div></div><div class="p3dClock" id="p3dClock"></div>
+      <div class="p3dBuild" id="p3dBuild" hidden><div class="p3dCross" id="p3dCross"></div><div class="p3dTool" id="p3dTool"><button data-t="put" class="on">方塊</button><button data-t="furn">家具</button></div><div class="p3dActs"><button class="p3dFRot" id="p3dFRot" hidden>轉向</button><button class="p3dTake" id="p3dTake">拿</button><button class="p3dPut" id="p3dPut">放</button></div><button class="p3dUndo" id="p3dUndo">復原</button><div class="p3dBar" id="p3dBar"></div><div class="p3dBHint" id="p3dBHint"></div><div class="p3dCnt" id="p3dCnt"></div></div><div class="p3dClock" id="p3dClock"></div>
       <div class="p3dHint" id="p3dHint">左下搖桿走路・右邊拖曳轉鏡頭</div>
       <div class="p3dRot" id="p3dRot"><div class="p3dRotPh"><i></i></div><div>把手機轉橫的玩</div><button id="p3dRotX">直的也沒關係</button></div>
       <div class="p3dJoy" id="p3dJoy"><i></i></div>
@@ -493,7 +493,7 @@
     const FSAVE = FS_ && FS_.inv && Array.isArray(FS_.placed) ? FS_ : { inv:null, placed:[] };
     const saveFurn = () => { try{ localStorage.setItem("mw_cube_furn", JSON.stringify(FSAVE)); }catch(e){} };
     const F_FLAT = new Set(["rug", "pond"]), F_WALK = new Set(["rug", "pond", "cushion", "bowl"]);   // 平平的可以疊在上面放別的；走得過去的不擋路
-    let FCAP = null, FSOL = new Set(); const FBOX = {}, FEXT = {};
+    let FCAP = null, FSOL = new Set(), FV_A = 1; const FBOX = {}, FEXT = {};
     function furnBoxes(id){ if(!FBOX[id]){ FCAP = []; try{ drawFurnV(id, 0, 0, 0, 0, 0); } finally { FBOX[id] = FCAP; FCAP = null; } } return FBOX[id]; }
     function furnExt(id){ if(FEXT[id]) return FEXT[id]; const a = [1e9, 1e9, 1e9, -1e9, -1e9, -1e9];
       for(const q of furnBoxes(id)){ a[0] = Math.min(a[0], q[0]/16 - .5); a[1] = Math.min(a[1], q[1]/16); a[2] = Math.min(a[2], q[2]/16 - .5); a[3] = Math.max(a[3], q[3]/16 - .5); a[4] = Math.max(a[4], q[4]/16); a[5] = Math.max(a[5], q[5]/16 - .5); }
@@ -866,9 +866,9 @@
     joy.addEventListener("pointerup", jEnd); joy.addEventListener("pointercancel", jEnd); joy.addEventListener("lostpointercapture", jEnd);
     let tap0 = null;   // 蓋房子模式：快速點一下（沒有拖曳）＝放／挖方塊
     cv.addEventListener("pointerdown", e => { if(dragId !== null) return; dragId = e.pointerId; lx = e.clientX; ly = e.clientY; tap0 = { x:e.clientX, y:e.clientY, t:performance.now(), m:0 }; try{ cv.setPointerCapture(e.pointerId); }catch(_){} hideHint(); });
-    cv.addEventListener("pointermove", e => { if(e.pointerId !== dragId) return; if(tap0) tap0.m = Math.max(tap0.m, Math.hypot(e.clientX - tap0.x, e.clientY - tap0.y)); cam.yaw -= (e.clientX - lx)*.0085*CFG.sens; cam.pitch = Math.max(.08, Math.min(1.25, cam.pitch + (e.clientY - ly)*.006*CFG.sens*(CFG.invY ? -1 : 1))); lx = e.clientX; ly = e.clientY; });
+    cv.addEventListener("pointermove", e => { if(e.pointerId !== dragId) return; if(tap0) tap0.m = Math.max(tap0.m, Math.hypot(e.clientX - tap0.x, e.clientY - tap0.y)); cam.yaw -= (e.clientX - lx)*.0085*CFG.sens; cam.pitch = Math.max(buildOn ? -.95 : .08, Math.min(buildOn ? 1.4 : 1.25, cam.pitch + (e.clientY - ly)*.006*CFG.sens*(CFG.invY ? -1 : 1))); lx = e.clientX; ly = e.clientY; });
     const cEnd = e => { if(e.pointerId !== dragId) return; dragId = null;
-      if(e.type === "pointerup" && buildOn && tap0 && tap0.m < 10 && performance.now() - tap0.t < 400) buildAt(e.clientX, e.clientY); tap0 = null; }; cv.addEventListener("pointerup", cEnd); cv.addEventListener("pointercancel", cEnd); cv.addEventListener("lostpointercapture", cEnd);
+      tap0 = null; }; cv.addEventListener("pointerup", cEnd); cv.addEventListener("pointercancel", cEnd); cv.addEventListener("lostpointercapture", cEnd);
     const GK = { w:1, a:1, s:1, d:1, arrowup:1, arrowdown:1, arrowleft:1, arrowright:1, " ":1 };
     const kd = e => { const k = (e.key || "").toLowerCase(); if(!GK[k]) return; e.preventDefault(); if(k === " "){ if(!e.repeat) jump(); } else K[k] = true; hideHint(); },
           ku = e => { const k = (e.key || "").toLowerCase(); if(GK[k]) K[k] = false; };
@@ -957,27 +957,22 @@
     }
     // 方塊列：一頁 6 個，用 ◀ ▶ 換頁（不用左右捲動，比較好按）
     let barPg = 0; const PER = 6, ICONS = {};
-    let fPick = null, fSel = -1, fPg = 0; const FICON = {};
+    // ---------- 準星玩法（像一般方塊遊戲）：畫面中間的準星瞄到哪裡，就看得到要放在哪（半透明的預覽），按「放」／「拿」 ----------
+    let fPick = null, fPg = 0, fRot = 0, AIM = null, aimKey = "", tookTip = false; const FICON = {};
     const fName = id => (FURN.find(q => q[0] === id) || [0, id])[1];
+    const bHint = root.querySelector("#p3dBHint"), putBtn = root.querySelector("#p3dPut"), takeBtn = root.querySelector("#p3dTake"), rotBtn = root.querySelector("#p3dFRot");
     function paintFurnBar(){
-      const own = FURN.filter(([id]) => (FSAVE.inv[id] || 0) > 0), pages = Math.max(1, Math.ceil(own.length/PER)); fPg = Math.max(0, Math.min(pages - 1, fPg));
+      const own = FURN.filter(([id]) => (FSAVE.inv[id] || 0) > 0), pages = Math.max(1, Math.ceil(own.length/PER));
+      if(fPick && !(FSAVE.inv[fPick] > 0)) fPick = null; if(!fPick && own.length) fPick = own[0][0];
+      fPg = Math.max(0, Math.min(pages - 1, fPg));
       const nav = (d, on) => `<button class="p3dPg" data-pg="${d}" ${on ? "" : "disabled"}>${d < 0 ? "◀" : "▶"}</button>`;
-      barEl.innerHTML = !own.length ? `<div class="p3dEmpty">背包裡沒有家具了<br><small>點島上的家具可以收回來</small></div>`
+      barEl.innerHTML = !own.length ? `<div class="p3dEmpty">背包裡沒有家具了<br><small>準星對準島上的家具按「拿」可以收回來</small></div>`
         : nav(-1, fPg > 0) + own.slice(fPg*PER, fPg*PER + PER).map(([id, nm]) => `<button data-f="${id}" class="fu${id === fPick ? " on" : ""}"><img src="${FICON[id] || (FICON[id] = furnIcon(id))}" alt=""><i>${nm}</i>${FSAVE.inv[id] > 1 ? `<b>${FSAVE.inv[id]}</b>` : ""}</button>`).join("") + nav(1, fPg < pages - 1);
       barEl.querySelectorAll("[data-pg]").forEach(x => x.addEventListener("click", () => { fPg += +x.dataset.pg; paintFurnBar(); }));
-      barEl.querySelectorAll("[data-f]").forEach(x => x.addEventListener("click", () => { fPick = x.dataset.f === fPick ? null : x.dataset.f; furnSelect(-1); paintFurnBar(); paintFHint(); CFG.sound && o.sfx && o.sfx.tap && o.sfx.tap(); }));
+      barEl.querySelectorAll("[data-f]").forEach(x => x.addEventListener("click", () => { fPick = x.dataset.f; fRot = 0; paintFurnBar(); aimKey = ""; CFG.sound && o.sfx && o.sfx.tap && o.sfx.tap(); }));
     }
-    function paintFHint(){ const h = root.querySelector("#p3dBHint"); if(!h) return;
-      h.textContent = tool !== "furn" ? "點畫面上的方塊：放在那一面／挖掉它" : fSel >= 0 ? "可以轉向或收回背包" : fPick ? `點地上，把「${fName(fPick)}」放在那裡` : "選一件家具，或點島上的家具"; }
-    const fAct = root.querySelector("#p3dFAct");
-    function furnSelect(i){ fSel = i; fAct.hidden = i < 0;
-      if(i >= 0) fAct.innerHTML = `<b>${o.esc ? o.esc(fName(FSAVE.placed[i].id)) : fName(FSAVE.placed[i].id)}</b><button data-fa="rot">轉向</button><button data-fa="back">收起來</button><button data-fa="ok">好了</button>`;
-      paintFHint(); }
-    fAct.addEventListener("click", e => { const b = e.target.closest("[data-fa]"); if(!b || fSel < 0) return; const f = FSAVE.placed[fSel], a = b.dataset.fa;
-      if(a === "rot"){ const old = f.r || 0; f.r = (old + Math.PI/2) % (Math.PI*2); if(!furnFits(f, fSel)){ f.r = old; o.toast && o.toast("轉過去會撞到東西"); return; } }
-      else if(a === "back"){ FSAVE.placed.splice(fSel, 1); FSAVE.inv[f.id] = (FSAVE.inv[f.id] || 0) + 1; furnSelect(-1); paintFurnBar(); }
-      else furnSelect(-1);
-      saveFurn(); furnSolidRebuild(); CFG.sound && o.sfx && o.sfx.tap && o.sfx.tap(); });
+    rotBtn.addEventListener("click", () => { fRot = (fRot + 1) % 4; aimKey = ""; CFG.sound && o.sfx && o.sfx.tap && o.sfx.tap(); });
+    putBtn.addEventListener("click", () => doPut()); takeBtn.addEventListener("click", () => doTake());
     // 放得下嗎：每一格下面要有地、上面要是空的，不能跟別的家具重疊（平平的地毯、池塘只跟平的比）、不能壓到人和貓
     function furnFits(f, skip){ const c = furnCells(f), flat = F_FLAT.has(f.id);
       for(const [x, z] of c.cells){ const gb = world.get(x, f.y - 1, z); if(!gb || !BT[gb].solid) return "這裡下面沒有地";
@@ -987,7 +982,7 @@
       const xs = c.cells.map(q => q[0]), zs = c.cells.map(q => q[1]), x0 = Math.min(...xs), x1 = Math.max(...xs) + 1, z0 = Math.min(...zs), z1 = Math.max(...zs) + 1, y0 = f.y, y1 = f.y + c.h, hitB = (e, w, h) => !F_WALK.has(f.id) && e.x + w > x0 && e.x - w < x1 && e.z + w > z0 && e.z - w < z1 && e.y + h > y0 && e.y < y1;
       if(hitB(player, .28, 1.45) || pets.some(p => hitB(p, .25*p.s, .8*p.s))) return "會壓到人或小貓喔";
       return ""; }
-    // 點到的家具（射線打外框，回傳最近的）
+    // 從畫面上一點射出去打到的家具（打外框，回傳最近的）
     function furnRay(cx, cy){ if(!lastCam) return null; const r = cv.getBoundingClientRect(), nx = ((cx - r.left)/r.width)*2 - 1, ny = 1 - ((cy - r.top)/r.height)*2;
       const { eye, tgt } = lastCam, f = nrm(sub(tgt, eye)), rt = nrm(cross(f, [0,1,0])), up = cross(rt, f), th = Math.tan(CFG.fov*Math.PI/360), asp = r.width/r.height;
       const d = nrm([f[0] + rt[0]*nx*th*asp + up[0]*ny*th, f[1] + rt[1]*nx*th*asp + up[1]*ny*th, f[2] + rt[2]*nx*th*asp + up[2]*ny*th]); let best = null;
@@ -995,18 +990,52 @@
         for(let k = 0; k < 3; k++){ const lo = b[k], hi = b[k + 3] + (k === 1 ? .05 : 0), inv = 1/(d[k] || 1e-9); let a = (lo - eye[k])*inv, c = (hi - eye[k])*inv; if(a > c) [a, c] = [c, a]; t0 = Math.max(t0, a); t1 = Math.min(t1, c); }
         if(t0 <= t1 && (!best || t0 < best.t)) best = { i, t:t0 }; });
       return best; }
-    function furnAt(cx, cy){
-      const fh = furnRay(cx, cy), h = pickRay(cx, cy);
-      if(fh && (!h || fh.t <= h.dist + .3) && !(fPick && F_FLAT.has(FSAVE.placed[fh.i].id))){ fPick = null; furnSelect(fh.i === fSel ? -1 : fh.i); paintFurnBar(); CFG.sound && o.sfx && o.sfx.tap && o.sfx.tap(); return; }
-      if(fSel >= 0){ furnSelect(-1); return; }
-      if(!fPick){ o.toast && o.toast("先在下面選一件家具"); return; }
-      if(!h || !h.face || h.face[1] !== 1){ o.toast && o.toast("點地面（方塊的上面）"); return; }
-      const f = { id:fPick, x:h.x, y:h.y + 1, z:h.z, r:0 };
-      if(Math.hypot(f.x + .5 - player.x, f.z + .5 - player.z) > 8){ o.toast && o.toast("太遠了，走近一點"); return; }
-      const a = Math.atan2(player.x - (f.x + .5), player.z - (f.z + .5)); f.r = ((Math.round(a/(Math.PI/2)) % 4 + 4) % 4)*Math.PI/2;   // 正面朝向自己
-      const bad = furnFits(f, -1); if(bad){ o.toast && o.toast(bad); return; }
-      FSAVE.placed.push(f); FSAVE.inv[f.id]--; if(FSAVE.inv[f.id] <= 0){ delete FSAVE.inv[f.id]; fPick = null; }
-      saveFurn(); furnSolidRebuild(); paintFurnBar(); paintFHint(); Object.assign(flash, { t:.25, x:f.x, y:f.y - 1, z:f.z }); CFG.sound && o.sfx && o.sfx.tap && o.sfx.tap();
+    const underFurn = (x, y, z) => FSAVE.placed.some(f => y >= f.y && y < f.y + furnCells(f).h && furnCells(f).cells.some(([cx, cz]) => cx === x && cz === z));
+    // 準星（畫面正中間）瞄到什麼：「拿」的目標（家具優先，再來是方塊）和「放」的位置
+    function computeAim(){
+      if(!lastCam) return null; const r = cv.getBoundingClientRect(), cx = r.left + r.width/2, cy = r.top + r.height/2;
+      const fh = furnRay(cx, cy), h = pickRay(cx, cy), fi = fh && (!h || fh.t <= h.dist + .3) ? fh.i : -1;
+      const far = (x, y, z) => Math.hypot(x + .5 - player.x, y + .5 - (player.y + .7), z + .5 - player.z) > 7.5;
+      const A = { take:null, put:null };
+      if(fi >= 0){ const f = FSAVE.placed[fi]; A.take = { kind:"furn", i:fi, bad: far(f.x, f.y, f.z) ? "太遠了，走近一點" : "" }; }
+      else if(h){ A.take = { kind:"block", x:h.x, y:h.y, z:h.z, bad: h.y <= 0 ? "最底下的雲不能挖喔" : far(h.x, h.y, h.z) ? "太遠了，走近一點" : FSAVE.placed.some(f => f.y - 1 === h.y && furnCells(f).cells.some(([x, z]) => x === h.x && z === h.z)) ? "上面有家具，先把家具拿起來" : "" }; }
+      if(tool === "furn"){
+        if(fPick && h && h.face && h.face[1] === 1 && fi < 0){
+          const f = { id:fPick, x:h.x, y:h.y + 1, z:h.z, r:0 }, a = Math.atan2(player.x - (f.x + .5), player.z - (f.z + .5));
+          f.r = (((Math.round(a/(Math.PI/2)) + fRot) % 4 + 4) % 4)*Math.PI/2;   // 正面朝自己，按「轉向」再轉
+          A.put = { kind:"furn", f, bad: far(f.x, f.y, f.z) ? "太遠了，走近一點" : furnFits(f, -1) }; }
+      } else if(h && h.face){
+        const x = h.x + h.face[0], y = h.y + h.face[1], z = h.z + h.face[2], cur = world.get(x, y, z);
+        A.put = { kind:"block", x, y, z, bad: (y <= 0 || y >= H - 1 || x < 0 || z < 0 || x >= W || z >= D || (cur && cur !== B.WATER)) ? "這裡不能放" : far(x, y, z) ? "太遠了，走近一點"
+          : underFurn(x, y, z) ? "這裡有家具" : (inBody(player, x, y, z, .28, 1.45) || pets.some(p => inBody(p, x, y, z, .25*p.s, .8*p.s))) ? "會壓到人或小貓喔" : "" };
+      }
+      return A;
+    }
+    function paintAim(){
+      AIM = buildOn ? computeAim() : null; if(!buildOn) return;
+      const put = AIM && AIM.put, take = AIM && AIM.take;
+      const tf = take && take.kind === "furn" && !take.bad ? fName(FSAVE.placed[take.i].id) : "";
+      const txt = tf ? `按「拿」拿起${tf}（可以搬到別的地方）` : tool === "furn" && !fPick ? "背包空了：對準家具按「拿」可以收回來" : put && put.bad ? put.bad : !put ? (tool === "furn" ? "把準星對準地面" : "把準星對準方塊")
+        : tool === "furn" ? `按「放」把${fName(fPick)}放在這裡` : "按「放」蓋方塊，「拿」挖掉";
+      const k = [txt, !!(put && !put.bad), !!(take && !take.bad), tool].join("|"); if(k === aimKey) return; aimKey = k;
+      bHint.textContent = txt; bHint.classList.toggle("bad", !!(put && put.bad));
+      putBtn.disabled = !put || !!put.bad; takeBtn.disabled = !take || !!take.bad; rotBtn.hidden = tool !== "furn";
+    }
+    function doPut(){
+      const p = AIM && AIM.put; if(!p) return; if(p.bad){ o.toast && o.toast(p.bad); return; }
+      if(p.kind === "furn"){ const f = p.f; FSAVE.placed.push(f); FSAVE.inv[f.id]--; if(FSAVE.inv[f.id] <= 0) delete FSAVE.inv[f.id];
+        saveFurn(); furnSolidRebuild(); paintFurnBar(); Object.assign(flash, { t:.25, x:f.x, y:f.y - 1, z:f.z }); }
+      else if(!setBlock(p.x, p.y, p.z, pick, true)) return;
+      else Object.assign(flash, { t:.25, x:p.x, y:p.y, z:p.z });
+      aimKey = ""; CFG.sound && o.sfx && o.sfx.tap && o.sfx.tap();
+    }
+    function doTake(){
+      const p = AIM && AIM.take; if(!p) return; if(p.bad){ o.toast && o.toast(p.bad); return; }
+      if(p.kind === "furn"){ const f = FSAVE.placed[p.i]; if(!f) return; FSAVE.placed.splice(p.i, 1); FSAVE.inv[f.id] = (FSAVE.inv[f.id] || 0) + 1; saveFurn(); furnSolidRebuild();
+        fPick = f.id; fRot = 0; if(tool !== "furn"){ tool = "furn"; paintTool(); } paintBar();   // 拿起來就拿在手上，對準別的地方按「放」＝搬家具
+        if(!tookTip){ tookTip = true; o.toast && o.toast(`${fName(f.id)}拿起來了，對準別的地方按「放」就能搬過去`); } }
+      else { const b = world.get(p.x, p.y, p.z); if(!setBlock(p.x, p.y, p.z, 0, true)) return; burst(p.x, p.y, p.z, b); Object.assign(flash, { t:.25, x:p.x, y:p.y, z:p.z }); }
+      aimKey = ""; CFG.sound && o.sfx && o.sfx.tap && o.sfx.tap();
     }
     function paintBar(){
       if(tool === "furn"){ paintFurnBar(); return; }
@@ -1017,12 +1046,12 @@
       barEl.querySelectorAll("[data-b]").forEach(x => x.addEventListener("click", () => { pick = +x.dataset.b; tool = "put"; paintTool(); paintBar(); CFG.sound && o.sfx && o.sfx.tap && o.sfx.tap(); }));
     }
     function paintCount(){ const el = root.querySelector("#p3dCnt"); if(!el) return; el.textContent = `已經蓋了 ${nEdit} / ${MAX_EDITS} 格`; el.classList.toggle("full", nEdit >= MAX_EDITS*.9); }
-    function paintTool(){ buildEl.querySelectorAll("[data-t]").forEach(x => x.classList.toggle("on", x.dataset.t === tool)); root.classList.toggle("dig", tool === "dig"); root.classList.toggle("furn", tool === "furn"); if(tool !== "furn") furnSelect(-1); paintFHint(); }
-    buildEl.querySelectorAll("[data-t]").forEach(x => x.addEventListener("click", () => { const was = tool; tool = x.dataset.t; paintTool(); if((was === "furn") !== (tool === "furn")) paintBar(); }));
+    function paintTool(){ buildEl.querySelectorAll("[data-t]").forEach(x => x.classList.toggle("on", x.dataset.t === tool)); root.classList.toggle("furn", tool === "furn"); aimKey = ""; }
+    buildEl.querySelectorAll("[data-t]").forEach(x => x.addEventListener("click", () => { tool = x.dataset.t; paintTool(); paintBar(); CFG.sound && o.sfx && o.sfx.tap && o.sfx.tap(); }));
     function setBuild(on){
       buildOn = on; buildEl.hidden = !on; root.classList.toggle("building", on); endTalk && endTalk();
       root.querySelector("#p3dBuildT span:last-child").textContent = on ? "蓋好了" : "蓋房子";
-      if(on){ paintBar(); paintTool(); paintCount(); hideHint(); } else furnSelect(-1);
+      if(on){ paintBar(); paintTool(); paintCount(); hideHint(); } else AIM = null;
     }
     root.querySelector("#p3dBuildT").addEventListener("click", () => setBuild(!buildOn));
     // 從畫面上的一點射出去，找到第一個碰到的方塊（一格一格走，DDA）
@@ -1051,24 +1080,6 @@
     }
     function burst(x, y, z, b){ const c = TILE_COL[BT[b].t[1]]; for(let k = 0; k < 10; k++) fx.push({ x:x + .5, y:y + .5, z:z + .5, vx:(Math.random() - .5)*3, vy:1.5 + Math.random()*2.5, vz:(Math.random() - .5)*3, life:.6 + Math.random()*.3, c:c[k % c.length] }); }
     const flash = { t:0 };
-    function buildAt(cx, cy){
-      if(tool === "furn"){ furnAt(cx, cy); return; }
-      const h = pickRay(cx, cy); if(!h){ o.toast && o.toast("點近一點的方塊"); return; }
-      if(tool === "dig"){
-        if(h.y <= 0){ o.toast && o.toast("最底下的雲不能挖喔"); return; }
-        if(FSAVE.placed.some(f => f.y - 1 === h.y && furnCells(f).cells.some(([x, z]) => x === h.x && z === h.z))){ o.toast && o.toast("上面有家具，先把家具收起來"); return; }
-        if(Math.hypot(h.x + .5 - player.x, h.y + .5 - (player.y + .7), h.z + .5 - player.z) > 7){ o.toast && o.toast("太遠了，走近一點"); return; }
-        const b = world.get(h.x, h.y, h.z); if(setBlock(h.x, h.y, h.z, 0, true)){ burst(h.x, h.y, h.z, b); Object.assign(flash, { t:.25, x:h.x, y:h.y, z:h.z }); CFG.sound && o.sfx && o.sfx.tap && o.sfx.tap(); }
-      } else {
-        if(!h.face){ return; } const x = h.x + h.face[0], y = h.y + h.face[1], z = h.z + h.face[2];
-        if(y <= 0 || y >= H - 1 || x < 0 || z < 0 || x >= W || z >= D){ o.toast && o.toast("這裡不能放"); return; }
-        if(Math.hypot(x + .5 - player.x, y + .5 - (player.y + .7), z + .5 - player.z) > 7){ o.toast && o.toast("太遠了，走近一點"); return; }
-        const cur = world.get(x, y, z); if(cur && cur !== B.WATER) return;
-        if(FSAVE.placed.some(f => y >= f.y && y < f.y + furnCells(f).h && furnCells(f).cells.some(([cx, cz]) => cx === x && cz === z))){ o.toast && o.toast("這裡有家具"); return; }
-        if(inBody(player, x, y, z, .28, 1.45) || pets.some(p => inBody(p, x, y, z, .25*p.s, .8*p.s))){ o.toast && o.toast("會壓到人或小貓喔"); return; }
-        if(setBlock(x, y, z, pick, true)){ Object.assign(flash, { t:.25, x, y, z }); CFG.sound && o.sfx && o.sfx.tap && o.sfx.tap(); }
-      }
-    }
     root.querySelector("#p3dUndo").addEventListener("click", () => { const u = undo.pop(); if(!u){ o.toast && o.toast("沒有可以復原的了"); return; }
       if(!editCell(u.x, u.y, u.z, u.prev)){ undo.push(u); o.toast && o.toast("蓋滿了，不能復原這一步"); return; }
       world.set(u.x, u.y, u.z, u.prev); saveEdits(); paintCount(); buildWorld(); });
@@ -1538,10 +1549,10 @@
     const tcube = (() => { const P = [], N = [], UV = [], SH = [], I = []; FACES.forEach(f => { const b = P.length/3; f.c.forEach(c => { P.push(c[0]-.5, c[1]-.5, c[2]-.5); N.push(...f.n); SH.push(f.l); }); UV.push(0,1, 1,1, 1,0, 0,0); I.push(b,b+1,b+2,b,b+2,b+3); }); return mesh(P, N, UV, SH, I); })();
     function drawFurnV(id, x, y, z, rot, t){
       const M0 = chain(T(x, y, z), RY(rot || 0)), FS = window.__fvStyle != null ? window.__fvStyle : FV_STYLE;
-      const v = FCAP ? (x0, y0, z0, x1, y1, z1, c) => FCAP.push([x0, y0, z0, x1, y1, z1, c]) : FS < 0 ? (x0, y0, z0, x1, y1, z1, c) => box(chain(M0, T((x0 + x1)/32 - .5, (y0 + y1)/32, (z0 + z1)/32 - .5), S((x1 - x0)/16, (y1 - y0)/16, (z1 - z0)/16)), c)
-        : (x0, y0, z0, x1, y1, z1, c) => { const ci = FV_COLS.indexOf(c); if(ci < 0){ box(chain(M0, T((x0 + x1)/32 - .5, (y0 + y1)/32, (z0 + z1)/32 - .5), S((x1 - x0)/16, (y1 - y0)/16, (z1 - z0)/16)), c); return; }
+      const v = FCAP ? (x0, y0, z0, x1, y1, z1, c) => FCAP.push([x0, y0, z0, x1, y1, z1, c]) : FS < 0 ? (x0, y0, z0, x1, y1, z1, c) => box(chain(M0, T((x0 + x1)/32 - .5, (y0 + y1)/32, (z0 + z1)/32 - .5), S((x1 - x0)/16, (y1 - y0)/16, (z1 - z0)/16)), c, FV_A)
+        : (x0, y0, z0, x1, y1, z1, c) => { const ci = FV_COLS.indexOf(c); if(ci < 0){ box(chain(M0, T((x0 + x1)/32 - .5, (y0 + y1)/32, (z0 + z1)/32 - .5), S((x1 - x0)/16, (y1 - y0)/16, (z1 - z0)/16)), c, FV_A); return; }
           const [u0,v0,u1,v1] = tileUV(128 + FS*FV_COLS.length + ci); bind(tcube); gl.uniform1f(U("mode"), 0); gl.uniform4f(U("uvR"), u0, v0, u1 - u0, v1 - v0);
-          gl.uniformMatrix4fv(U("M"), false, chain(M0, T((x0 + x1)/32 - .5, (y0 + y1)/32, (z0 + z1)/32 - .5), S((x1 - x0)/16, (y1 - y0)/16, (z1 - z0)/16))); gl.uniform1f(U("alpha"), 1); gl.drawElements(gl.TRIANGLES, boundC, gl.UNSIGNED_SHORT, 0);
+          gl.uniformMatrix4fv(U("M"), false, chain(M0, T((x0 + x1)/32 - .5, (y0 + y1)/32, (z0 + z1)/32 - .5), S((x1 - x0)/16, (y1 - y0)/16, (z1 - z0)/16))); gl.uniform1f(U("alpha"), FV_A); gl.drawElements(gl.TRIANGLES, boundC, gl.UNSIGNED_SHORT, 0);
           gl.uniform4f(U("uvR"), 0, 0, 1, 1); gl.uniform1f(U("mode"), 1); bind(cube); };
       const W = "#dcbf96", WD = "#b8946a", WL = "#ead4b0", PK = "#f2a7bd", PKD = "#e08aa4", PKL = "#fbd3de", CR = "#fff6ea", SG = "#a8c89a", SGD = "#8fb582", SGL = "#c4ddb8", Y = "#ffd36b";
       switch(id){
@@ -1625,7 +1636,13 @@
       for(let d = .25; d <= cam.dist; d += .1){ const bx = tgt[0]+dir[0]*d, by = tgt[1]+dir[1]*d, bz = tgt[2]+dir[2]*d;
         if(solid(bx, by, bz) || solid(bx, by + .15, bz) || solid(bx, by - .15, bz)){ dist = Math.max(.3, d - .3); break; } }
       { const cur = cam.cd == null ? dist : cam.cd; cam.cd = dist < cur ? Math.max(dist, cur - dt*30) : cur + (dist - cur)*Math.min(1, dt*3); dist = Math.min(dist, cam.cd); }   // 被擋住馬上拉近、沒擋住慢慢退回去（不會一直跳來跳去）
-      const eye = [tgt[0]+dir[0]*dist, tgt[1]+dir[1]*dist, tgt[2]+dir[2]*dist]; lastCam = { eye, tgt };
+      let eye = [tgt[0]+dir[0]*dist, tgt[1]+dir[1]*dist, tgt[2]+dir[2]*dist];
+      // 蓋房子模式：鏡頭慢慢移到自己的眼睛（第一人稱），準星對到哪就蓋到哪，不會被自己擋住
+      { const k = cam.bk = (cam.bk || 0) + ((buildOn ? 1 : 0) - (cam.bk || 0))*Math.min(1, dt*7);
+        if(!buildOn && cam.pitch < .08) cam.pitch += (.3 - cam.pitch)*Math.min(1, dt*6);
+        if(k > .003 && !window.__camT){ const hd = [player.x, player.y + (player.visY || 0) + 1.22, player.z], fp = [hd[0] - dir[0], hd[1] - dir[1], hd[2] - dir[2]];
+          for(let i = 0; i < 3; i++){ eye[i] += (hd[i] - eye[i])*k; tgt[i] += (fp[i] - tgt[i])*k; } } }
+      lastCam = { eye, tgt };
       const V = lookAt(eye, tgt, [0,1,0]), P = persp(CFG.fov*Math.PI/180, cv.width/cv.height, .05, Math.max(CFG.view + 12, STAR > .02 ? 90 : 0));
 
       gl.viewport(0, 0, cv.width, cv.height); gl.clearColor(SKY[0], SKY[1], SKY[2], 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -1648,13 +1665,26 @@
         box(chain(T(f.x, f.y + .12*s, f.z), S(.035, .24*s, .035)), "#7cbf6e"); box(chain(T(f.x + .05, f.y + .08*s, f.z), RY(f.a), RZ(.6), S(.1*s, .02, .05*s)), "#8fd080");
         for(let k = 0; k < 5; k++){ const a = f.a + k*Math.PI*2/5; puff(chain(T(f.x + Math.cos(a)*.055*s, f.y + .27*s, f.z + Math.sin(a)*.055*s), S(.075*s, .035*s, .075*s)), f.c); }
         puff(chain(T(f.x, f.y + .285*s, f.z), S(.05*s, .04*s, .05*s)), f.c === "#ffe08a" ? "#f2a65a" : "#ffd36b"); });
-      if(dist > .6 && !window.__camT) drawKid(player, t);   // 鏡頭被擠到頭裡面時先不畫自己
+      if(dist > .6 && !window.__camT && (cam.bk || 0) < .5) drawKid(player, t);   // 鏡頭被擠到頭裡面時先不畫自己
       pets.forEach(p => drawCat(p, t));
       if(yarn) drawBall();
       (window.__furn || []).forEach(f => (f.v ? drawFurnV : drawFurn)(f.id, f.x, f.y, f.z, f.r, t));   // 測試用
-      FSAVE.placed.forEach((f, i) => drawFurnV(f.id, f.x + .5, f.y + (i === fSel ? .06 + Math.sin(t*6)*.05 : 0), f.z + .5, f.r, t));   // 玩家擺的家具（選到的會輕輕跳）
+      { const ai = AIM && AIM.take && AIM.take.kind === "furn" ? AIM.take.i : -1;   // 準星瞄到的家具會輕輕跳
+        FSAVE.placed.forEach((f, i) => drawFurnV(f.id, f.x + .5, f.y + (i === ai ? .05 + Math.sin(t*7)*.04 : 0), f.z + .5, f.r, t)); }
       // 挖方塊噴出來的小碎塊、剛放好的方塊閃一下
       for(let k = fx.length - 1; k >= 0; k--){ const f = fx[k]; f.life -= dt; if(f.life <= 0){ fx.splice(k, 1); continue; } f.vy -= 12*dt; f.x += f.vx*dt; f.y += f.vy*dt; f.z += f.vz*dt; box(chain(T(f.x, f.y, f.z), S(.12, .12, .12)), f.c); }
+      if(buildOn) paintAim();
+      if(buildOn && AIM){   // 準星的預覽：瞄到的方塊外框、要放的位置半透明
+        gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        const tk = AIM.take; if(tk && tk.kind === "block" && tool !== "furn"){ const c = tk.bad ? "#d0506e" : "#3a2830", e = .035, q = .5;
+          for(const [ax, ay, az] of [[1,0,0],[0,1,0],[0,0,1]]) for(const s1 of [-1, 1]) for(const s2 of [-1, 1]){
+            const off = ax ? [0, s1*q, s2*q] : ay ? [s1*q, 0, s2*q] : [s1*q, s2*q, 0];
+            box(chain(T(tk.x + .5 + off[0], tk.y + .5 + off[1], tk.z + .5 + off[2]), S(ax ? 1.04 : e, ay ? 1.04 : e, az ? 1.04 : e)), c, .85); } }
+        const pp = AIM.put;
+        if(pp && pp.kind === "block"){ gl.depthMask(false); box(chain(T(pp.x + .5, pp.y + .5, pp.z + .5), S(1, 1, 1)), pp.bad ? "#ff7a8a" : (TILE_COL[BT[pick].t[1]] || ["#ffffff"])[0], .5); gl.depthMask(true); }
+        if(pp && pp.kind === "furn"){ gl.depthMask(false); FV_A = .55; if(pp.bad) gl.uniform3fv(U("tint"), [1, .45, .5]);
+          drawFurnV(pp.f.id, pp.f.x + .5, pp.f.y, pp.f.z + .5, pp.f.r, t); FV_A = 1; gl.uniform3fv(U("tint"), TINT); gl.depthMask(true); }
+        gl.disable(gl.BLEND); }
       if(flash.t > 0){ flash.t -= dt; gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); box(chain(T(flash.x + .5, flash.y + .5, flash.z + .5), S(1.04, 1.04, 1.04)), "#ffffff", flash.t*2); gl.disable(gl.BLEND); }
       // 雲海和飄來飄去的雲（白白的大方塊，半透明）
       gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.uniform1f(U("mode"), 1); bind(cube);

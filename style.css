@@ -3853,12 +3853,12 @@ body.p3dOn #toast{z-index:9100}
 .p3dBar button i{font-style:normal}
 .p3dBar button.on{border-color:#5a3a42;background:#ffd0dd;box-shadow:inset 0 -3px 0 #ffa6be}
 @media (orientation:portrait){ .p3dBar{bottom:calc(170px + env(safe-area-inset-bottom))} .p3dBar button{width:44px} .p3dBar button img{width:32px;height:32px} }
-.p3dTool{position:absolute;right:calc(18px + env(safe-area-inset-right));bottom:calc(122px + env(safe-area-inset-bottom));display:flex;border:3px solid #5a3a42;background:#fff8ee;box-shadow:4px 4px 0 rgba(60,30,40,.3)}
-.p3dTool button{font:inherit;font-size:14px;padding:8px 12px;background:transparent;border:0;color:#4a3038}
+.p3dTool{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom));display:flex;border:3px solid #5a3a42;background:#fff8ee;box-shadow:4px 4px 0 rgba(60,30,40,.3)}
+.p3dTool button{font:inherit;font-size:13px;padding:4px 14px;background:transparent;border:0;color:#4a3038}
 .p3dTool button+button{border-left:3px solid #5a3a42}
 .p3dTool button.on{background:#ff8fb0;color:#fff;box-shadow:inset 0 -3px 0 #e06890}
 .p3d.dig .p3dTool button[data-t=dig].on{background:#8a6a5a;box-shadow:inset 0 -3px 0 #6a4a3a}
-.p3dUndo{position:absolute;right:calc(18px + env(safe-area-inset-right));bottom:calc(178px + env(safe-area-inset-bottom));font:inherit;font-size:13px;padding:5px 12px;border:3px solid #5a3a42;background:#fff8ee;color:#4a3038;box-shadow:inset 0 -3px 0 #ead8c8,3px 3px 0 rgba(60,30,40,.3)}
+.p3dUndo{position:absolute;left:calc(14px + env(safe-area-inset-left));top:calc(92px + env(safe-area-inset-top));font:inherit;font-size:13px;padding:5px 12px;border:3px solid #5a3a42;background:#fff8ee;color:#4a3038;box-shadow:inset 0 -3px 0 #ead8c8,3px 3px 0 rgba(60,30,40,.3)}
 .p3dBHint{position:absolute;left:50%;top:calc(66px + env(safe-area-inset-top));transform:translateX(-50%);font-size:12px;color:#fff;background:rgba(40,28,36,.55);padding:3px 12px;border-radius:8px;pointer-events:none!important;white-space:nowrap}
 .p3d{overflow:clip}
 .p3dCnt{position:absolute;left:calc(14px + env(safe-area-inset-left));top:calc(62px + env(safe-area-inset-top));font-size:12px;color:#fff;background:#5a3a42;padding:2px 9px;pointer-events:none!important}
@@ -4042,3 +4042,17 @@ body.dockKb .careModal .ltWrap .ltBody{height:clamp(56px,calc(100dvh - var(--doc
 
 .bgLive{border:3px solid var(--pinkT);background:#fff6f8;padding:8px;margin:6px 0;text-align:center}.bgLive b{font-weight:400;display:block}.bgLive small{display:block;color:var(--muted);font-size:12px;margin-bottom:6px}
 .bgOpps.watch .bgMini{width:120px}
+
+/* 方塊島：準星玩法（放／拿） */
+.p3dCross{position:absolute;left:50%;top:50%;width:26px;height:26px;transform:translate(-50%,-50%);pointer-events:none!important}
+.p3dCross::before,.p3dCross::after{content:"";position:absolute;background:#fff;box-shadow:0 0 0 2px rgba(58,40,48,.75)}
+.p3dCross::before{left:11px;top:2px;width:4px;height:22px}.p3dCross::after{top:11px;left:2px;height:4px;width:22px}
+.p3dActs{position:absolute;right:calc(20px + env(safe-area-inset-right));bottom:calc(112px + env(safe-area-inset-bottom));display:flex;flex-direction:column-reverse;align-items:center;gap:8px}
+.p3dActs button{font:inherit;border:3px solid #5a3a42;box-shadow:0 4px 0 rgba(60,30,40,.3);touch-action:manipulation}
+.p3dActs button:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(60,30,40,.3)}
+.p3dActs button:disabled{opacity:.45}
+.p3dPut{width:70px;height:70px;border-radius:50%;font-size:22px!important;background:#ff8fb0;color:#fff}
+.p3dTake{width:58px;height:58px;border-radius:50%;font-size:18px!important;background:#fff8ee;color:#4a3038}
+.p3dFRot{padding:5px 10px;font-size:13px!important;background:#fff8ee;color:#4a3038}
+.p3dBHint.bad{background:rgba(208,80,110,.85)}
+@media (orientation:portrait){ .p3dActs{right:calc(14px + env(safe-area-inset-right));bottom:calc(250px + env(safe-area-inset-bottom))} .p3dTool{bottom:calc(254px + env(safe-area-inset-bottom))} }
