@@ -322,7 +322,7 @@ App.registerGame({
           <div class="skSub">股東小故事　${sn} / ${SYMS.length * 2}</div><p class="skMsg small">同一檔股票持有市值 500 以上，抱滿 1 天解鎖上篇、抱滿 3 天解鎖下篇。賣掉或市值低於 500 再買回會重新計算，解鎖過的故事會一直留著。</p>
           <div class="skStories">${SYMS.map(x => { const lv = stLv(x), c = CO[x]; return `<div>${cat(c[2])}<span><b>${c[1]}</b><small>${c[0]}</small></span>${[0, 1].map(i => lv > i ? `<button class="on" data-st="${x}" data-i="${i}">${i ? "下篇" : "上篇"}</button>` : `<button disabled>${lv === i && stWait(x, i + 1, 1) ? stWait(x, i + 1, 1) : (i ? "抱 3 天" : "抱 1 天")}</button>`).join("")}</div>`; }).join("")}</div>`; }
       el.innerHTML = `<div class="box skBox">
-        <div class="skHead"><b>貓貓股市</b><button class="skRef${refing ? " spin" : ""}" id="skRef" aria-label="刷新"><svg viewBox="0 0 16 16"><path d="M13 8a5 5 0 1 1-1.5-3.6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M12.6 1.6v3.6H9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>刷新</button><button class="skHelp" id="skHelp">？新手教學</button><span class="skLive ${S.open ? "" : "off"}"><i></i>${S.open ? "開盤中" : "休市中"}</span></div>${S.open ? "" : `<div class="skClosed"><b>現在休市中，${nextTxt()} 開盤</b><small>${HOURS}<br>休市時價格不會動，也不能買賣，可以先研究要買哪一檔</small></div>`}
+        <div class="skHead"><b>貓貓股市</b><button class="skHelp" id="skHelp">？新手教學</button><span class="skLive ${S.open ? "" : "off"}"><i></i>${S.open ? "開盤中" : "休市中"}</span></div>${S.open ? "" : `<div class="skClosed"><b>現在休市中，${nextTxt()} 開盤</b><small>${HOURS}<br>休市時價格不會動，也不能買賣，可以先研究要買哪一檔</small></div>`}
         <div class="skAcct"><div><small>總資產</small><b>${f2(S.assets)}</b></div><div><small>現金</small><b>${f2(S.cash)}</b></div><div class="${cls(p)}"><small>總損益</small><b>${sign(p)}</b></div></div>
         ${S.can_bail ? `<button class="btn skBail" id="skBail">資產不到 1,000…領今天的救濟金 2,000</button>` : ""}
         <div class="skTabs ${S.pro ? "six" : S.fun ? "five" : ""}">${[["mkt", "行情"], ["hold", "持股"]].concat(S.pro ? [["ord", "委託"]] : [], [["news", "新聞"], ["rank", "排行"]], S.fun ? [["fun", "成就"]] : []).map(([k, n]) => `<button data-t="${k}" class="${tab === k ? "on" : ""}">${n}</button>`).join("")}</div>
@@ -336,10 +336,7 @@ App.registerGame({
       el.querySelectorAll("[data-rk]").forEach(b => b.addEventListener("click", () => { rk = b.dataset.rk; SFX.tap(); render(); }));
       el.querySelectorAll("[data-st]").forEach(b => b.addEventListener("click", () => storyPop(b.dataset.st, +b.dataset.i)));
       el.querySelector("#skHelp").addEventListener("click", () => { SFX.tap(); tutorial(); });
-      // 刷新：馬上重新拿一次最新的價格、新聞、排行（3 秒內不重複按，免得一直打伺服器）
-      el.querySelector("#skRef").addEventListener("click", async e => { const b = e.currentTarget; if(refing || Date.now() - lastRef < 3000) return; lastRef = Date.now(); SFX.tap(); refing = true; b.classList.add("spin");
-        const t0 = Date.now(); await load(); const left = 600 - (Date.now() - t0); if(left > 0) await new Promise(r => setTimeout(r, left));
-        refing = false; const nb = el.querySelector("#skRef"); if(nb) nb.classList.remove("spin"); if(alive && !err) ctx.toast("更新好了"); });
+
       const bl = el.querySelector("#skBail"); if(bl) bl.addEventListener("click", async () => { bl.disabled = true; try{ const r = await ctx.rpc("stock_bailout"); if(r && r.ok){ SFX.coin ? SFX.coin() : SFX.select(); ctx.toast("領到救濟金 2,000，東山再起！"); } }catch(e){} load(); });
     }
 
@@ -521,7 +518,14 @@ App.registerGame({
     }
 
     render(); load().then(schedule);
-    this._stop = () => { alive = false; clearTimeout(timer); document.removeEventListener("visibilitychange", onVis); document.querySelectorAll(".skDet,.skTut,.skAlM").forEach(x => x.remove()); document.documentElement.classList.remove("skLock"); };
+    // 刷新按鈕放在最上面那條（會一直固定在畫面上，滑到哪都按得到）
+    const gt = document.querySelector(".gtop"), refBtn = document.createElement("button");
+    refBtn.className = "skRef gRef"; refBtn.setAttribute("aria-label", "刷新"); refBtn.innerHTML = `<svg viewBox="0 0 16 16"><path d="M13 8a5 5 0 1 1-1.5-3.6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M12.6 1.6v3.6H9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>刷新`;
+    if(gt){ const paw = gt.querySelector(".pawCall"); gt.insertBefore(refBtn, paw || null); }
+    refBtn.addEventListener("click", async () => { if(refing || Date.now() - lastRef < 3000) return; lastRef = Date.now(); SFX.tap(); refing = true; refBtn.classList.add("spin");
+      const t0 = Date.now(); await load(); const left = 600 - (Date.now() - t0); if(left > 0) await new Promise(r => setTimeout(r, left));
+      refing = false; refBtn.classList.remove("spin"); if(alive && !err) ctx.toast("更新好了"); });
+    this._stop = () => { alive = false; clearTimeout(timer); document.removeEventListener("visibilitychange", onVis); document.querySelectorAll(".skDet,.skTut,.skAlM").forEach(x => x.remove()); document.documentElement.classList.remove("skLock"); refBtn.remove(); };
   },
   unmount(){ if(this._stop) this._stop(); },
 });

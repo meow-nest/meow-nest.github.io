@@ -2951,7 +2951,7 @@ body[data-theme="night"] .mdBox input{color:#5a3b2e;background:#fff}
 .skCalc{display:flex;flex-direction:column;gap:2px;font-size:13px;background:#fff;border:2px dashed rgba(90,59,46,.4);padding:6px 8px}.skCalc span{display:flex;justify-content:space-between}.skCalc b{font-weight:400;font-variant-numeric:tabular-nums}
 .skGo{font-size:19px;padding:11px;color:#fff}.skGo.buy{background:var(--up)}.skGo.sell{background:var(--dn)}.skGo:disabled{background:#cbbfb3}
 
-.skHelp{font:inherit;font-size:12px;color:var(--ink);background:#fff3c4;border:2px solid var(--ink);padding:2px 8px;margin-left:6px;margin-right:8px;cursor:pointer}
+.skHelp{font:inherit;font-size:12px;color:var(--ink);background:#fff3c4;border:2px solid var(--ink);padding:2px 8px;margin-left:auto;margin-right:8px;cursor:pointer}
 .skRef{font:inherit;font-size:12px;color:var(--ink);background:#e3f3ff;border:2px solid var(--ink);padding:2px 7px 2px 5px;margin-left:auto;display:inline-flex;align-items:center;gap:3px;cursor:pointer}
 .skRef svg{width:13px;height:13px}.skRef.spin svg{animation:skSpin .6s linear infinite}
 @keyframes skSpin{to{transform:rotate(360deg)}}
@@ -4274,3 +4274,5 @@ body.dockKb .whCard{max-height:calc(100dvh - var(--dockH,300px) - 24px)}
 .pkCard.dim .fr{opacity:.55}
 html.skLock,html.skLock body{overflow:hidden;overscroll-behavior:none}
 .skDet .cmBox{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.gtop .gRef{margin-left:auto;font-size:14px;padding:5px 10px 5px 8px;gap:4px;box-shadow:2px 2px 0 var(--shadow)}.gtop .gRef svg{width:15px;height:15px}
+.gtop .gRef+.pawCall{margin-left:8px}
