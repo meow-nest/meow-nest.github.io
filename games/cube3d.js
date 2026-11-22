@@ -516,6 +516,12 @@
     // 之後要跟旅行貓換；現在試玩頁先每件送 1 個
     let FS_ = null; try{ FS_ = JSON.parse(localStorage.getItem("mw_cube_furn") || "null"); }catch(e){}
     const FSAVE = FS_ && FS_.inv && Array.isArray(FS_.placed) ? FS_ : { inv:null, placed:[] };
+    // 島上的小花／小蘑菇可以採（按住「拿」）：今天採過的記在 mw_cube_pick（隔天會再長出來），採到的放進材料背包 mw_cube_mat
+    const dayNo = () => { const d = new Date(); return d.getFullYear()*10000 + (d.getMonth()+1)*100 + d.getDate(); };
+    let MAT = {}; try{ MAT = JSON.parse(localStorage.getItem("mw_cube_mat") || "{}") || {}; }catch(e){}
+    let PICK = { d:dayNo(), i:[] }; try{ const q = JSON.parse(localStorage.getItem("mw_cube_pick") || "null"); if(q && q.d === PICK.d && Array.isArray(q.i)) PICK = q; }catch(e){}
+    (world.flowers || []).forEach((f, i) => { if(PICK.i.includes(i)) f.gone = true; });
+    const savePick = () => { try{ localStorage.setItem("mw_cube_pick", JSON.stringify(PICK)); localStorage.setItem("mw_cube_mat", JSON.stringify(MAT)); }catch(e){} };
     const saveFurn = () => { try{ localStorage.setItem("mw_cube_furn", JSON.stringify(FSAVE)); }catch(e){} };
     const F_FLAT = new Set(["rug", "pond"]), F_WALK = new Set(["rug", "pond", "cushion", "bowl"]);   // 平平的可以疊在上面放別的；走得過去的不擋路
     let FCAP = null, FSOL = new Set(), FV_A = 1; const FBOX = {}, FEXT = {};
@@ -1020,14 +1026,15 @@
     function breakStep(dt){
       if(!holdTake || !buildOn){ brk = null; return; }
       const tk = AIM && AIM.take; if(!tk || tk.bad){ brk = null; return; }
-      const key = tk.kind === "furn" ? "f" + tk.i : tk.x + "," + tk.y + "," + tk.z;
-      if(!brk || brk.key !== key) brk = { key, t:0, c:0, dur: tk.kind === "furn" ? .7 : (BRK_T[world.get(tk.x, tk.y, tk.z)] || .6) };   // 換了目標就重新開始
+      const key = tk.kind === "furn" ? "f" + tk.i : tk.kind === "flower" ? "fl" + tk.i : tk.x + "," + tk.y + "," + tk.z;
+      if(!brk || brk.key !== key) brk = { key, t:0, c:0, dur: tk.kind === "flower" ? .3 : tk.kind === "furn" ? .7 : (BRK_T[world.get(tk.x, tk.y, tk.z)] || .6) };
+      if(tk.kind === "flower"){ brk.t += dt; if(brk.t >= brk.dur){ brk = null; holdTake = false; takeBtn.classList.remove("hold"); doTake(); } return; }   // 換了目標就重新開始
       brk.t += dt; brk.c -= dt;
       if(brk.c <= 0){ brk.c = .13;   // 一邊裂一邊掉小碎屑
         const b = tk.kind === "furn" ? furnCells(FSAVE.placed[tk.i]).box : [tk.x, tk.y, tk.z, tk.x + 1, tk.y + 1, tk.z + 1];
         const cols = tk.kind === "furn" ? ["#f2a7bd", "#fbd3de", "#dcbf96"] : TILE_COL[BT[world.get(tk.x, tk.y, tk.z)].t[1]] || ["#ffffff"];
         for(let k = 0; k < 2; k++) fx.push({ x:b[0] + Math.random()*(b[3] - b[0]), y:b[4] - .05, z:b[2] + Math.random()*(b[5] - b[2]), vx:(Math.random() - .5)*1.6, vy:1 + Math.random()*1.5, vz:(Math.random() - .5)*1.6, life:.45, c:cols[k % cols.length] }); }
-      if(brk.t >= brk.dur){ brk = null; doTake(); }
+      if(brk.t >= brk.dur){ brk = null; holdTake = false; takeBtn.classList.remove("hold"); doTake(); }   // 拿完一個就停，要再按一次（不會不小心一路挖下去）
     }
     // 放得下嗎：每一格下面要有地、上面要是空的，不能跟別的家具重疊（平平的地毯、池塘只跟平的比）、不能壓到人和貓
     function furnFits(f, skip){ const c = furnCells(f), flat = F_FLAT.has(f.id);
@@ -1051,6 +1058,12 @@
     function computeAim(){
       if(!lastCam) return null; const r = cv.getBoundingClientRect(), cx = r.left + r.width/2, cy = r.top + r.height/2;
       const fh = furnRay(cx, cy), h = pickRay(cx, cy), fi = fh && (!h || fh.t <= h.dist + .3) ? fh.i : -1;
+      { // 小花／小蘑菇：準星射線碰到花的附近（小圓球）就算瞄到，比後面的方塊近就優先
+        const { eye, tgt } = lastCam, d = nrm(sub(tgt, eye)); let best = null;
+        (world.flowers || []).forEach((f, i) => { if(f.gone) return; const c = [f.x, f.y + .2*f.s, f.z], w = sub(c, eye), tt = w[0]*d[0] + w[1]*d[1] + w[2]*d[2]; if(tt < 0 || tt > 9) return;
+          const q = [eye[0] + d[0]*tt - c[0], eye[1] + d[1]*tt - c[1], eye[2] + d[2]*tt - c[2]]; if(q[0]*q[0] + q[1]*q[1] + q[2]*q[2] > .3*.3) return; if(!best || tt < best.t) best = { i, t:tt }; });
+        if(best && (!h || best.t <= h.dist + .4) && (!fh || best.t < fh.t)){ const f = world.flowers[best.i];
+          const A0 = { take:{ kind:"flower", i:best.i, bad: Math.hypot(f.x - player.x, f.z - player.z) > 6 ? "太遠了，走近一點" : "" }, put:null }; return A0; } }
       const far = (x, y, z) => Math.hypot(x + .5 - player.x, y + .5 - (player.y + .7), z + .5 - player.z) > 7.5;
       const A = { take:null, put:null };
       if(fi >= 0){ const f = FSAVE.placed[fi]; A.take = { kind:"furn", i:fi, bad: far(f.x, f.y, f.z) ? "太遠了，走近一點" : "" }; }
@@ -1070,8 +1083,8 @@
     function paintAim(){
       AIM = buildOn ? computeAim() : null; if(!buildOn) return;
       const put = AIM && AIM.put, take = AIM && AIM.take;
-      const tf = take && take.kind === "furn" && !take.bad ? fName(FSAVE.placed[take.i].id) : "";
-      const txt = tf ? `按住「拿」拿起${tf}（可以搬到別的地方）` : tool === "furn" && !fPick ? "背包空了：對準家具按住「拿」可以收回來" : put && put.bad ? put.bad : !put ? (tool === "furn" ? "把準星對準地面" : "把準星對準方塊")
+      const tf = take && take.kind === "furn" && !take.bad ? fName(FSAVE.placed[take.i].id) : "", tfl = take && take.kind === "flower" && !take.bad ? (world.flowers[take.i].m ? "小蘑菇" : "小花") : "";
+      const txt = tfl ? `按住「拿」採${tfl}` : tf ? `按住「拿」拿起${tf}（可以搬到別的地方）` : tool === "furn" && !fPick ? "背包空了：對準家具按住「拿」可以收回來" : put && put.bad ? put.bad : !put ? (tool === "furn" ? "把準星對準地面" : "把準星對準方塊")
         : tool === "furn" ? `按「放」把${fName(fPick)}放在這裡` : "按「放」蓋方塊，按住「拿」挖掉";
       const k = [txt, !!(put && !put.bad), !!(take && !take.bad), tool].join("|"); if(k === aimKey) return; aimKey = k;
       bHint.textContent = txt; bHint.classList.toggle("bad", !!(put && put.bad));
@@ -1087,6 +1100,9 @@
     }
     function doTake(){
       const p = AIM && AIM.take; if(!p) return; if(p.bad){ o.toast && o.toast(p.bad); return; }
+      if(p.kind === "flower"){ const f = world.flowers[p.i]; if(!f || f.gone) return; f.gone = true; PICK.i.push(p.i); const k = f.m ? "mush" : "flower"; MAT[k] = (MAT[k] || 0) + 1; savePick();
+        for(let n = 0; n < 6; n++) fx.push({ x:f.x, y:f.y + .25, z:f.z, vx:(Math.random() - .5)*1.5, vy:.8 + Math.random()*1.4, vz:(Math.random() - .5)*1.5, life:.5, c:f.m ? "#ef8a8a" : f.c });
+        o.toast && o.toast(f.m ? `採到一朵小蘑菇！（背包裡有 ${MAT.mush} 朵）` : `採到一朵小花！（背包裡有 ${MAT.flower} 朵）`); aimKey = ""; CFG.sound && o.sfx && o.sfx.tap && o.sfx.tap(); return; }
       if(p.kind === "furn"){ const f = FSAVE.placed[p.i]; if(!f) return; FSAVE.placed.splice(p.i, 1); FSAVE.inv[f.id] = (FSAVE.inv[f.id] || 0) + 1; saveFurn(); furnSolidRebuild();
         fPick = f.id; fRot = 0; if(tool !== "furn"){ tool = "furn"; paintTool(); } paintBar();   // 拿起來就拿在手上，對準別的地方按「放」＝搬家具
         if(!tookTip){ tookTip = true; o.toast && o.toast(`${fName(f.id)}拿起來了，對準別的地方按「放」就能搬過去`); } }
@@ -1716,11 +1732,12 @@
       const TS = window.__treeStyle != null ? window.__treeStyle : TREE_STYLE;
       trees.forEach(tr => { if(TS < 0) tr.blocks.forEach(([x, y, z, b, top]) => drawLeaf(0, x, y, z, b, top, t, puff)); else drawTree(TS, tr, t, puff); });
       // 小花、小蘑菇（被方塊蓋住的就不畫）
-      world.flowers.forEach(f => { const ix = Math.floor(f.x), iz = Math.floor(f.z); if(world.get(ix, f.y, iz) || !world.get(ix, f.y - 1, iz)) return; const s = f.s;
+      { const fa = AIM && AIM.take && AIM.take.kind === "flower" ? AIM.take.i : -1; world.flowers.forEach((f0, fi) => { if(f0.gone) return; const ix = Math.floor(f0.x), iz = Math.floor(f0.z); if(world.get(ix, f0.y, iz) || !world.get(ix, f0.y - 1, iz)) return;
+        const f = fi === fa ? Object.assign({}, f0, { x:f0.x + (brk ? Math.sin(t*50)*.03 : 0), y:f0.y + (brk ? 0 : .03 + Math.sin(t*7)*.02) }) : f0, s = f.s;
         if(f.m){ box(chain(T(f.x, f.y + .08*s, f.z), S(.07*s, .16*s, .07*s)), "#fff6ea"); puff(chain(T(f.x, f.y + .19*s, f.z), S(.24*s, .13*s, .24*s)), "#ef8a8a"); puff(chain(T(f.x + .05*s, f.y + .24*s, f.z + .04*s), S(.05*s, .03*s, .05*s)), "#ffffff"); return; }
         box(chain(T(f.x, f.y + .12*s, f.z), S(.035, .24*s, .035)), "#7cbf6e"); box(chain(T(f.x + .05, f.y + .08*s, f.z), RY(f.a), RZ(.6), S(.1*s, .02, .05*s)), "#8fd080");
         for(let k = 0; k < 5; k++){ const a = f.a + k*Math.PI*2/5; puff(chain(T(f.x + Math.cos(a)*.055*s, f.y + .27*s, f.z + Math.sin(a)*.055*s), S(.075*s, .035*s, .075*s)), f.c); }
-        puff(chain(T(f.x, f.y + .285*s, f.z), S(.05*s, .04*s, .05*s)), f.c === "#ffe08a" ? "#f2a65a" : "#ffd36b"); });
+        puff(chain(T(f.x, f.y + .285*s, f.z), S(.05*s, .04*s, .05*s)), f.c === "#ffe08a" ? "#f2a65a" : "#ffd36b"); }); }
       if(dist > .6 && !window.__camT && (cam.bk || 0) < .5) drawKid(player, t);   // 鏡頭被擠到頭裡面時先不畫自己
       pets.forEach(p => drawCat(p, t));
       if(yarn) drawBall();
@@ -1755,7 +1772,7 @@
           gl.depthMask(true); }
         if(pp && pp.kind === "furn"){ gl.depthMask(false); FV_A = .38; if(pp.bad) gl.uniform3fv(U("tint"), [1, .45, .5]);
           drawFurnV(pp.f.id, pp.f.x + .5, pp.f.y, pp.f.z + .5, pp.f.r, t); FV_A = 1; gl.uniform3fv(U("tint"), TINT); gl.depthMask(true); }
-        if(brk && AIM.take){   // 裂痕：貼在要拿的方塊（或家具外框）上，越按越裂
+        if(brk && AIM.take && AIM.take.kind !== "flower"){   // 裂痕：貼在要拿的方塊（或家具外框）上，越按越裂
           const tk = AIM.take, b = tk.kind === "furn" ? furnCells(FSAVE.placed[tk.i]).box : [tk.x, tk.y, tk.z, tk.x + 1, tk.y + 1, tk.z + 1], st = Math.min(4, Math.floor(brk.t/brk.dur*5)), [u0, v0, u1, v1] = tileUV(246 + st);
           bind(tcube); gl.uniform1f(U("mode"), 0); gl.uniform4f(U("uvR"), u0, v0, u1 - u0, v1 - v0); gl.uniform1f(U("cut"), .05); gl.depthFunc(gl.LEQUAL); gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(-2, -4);
           gl.uniformMatrix4fv(U("M"), false, chain(T((b[0] + b[3])/2, (b[1] + b[4])/2, (b[2] + b[5])/2), S(b[3] - b[0] + .012, b[4] - b[1] + .012, b[5] - b[2] + .012))); gl.uniform1f(U("alpha"), 1); gl.drawElements(gl.TRIANGLES, boundC, gl.UNSIGNED_SHORT, 0);
