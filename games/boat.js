@@ -214,7 +214,7 @@ App.registerGame({
       const B = G.B;
       B.oarL = Math.max(0, B.oarL - dt*2.6); B.oarR = Math.max(0, B.oarR - dt*2.6); B.sync = Math.max(0, B.sync - dt*1.2); B.bump = Math.max(0, B.bump - dt*3);
       if(isHost()){ if(!G.ended) hostStep(dt); if(B.ding){ B.ding = 0; SFX.coin(); }
-        if(t - G.sent > 66){ G.sent = t; ctx.broadcast({ g:"boat", k:"s", run:G.run, x:+B.x.toFixed(3), y:+B.y.toFixed(3), a:+B.a.toFixed(3), v:+B.v.toFixed(2), tt:+B.t.toFixed(2), fish:B.fish, got:B.got.slice(-6), n:B.got.length, sync:B.sync > .8 ? 1 : 0, bump:B.bump > .8 ? 1 : 0, oL:B.oarL > .8 ? 1 : 0, cd:G.countdown }); } }
+        if(t - G.sent > 140){ G.sent = t; ctx.broadcast({ g:"boat", k:"s", run:G.run, x:+B.x.toFixed(3), y:+B.y.toFixed(3), a:+B.a.toFixed(3), v:+B.v.toFixed(2), tt:+B.t.toFixed(2), fish:B.fish, got:B.got.slice(-6), n:B.got.length, sync:B.sync > .8 ? 1 : 0, bump:B.bump > .8 ? 1 : 0, oL:B.oarL > .8 ? 1 : 0, cd:G.countdown }); } }
       else if(!G.ended && G.tgt){ // smooth towards the host's boat, and keep moving with its speed in between
         const k = Math.min(1, dt*10), T2 = G.tgt; B.v = T2.v; B.x += (T2.x - B.x)*k + B.v*Math.sin(B.a)*dt*.5; B.y += (T2.y - B.y)*k + B.v*Math.cos(B.a)*dt*.5; B.a += (T2.a - B.a)*k; B.t = Math.max(B.t + dt*(G.countdown > 0 ? 0 : 1), T2.tt); }
       try{ draw(); hud(); }catch(e){}

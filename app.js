@@ -383,16 +383,16 @@ const App = (function(){
   const famAllOk = g => isFam() && others().length >= 2 && FAM_ALL.includes(g);
   const famAllOn = g => { if(!famAllOk(g)) return false; try{ const v = sessionStorage.getItem("mw_famAll_" + g); return v == null ? true : v === "1"; }catch(e){ return true; } };
   const FH = { seen: {}, subs: [], beat: 0, g: null };   // 誰現在也在「全家一起玩」同一個遊戲
-  const famHere = g => { const t = Date.now(), o = FH.seen[g] || {}; return [me.uid].concat(Object.keys(o).filter(u => u !== me.uid && t - o[u] < 12000 && members.some(m => m.user_id === u))).sort(); };
+  const famHere = g => { const t = Date.now(), o = FH.seen[g] || {}; return [me.uid].concat(Object.keys(o).filter(u => u !== me.uid && t - o[u] < 26000 && members.some(m => m.user_id === u))).sort(); };
   function famHereBeat(){ if(!FH.g || !B.bcast) return; B.bcast({ t: "famHere", to: "__fam", g: FH.g, from: me.uid }); }
   function famHereGot(p){
-    const o = FH.seen[p.g] = FH.seen[p.g] || {}, was = !!(o[p.from] && Date.now() - o[p.from] < 12000);
+    const o = FH.seen[p.g] = FH.seen[p.g] || {}, was = !!(o[p.from] && Date.now() - o[p.from] < 26000);
     if(p.bye) delete o[p.from]; else o[p.from] = Date.now();
     if(was !== !p.bye && p.g === FH.g){ FH.subs.slice().forEach(h => { try{ h(); }catch(e){} }); if(!was && !p.bye) famHereBeat(); }
   }
   setInterval(() => { if(!FH.g) return; famHereBeat();
-    const o = FH.seen[FH.g] || {}, t = Date.now(); let ch = false; for(const u in o) if(t - o[u] > 12000){ delete o[u]; ch = true; }
-    if(ch) FH.subs.slice().forEach(h => { try{ h(); }catch(e){} }); }, 4000);
+    const o = FH.seen[FH.g] || {}, t = Date.now(); let ch = false; for(const u in o) if(t - o[u] > 26000){ delete o[u]; ch = true; }
+    if(ch) FH.subs.slice().forEach(h => { try{ h(); }catch(e){} }); }, 9000);   // 每 9 秒報一次「我在」（省即時訊息量），26 秒沒收到才算離開
   function famAllCtx(gid){
     // 釣魚大賽：圖鑑和最高分照舊存在 fishing，全家比賽另外存在 fishrace:fam
     const fg = gid === "fishing" ? "fishrace" : gid, c = Object.create(ctx), key = fg + ":fam";

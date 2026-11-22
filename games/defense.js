@@ -247,7 +247,7 @@ App.registerGame({
     function loop(t){
       if(!alive || !G) return;
       const dt = Math.min(.05, (t - G.last)/1000 || 0); G.last = t;
-      if(isHost() && !G.ended){ hostStep(dt); if(t - G.sent > 100){ G.sent = t; push(); } }
+      if(isHost() && !G.ended){ hostStep(dt); if(t - G.sent > 220){ G.sent = t; push(); } }
       else if(!isHost()){ const W = G.W; if(W.phase==="build") W.cd -= dt; for(const m of W.mice){ m.dd = m.dd == null ? m.d : m.dd + (m.d - m.dd)*Math.min(1, dt*10) + MICE[m.k].sp*(m.slow?.5:1)*dt*.6; } }
       try{ draw(); hud(); }catch(e){}
       raf = requestAnimationFrame(loop);

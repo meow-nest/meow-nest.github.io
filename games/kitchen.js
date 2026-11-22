@@ -392,12 +392,13 @@ App.registerGame({
         moveMe(dt);
         if(G.chop){ G.chopT = (G.chopT||0) - dt; if(G.chopT <= 0){ G.chopT = .1; const c = G.cats[side()], [tx, ty] = facing(c);
           if(tileAt(tx, ty)==="B"){ if(isHost()){ const r = act("a", "chop", tx, ty); if(r) SFX.key(); } else { SFX.key(); ctx.broadcast({ g:"kit", k:"act", run:G.run, a:"chop", tx, ty }); } } } }
-        if(isHost()){ hostTick(dt); if(t - G.snapT > 220) snapshot(); }
+        if(isHost()){ hostTick(dt); if(t - G.snapT > 450) snapshot(); }
         else G.W.t = Math.max(0, G.W.t - dt);
       }
       // other cat follows its last reported position
       const o = G.cats[side()==="a" ? "b" : "a"]; if(o.tx != null){ const k = Math.min(1, dt*14); o.x += (o.tx - o.x)*k; o.y += (o.ty - o.y)*k; }
-      if(t - G.sent > 80){ G.sent = t; const c = G.cats[side()]; ctx.broadcast({ g:"kit", k:"p", run:G.run, x:+c.x.toFixed(2), y:+c.y.toFixed(2), fx:c.fx, fy:c.fy, m:c.moving?1:0 }); }
+      const c0 = G.cats[side()], sig = c0.x.toFixed(2) + c0.y.toFixed(2) + c0.fx + c0.fy + (c0.moving?1:0);
+      if(t - G.sent > 150 && (sig !== G.lastSig || t - G.sent > 2500)){ G.sent = t; G.lastSig = sig; const c = G.cats[side()]; ctx.broadcast({ g:"kit", k:"p", run:G.run, x:+c.x.toFixed(2), y:+c.y.toFixed(2), fx:c.fx, fy:c.fy, m:c.moving?1:0 }); }
       try{ draw(); hud(); }catch(e){}
       raf = requestAnimationFrame(loop);
     }

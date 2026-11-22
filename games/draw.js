@@ -268,7 +268,7 @@ App.registerGame({
     const live = new Set(), liveS = {};
     let liveBuf = [], liveT = 0;
     function liveFlush(force){
-      if(!cur || !liveBuf.length) return; const now = Date.now(); if(!force && now - liveT < 70) return; liveT = now;
+      if(!cur || !liveBuf.length) return; const now = Date.now(); if(!force && now - liveT < 150) return; liveT = now;
       ctx.broadcast({ g:"drw", r: s.round, id: cur.id, t: cur.t, c: cur.c, sz: cur.sz, p: liveBuf }); liveBuf = [];
     }
     function onLive(m){
