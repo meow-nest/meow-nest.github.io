@@ -4276,3 +4276,14 @@ html.skLock,html.skLock body{overflow:hidden;overscroll-behavior:none}
 .skDet .cmBox{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .gtop .gRef{margin-left:auto;font-size:14px;padding:5px 10px 5px 8px;gap:4px;box-shadow:2px 2px 0 var(--shadow)}.gtop .gRef svg{width:15px;height:15px}
 .gtop .gRef+.pawCall{margin-left:8px}
+/* 家人模式最上面：全家的貓排一排 */
+.famTop{display:flex;justify-content:center;align-items:flex-end;gap:2px;padding:0 4px}
+.famTop .ftW{flex:0 1 96px;min-width:0;text-align:center}
+.famTop .ftC svg{width:100%;max-width:92px;height:auto;display:block;margin:0 auto}
+.famTop.n4 .ftC svg,.famTop.n5 .ftC svg,.famTop.n6 .ftC svg{max-width:62px}
+.famTop .ftN{font-size:14px;margin-top:-4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.famTop.n5 .ftN,.famTop.n6 .ftN{font-size:12px}
+.famTop .ftS{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.famTop .ftS.on{color:var(--mintT)}
+body.compact .famTop .ftC svg{max-width:56px}
+#top .duo[hidden]{display:none}

@@ -264,7 +264,24 @@ const App = (function(){
 
   // ---------- header ----------
   let lastHdr="", wasOnline=null;
+  // 家人模式：最上面一次排出全家的貓（不用選一個人）
+  let lastFamTop = "";
+  function famTopRender(){
+    const box = $("famTop"), duo = document.querySelector("#top .duo");
+    if(!isFam()){ if(box) box.remove(); if(duo) duo.hidden = false; lastFamTop = ""; return; }
+    const list = [{ user_id: me.uid, name: me.name || "我", cat: me.cat || "orange", me: true }].concat(others());
+    const k = list.map(m => m.user_id + m.cat + m.name + (m.me || isOnline(m.user_id)) + (moodOf(m.user_id) || [""])[2]).join("|");
+    if(duo) duo.hidden = true;
+    let b = box; if(!b){ b = document.createElement("div"); b.id = "famTop"; document.getElementById("top").prepend(b); }
+    if(k === lastFamTop) return; lastFamTop = k;
+    b.className = "famTop n" + list.length;
+    b.innerHTML = list.map((m, i) => { const on = m.me || isOnline(m.user_id), md = moodOf(m.user_id);
+      return `<div class="ftW"><div class="ftC ${i % 2 ? "bob2" : "bob"}">${sprite(m.cat || "white", moodFace(m.user_id, on ? "normal" : "curl"))}</div><div class="ftN">${esc(m.me ? (me.name || "我") : m.name)}</div><div class="ftS${on ? " on" : ""}">${m.me ? "● 你" : on ? "● 在線" : "○ 睡著了"}${md ? " " + md[2] : ""}</div></div>`; }).join("")
+      + (list.length < FAM_MAX ? "" : "");
+  }
   function renderHeader(){
+    famTopRender();
+    { const mh = $("midHeart"), mi = MI().mid || "heart"; if(mh && mh.dataset.m !== mi){ mh.dataset.m = mi; mh.innerHTML = icon(mi); } }
     const p = partner(); const here = p && isOnline(p.user_id);
     const k = (me.cat||"orange")+(p?p.cat:"-")+here+JSON.stringify(moodSt&&moodSt.moods||{})+JSON.stringify(moodSt&&moodSt.status||{});
     if(k!==lastHdr){ lastHdr=k;
@@ -4089,7 +4106,7 @@ const App = (function(){
       if(e.target.closest && e.target.closest(".ime")){ if(kbVib()) haptic(); return; }   // keyboard: own sound + animation
       tapFx(e.clientX,e.clientY); haptic(); SFX.tap(); }, {passive:true});
     if(Lock.on()) showLock();
-    $("midHeart").innerHTML = icon("heart");
+    $("midHeart").innerHTML = icon(MI().mid || "heart");
     $("niHome").innerHTML = icon("home"); if($("niGames")) $("niGames").innerHTML = icon("paw"); $("niChat").innerHTML = icon("chat"); $("niSet").innerHTML = icon("gear"); if($("niAlb")) $("niAlb").innerHTML = icon("camera");
     $("decos").innerHTML = [["orange","loaf","left:-8px;top:140px"],["gray","curl","right:-6px;top:340px"],["calico","normal","left:-10px;bottom:150px"],["black","happy","right:-8px;bottom:90px"]].map(([c,k,p])=>`<div class="deco" style="${p}">${sprite(c,k,{soft:true})}</div>`).join("");
     document.querySelectorAll("#nav button").forEach(b=>b.addEventListener("click",()=>{ const t=b.dataset.go; if(t==="home" && route!=="game" && lastGame) go(lastGame); else go(t); }));
