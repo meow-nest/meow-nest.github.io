@@ -4350,3 +4350,4 @@ body.compact .famTop .ftC svg{max-width:56px}
 .pgCap small{display:block;margin-top:6px;font-size:14px;color:#b0607a;animation:bob 1.2s ease-in-out infinite}
 .pgBtns{left:40px;right:40px;top:480px;display:flex;flex-direction:column;gap:10px;opacity:0}
 .pgLater{left:50%;bottom:22px;transform:translateX(-50%);background:none;border:0;color:#b0607a;font:inherit;font-size:14px;text-decoration:underline;cursor:pointer}
+.drSave{width:100%;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px}.drSave svg{width:20px;height:20px}

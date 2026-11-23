@@ -174,9 +174,10 @@ App.registerGame({
           <canvas class="drCv" id="drCv"></canvas>
           <div class="drGot">${(s.solvers||[]).map(v=>`<span>${esc(v.u===me()?"你":ctx.nameOf(v.u))} <b>+${v.pts}</b></span>`).join("")}${r.n ? `<span class="dw">✏️ ${esc(s.drawer===me()?"你":ctx.nameOf(s.drawer))} <b>+${r.n}</b></span>` : ""}</div>
           ${board(s)}
+          <button class="btn sub drSave" id="drSave" style="width:100%">${ctx.icon("camera")} 存下這張圖</button>
           <button class="btn" id="drNext" style="width:100%">${last ? "看最後結果 🏆" : "下一回合 ▶"}</button><p class="drSub" style="text-align:center" id="drAuto"></p></div>`;
         setupCanvas();
-        $("#drNext").addEventListener("click", next);
+        $("#drNext").addEventListener("click", next); $("#drSave").addEventListener("click", saveImg);
         return;
       }
       if(s.phase==="over"){
@@ -448,10 +449,36 @@ App.registerGame({
       box.innerHTML = `<div class="drRes ${r.ok?"ok":""}"><div class="drResHd">${head}</div><div class="drAns">答案是「<b>${esc(s.word||"")}</b>」</div>
         <canvas class="drCv" id="drCv"></canvas>
         <div class="drCats">${sprite(ctx.catOf(s.drawer), r.ok?"love":"cry")}<span>${r.ok?`${esc(ctx.nameOf(s.drawer))} 畫、${esc(ctx.nameOf(other()===s.drawer?me():other()))} 猜，默契滿分 💗${r.ok && !ctx.party?"<br>我們的貓 +1 小魚乾 🐟":""}`:"沒關係，下一題一定可以！"}</span>${sprite(ctx.catOf(s.drawer===me()?other():me()), r.ok?"love":"cry")}</div>
+        <button class="btn sub drSave" id="drSave" style="width:100%">${ctx.icon("camera")} 存下這張圖</button>
         <button class="btn" id="drNext" style="width:100%">${s.drawer===me() ? `換 ${esc(pName)} 畫 ▶` : "換我畫 ▶"}</button></div>${stats}
         ${(s.hist||[]).length ? `<div class="drHist"><b>最近的題目</b>${s.hist.slice(-6).reverse().map(h=>`<span class="${h.ok?"ok":""}">${h.ok?"✔":"✘"} ${esc(h.w)}</span>`).join("")}</div>` : ""}`;
       setupCanvas();
-      $("#drNext").addEventListener("click", next);
+      $("#drNext").addEventListener("click", next); $("#drSave").addEventListener("click", saveImg);
+    }
+    // 把這一局畫的圖存成一張圖片（下一局就清掉了，所以要在這裡存）
+    async function saveImg(){
+      const c0 = $("#drCv"); if(!c0 || !s) return; SFX.tap();
+      try{ await document.fonts.load('20px "Cubic11"'); }catch(e){}
+      const k = c0.width / (c0.clientWidth || c0.width), pad = Math.round(18*k), head = Math.round(58*k), foot = Math.round(40*k);
+      const out = document.createElement("canvas"); out.width = c0.width + pad*2; out.height = c0.height + head + foot + pad;
+      const o = out.getContext("2d");
+      o.fillStyle = "#fffaf2"; o.fillRect(0, 0, out.width, out.height);
+      o.fillStyle = "#ffffff"; o.fillRect(pad, head, c0.width, c0.height); o.drawImage(c0, pad, head);
+      o.strokeStyle = "#5a3b2e"; o.lineWidth = Math.max(2, 3*k); o.strokeRect(pad, head, c0.width, c0.height);
+      o.fillStyle = "#5a3b2e"; o.textBaseline = "middle"; o.textAlign = "left";
+      o.font = `${Math.round(22*k)}px "Cubic11", sans-serif`; o.fillText(`你畫我猜「${s.word||""}」`, pad, head/2);
+      o.textAlign = "right"; o.font = `${Math.round(15*k)}px "Cubic11", sans-serif`; o.fillStyle = "#b0607a";
+      o.fillText(`${ctx.nameOf(s.drawer)} 畫的`, out.width - pad, head/2);
+      const d = new Date(), ds = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+      o.textAlign = "center"; o.fillStyle = "#8f7365"; o.fillText(`喵喵小窩・${ds}`, out.width/2, head + c0.height + foot/2 + pad/3);
+      const name = `你畫我猜_${(s.word||"圖").replace(/[\\/:*?"<>|]/g,"")}_${d.getMonth()+1}${String(d.getDate()).padStart(2,"0")}.png`;
+      out.toBlob(async blob => {
+        if(!blob){ ctx.toast("存不下來，再試一次"); return; }
+        const url = URL.createObjectURL(blob), a = document.createElement("a");
+        a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 30000);
+        ctx.toast("存好了！在手機的「下載」資料夾裡 🐾", 3500);
+      }, "image/png");
     }
     function toolsUi(){
       box.querySelectorAll("[data-t]").forEach(b=>b.classList.toggle("on", b.dataset.t===tool.t));
