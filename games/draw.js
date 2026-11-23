@@ -524,6 +524,16 @@ App.registerGame({
       await upd(x=>{ if(!x || x.phase!=="done") return undefined; return fresh(nextDrawer, x); });
     }
 
+    // 雙人版卡住自救：畫的人不是我們兩個（例如有人換手機重新加入，舊的帳號還留在存檔裡）、
+    // 或存檔是別的模式留下來的，就直接從我開始新的一回合（不然兩邊都會一直看到「正在選題目…」）
+    let fixing = false;
+    async function fixStuck(){
+      if(MP || fixing || !s) return; const p = ctx.partner(); if(!p) return;
+      const ok = [me(), p.user_id], bad = !["pick","draw","done"].includes(s.phase) || ((s.phase==="pick" || s.phase==="draw") && !ok.includes(s.drawer));
+      if(!bad) return; fixing = true;
+      try{ await upd(x=>{ if(!x) return fresh(me(), null); const b = !["pick","draw","done"].includes(x.phase) || ((x.phase==="pick" || x.phase==="draw") && !ok.includes(x.drawer)); return b ? fresh(me(), x.mp ? null : x) : undefined; }); }catch(e){}
+      fixing = false;
+    }
     function onState(st){
       const prevPhase = s && s.phase, prevRound = s && s.round;
       s = st;
@@ -534,6 +544,7 @@ App.registerGame({
       if(s && s.phase==="draw" && prevPhase!=="draw"){ drawn = 0; drawnKey = ""; lastGuessN = (s.guesses||[]).length; if(!isDrawer()) SFX.next(); }
       render();
       if(s && s.phase==="done" && g) redraw();
+      fixStuck();
     }
     this._u = ctx.onState("draw", onState);
     this._b = ctx.onBroadcast(onLive);
@@ -568,7 +579,7 @@ App.registerGame({
       else if(!c && I.length>=2){ await upd(x=> x ? undefined : fresh(me(), null)); c = await ctx.getState("draw"); }
       s = c ? JSON.parse(JSON.stringify(c.state)) : null;
       if(s && s.phase==="draw") lastGuessN = (s.guesses||[]).length;
-      render();
+      render(); fixStuck();
     })();
   },
   unmount(){ if(this._u) this._u(); if(this._b) this._b(); if(this._m) this._m(); if(this._cleanup) this._cleanup(); },
