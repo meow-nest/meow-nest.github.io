@@ -66,7 +66,8 @@ function render(o){
   const pal2 = Object.assign({}, PAL, {'Ω':'#ffffff'});
   const rows = out.map(r=>r.map(v=>{ if(v.length===2 && v[0]==='Ø'){ const key='∂'+v[1]; pal2[key[0]+v[1]] = mix(PAL[v[1]],'#3a2418',.55); return key; } return v; }));
   // pix 只吃單一字元：把兩字元的換成新代號
-  const map = {}; let code = 0x2460; const flat = rows.map(r=>r.map(v=>{ if(v.length===1) return v; if(!map[v]){ map[v] = String.fromCharCode(code++); pal2[map[v]] = pal2[v]; } return map[v]; }).join(''));
+  const FIX = { h2:'①', h3:'②', k2:'③', K2:'④', K9:'⑤' };   // 兩個字的顏色代號換成固定的一個字（每種造型都要一樣）
+  const map = {}; let code = 0x2470; const flat = rows.map(r=>r.map(v=>{ if(v.length===1) return v; if(!map[v]){ map[v] = FIX[v] || String.fromCharCode(code++); pal2[map[v]] = pal2[v]; } return map[v]; }).join(''));
   return { rows: flat, pal: pal2 };
 }
 const ell = (cx,cy,rx,ry,rot=0) => c => c.ellipse(cx,cy,rx,ry,rot,0,Math.PI*2);
@@ -203,9 +204,9 @@ const FACES = { normal:{}, happy:{eyes:'happy', mouth:'open'}, sleep:{eyes:'slee
   angry:{eyes:'flat', brow:'angry', mouth:'wob'}, cry:{eyes:'cry', brow:'sad', mouth:'wob'}, surprised:{eyes:'shock', mouth:'o'} };
 const out = { looks: [] }; let pal0 = null;
 LOOKS.forEach(L0 => {
-  const base = render(L0); pal0 = pal0 || base.pal;
+  const base = render(L0); pal0 = Object.assign(pal0 || {}, base.pal);
   const look = { base: base.rows, face: {} };
-  for(const f in FACES){ if(f === 'normal') continue; const r = render(Object.assign({}, L0, FACES[f])); const d = {}; r.rows.forEach((row, i) => { if(row !== base.rows[i]) d[i] = row; }); look.face[f] = d; }
+  for(const f in FACES){ if(f === 'normal') continue; const r = render(Object.assign({}, L0, FACES[f])); Object.assign(pal0, r.pal); const d = {}; r.rows.forEach((row, i) => { if(row !== base.rows[i]) d[i] = row; }); look.face[f] = d; }
   out.looks.push(look);
 });
 // 只留有用到的顏色

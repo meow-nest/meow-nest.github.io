@@ -230,7 +230,7 @@ function sprite(c, kind, opts){
   const key = c+kind+(opts&&opts.soft?'s':'')+(opts&&opts.plain?'p':'');
   if(cache[key]) return cache[key];
   if(isBd(c)) return cache[key] = bdSprite(c, kind, opts && opts.plain);
-  if(isPc(c)) return window.PoorCat ? PoorCat.sprite(c, kind, opts) : sprite("orange", kind, opts);
+  if(isPc(c)) return window.PoorCat ? PoorCat.sprite(c, kind, opts, opts && opts.look) : sprite("orange", kind, opts);
   let pal = palOf(c);
   if(opts && opts.soft) pal = Object.assign({}, pal, {O: pal.D});
   let rows;

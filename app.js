@@ -287,7 +287,7 @@ const App = (function(){
     const k = (me.cat||"orange")+(p?p.cat:"-")+here+JSON.stringify(moodSt&&moodSt.moods||{})+JSON.stringify(moodSt&&moodSt.status||{});
     if(k!==lastHdr){ lastHdr=k;
       const fMe = moodFace(me.uid,"normal"), fTh = p ? moodFace(p.user_id, here?"normal":"curl") : "normal";
-      const put = (el, c, f, o) => { if(window.PoorCat && Pix.isPc(c) && f === "normal") PoorCat.live(el, c, { quiet: true, noTap: o }); else { el._pc = null; el.innerHTML = sprite(c, f); } };
+      const put = (el, c, f, o) => { if(window.PoorCat && Pix.isPc(c)) PoorCat.live(el, c, { quiet: true, noTap: o, face: f }); else { el._pc = null; el.innerHTML = sprite(c, f); } };
       put($("catMe"), me.cat||"orange", fMe);
       if(p) put($("catThem"), p.cat, fTh, isFam() && others().length > 1); else { $("catThem")._pc = null; $("catThem").innerHTML = sprite("white","normal",{soft:true}); }
     }
@@ -762,7 +762,9 @@ const App = (function(){
     if(!st){ return id==="heart" ? icon("heart") : sprite(cat||"orange", STK.includes(id)?id:"normal", Pix.isBd(cat) ? {plain:true} : undefined); }
     const props = (st[3]||[]).map(([n,css,pal,cls])=>`<span class="sp ${cls||""}" style="${css}">${icon(n,pal||undefined)}</span>`).join("");
     // 壽星貓傳一般貼圖時，拿掉氣球和蛋糕，跟其他貓咪一樣
-    return `<span class="stkArt ${st[4]||""}" title="${esc(st[2])}"><span class="stkCat">${sprite(cat||"orange", st[1], Pix.isBd(cat) ? {plain:true} : undefined)}</span>${props}</span>`;
+    // 乞丐貓：一半的貼圖用第二型態（住紙箱的樣子）
+    const so = Pix.isBd(cat) ? {plain:true} : Pix.isPc(cat) ? {look: STICKERS.findIndex(x=>x[0]===id) % 2} : undefined;
+    return `<span class="stkArt ${st[4]||""}" title="${esc(st[2])}"><span class="stkCat">${sprite(cat||"orange", st[1], so)}</span>${props}</span>`;
   }
 
   const QK = {
