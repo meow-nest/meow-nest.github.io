@@ -1400,6 +1400,7 @@ const App = (function(){
     clearInterval(admTimer); admTimer = setInterval(()=>{ if(route==="home" && isAdmin && document.visibilityState==="visible") drawAdmin(true); else if(route!=="home") clearInterval(admTimer); }, 60000);
     drawAdmin();
   }
+  let admLastKey = "";
   async function drawAdmin(quiet){
     const body = $("admBody"); if(!body) return;
     let st, fb, us = null;
@@ -1407,6 +1408,16 @@ const App = (function(){
     try{ [st, fb, us, on] = await Promise.all([B.adminStats(), B.adminFeedback(admTab==="all"), B.adminUsers ? B.adminUsers().catch(e=>{ console.error(e); return null; }) : null, B.adminOnline ? B.adminOnline().catch(()=>null) : null]); }
     catch(e){ console.error(e); if(!quiet) body.innerHTML = `<div class="box k" style="text-align:center">讀不到資料 🥺<br>${/admin_|function/i.test(String(e.message||e)) ? "資料庫還沒加上站長後台的設定（更新 11）" : "請檢查網路再按更新"}</div>`; return; }
     if(!$("admBody")) return;
+    // 每分鐘的自動更新：資料沒變就不重畫；正在打字／點開回覆框／鍵盤開著也先不重畫（不然打到一半會被洗掉）
+    if(quiet){
+      const k = JSON.stringify([st, fb, us, on]);
+      const busy = body.querySelector("input:focus, textarea:focus") || [...body.querySelectorAll("input[type=text], input:not([type]), textarea")].some(x => x.value && x.value.trim()) || body.querySelector(".admActs.hidden") || document.querySelector(".dockKbHost") || document.querySelector(".careModal");
+      const at0 = $("admAt");
+      if(k === admLastKey){ if(at0) at0.textContent = "更新於 " + new Date().toLocaleTimeString("zh-TW", { hour:"2-digit", minute:"2-digit" }); return; }
+      if(busy){ if(at0) at0.innerHTML = `<b style="color:var(--pinkT)">有新資料，按「更新」看</b>`; return; }
+      admLastKey = k;
+    } else admLastKey = JSON.stringify([st, fb, us, on]);
+    const keepY = window.scrollY;
     const fbAll = fb || []; fb = admTab==="new" ? fbAll.filter(f=>!f.done && !f.wip) : admTab==="wip" ? fbAll.filter(f=>!f.done && f.wip) : fbAll;
     const at = $("admAt"); if(at) at.textContent = "更新於 " + new Date().toLocaleTimeString("zh-TW", { hour:"2-digit", minute:"2-digit" });
     const M = st.modes || {}, max = st.max || 0, dbMB = (st.db||0)/1048576, dbPct = Math.min(1, dbMB/500), cPct = max ? Math.min(1, st.total/max) : 0;
@@ -1471,6 +1482,7 @@ const App = (function(){
       const delB = it.querySelector('[data-a="del"]'); if(delB) delB.addEventListener("click", async e=>{ const b = e.currentTarget; if(b.dataset.arm !== "1"){ b.dataset.arm = "1"; b.textContent = "再按一次刪除"; setTimeout(()=>{ if(b.isConnected){ b.dataset.arm = ""; b.textContent = "🗑 刪除"; } }, 2500); return; }
         try{ await B.adminFeedbackSet(id, false, true); SFX.tap(); drawAdmin(); }catch(err){ toast("沒有成功，再試一次"); } });
     });
+    if(quiet) window.scrollTo(0, keepY);   // 自動更新後停在原本看的位置
   }
   // ---- 刪除小窩 ----
   function wipeLocal(){   // keep only look-and-feel preferences on this phone
