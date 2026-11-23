@@ -4351,3 +4351,6 @@ body.compact .famTop .ftC svg{max-width:56px}
 .pgBtns{left:40px;right:40px;top:480px;display:flex;flex-direction:column;gap:10px;opacity:0}
 .pgLater{left:50%;bottom:22px;transform:translateX(-50%);background:none;border:0;color:#b0607a;font:inherit;font-size:14px;text-decoration:underline;cursor:pointer}
 .drSave{width:100%;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px}.drSave svg{width:20px;height:20px}
+.famTop .ftC .pcL{width:92px;max-width:100%;height:auto;aspect-ratio:1;margin:0 auto}
+.famTop.n4 .ftC .pcL,.famTop.n5 .ftC .pcL,.famTop.n6 .ftC .pcL{width:62px}
+body.compact .famTop .ftC .pcL{width:56px}

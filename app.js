@@ -277,8 +277,10 @@ const App = (function(){
     if(k === lastFamTop) return; lastFamTop = k;
     b.className = "famTop n" + list.length;
     b.innerHTML = list.map((m, i) => { const on = m.me || isOnline(m.user_id), md = moodOf(m.user_id);
-      return `<div class="ftW"><div class="ftC ${i % 2 ? "bob2" : "bob"}">${sprite(m.cat || "white", moodFace(m.user_id, on ? "normal" : "curl"))}</div><div class="ftN">${esc(m.me ? (me.name || "我") : m.name)}</div><div class="ftS${on ? " on" : ""}">${m.me ? "● 你" : on ? "● 在線" : "○ 睡著了"}${md ? " " + md[2] : ""}</div></div>`; }).join("")
+      return `<div class="ftW"><div class="ftC ${i % 2 ? "bob2" : "bob"}" data-ft="${i}">${sprite(m.cat || "white", moodFace(m.user_id, on ? "normal" : "curl"))}</div><div class="ftN">${esc(m.me ? (me.name || "我") : m.name)}</div><div class="ftS${on ? " on" : ""}">${m.me ? "● 你" : on ? "● 在線" : "○ 睡著了"}${md ? " " + md[2] : ""}</div></div>`; }).join("")
       + (list.length < FAM_MAX ? "" : "");
+    // 乞丐貓在家人模式最上面也會動、換裝
+    if(window.PoorCat) list.forEach((m, i) => { const el = b.querySelector(`[data-ft="${i}"]`), c = m.cat || "white"; if(el && Pix.isPc(c)){ el.classList.remove("bob", "bob2"); el.innerHTML = ""; PoorCat.live(el, c, { quiet: true, noTap: true, face: moodFace(m.user_id, (m.me || isOnline(m.user_id)) ? "normal" : "curl") }); } });
   }
   function renderHeader(){
     famTopRender();
