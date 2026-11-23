@@ -46,7 +46,17 @@ App.registerGame({
     const M = () => MODES.find(m => m.id === mode);
     const cur = () => wheels().find(w => w.id === curId) || wheels()[0];
     const live = w => { const o = out[w.id]; return w.opts.map((t, i) => ({ t, i })).filter(x => !(o && o.has(x.i))); };
-    const save = fn => ctx.update(KEY, st => { st = st && Array.isArray(st.list) ? st : { list: DEFAULTS(), hist: {} }; const r = fn(st); return r === undefined ? st : r; });
+    // 存檔上限 20KB：題目和選項全滿也放得下，「最近結果」太多時從最少用的題目開始丟掉
+    const fit = st => {
+      const ids = new Set(st.list.map(w => w.id)), h = {};
+      for(const k in (st.hist || {})) if(ids.has(k)) h[k] = (st.hist[k] || []).slice(0, 6);
+      st.hist = h;
+      const size = () => new Blob([JSON.stringify(st)]).size * 1.06;
+      const ks = Object.keys(h);
+      while(size() > 18500 && ks.length){ delete h[ks.pop()]; }
+      return st;
+    };
+    const save = fn => ctx.update(KEY, st => { st = st && Array.isArray(st.list) ? st : { list: DEFAULTS(), hist: {} }; const r = fn(st); return fit(r === undefined ? st : r); });
     const tick = (f, v) => SFX.tone(f, .03, { vol: v || .22, type: "square", lp: 3200 });
     const wood = () => SFX.tone(260 + Math.random() * 260, .025, { vol: .3, type: "triangle", lp: 1800 });
 
@@ -216,7 +226,7 @@ App.registerGame({
 
     function result(w, x){
       SFX.match(); ctx.burst();
-      save(st => { st.hist = st.hist && typeof st.hist === "object" ? st.hist : {}; st.hist[w.id] = [x.t].concat(st.hist[w.id] || []).slice(0, 8);
+      save(st => { st.hist = st.hist && typeof st.hist === "object" ? st.hist : {}; st.hist[w.id] = [x.t].concat(st.hist[w.id] || []).slice(0, 6);
         if(!st.list.some(y => y.id === w.id)) st.list.push(w); return st; });
       const p = ctx.partner(), more = live(w).length > 2, md = M();
       const o = document.createElement("div"); o.className = "whRes";
