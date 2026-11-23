@@ -4287,3 +4287,9 @@ html.skLock,html.skLock body{overflow:hidden;overscroll-behavior:none}
 .famTop .ftS.on{color:var(--mintT)}
 body.compact .famTop .ftC svg{max-width:56px}
 #top .duo[hidden]{display:none}
+.bdAdm select{flex:1;min-width:0;font:inherit;padding:6px;border:2px solid var(--line);background:#fff;color:var(--ink)}
+.bdLH{display:flex;align-items:center;justify-content:space-between;margin-top:12px;border-top:2px dashed var(--shadow);padding-top:8px}.bdLH .btn{padding:4px 12px;font-size:14px}
+.bdList{display:flex;flex-direction:column;gap:4px;margin-top:6px;max-height:360px;overflow-y:auto;overscroll-behavior:contain}
+.bdIt{display:grid;grid-template-columns:1fr auto;gap:0 8px;border:2px solid var(--line);background:var(--card);padding:5px 8px;font-size:14px}
+.bdIt span{grid-column:1;grid-row:2;font-size:11px;color:var(--muted)}.bdIt em{font-style:normal;grid-column:2;grid-row:1;color:var(--pinkT)}.bdIt i{font-style:normal;grid-column:2;grid-row:2;font-size:11px;color:var(--muted);text-align:right}
+.bdIt.adm{background:#fff4d6}

@@ -60,7 +60,7 @@
 
 ### 加新的 SQL
 
-1. 新檔案 `supabase/update_NN_名稱.sql`，NN 接著目前最大的號碼（目前到 **78**）。開頭用中文註解說這次做什麼。要能重複執行（`if not exists`、`create or replace`）。
+1. 新檔案 `supabase/update_NN_名稱.sql`，NN 接著目前最大的號碼（目前到 **79**）。開頭用中文註解說這次做什麼。要能重複執行（`if not exists`、`create or replace`）。
 2. 加進 all.sql：`printf '\n' >> supabase/all.sql && cat supabase/update_NN_名稱.sql >> supabase/all.sql`
 3. 先在本機 Postgres 測過，再推上去給站長連結。
 
@@ -141,5 +141,6 @@ git push origin main           # GitHub Pages 約 1 分鐘後更新
   - **全站自動喵喵鍵盤**：app.js `kbEligible`／`kbAuto`（document 的 pointerdown＋focusin），所有文字 input/textarea 自動 `caretField`＋`dockKeyboard`；數字框（inputmode numeric/decimal）、type number 等不套用，`data-nokb` 可排除。房間碼這種 `autocapitalize="characters"` 會用英文大寫開（IME `startMode`／`startCaps`）。單行框按「完成」會送出 Enter 的 keydown。`ctx.askText(標題, 預設值, 字數)` 取代 prompt()。默契大考驗自己出題改用 `ctx.keyboard`（跟聊天室同一套設定）。
 - **幫我選（11/23，沒有 SQL）**：`games/wheel.js`（遊戲 id `wheel`，`solo:true`，名字「幫我選」）。四種玩法 `MODES`：轉盤 wheel／抽籤 stick／扭蛋 gacha／翻牌 card（`mw_pick_mode`），共用同一份題目；題目存在每個人自己的 `game_state`「`wheel:自己 uid 前 8 碼`」（`{list:[{id,name,opts}], hist:{題目id:[最近結果]}}`），目前題目 `mw_wheel_cur`。「拿掉這個再來」只在這次打開有效（`out`）。結果可「傳給 ta」＝新的 `ctx.say(文字)`（用自己的名字發一則 text 訊息）。遊戲卡圖 `window.PickArt`。不用貓幣／小魚乾、沒有獎勵（不能變成抽獎）。
 - **小窩最上面（11/23）**：中間圖示照模式 `MI().mid`（情侶 heart、閨蜜 star、兄弟 bigpaw，`renderHeader` 會更新）；家人模式最上面改成 `famTopRender()` 的 `#famTop`（全家的貓排一排，`.duo` 藏起來，人多自動變小），選雙人遊戲對象只留在首頁「我們家」（`famHtml`）。
+- **站長改生日（update_79，11/23）**：後台「壽星貓」可以直接改（`admin_bday_set(邀請碼, 暱稱, 'MM-DD')`，`user_bday.admin_at` 記站長改的時間）＋「看列表」（`admin_bday_list()` 最近 200 筆，站長改的黃底）。後台每分鐘自動更新：資料沒變不重畫、打字／回覆時先不重畫（`admLastKey`）。
 - 定時訊息（11/20 上線）：聊天頁左上「定時」（`schedWriter`）。`sched_msgs` 表不開權限，用 `sched_add`／`sched_list`／`sched_cancel`；pg_cron `meow-sched` 每分鐘跑 `fire_sched()`，用寫的人的名字插入 messages（kind `text`、media `{"sch":1}`，前端 `isSched` 顯示「定時訊息」標籤），推播照舊。送出前只有自己看得到；500 字、1 分鐘後～1 年內、每人最多 30 則；單人小窩沒有按鈕。
 - 等級稱號：Lv40 之後有天使／惡魔翅膀（惡魔 6 種顏色），排行榜有本週／總排行，站長小窩可以展示但不參加排行。

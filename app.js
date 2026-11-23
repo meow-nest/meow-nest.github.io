@@ -1449,9 +1449,12 @@ const App = (function(){
         <div class="admTabs admSort"><button data-s="recent" class="${admSort==="recent"?"on":""}">最近上線</button><button data-s="idle" class="${admSort==="idle"?"on":""}">很久沒上線</button><button data-s="new" class="${admSort==="new"?"on":""}">最新加入</button></div>
         <div id="admUL"></div>` : `<div class="k" style="text-align:center;padding:8px">資料庫還沒加上使用者名單（更新 15）</div>`}</div></div>
       <div class="box admBox admFold ${admOpen("test", false) ? "open" : ""}" data-fold="test"><h3 class="admFH">🧪 站長測試模式<small>${ctx.testAll() ? "開著" : "關著"}</small><i class="admArr">▾</i></h3><div class="admFB"><div class="k">打開後，你這支手機會看到全部解鎖：家具、飾品、臥室和院子、龍舟賽道都能直接用，不用花貓幣。<br>只影響你自己的畫面，伺服器上的資料不會改，關掉就恢復成一般使用者的樣子。</div><button class="btn ${ctx.testAll() ? "" : "sub"}" id="admTest" style="width:100%;margin-top:8px">${ctx.testAll() ? "✔ 測試模式開著（點一下關掉）" : "打開測試模式"}</button></div></div>
-      <div class="box admBox admFold ${admOpen("bday", false) ? "open" : ""}" data-fold="bday"><h3 class="admFH">🎂 壽星貓<small>重設生日・預覽</small><i class="admArr">▾</i></h3><div class="admFB"><div class="k">有人生日填錯，輸入 ta 的邀請碼和暱稱，就能清掉讓 ta 重填（已經領到的壽星貓會留著）。</div>
+      <div class="box admBox admFold ${admOpen("bday", false) ? "open" : ""}" data-fold="bday"><h3 class="admFH">🎂 壽星貓<small>重設生日・預覽</small><i class="admArr">▾</i></h3><div class="admFB"><div class="k">有人生日填錯：輸入 ta 的邀請碼和暱稱，選好正確的生日，按「改成這天」就幫 ta 改好（已經領到的壽星貓會留著）。</div>
         <div class="bdAdm"><input id="admBdC" placeholder="邀請碼" maxlength="8" autocomplete="off"><input id="admBdN" placeholder="暱稱" maxlength="10" autocomplete="off"></div>
-        <button class="btn sub" id="admBdR" style="width:100%;margin-top:6px">清掉 ta 的生日</button><button class="btn sub" id="admBdP" style="width:100%;margin-top:6px">預覽生日領取畫面</button></div></div>
+        <div class="bdAdm bdMD"><select id="admBdM">${Array.from({length:12},(_,i)=>`<option value="${i+1}">${i+1} 月</option>`).join("")}</select><select id="admBdD">${Array.from({length:31},(_,i)=>`<option value="${i+1}">${i+1} 日</option>`).join("")}</select></div>
+        <button class="btn" id="admBdS" style="width:100%;margin-top:6px">改成這天</button>
+        <button class="btn sub" id="admBdR" style="width:100%;margin-top:6px">清掉 ta 的生日（讓 ta 自己重填）</button>
+        <div class="bdLH"><b>大家的生日</b><button class="btn sub" id="admBdL">看列表</button></div><div id="admBdList"></div><button class="btn sub" id="admBdP" style="width:100%;margin-top:6px">預覽生日領取畫面</button></div></div>
       <div class="box admBox admFold ${admOpen("prep", false) ? "open" : ""}" data-fold="prep"><h3 class="admFH">🚩 配對檢舉<small id="admPrN"></small><i class="admArr">▾</i></h3><div class="admFB" id="admPr"><div class="k">讀取中…</div></div></div>
       <div class="box admBox admFold ${admOpen("survey", true) ? "open" : ""}" data-fold="survey"><h3 class="admFH">📋 意見問卷<small id="admSvN"></small><i class="admArr">▾</i></h3><div class="admFB" id="admSv"><div class="k">讀取中…</div></div></div>`;
     body.querySelectorAll(".admFH").forEach(h=>h.addEventListener("click", ()=>{ const box = h.closest(".admFold"), k = box.dataset.fold, open = !box.classList.contains("open");
@@ -1461,6 +1464,17 @@ const App = (function(){
         if(!confirm(`確定要清掉「${n}」的生日嗎？`)) return; r.disabled = true;
         try{ const x = await B.rpc("admin_bday_reset", { p_code:c, p_name:n }); toast(x && x.ok ? "清掉了，ta 可以重新填生日了" : "找不到這個人，檢查一下邀請碼和暱稱"); }catch(e){ toast("資料庫還沒加上壽星貓的設定（更新 46）"); }
         r.disabled = false; });
+      const bdList = async () => { const box = $("admBdList"); if(!box) return; box.innerHTML = `<div class="k">讀取中…</div>`;
+        try{ const L = await B.rpc("admin_bday_list", {}); const f = t => t ? new Date(t).toLocaleString("zh-TW", { month:"numeric", day:"numeric", hour:"2-digit", minute:"2-digit", hour12:false }) : "";
+          box.innerHTML = !L || !L.length ? `<div class="k">還沒有人填生日</div>` : `<div class="bdList">${L.map(x => { const [mm, dd] = String(x.md).split("-").map(Number);
+            return `<div class="bdIt${x.admin_at ? " adm" : ""}"><b>${esc(x.name)}</b><span>${esc(x.code||"")}</span><em>${mm} 月 ${dd} 日</em><i>${x.admin_at ? "站長改的・" + f(x.admin_at) : "自己填・" + f(x.set_at)}</i></div>`; }).join("")}</div>`;
+        }catch(e){ box.innerHTML = `<div class="k">${/admin_bday_list|function/i.test(String(e.message||e)) ? "資料庫還沒加上這個功能（更新 79）" : "讀不到，再試一次"}</div>`; } };
+      const ls = $("admBdL"); if(ls) ls.addEventListener("click", () => { SFX.tap(); bdList(); });
+      const sv = $("admBdS"); if(sv) sv.addEventListener("click", async () => { const c = $("admBdC").value.trim(), n = $("admBdN").value.trim(); if(!c || !n){ toast("邀請碼和暱稱都要填"); return; }
+        const md = String($("admBdM").value).padStart(2, "0") + "-" + String($("admBdD").value).padStart(2, "0");
+        try{ const x = await B.rpc("admin_bday_set", { p_code:c, p_name:n, p_md:md }); if(x && x.ok){ SFX.select(); toast(`改好了：${esc(x.name)} 的生日是 ${+md.slice(0,2)} 月 ${+md.slice(3)} 日`); bdList(); }
+          else toast(x && x.reason === "bad" ? "這個月沒有這一天喔" : "找不到這個人，檢查一下邀請碼和暱稱"); }
+        catch(e){ toast(/admin_bday_set|function/i.test(String(e.message||e)) ? "資料庫還沒加上這個功能（更新 79）" : "沒有成功，再試一次"); } });
       const pv = $("admBdP"); if(pv) pv.addEventListener("click", ()=>{ SFX.select(); bdClaim(true); }); }
     { const tb = $("admTest"); if(tb) tb.addEventListener("click", ()=>{ const on = !ctx.testAll(); try{ localStorage.setItem("mw_testAll", on ? "1" : "0"); }catch(e){} SFX.select(); toast(on ? "測試模式打開了：全部都解鎖囉" : "測試模式關掉了，恢復一般使用者的樣子"); drawAdmin(); }); }
     admUsersData = us;
