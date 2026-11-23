@@ -816,6 +816,8 @@ const App = (function(){
     if(m.kind==="watch"){ let o = null; try{ o = JSON.parse(m.media || ""); }catch(e){} const inIt = o && (o.a === me.uid || o.b === me.uid);
       return `<div class="msg sys watchMsg"><div class="bub">${esc(m.body)}${o && !inIt ? `<button class="btn" data-watch="${esc(m.media)}">去觀戰</button>` : ""}</div></div>`; }
     if(m.kind==="memo" && String(m.body||"").startsWith("📮") && m.sender===me.uid && partner()) return "";   // 這則是推播給另一個人的
+    // 站長小窩有好幾個人時，伺服器會給每個人各存一則（為了每支手機都收到推播）：畫面上同一則只顯示一次
+    if(m.kind==="memo" && String(m.body||"").startsWith("📮") && messages.some(x => x.kind==="memo" && x.id < m.id && x.sender !== me.uid && x.body===m.body && Math.abs(new Date(x.created_at) - new Date(m.created_at)) < 120000)) return "";
     if(m.kind==="memo" && isAdmin && String(m.body||"").startsWith("📮") && !String(m.body||"").startsWith("📮 站長回覆")) return `<div class="msg sys memoMsg"><button class="bub" data-goadm="1">${esc(m.body)}</button></div>`;
     if(m.kind==="memo") return String(m.body||"").startsWith("📮 站長回覆") ? `<div class="msg sys memoMsg"><button class="bub" data-gofb="1">${esc(m.body)}</button></div>` : `<div class="msg sys memoMsg"><button class="bub" data-gonotes="1">${esc(m.body)}</button></div>`;
     if(m.kind==="call") return `<div class="msg sys callMsg"><span class="bub">${esc(m.body)}</span><button class="cbk" data-callback="${m.body.includes("視訊")?1:0}">${m.sender===me.uid ? "再打一次" : "回撥"}</button></div>`;
