@@ -62,6 +62,23 @@ function decP(q){
   const k = q.indexOf(";"); if(k < 0) return []; const [x0, y0] = q.slice(0, k).split(",").map(Number); const p = [x0, y0]; let x = x0, y = y0;
   for(let i=k+1;i+1<q.length;i+=2){ x += A64.indexOf(q[i]) - 32; y += A64.indexOf(q[i+1]) - 32; p.push(x, y); }
   return p; }
+// 存檔上限 20KB（伺服器會拒絕更大的）：畫太多筆時，先把點最多的線條簡化（每兩個點留一個），
+// 還是太大就把最舊的線條拿掉，猜答案、下一回合才不會因為存不進去而卡住
+const DRAW_MAX = 17500, U8 = new TextEncoder();
+const sizeOf = x => U8.encode(JSON.stringify(x)).length * 1.08;   // 伺服器存的格式多一些空白
+function thin(q){ const p = decP(q); if(p.length <= 8) return null; const o = []; for(let i=0;i<p.length;i+=2) if(i % 4 === 0 || i >= p.length-2) o.push(p[i], p[i+1]); return encP(o); }
+function fitDraw(x){
+  if(!x || typeof x !== "object") return x;
+  if(Array.isArray(x.used) && x.used.length > 200) x.used = x.used.slice(-200);
+  if(Array.isArray(x.guesses) && x.guesses.length > 40) x.guesses = x.guesses.slice(-40);
+  let n = 0;
+  while(sizeOf(x) > DRAW_MAX && Array.isArray(x.strokes) && x.strokes.length && n++ < 400){
+    let bi = -1, bl = 0; x.strokes.forEach((st, i) => { const l = (st && st.q || "").length; if(st && st.t !== "fill" && l > bl){ bl = l; bi = i; } });
+    const t = bi >= 0 && bl > 40 ? thin(x.strokes[bi].q) : null;
+    if(t != null) x.strokes[bi] = Object.assign({}, x.strokes[bi], { q: t }); else x.strokes.shift();
+  }
+  return x;
+}
 const ptsOf = st => st.p || (st.q != null ? (st._p || (Object.defineProperty(st, "_p", { value: decP(st.q), enumerable: false }), st._p)) : []);
 const TOOLS = [["pen","✏️","鉛筆"],["mark","🖍️","麥克筆"],["fill","🪣","油漆桶"],["line","📏","直線"],["oval","⭕","圓形"],["rect","⬜","方形"],["er","🧽","橡皮擦"]];
 const BG = "#fffaf2", W = 1000, H = 750, TIME = 100;
@@ -80,6 +97,7 @@ App.registerGame({
     el.innerHTML = `<div class="box dr" id="dr"></div>`;
     const box = $("#dr");
 
+    const upd = fn => ctx.update("draw", x => { const r = fn(x); return r === undefined ? r : fitDraw(r); });
     function pickWords(used, only){
       let pool = (ctx.mode()==="bestie"?ALL_B:ctx.mode()==="family"?ALL_F:ctx.mode()==="bro"?ALL_M:ALL).filter(x=>!(used||[]).includes(x[0])), out = [];
       if(only){ const sp = pool.filter(x=>x[1]===only); if(sp.length >= 3){ return sp.sort(()=>Math.random()-.5).slice(0, 3); } }
@@ -132,9 +150,9 @@ App.registerGame({
           <div class="drPer"><span>每人畫幾次</span>${[1,2,3].map(n=>`<button data-per="${n}" class="${s.per===n?"on":""}" ${host?"":"disabled"}>${n} 次</button>`).join("")}</div>
           ${host ? `<button class="btn" id="drStart" style="width:100%" ${pl.length<2?"disabled":""}>${pl.length<2?(ctx.famAll?"等家人進來…":"等朋友進來…"):`開始遊戲（${pl.length} 人・共 ${pl.length*s.per} 回合）`}</button>` : `<p class="drSub" style="text-align:center">等房主 ${esc(ctx.nameOf(hostId()))} 按開始…</p>`}
           <p class="drSub" style="text-align:center">最多 6 人・玩到一半也可以加入</p>`;
-        box.querySelectorAll("[data-per]").forEach(b=>b.addEventListener("click", ()=>{ if(!amHost()) return; SFX.tap(); const n = +b.dataset.per; ctx.update("draw", x=>{ if(!x || x.phase!=="lobby") return undefined; x.per = n; return x; }); }));
+        box.querySelectorAll("[data-per]").forEach(b=>b.addEventListener("click", ()=>{ if(!amHost()) return; SFX.tap(); const n = +b.dataset.per; upd(x=>{ if(!x || x.phase!=="lobby") return undefined; x.per = n; return x; }); }));
         const st = $("#drStart"); if(st) st.addEventListener("click", ()=>{ if(here().length < 2) return; SFX.select();
-          ctx.update("draw", x=>{ if(!x || x.phase!=="lobby") return undefined; x.order = here().slice().sort(()=>Math.random()-.5); x.scores = {}; x.drawn = {}; here().forEach(u=>{ x.scores[u] = 0; }); x.drawer = null; x.round = 0; x.hist = []; return mpAdvance(x); }); });
+          upd(x=>{ if(!x || x.phase!=="lobby") return undefined; x.order = here().slice().sort(()=>Math.random()-.5); x.scores = {}; x.drawn = {}; here().forEach(u=>{ x.scores[u] = 0; }); x.drawer = null; x.round = 0; x.hist = []; return mpAdvance(x); }); });
         return;
       }
       if(s.phase==="pick"){
@@ -144,7 +162,7 @@ App.registerGame({
             <div class="drPick">${s.opts.map((o,i)=>`<button data-o="${i}"><i>${esc(o[1])}</i><b>${esc(o[0])}</b></button>`).join("")}</div>
             <div class="drPickBtns"><button class="btn sub" id="drRe">🔄 換一組題目</button></div>${board(s)}`;
           box.querySelectorAll("[data-o]").forEach(b=>b.addEventListener("click", ()=>start(+b.dataset.o)));
-          $("#drRe").addEventListener("click", ()=>{ SFX.tap(); ctx.update("draw", x=>{ if(!x || x.phase!=="pick" || x.drawer!==me()) return undefined; x.opts = pickWords(x.used); return x; }); });
+          $("#drRe").addEventListener("click", ()=>{ SFX.tap(); upd(x=>{ if(!x || x.phase!=="pick" || x.drawer!==me()) return undefined; x.opts = pickWords(x.used); return x; }); });
         } else box.innerHTML = `<div class="drWait">${sprite(ctx.catOf(s.drawer),"normal")}<p>第 ${k} / ${mpTotal(s)} 回合<br><b>${esc(ctx.nameOf(s.drawer))}</b> 正在選題目…</p><p class="drSub">等等大家一起猜，越快猜對分數越高 🤔</p></div>${board(s)}`;
         return;
       }
@@ -169,7 +187,7 @@ App.registerGame({
           ${board(s, true)}
           <button class="btn" id="drAgain" style="width:100%">再玩一局</button>
           ${(s.hist||[]).length ? `<div class="drHist"><b>這局的題目</b>${s.hist.slice().reverse().map(h=>`<span class="${h.ok?"ok":""}">${h.ok?"✔":"✘"} ${esc(h.w)}</span>`).join("")}</div>` : ""}</div>`;
-        $("#drAgain").addEventListener("click", ()=>{ SFX.select(); ctx.update("draw", x=>{ if(!x || x.phase!=="over") return undefined; return lobbyState(x); }); });
+        $("#drAgain").addEventListener("click", ()=>{ SFX.select(); upd(x=>{ if(!x || x.phase!=="over") return undefined; return lobbyState(x); }); });
         return;
       }
     }
@@ -342,13 +360,13 @@ App.registerGame({
     async function flushSave(){
       if(saving || !saveQ.length) return; saving = true;
       const batch = saveQ.splice(0), packed = batch.map(st => { const o = { id: st.id, t: st.t, c: st.c }; if(st.sz != null) o.sz = st.sz; if(st.w != null) o.w = st.w; if(st.e) o.e = st.e; o.q = encP(st.p); return o; });
-      const ns = await ctx.update("draw", x=>{ if(!x || x.phase!=="draw" || x.drawer!==me()) return undefined; x.strokes.push(...packed); if(x.strokes.length>400) x.strokes = x.strokes.slice(-400); return x; }).catch(()=>null);
+      const ns = await upd(x=>{ if(!x || x.phase!=="draw" || x.drawer!==me()) return undefined; x.strokes.push(...packed); if(x.strokes.length>400) x.strokes = x.strokes.slice(-400); return x; }).catch(()=>null);
       saving = false; myPend = myPend.filter(q=>!batch.includes(q));
       if(!ns){ if(s && s.phase === "draw"){ redraw(); ctx.toast("剛剛畫的沒存到，再畫一次 🙏"); } }
       if(saveQ.length) setTimeout(flushSave, 60);
     }
     function undo(){
-      ctx.update("draw", x=>{ if(!x || x.phase!=="draw" || !x.strokes.length) return undefined;
+      upd(x=>{ if(!x || x.phase!=="draw" || !x.strokes.length) return undefined;
         const last = x.strokes.pop(), base2 = last && last.id ? String(last.id).split("_")[0] : null, gone = [last];
         if(base2) while(x.strokes.length && String(x.strokes[x.strokes.length-1].id||"").split("_")[0] === base2) gone.unshift(x.strokes.pop());
         redoStack.push(gone); return x; });
@@ -372,7 +390,7 @@ App.registerGame({
             <div class="drPickBtns"><button class="btn sub" id="drRe">🔄 換一組題目</button></div>
             ${ctx.isOnline(p.user_id)?"":`<p class="drWarn">${esc(p.name)} 現在不在線上，選好題目後會通知 ta 來猜</p>`}${stats}`;
           box.querySelectorAll("[data-o]").forEach(b=>b.addEventListener("click", ()=>start(+b.dataset.o)));
-          $("#drRe").addEventListener("click", ()=>{ SFX.tap(); ctx.update("draw", x=>{ if(!x || x.phase!=="pick" || x.drawer!==me()) return undefined; x.opts = pickWords(x.used, x.only); return x; }); });
+          $("#drRe").addEventListener("click", ()=>{ SFX.tap(); upd(x=>{ if(!x || x.phase!=="pick" || x.drawer!==me()) return undefined; x.opts = pickWords(x.used, x.only); return x; }); });
         } else {
           box.innerHTML = `<div class="drWait">${sprite(p.cat,"normal")}<p><b>${esc(p.name)}</b> 正在選題目…</p><p class="drSub">等等你要負責猜 🤔</p></div>${stats}`;
         }
@@ -406,8 +424,8 @@ App.registerGame({
             $("#drRedo").addEventListener("click", ()=>{ if(!redoStack.length){ ctx.toast("沒有可以重做的"); return; } SFX.tap(); redo(); });
             $("#drFull").addEventListener("click", ()=>{ SFX.tap(); box.classList.toggle("drFull"); document.body.classList.toggle("drFullOn", box.classList.contains("drFull")); $("#drFull").textContent = box.classList.contains("drFull") ? "↙ 縮小" : "⛶ 大畫布"; requestAnimationFrame(setupCanvas); });
             let clrArm = 0;
-            $("#drClr").addEventListener("click", ()=>{ if(!s.strokes.length) return; const t = Date.now(); if(t - clrArm > 2500){ clrArm = t; ctx.toast("再按一次清空整張圖"); return; } SFX.del(); ctx.update("draw", x=>{ if(!x || x.phase!=="draw") return undefined; redoStack.push(x.strokes.slice()); x.strokes = []; return x; }); });
-            $("#drHint").addEventListener("click", ()=>{ if(s.hint >= [...s.word].length-1){ ctx.toast("不能再提示了，再說就是答案啦 😹"); return; } SFX.select(); ctx.update("draw", x=>{ if(!x || x.phase!=="draw") return undefined; x.hint = Math.min([...x.word].length-1, (x.hint||0)+1); return x; }); });
+            $("#drClr").addEventListener("click", ()=>{ if(!s.strokes.length) return; const t = Date.now(); if(t - clrArm > 2500){ clrArm = t; ctx.toast("再按一次清空整張圖"); return; } SFX.del(); upd(x=>{ if(!x || x.phase!=="draw") return undefined; redoStack.push(x.strokes.slice()); x.strokes = []; return x; }); });
+            $("#drHint").addEventListener("click", ()=>{ if(s.hint >= [...s.word].length-1){ ctx.toast("不能再提示了，再說就是答案啦 😹"); return; } SFX.select(); upd(x=>{ if(!x || x.phase!=="draw") return undefined; x.hint = Math.min([...x.word].length-1, (x.hint||0)+1); return x; }); });
             $("#drGive").addEventListener("click", ()=>finish(false, "give"));
             toolsUi();
           } else if(!solvedMe) {
@@ -465,7 +483,7 @@ App.registerGame({
       guessText = ""; paintGuess(); SFX.send();
       let won = false;
       if(MP){
-        await ctx.update("draw", x=>{ if(!x || x.phase!=="draw" || x.drawer===me()) return undefined; x.solvers = x.solvers || []; if(x.solvers.some(v=>v.u===me())) return undefined;
+        await upd(x=>{ if(!x || x.phase!=="draw" || x.drawer===me()) return undefined; x.solvers = x.solvers || []; if(x.solvers.some(v=>v.u===me())) return undefined;
           const a = norm(t), w = norm(x.word); won = !!a && (a===w || a.includes(w));
           if(won){ const rk = x.solvers.length, pts = rk===0 ? 3 : rk===1 ? 2 : 1; x.scores = x.scores || {};
             x.scores[me()] = (x.scores[me()]||0) + pts; if(x.drawer) x.scores[x.drawer] = (x.scores[x.drawer]||0) + 1;
@@ -476,7 +494,7 @@ App.registerGame({
           return x; });
         if(won) celebrate(); return;
       }
-      await ctx.update("draw", x=>{ if(!x || x.phase!=="draw") return undefined;
+      await upd(x=>{ if(!x || x.phase!=="draw") return undefined;
         const a = norm(t), w = norm(x.word); won = !!a && (a===w || a.includes(w));
         const close = !won && [...w].filter(ch=>a.includes(ch)).length >= Math.max(1, Math.ceil(w.length/2));
         x.guesses = (x.guesses||[]).concat([{ t, by:me(), at:Date.now(), close }]).slice(-30);
@@ -491,19 +509,19 @@ App.registerGame({
       x.hist = (x.hist||[]).concat([{ w:x.word, ok, by:x.drawer, secs }]).slice(-20);
     }
     function celebrate(){ SFX.match(); ctx.burst(); if(ctx.lvPlay) ctx.lvPlay("draw"); }
-    async function finish(ok, why){ await ctx.update("draw", x=>{ if(!x || x.phase!=="draw") return undefined; if(MP) settleMP(x, why); else settle(x, ok, why); return x; }); }
+    async function finish(ok, why){ await upd(x=>{ if(!x || x.phase!=="draw") return undefined; if(MP) settleMP(x, why); else settle(x, ok, why); return x; }); }
     async function start(i){
       SFX.select();
-      const ns = await ctx.update("draw", x=>{ if(!x || x.phase!=="pick" || x.drawer!==me()) return undefined; const o = x.opts[i]; if(!o) return undefined;
+      const ns = await upd(x=>{ if(!x || x.phase!=="pick" || x.drawer!==me()) return undefined; const o = x.opts[i]; if(!o) return undefined;
         x.word = o[0]; x.cat = o[1]; x.phase = "draw"; x.started = Date.now(); x.until = Date.now() + TIME*1000; x.strokes = []; x.guesses = []; x.hint = 0; if(MP) x.solvers = [];
         x.used = (x.used||[]).concat([o[0]]).slice(-300); return x; });
       if(ns) ctx.notifyPartner(`${ctx.me.name} 在「你畫我猜」畫好題目了，快來猜！🎨`);
     }
     async function next(){
       SFX.next();
-      if(MP){ const r0 = s && s.round; await ctx.update("draw", x=>{ if(!x || x.phase!=="done" || x.round!==r0) return undefined; return mpAdvance(x); }); return; }
+      if(MP){ const r0 = s && s.round; await upd(x=>{ if(!x || x.phase!=="done" || x.round!==r0) return undefined; return mpAdvance(x); }); return; }
       const nextDrawer = s.drawer===me() ? other() : me();
-      await ctx.update("draw", x=>{ if(!x || x.phase!=="done") return undefined; return fresh(nextDrawer, x); });
+      await upd(x=>{ if(!x || x.phase!=="done") return undefined; return fresh(nextDrawer, x); });
     }
 
     function onState(st){
@@ -531,7 +549,7 @@ App.registerGame({
       need.alone = s.phase!=="lobby" && s.phase!=="over" && pl.length < 2;
       if(!need.sync && !need.gone && !need.all && !need.auto && !need.alone) return;
       hostBusy = true; const r0 = s.round;
-      ctx.update("draw", x=>{ if(!x || !x.mp || x.round!==r0) return undefined; let ch = mpSync(x);
+      upd(x=>{ if(!x || !x.mp || x.round!==r0) return undefined; let ch = mpSync(x);
         if(here().length < 2 && x.phase!=="lobby" && x.phase!=="over"){ x.phase = "over"; x.drawer = null; return x; }
         if((x.phase==="pick" || x.phase==="draw") && x.drawer && !here().includes(x.drawer)){ if(x.phase==="draw") settleMP(x, "left"); else { x.drawn = x.drawn || {}; x.drawn[x.drawer] = x.per; mpAdvance(x); } return x; }
         if(x.phase==="draw" && here().filter(u=>u!==x.drawer).every(u=>(x.solvers||[]).some(v=>v.u===u))){ settleMP(x, "all"); return x; }
@@ -546,8 +564,8 @@ App.registerGame({
     (async()=>{
       const I = ctx.players();
       let c = await ctx.getState("draw");
-      if(MP && (!c || !c.state || !c.state.mp)){ await ctx.update("draw", x=> x && x.mp ? undefined : lobbyState(null)); c = await ctx.getState("draw"); }
-      else if(!c && I.length>=2){ await ctx.update("draw", x=> x ? undefined : fresh(me(), null)); c = await ctx.getState("draw"); }
+      if(MP && (!c || !c.state || !c.state.mp)){ await upd(x=> x && x.mp ? undefined : lobbyState(null)); c = await ctx.getState("draw"); }
+      else if(!c && I.length>=2){ await upd(x=> x ? undefined : fresh(me(), null)); c = await ctx.getState("draw"); }
       s = c ? JSON.parse(JSON.stringify(c.state)) : null;
       if(s && s.phase==="draw") lastGuessN = (s.guesses||[]).length;
       render();

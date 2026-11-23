@@ -202,8 +202,9 @@ const App = (function(){
             if(want > 0 && got < want) setTimeout(() => toast(got <= 0 ? "今天的貓幣已經賺滿 1,500 個囉！<br>這次沒有入帳，半夜 12 點後就能繼續賺" : want > 100 && got === 100 ? "一場遊戲最多入帳 100 個貓幣，<br>這次入帳 100 個" : `今天的貓幣快賺滿了（每天最多 1,500 個）<br>這次只入帳 ${got} 個，半夜 12 點後重新計算`, 5200), 600);
             return real.state; } }
         if(!stateCache[game] || v > stateCache[game].version){ stateCache[game] = { version:v, state:ns }; emitState(game); } return ns; }
-      const fresh = await B.getState(game);
-      if(fresh) stateCache[game] = { version:fresh.version, state:fresh.state }; else delete stateCache[game];
+      const fresh = await B.getState(game), had = stateCache[game];
+      // 別人剛好先改了：把新的進度也通知畫面（不然即時通知晚到時會被當成舊的丟掉，畫面就卡在舊的樣子）
+      if(fresh){ stateCache[game] = { version:fresh.version, state:fresh.state }; if(!had || fresh.version > had.version) emitState(game); } else delete stateCache[game];
     }
     toast("同步失敗，請再試一次"); return null;
   }
