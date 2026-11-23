@@ -1367,7 +1367,7 @@ const App = (function(){
     el.innerHTML = modeBar + `<div class="k admNote" style="margin:4px 0 6px">${q ? `找到 ${list.length} 個小窩` : `${admMode==="all" ? "共" : MODES[admMode].name.replace("模式","") + "小窩"} ${list.length} 個・${list.reduce((s,n)=>s+(n.members||[]).length,0)} 個人`}</div>`
       + (shown.length ? shown.map(n=>{ const ms = n.members||[], md = MODES[n.mode] || MODES.couple, idle = idleDays(n.last_at||n.created_at);
         return `<div class="admN ${n.owner?"own":""}" data-id="${esc(n.id)}">
-          <div class="admNH"><span class="admMT">${n.owner ? "👑 站長" : esc(md.name)}</span><b>${esc(n.code||"")}</b><i>開了 ${Math.max(0, idleDays(n.created_at))} 天・${n.msgs||0} 則訊息</i></div>
+          <div class="admNH"><span class="admMT">${n.owner ? "👑 站長" : esc(md.name)}</span><b class="cpy" data-c="${esc(n.code||"")}">${esc(n.code||"")}</b><i>開了 ${Math.max(0, idleDays(n.created_at))} 天・${n.msgs||0} 則訊息</i></div>
           ${ms.map(m=>{ const d = idleDays(m.seen); return `<div class="admU" data-uid="${esc(m.uid)}"><span class="admUC">${sprite(m.cat||"orange","normal")}</span><div class="admUN"><b>${esc(m.name||"（沒有暱稱）")}</b><i class="${d>=60?"old":d>=14?"mid":""}">上線：${seenTxt(m.seen)}</i></div>${isBoss() && !n.owner && ms.length>1 ? `<button class="admUX" data-a="rm">移出</button>` : ""}</div>`; }).join("")}
           ${!n.owner && n.mode!=="solo" && ms.length<2 ? `<div class="k admNote">等另一個人加入中・等了 ${Math.max(0, idleDays(n.created_at))} 天（滿 14 天又沒動靜會自動刪除）</div>` : ""}
           ${!n.owner ? `<div class="admFbA"><span class="k admIdle">${idle>=60 ? `⚠ ${idle} 天沒人用，滿 90 天自動刪除` : ""}</span>${isBoss() ? `<button data-a="delnest">🗑 刪除小窩</button>` : ""}</div>` : ""}</div>`; }).join("")
@@ -1394,6 +1394,9 @@ const App = (function(){
       catch(err){ console.error(err); b.disabled = false; b.textContent = okTxt; const m = String(err.message||err);
         toast(m.includes("not_boss") ? "只有站長本人可以做這件事" : m.includes("owner_nest") ? "站長自己的小窩不能刪" : /admin_|function/i.test(m) ? "資料庫還沒加上這個功能（更新 15）" : m.includes("not_found") ? "找不到這個人，可能已經離開了" : "沒有成功，再試一次", 4000); } });
   }
+  // 後台：點邀請碼就複製
+  async function copyText(t){ try{ await navigator.clipboard.writeText(t); return true; }catch(e){ try{ const ta = document.createElement("textarea"); ta.value = t; ta.setAttribute("data-nokb", ""); ta.readOnly = true; ta.style.cssText = "position:fixed;left:-9999px"; document.body.appendChild(ta); ta.select(); const ok = document.execCommand("copy"); ta.remove(); return ok; }catch(e2){ return false; } } }
+  document.addEventListener("click", async e => { const c = e.target.closest && e.target.closest(".cpy[data-c]"); if(!c || !c.dataset.c) return; e.stopPropagation(); const ok = await copyText(c.dataset.c); SFX.tap(); toast(ok ? `已複製 ${esc(c.dataset.c)}` : `邀請碼：${esc(c.dataset.c)}`, ok ? 1800 : 6000); c.classList.add("copied"); setTimeout(() => c.classList.remove("copied"), 900); });
   async function viewAdmin(v){
     v.innerHTML = `<div class="adm"><div class="box admHead"><div><h2>👑 ${isBoss() ? "站長後台" : "管理員後台"}</h2><span class="k" id="admAt">讀取中…</span></div><button class="btn sub" id="admRf">🔄 更新</button></div><div id="admBody"><div class="box k" style="text-align:center">讀取中…</div></div></div>`;
     $("admRf").addEventListener("click", ()=>{ SFX.tap(); drawAdmin(); });
@@ -1430,7 +1433,7 @@ const App = (function(){
       <div class="box admBox"><h3>📮 回報信箱 ${st.unread ? `<span class="admBadge">${st.unread}</span>` : ""}</h3>
         <div class="admTabs"><button data-t="new" class="${admTab==="new"?"on":""}">未處理${fbAll.filter(f=>!f.done&&!f.wip).length ? ` ${fbAll.filter(f=>!f.done&&!f.wip).length}` : ""}</button><button data-t="wip" class="${admTab==="wip"?"on":""}">處理中${fbAll.filter(f=>!f.done&&f.wip).length ? ` ${fbAll.filter(f=>!f.done&&f.wip).length}` : ""}</button><button data-t="all" class="${admTab==="all"?"on":""}">全部</button></div>
         <div class="admFb">${(fb||[]).length ? fb.map(f=>`<div class="admFbI ${f.done?"done":""} ${f.wip&&!f.done?"wip":""}" data-id="${f.id}">
-            <div class="admFbH"><b>${esc(f.name||"（沒有暱稱）")}</b><span>${esc(f.code||"")}</span>${f.wip&&!f.done ? `<em class="fbWipT">🔧 處理中</em>` : f.done ? `<em class="fbDoneT">✓ 已處理</em>` : ""}<i>${agoTxt(f.last_at||f.created_at)}</i></div>
+            <div class="admFbH"><b>${esc(f.name||"（沒有暱稱）")}</b><span class="cpy" data-c="${esc(f.code||"")}">${esc(f.code||"")}</span>${f.wip&&!f.done ? `<em class="fbWipT">🔧 處理中</em>` : f.done ? `<em class="fbDoneT">✓ 已處理</em>` : ""}<i>${agoTxt(f.last_at||f.created_at)}</i></div>
             ${(()=>{ const th = fbThread(f); return th.length>1 && th[th.length-1].by==="u" && th.some(t=>t.by==="a") ? `<span class="fbNew">對方又回覆了</span>` : ""; })()}${fbBubbles(f, f.name||"對方", "👑 你")}
             <div class="admReBox hidden"><textarea maxlength="500" rows="3" placeholder="${f.alive===false ? "這個小窩已經刪除了，對方收不到回覆" : "回覆給對方，對方的手機會收到通知"}"></textarea><div class="admFbA"><button data-a="cancel">取消</button><button data-a="send" class="pri">送出回覆</button></div></div>
             <div class="admFbA admActs"><button data-a="reply">💬 回覆</button>${f.done ? "" : `<button data-a="wip">${f.wip ? "↩ 取消處理中" : "🔧 處理中"}</button>`}<button data-a="done">${f.done ? "↩ 改回未處理" : "✓ 已處理"}</button>${isBoss() ? `<button data-a="del">🗑 刪除</button>` : ""}</div></div>`).join("")
@@ -4047,7 +4050,7 @@ const App = (function(){
       if(p.famg && p.famg === FH.g) (FH.bcs || []).slice().forEach(h => { try{ h(p); }catch(e){} }); });
     // 家人觀戰的「加油」
     B.on("bc", p=>{ if(!p || p.t !== "famCheer" || p.from === me.uid || !Array.isArray(p.to) || !p.to.includes(me.uid)) return; const f = members.find(m => m.user_id === p.from); if(!f) return; SFX.heart(); toast(`${sprite(f.cat || "orange", "love")} ${esc(f.name)} 在旁邊看你們玩，幫你加油！`, 3500); });
-    B.on("members", async()=>{ const sig = () => members.map(x=>[x.user_id,x.name,x.cat].join("|")).join(","); const s0 = sig(); members = await B.members(); renderHeader(); if(route==="home") render(); else if(chatVisible()){ if(sig() === s0) markReadDom(); else drawList(false); } });
+    B.on("members", async()=>{ const sig = () => members.map(x=>[x.user_id,x.name,x.cat].join("|")).join(","); const s0 = sig(); members = await B.members(); renderHeader(); if(route==="home"){ if(sig() !== s0) render(); } else if(chatVisible()){ if(sig() === s0) markReadDom(); else drawList(false); } });
     B.on("msg", ()=>{ lastRt = Date.now(); }); B.on("bc", ()=>{ lastRt = Date.now(); });
     B.on("state", (game, version, state)=>{ lastRt = Date.now(); },);
     B.on("state", (game, version, state)=>{ if(!stateCache[game] || version > stateCache[game].version){ stateCache[game]={version,state}; emitState(game); } });

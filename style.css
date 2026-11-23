@@ -4293,3 +4293,4 @@ body.compact .famTop .ftC svg{max-width:56px}
 .bdIt{display:grid;grid-template-columns:1fr auto;gap:0 8px;border:2px solid var(--line);background:var(--card);padding:5px 8px;font-size:14px}
 .bdIt span{grid-column:1;grid-row:2;font-size:11px;color:var(--muted)}.bdIt em{font-style:normal;grid-column:2;grid-row:1;color:var(--pinkT)}.bdIt i{font-style:normal;grid-column:2;grid-row:2;font-size:11px;color:var(--muted);text-align:right}
 .bdIt.adm{background:#fff4d6}
+.cpy{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;user-select:text;-webkit-user-select:text}.cpy::after{content:"⧉";font-size:.8em;margin-left:3px;opacity:.6;text-decoration:none;display:inline-block}.cpy.copied{color:var(--mintT)}
