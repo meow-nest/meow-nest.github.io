@@ -285,8 +285,10 @@ const App = (function(){
     const p = partner(); const here = p && isOnline(p.user_id);
     const k = (me.cat||"orange")+(p?p.cat:"-")+here+JSON.stringify(moodSt&&moodSt.moods||{})+JSON.stringify(moodSt&&moodSt.status||{});
     if(k!==lastHdr){ lastHdr=k;
-      $("catMe").innerHTML = sprite(me.cat||"orange", moodFace(me.uid,"normal"));
-      $("catThem").innerHTML = p ? sprite(p.cat, moodFace(p.user_id, here?"normal":"curl")) : sprite("white","normal",{soft:true});
+      const fMe = moodFace(me.uid,"normal"), fTh = p ? moodFace(p.user_id, here?"normal":"curl") : "normal";
+      const put = (el, c, f, o) => { if(window.PoorCat && Pix.isPc(c) && f === "normal") PoorCat.live(el, c, { quiet: true, noTap: o }); else { el._pc = null; el.innerHTML = sprite(c, f); } };
+      put($("catMe"), me.cat||"orange", fMe);
+      if(p) put($("catThem"), p.cat, fTh, isFam() && others().length > 1); else { $("catThem")._pc = null; $("catThem").innerHTML = sprite("white","normal",{soft:true}); }
     }
     $("nmMe").textContent = me.name||"我";
     $("nmThem").textContent = p ? p.name : "???";
@@ -2303,6 +2305,33 @@ const App = (function(){
       if(await giftClaim(n.gift)) toast(`${sprite(n.gift,"wave")} 限定「${CNAME[n.gift]}」送到你的小窩了！`);
     }
   }
+  // ---- 乞丐貓（poorcat.js）：每個人開一次禮物盒，顏色由伺服器隨機決定；站長小窩全部顏色都有 ----
+  const PC = { col: 0, all: false, ok: false };
+  async function pcLoad(){ try{ const r = await B.rpc("poorcat_me"); PC.col = (r && +r.col) || 0; PC.all = !!(r && r.all); PC.ok = true; }catch(e){ PC.ok = false; } return PC; }
+  const pcOwned = () => PC.all ? Pix.PC_IDS.slice() : PC.col ? ["pc" + PC.col] : [];
+  let pcShown = false;
+  // 開過但還沒看到開箱結果（例如開到一半關掉 app）：下次再演一次，顏色還是同一個
+  const pcSeen = () => +(store.get("mw_pcSeen") || 0);
+  const pcNeed = () => PC.ok && !PC.all && (!PC.col || pcSeen() !== PC.col);
+  function pcGiftOpen(force){
+    if(!window.PoorCat || !(force ? (PC.ok && !PC.all) : pcNeed()) || (pcShown && !force) || document.querySelector(".pcGift")) return;
+    pcShown = true;
+    PoorCat.gift({
+      title: "站長給你的小禮物",
+      sfx: { tap: () => SFX.tap(), boom: () => SFX.boom && SFX.boom(), level: () => SFX.level && SFX.level(), meow: () => SFX.meow && SFX.meow() },
+      open: async () => { const r = await B.rpc("poorcat_open"); if(r && r.all){ PC.all = true; return 1; } const c = r && +r.col; if(c){ PC.col = c; } return c; },
+      wear: async id => { await wearCat(id); toast(`${sprite(id,"happy")} 換上「${esc(CNAME[id]||"")}」了！`); if(route === "settings") render(); },
+      onLater: () => {},
+      onReveal: c => store.set("mw_pcSeen", String(c)),
+      onClose: () => { if(route === "settings") render(); },
+    });
+  }
+  async function maybePcGift(){
+    await pcLoad(); if(!pcNeed()) return;
+    // 等到在小窩首頁、沒有其他彈窗時才跳出來（玩遊戲、聊天到一半不會被打斷）
+    for(let i = 0; i < 600; i++){ if(route === "home" && !document.querySelector(".careModal, .pcGift, .lockOv") && !document.hidden) break; await new Promise(r => setTimeout(r, 1000)); }
+    if(route === "home") pcGiftOpen(false);
+  }
   async function wearCat(c){ me.cat = c; store.set("mw_cat", c); try{ await B.updateMe({ cat: c }); }catch(e){} B.track({ name: me.name, cat: c }); lastHdr = ""; renderHeader(); }
   function giftHtml(n){
     if(!n.gift) return "";
@@ -3709,12 +3738,16 @@ const App = (function(){
         + (star ? `<button class="${pick==="star"?"on":""} svPk" data-c="star">${sprite("star","normal")}<i>限定</i></button>` : SV.on ? `<button class="svPk lock" data-sv="1">${sprite("star","normal")}<i>填問卷</i></button>` : "")
         + (GIFT.has.has("pj") || me.cat==="pj" ? `<button class="${pick==="pj"?"on":""} svPk" data-c="pj">${sprite("pj","normal")}<i>限定</i></button>` : "")
         + [...new Set(BD.cols.map(i=>"bd"+i).concat(Pix.isBd(me.cat) ? [me.cat] : []))].map(c=>`<button class="${pick===c?"on":""} svPk bdPk" data-c="${c}">${sprite(c,"normal")}<i>壽星</i></button>`).join("")
-        + (BD.ok && !BD.cols.length && !Pix.isBd(me.cat) ? `<button class="svPk lock bdPk" data-bdl="1">${sprite("bd1","normal")}<i>生日限定</i></button>` : "");
+        + (BD.ok && !BD.cols.length && !Pix.isBd(me.cat) ? `<button class="svPk lock bdPk" data-bdl="1">${sprite("bd1","normal")}<i>生日限定</i></button>` : "")
+        + [...new Set(pcOwned().concat(Pix.isPc(me.cat) ? [me.cat] : []))].map(c=>`<button class="${pick===c?"on":""} svPk" data-c="${c}">${sprite(c,"normal")}<i>${PC.all ? Pix.PC_N[+c.slice(2)-1] : "乞丐貓"}</i></button>`).join("")
+        + (PC.ok && !PC.all && !PC.col ? `<button class="svPk lock" data-pcg="1">${sprite("pc1","normal")}<i>禮物盒</i></button>` : "");
       pk.querySelectorAll("[data-c]").forEach(b=>b.addEventListener("click",()=>{pick=b.dataset.c;drawPk();}));
       const lk=pk.querySelector("[data-sv]"); if(lk) lk.addEventListener("click", ()=>{ SFX.tap(); svDeclined = true; svForm(false); });
+      const pg=pk.querySelector("[data-pcg]"); if(pg) pg.addEventListener("click", ()=>{ SFX.tap(); pcGiftOpen(true); });
       const bl=pk.querySelector("[data-bdl]"); if(bl) bl.addEventListener("click", ()=>{ SFX.tap(); const b=$("bdSet"); if(b){ setOpen.add("我的生日"); const h=b.querySelector(".setHd"); if(h && h._paint) h._paint(); b.scrollIntoView({behavior:"smooth",block:"center"}); b.classList.remove("flash"); void b.offsetWidth; b.classList.add("flash"); } toast(BD.md ? "生日前後 7 天就能挑一隻壽星貓喔" : "先在上面填生日，生日前後 7 天就能挑一隻喔"); }); };
     bdSetBox(); bdLoad().then(()=>{ if($("pk")) drawPk(); bdSetBox(); });
     giftLoad().then(()=>{ if($("pk")) drawPk(); });
+    pcLoad().then(()=>{ if($("pk")) drawPk(); });
     drawPk(); svLoad().then(()=>{ if($("pk")) drawPk(); const sb=$("svSet"); if(sb) sb.classList.toggle("hidden", !(SV.on && !SV.done)); });
     $("bSave").addEventListener("click", async()=>{ const n=$("nm").value.trim().slice(0,10); if(!n) return; me.name=n; me.cat=pick; store.set("mw_name",n); store.set("mw_cat",pick); try{ await B.updateMe({name:n,cat:pick}); }catch(e){} B.track({name:n,cat:pick}); lastHdr=""; renderHeader(); toast(`${sprite(pick,"wave")} 已儲存！`); });
     const svo=$("svOpen"); if(svo) svo.addEventListener("click", ()=>{ SFX.select(); svDeclined = true; svForm(false); });
@@ -4097,6 +4130,7 @@ const App = (function(){
     setTimeout(()=>maybeSurvey().catch(()=>{}), 4500);
     setTimeout(()=>lvCheckin().catch(()=>{}), 1500);
     bdLoad().then(()=>setTimeout(()=>maybeBday().catch(()=>{}), 2500)).catch(()=>{});
+    setTimeout(()=>maybePcGift().catch(()=>{}), 3200);
     setTimeout(checkFb, 2400);
     setInterval(refreshTiles, 60000);
     if(!NO_MEDIA){ setTimeout(cleanupVoices, 8000); setInterval(cleanupVoices, 3*3600e3); }

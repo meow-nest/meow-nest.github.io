@@ -60,7 +60,7 @@
 
 ### 加新的 SQL
 
-1. 新檔案 `supabase/update_NN_名稱.sql`，NN 接著目前最大的號碼（目前到 **80**）。開頭用中文註解說這次做什麼。要能重複執行（`if not exists`、`create or replace`）。
+1. 新檔案 `supabase/update_NN_名稱.sql`，NN 接著目前最大的號碼（目前到 **81**）。開頭用中文註解說這次做什麼。要能重複執行（`if not exists`、`create or replace`）。
 2. 加進 all.sql：`printf '\n' >> supabase/all.sql && cat supabase/update_NN_名稱.sql >> supabase/all.sql`
 3. 先在本機 Postgres 測過，再推上去給站長連結。
 
@@ -143,5 +143,6 @@ git push origin main           # GitHub Pages 約 1 分鐘後更新
 - **小窩最上面（11/23）**：中間圖示照模式 `MI().mid`（情侶 heart、閨蜜 star、兄弟 bigpaw，`renderHeader` 會更新）；家人模式最上面改成 `famTopRender()` 的 `#famTop`（全家的貓排一排，`.duo` 藏起來，人多自動變小），選雙人遊戲對象只留在首頁「我們家」（`famHtml`）。
 - **站長改生日（update_79，11/23）**：後台「壽星貓」可以直接改（`admin_bday_set(邀請碼, 暱稱, 'MM-DD')`，`user_bday.admin_at` 記站長改的時間）＋「看列表」（`admin_bday_list()` 最近 200 筆，站長改的黃底）。後台每分鐘自動更新：資料沒變不重畫、打字／回覆時先不重畫（`admLastKey`）。
 - **配對檢舉修正（update_80，11/23）**：`party_rooms.last_by`／`moved_at`（`party_cas` 記最後一步是誰下的）、`party_reports.note`。檢舉「不動」但最後一步是對方下的 → 回 `{error:"your_turn"}`（前端 `ptReport` 先打 RPC，your_turn 不離開房間）。寫進 feedback 的配對檢舉**只能寫匿名名字**（檢舉的人自己看得到 feedback），真實身分只在後台 `admin_party_reports`。`supabase/check_security.sql` 是唯讀的安全檢查（storage、沒 RLS 的表、anon 可執行的函式）。
+- **乞丐貓（update_81，11/23）**：站長送大家的小禮物。`poorcat.js`（pixel.js 後面載入）：12 色 `pc1`～`pc12`（pixel.js `PC_IDS`／`PC_N`／`isPc`，`palOf` 也有），3 套造型（歪草帽破斗篷、住紙箱、包紮）×7 種表情，像素資料在 `/*PCDATA*/` 裡，**要改圖改 `tools/poorcat_gen.html` 再跑 `python3 tools/poorcat_build.py`**（要先開 8765 伺服器）。`PoorCat.live(el, c)` 會呼吸、眨眼、每 9～13 秒跳起來在雲裡換裝、點一下跳（首頁最上面的貓用，`quiet` 不冒愛心）；`PoorCat.gift()` 禮物盒開箱。顏色由伺服器 `poorcat_open()` 隨機給、每人一次不能換（`poorcat_got`，同小窩同暱稱換手機拿回原本的）；站長小窩 `all:true` 全部顏色都能選。`member_cat_guard` 有檢查。前端 `PC`／`pcLoad`／`maybePcGift`（只在首頁、沒有其他彈窗時跳；`mw_pcSeen` 記看過開箱結果，開到一半關掉下次會再演一次）；設定「我的貓」有乞丐貓或「禮物盒」按鈕。站長還想幫**每隻貓寫故事**（壽星貓 9 隻寫成同一家人，其他各自的故事），還沒做。
 - 定時訊息（11/20 上線）：聊天頁左上「定時」（`schedWriter`）。`sched_msgs` 表不開權限，用 `sched_add`／`sched_list`／`sched_cancel`；pg_cron `meow-sched` 每分鐘跑 `fire_sched()`，用寫的人的名字插入 messages（kind `text`、media `{"sch":1}`，前端 `isSched` 顯示「定時訊息」標籤），推播照舊。送出前只有自己看得到；500 字、1 分鐘後～1 年內、每人最多 30 則；單人小窩沒有按鈕。
 - 等級稱號：Lv40 之後有天使／惡魔翅膀（惡魔 6 種顏色），排行榜有本週／總排行，站長小窩可以展示但不參加排行。

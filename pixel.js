@@ -211,8 +211,13 @@ function bdSprite(c, kind, plain){
   return pix(rows, pal, {pad: 1}).replace("</svg>", bdMouth(face, pal) + "</svg>");
 }
 const CNAME = Object.assign({orange:"橘貓",white:"白灰斑貓",calico:"三花貓",black:"黑貓",gray:"灰貓",star:"博士貓",pj:"睡衣小貓"}, Object.fromEntries(BD_IDS.map((id, i) => [id, "壽星貓・" + BD_COL[i][0]])));
-const SPECIAL = ["star","pj"].concat(BD_IDS);   // 特別的貓：要完成條件才能選（例如填問卷）
-const palOf = c => isBd(c) ? bdPal(c) : c==="white" ? Object.assign({},PAL.white,{S:'#a9a4b6',D:'#a9a4b6'}) : PAL[c];
+const PC_IDS = Array.from({length:12}, (_, i) => "pc" + (i + 1));   // 乞丐貓（poorcat.js）
+const PC_N = ["奶油","橘子","灰灰","雪白","可可","黑糖","虎斑","蜜桃","檸檬","薄荷","天空","薰衣草"];
+const isPc = c => /^pc([1-9]|1[0-2])$/.test(c || "");
+PC_IDS.forEach((id, i) => { CNAME[id] = "乞丐貓・" + PC_N[i]; });
+const SPECIAL = ["star","pj"].concat(BD_IDS, PC_IDS);   // 特別的貓：要完成條件才能選（例如填問卷）
+const PC_YS = [["#efe3d3","#d7c3a8"],["#ffc68c","#f0a060"],["#c9ccd8","#a3a7b9"],["#ffffff","#e4e0ea"],["#a8775e","#8a5e48"],["#4a4452","#37323e"],["#e8c9a0","#b98d5c"],["#ffd6c8","#f4aa96"],["#fff0b0","#efd36c"],["#cdeedd","#9fd5bc"],["#d2e6fb","#9fc4ec"],["#e2d8f6","#bcaee6"]];
+const palOf = c => isPc(c) ? Object.assign({}, PAL.orange, {O:'#4a3428', Y: PC_YS[+c.slice(2)-1][0], S: PC_YS[+c.slice(2)-1][1], D: PC_YS[+c.slice(2)-1][1], M:'#4a3428'}) : isBd(c) ? bdPal(c) : c==="white" ? Object.assign({},PAL.white,{S:'#a9a4b6',D:'#a9a4b6'}) : PAL[c];
 function baseSit(c, face){
   let r = setEyes(c==="black"||c==="calico" ? plain(sit) : sit, face);
   if(c==="white"||c==="calico") r = calicoize(r);
@@ -225,6 +230,7 @@ function sprite(c, kind, opts){
   const key = c+kind+(opts&&opts.soft?'s':'')+(opts&&opts.plain?'p':'');
   if(cache[key]) return cache[key];
   if(isBd(c)) return cache[key] = bdSprite(c, kind, opts && opts.plain);
+  if(isPc(c)) return window.PoorCat ? PoorCat.sprite(c, kind, opts) : sprite("orange", kind, opts);
   let pal = palOf(c);
   if(opts && opts.soft) pal = Object.assign({}, pal, {O: pal.D});
   let rows;
@@ -307,4 +313,4 @@ ICON.conf = ["K...Y..","..B...K",".Y..K..","B....B.","..K.Y..","Y.....B"];
 ICON.cup = ["O.....O","OWWWWWO","OKKKKKO","OKWKKKO",".OKKKO.","..OKO..","...O...","..OOO.."];
 ICON.horn = ["........OO","......OOKO","....OOYYKO","OOOOYYYYKO","OKKYYYYYKO","OOOOYYYYKO","....OOYYKO","......OOKO","........OO"];
 ICON.yarn = ["..OOOOO..",".OKKWKKO.","OKWKKWKKO","OKKWKKWKO","OWKKWKKKO","OKWKKWKWO",".OKKWKKO.","..OOOOOO.","......OOO"];   // 毛線球
-const Pix = { COLORS, CNAME, SPECIAL, sprite, icon, palOf, BD_IDS, BD_COL, isBd };
+const Pix = { COLORS, CNAME, SPECIAL, sprite, icon, palOf, BD_IDS, BD_COL, isBd, PC_IDS, PC_N, isPc };

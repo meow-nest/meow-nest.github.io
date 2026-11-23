@@ -4295,3 +4295,58 @@ body.compact .famTop .ftC svg{max-width:56px}
 .bdIt span{grid-column:1;grid-row:2;font-size:11px;color:var(--muted)}.bdIt em{font-style:normal;grid-column:2;grid-row:1;color:var(--pinkT)}.bdIt i{font-style:normal;grid-column:2;grid-row:2;font-size:11px;color:var(--muted);text-align:right}
 .bdIt.adm{background:#fff4d6}
 .cpy{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;user-select:text;-webkit-user-select:text}.cpy::after{content:"⧉";font-size:.8em;margin-left:3px;opacity:.6;text-decoration:none;display:inline-block}.cpy.copied{color:var(--mintT)}
+
+/* ---- 乞丐貓（poorcat.js）：會動的小貓 ---- */
+.pcL{position:relative;display:block;width:100%;height:100%;transform-origin:50% 92%;animation:pcBreath 1.6s ease-in-out infinite;cursor:pointer}
+.pcL .pcB{display:block;width:100%;height:100%}
+.pcL .pcB svg{width:100%;height:100%;display:block}
+@keyframes pcBreath{0%,100%{transform:scale(1.012,.985)}50%{transform:scale(.985,1.02)}}
+.pcL.hop{animation:pcHop .9s ease-out}
+@keyframes pcHop{0%{transform:scale(1.08,.9)}12%{transform:scale(.94,1.08) translateY(-10%)}35%{transform:translateY(-22%)}58%{transform:translateY(0) scale(1.1,.88)}72%{transform:scale(.97,1.04)}100%{transform:none}}
+.pcL.swap{animation:pcSwap 1.5s ease-in-out}
+@keyframes pcSwap{0%{transform:none}10%{transform:scale(1.12,.86)}22%{transform:translateY(-30%) scale(.94,1.08)}45%{transform:translateY(-34%)}62%{transform:translateY(0) scale(1.12,.86)}74%{transform:scale(.96,1.05)}86%,100%{transform:none}}
+.pcFx{position:absolute;inset:0;pointer-events:none}
+.pcPuff{position:absolute;left:50%;top:22%;width:120%;height:90%;transform:translateX(-50%)}
+.pcPuff i{position:absolute;border-radius:50%;background:#fffafc;box-shadow:inset -3px -3px 0 #f6dbe4,0 0 0 2px #edc3d0;animation:pcPuff .95s ease-in-out both}
+.pcPuff i:nth-child(1){left:30%;top:20%;width:40%;height:40%}.pcPuff i:nth-child(2){left:8%;top:28%;width:30%;height:30%}.pcPuff i:nth-child(3){left:62%;top:26%;width:32%;height:32%}
+.pcPuff i:nth-child(4){left:18%;top:2%;width:28%;height:28%}.pcPuff i:nth-child(5){left:52%;top:0;width:30%;height:30%}.pcPuff i:nth-child(6){left:4%;top:52%;width:26%;height:26%}
+.pcPuff i:nth-child(7){left:68%;top:52%;width:26%;height:26%}.pcPuff i:nth-child(8){left:30%;top:50%;width:40%;height:38%}.pcPuff i:nth-child(9){left:22%;top:70%;width:56%;height:30%}
+@keyframes pcPuff{0%{transform:scale(.2);opacity:0}25%{transform:scale(1.05);opacity:1}55%{transform:scale(1);opacity:1}100%{transform:scale(1.4);opacity:0}}
+.pcStar i{position:absolute;left:50%;top:50%;width:9%;height:9%;background:#ffd24a;clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%);animation:pcStar .9s ease-out both}
+.pcStar i:nth-child(1){--a:0deg}.pcStar i:nth-child(2){--a:45deg}.pcStar i:nth-child(3){--a:90deg}.pcStar i:nth-child(4){--a:135deg}.pcStar i:nth-child(5){--a:180deg}.pcStar i:nth-child(6){--a:225deg}.pcStar i:nth-child(7){--a:270deg}.pcStar i:nth-child(8){--a:315deg}
+@keyframes pcStar{0%{transform:rotate(var(--a)) translateY(-20%) scale(1.6);opacity:1}100%{transform:rotate(var(--a)) translateY(-620%) scale(.4);opacity:0}}
+.pcHearts i{position:absolute;top:0;width:22%;animation:pcHeart 1.2s ease-out both}
+.pcHearts i:nth-child(1){left:12%}.pcHearts i:nth-child(2){left:40%}.pcHearts i:nth-child(3){left:68%}
+.pcHearts i svg{width:100%;display:block}
+@keyframes pcHeart{0%{transform:translateY(10%) scale(.4);opacity:0}20%{opacity:1;transform:translateY(-20%) scale(1)}100%{transform:translateY(-140%) scale(.9);opacity:0}}
+
+/* ---- 乞丐貓禮物盒 ---- */
+.pcGift{position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;background:rgba(80,40,60,.35);backdrop-filter:blur(2px);animation:pgIn .25s ease-out}
+.pcGift.out{opacity:0;transition:opacity .3s}
+@keyframes pgIn{from{opacity:0}}
+.pgStage{position:relative;flex:none;width:390px;height:620px;overflow:hidden;border-radius:26px;background:radial-gradient(circle at 50% 50%,#fff 0,#ffeef3 58%,#ffe0ea 100%);box-shadow:0 10px 40px rgba(120,40,70,.3);cursor:pointer;user-select:none}
+.pgStage>*{position:absolute}
+.pgGlow{left:50%;top:330px;width:300px;height:300px;margin:-150px 0 0 -150px;border-radius:50%;background:radial-gradient(circle,rgba(255,236,170,.95) 0,rgba(255,210,225,.5) 35%,transparent 68%);opacity:0}
+.pgRay{left:50%;top:320px;width:640px;height:640px;margin:-320px 0 0 -320px;border-radius:50%;opacity:0;-webkit-mask:radial-gradient(circle,#000 12%,transparent 62%);mask:radial-gradient(circle,#000 12%,transparent 62%)}
+.pgRay.r1{background:repeating-conic-gradient(rgba(255,240,180,.95) 0 8deg,transparent 8deg 24deg)}
+.pgRay.r2{background:repeating-conic-gradient(rgba(255,200,225,.8) 0 5deg,transparent 5deg 30deg)}
+.pgRing{left:50%;top:330px;border-radius:50%;border:6px solid #fff3b0;box-shadow:0 0 12px #ffd6e6;opacity:0}
+.pgShadow{left:50%;top:400px;width:150px;height:22px;margin-left:-75px;border-radius:50%;background:#e9b9c6;opacity:.5}
+.pgBox,.pgLid{left:50%;top:190px;width:250px;height:250px;margin-left:-125px;transform-origin:50% 85%}
+.pgCat{left:50%;top:160px;width:250px;height:250px;margin-left:-125px;transform-origin:50% 92%}
+.pgBox svg,.pgLid svg,.pgCat svg{width:100%;height:100%;display:block}
+.pgFx{inset:0;pointer-events:none}
+.pgFx i{position:absolute;display:block}
+.pgFx .tw{width:14px;height:14px;background:#fff6b0;clip-path:polygon(50% 0,60% 40%,100% 50%,60% 60%,50% 100%,40% 60%,0 50%,40% 40%)}
+.pgFx .sp{width:10px;height:10px;background:#ffd24a;clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%)}
+.pgFx .hp{width:28px}.pgFx .hp svg{width:100%;display:block}
+.pgFlash{inset:0;background:#fffdf2;opacity:0;pointer-events:none}
+.pgBan{left:0;right:0;top:56px;text-align:center;opacity:0}
+.pgBan b{display:inline-block;padding:10px 22px;background:#ff8fb1;color:#fff;font-size:22px;border:3px solid #4a3428;border-radius:10px;box-shadow:0 4px 0 #c45c80;position:relative}
+.pgBan b:before,.pgBan b:after{content:"";position:absolute;top:12px;width:22px;height:26px;background:#f27ea3;border:3px solid #4a3428;z-index:-1}
+.pgBan b:before{left:-18px;clip-path:polygon(0 0,100% 0,100% 100%,0 100%,35% 50%)}.pgBan b:after{right:-18px;clip-path:polygon(0 0,100% 0,65% 50%,100% 100%,0 100%)}
+.pgBan small{display:block;margin-top:8px;font-size:15px;color:#b0607a}
+.pgCap{left:0;right:0;top:470px;text-align:center;font-size:20px;color:#6b4a3a}
+.pgCap small{display:block;margin-top:6px;font-size:14px;color:#b0607a;animation:bob 1.2s ease-in-out infinite}
+.pgBtns{left:40px;right:40px;top:480px;display:flex;flex-direction:column;gap:10px;opacity:0}
+.pgLater{left:50%;bottom:22px;transform:translateX(-50%);background:none;border:0;color:#b0607a;font:inherit;font-size:14px;text-decoration:underline;cursor:pointer}
