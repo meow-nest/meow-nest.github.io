@@ -3963,6 +3963,7 @@ body.dockKb .careModal .ltWrap .ltBody{height:clamp(56px,calc(100dvh - var(--doc
 .admPrN{font-style:normal;text-align:center;font-size:18px;color:var(--ink);line-height:1.1}.admPrN small{display:block;font-size:11px;color:var(--muted)}
 .admPrN.hot{color:#c0504f}
 .admPrR ul{margin:4px 0 6px 18px;padding:0;font-size:13px;color:var(--muted)}
+.admPrNote{display:block;font-size:12px;opacity:.85}
 .admPrR .btn{width:100%;margin:0;padding:6px;font-size:14px}
 .admPrBan{background:#e0627c;color:#fff}
 

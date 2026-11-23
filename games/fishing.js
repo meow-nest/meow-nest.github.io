@@ -522,7 +522,7 @@ App.registerGame({
         clearTimeout(quitT); clearT(); game.phase = "end"; if(game.race){ const rr = game.race; ctx.update("fishrace", r => { if(!r || r.round !== rr) return undefined; r.done = r.done || {}; r.scores = r.scores || {}; r.done[me()] = true; r.scores[me()] = 0; return r; }); } game = null; SFX.next();
         ctx.toast(`${sprite(ctx.me.cat,"sleep")} 這場不算，下次再來釣～`); lobby();
       });
-      timers.push(setInterval(()=>{ game.t--; box.querySelector("#fsT").textContent = "⏱ "+game.t; if(game.t<=5 && game.t>0) SFX.beep(false); if(game.t<=0) finish(); }, 1000));
+      timers.push(setInterval(()=>{ const tEl = box.querySelector("#fsT"); if(!tEl || !box.isConnected){ clearT(); return; } game.t--; tEl.textContent = "⏱ "+game.t; if(game.t<=5 && game.t>0) SFX.beep(false); if(game.t<=0) finish(); }, 1000));
     }
     function setAct(t, cls){ const a = box.querySelector("#fsAct"); if(a){ a.textContent = t; a.className = "btn fsAct "+(cls||""); } }
     function action(){

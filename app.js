@@ -1676,7 +1676,7 @@ const App = (function(){
     const d = t => { const x = new Date(t); return `${x.getMonth()+1}/${x.getDate()} ${String(x.getHours()).padStart(2,"0")}:${String(x.getMinutes()).padStart(2,"0")}`; };
     el.innerHTML = `<div class="k admNote">檢舉會自動封鎖：被檢舉的人不會再配到檢舉的人。被很多人檢舉的話，可以「禁止配對」，ta 就完全不能用隨機配對（用房間碼跟朋友玩不受影響）。</div>`
       + (xs.length ? xs.map(x => `<div class="admPrR ${x.banned ? "ban" : ""}"><div class="admPrH">${sprite(x.cat || "white", x.banned ? "cry" : "normal")}<span><b>${esc(x.name || "（已經離開小窩）")}</b><small>${esc(x.anon)}・小窩 ${esc(x.code || "?")}</small></span><em class="admPrN ${x.n >= 3 ? "hot" : ""}">${x.n} 次<small>${x.who} 人檢舉</small></em></div>
-          <ul>${(x.recent || []).map(r => `<li>${esc(d(r.at))}・${esc(gn(r.game))}・${esc(r.reason)}</li>`).join("")}</ul>
+          <ul>${(x.recent || []).map(r => `<li>${esc(d(r.at))}・${esc(gn(r.game))}・${esc(r.reason)}${r.note ? `<small class="admPrNote">${esc(r.note)}</small>` : ""}</li>`).join("")}</ul>
           <button class="btn ${x.banned ? "sub" : "admPrBan"}" data-ban="${esc(x.id)}" data-on="${x.banned ? 0 : 1}">${x.banned ? "解除禁止（讓 ta 可以再配對）" : "禁止 ta 隨機配對"}</button></div>`).join("")
         : `<div class="k" style="text-align:center;padding:8px">目前沒有人被檢舉 🎉</div>`);
     el.querySelectorAll("[data-ban]").forEach(b => { let arm = false; b.addEventListener("click", async () => {
@@ -2153,9 +2153,12 @@ const App = (function(){
     const m = modal(`<h3>檢舉 ${esc(o.name)}</h3><p class="k" style="text-align:center">檢舉後會離開房間，以後不會再配到 ta，站長也會收到通知</p><div class="ptRepL">${RS.map(r => `<button class="btn sub" data-r="${esc(r)}">${esc(r)}</button>`).join("")}</div><button class="btn sub" id="rpX" style="width:100%;margin-top:8px">取消</button>`);
     m.querySelector("#rpX").addEventListener("click", () => m.remove());
     m.querySelectorAll("[data-r]").forEach(b => b.addEventListener("click", async () => {
-      m.remove(); ptUnmount();
-      try{ await B.rpc("party_report", { p_reason: b.dataset.r }); toast("收到了，謝謝你告訴我們 💗 以後不會再配到 ta", 3500); }catch(e){ toast(ptErr(e)); }
-      PT.room = null; ptConnect(); ptPaint();
+      m.remove();
+      let r = null;
+      try{ r = await B.rpc("party_report", { p_reason: b.dataset.r }); }catch(e){ toast(ptErr(e)); }
+      if(r && r.error === "your_turn"){ toast("最後一步是 ta 下的，現在輪到你喔～", 3500); return; }
+      if(r && r.ok) toast("收到了，謝謝你告訴我們 💗 以後不會再配到 ta", 3500);
+      ptUnmount(); PT.room = null; ptConnect(); ptPaint();
     }));
   }
   const ptGame = id => games.find(g => g.id === id);

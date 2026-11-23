@@ -182,6 +182,7 @@ App.registerGame({
     function ui(){
       const p = ctx.partner();
       const P = el.querySelector("#gmP"), S = el.querySelector("#gmS");
+      if(!P || !S) return;   // 已經離開遊戲（畫面被換掉）就不用畫了
       if(!p){ P.innerHTML=""; S.textContent=`等${ctx.pw()}加入小窩…`; draw(); updCtl(); return; }
       if(!s){ S.textContent="準備棋盤中…"; return; }
       const head = c => { const cnv=document.createElement("canvas"); cnv.width=44; cnv.height=40; const x=cnv.getContext("2d"); x.imageSmoothingEnabled=false; px(x, HEAD, STONE[c], 22, 20, 40); return cnv.toDataURL(); };
