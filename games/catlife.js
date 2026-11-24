@@ -49,7 +49,7 @@ const EV = [
 
   ["y","","窗外的小鳥","窗外停了一隻小鳥，{n}的尾巴一直甩。",
     ["對著窗戶喀喀叫","j+6","叫了一個下午，好滿足。"],
-    ["研究怎麼打開窗戶",.45,["i+9 j+4","你學會開窗了！小鳥飛走了就是。"],["h-9","從窗台上摔了下去。"]]],
+    ["研究怎麼打開窗戶",.45,["i+9 j+4","你學會開窗了！小鳥飛走了就是。"],["h-9 +leg","從窗台上摔了下去，腳好痛。"]]],
   ["y","","新的逗貓棒","主人拿回一根有羽毛的逗貓棒。",
     ["瘋狂追！","j+9 h+4","玩到喘吁吁，開心！"],
     ["假裝沒興趣","i+3 l-2","其實心裡很想玩。"]],
@@ -87,7 +87,7 @@ const EV = [
     ["走過去蹭蹭","l+11 j+3","主人抱著你，慢慢不哭了。"],
     ["在旁邊靜靜陪著","l+7 i+3","主人摸摸你說：「謝謝你。」"]],
   ["y","stray","街頭的挑戰","一隻大野貓擋在你的路上。",
-    ["勇敢對峙",.5,["j+5 l+4","大野貓走開了，大家都很佩服你。"],["h-13","打輸了，受了傷。"]],
+    ["勇敢對峙",.5,["j+5 l+4","大野貓走開了，大家都很佩服你。"],["h-13 +leg","打輸了，腳受了傷。"]],
     ["繞路走開","i+5","聰明的貓不打沒必要的架。"]],
   ["y","","結紮手術","醫生說做了手術，以後會更健康。",
     ["勇敢面對","h+12 j-4 +fix","睡一覺就結束了，好勇敢。"],
@@ -96,7 +96,7 @@ const EV = [
     ["衝出去踩雪","j+9 h-4","留下了一串小腳印。"],
     ["窩在暖爐旁邊","h+5 j+3","瞇著眼睛看雪。"]],
   ["y","","變成網紅了","{n}的影片在網路上爆紅了！",
-    ["對著鏡頭擺姿勢","l+12 j+4","好多人說你好可愛。"],
+    ["對著鏡頭擺姿勢","l+12 j+4 +famous","好多人說你好可愛。"],
     ["躲開鏡頭","j+3 i+2","紅不紅沒關係，睡覺比較重要。"]],
   ["y","","桌上的魚","餐桌上有一條剛煎好的魚……",
     ["一口叼走！","j+8 l-7","好吃，但是被罵了。"],
@@ -124,7 +124,7 @@ const EV = [
     ["拼命掙扎","h+2 j-3 l-3","主人身上全是水。"]],
   ["y","","高高的地方","冰箱上面看起來很好玩。",
     ["跳上冰箱","j+6 i+3","從上面看，家好小。"],
-    ["挑戰書櫃最高層",.55,["j+9","你是家裡最高的貓！"],["h-11","跳太遠，摔下來了。"]]],
+    ["挑戰書櫃最高層",.55,["j+9","你是家裡最高的貓！"],["h-11 +leg","跳太遠，摔下來扭到腳了。"]]],
   ["y","","蛋糕上的奶油","桌上有一塊生日蛋糕。",
     ["偷舔一口奶油","j+8 h-3","甜甜的！"],
     ["只聞一聞","h+2 j+2 i+2","聞聞就好了。"]],
@@ -215,7 +215,7 @@ const EV = [
   ["*","","陌生的聲音","半夜外面傳來奇怪的聲音。",
     ["叫醒主人","l+6 h+2","原來只是風把垃圾桶吹倒了。"],
     ["勇敢去看看",.6,["i+6 j+3","是一隻迷路的小刺蝟。"],["h-6 j-4","被嚇得撞到椅子。"]]],
-];
+].concat(window.CATLIFE_MORE || []);   // 更多事件在 games/catlife_more.js（只能加在後面，存檔記的是事件的序號）
 // 特別的生日
 const MILE = {
   1:  ["一歲生日","{n}一歲了！已經是大貓了。",
@@ -243,7 +243,7 @@ const STAGE_N = { k:"小小貓", y:"年輕貓", a:"成年貓", s:"老貓" };
 function parse(eff){ const o = { d:{}, add:[], del:[] }; String(eff || "").split(/\s+/).forEach(t => { let m;
   if((m = t.match(/^([hjil])([+-]\d+)$/))) o.d[m[1]] = (o.d[m[1]] || 0) + (+m[2]);
   else if((m = t.match(/^\+(\w+)$/))) o.add.push(m[1]); else if((m = t.match(/^-(\w+)$/))) o.del.push(m[1]); }); return o; }
-const okCond = (c, f) => String(c || "").split(/\s+/).filter(Boolean).every(x => x[0] === "!" ? !f.includes(x.slice(1)) : f.includes(x));
+const okCond = (c, f) => String(c || "").split(/\s+/).filter(x => x && x !== "rare").every(x => x[0] === "!" ? !f.includes(x.slice(1)) : f.includes(x));
 const fmtAge = m => `${Math.floor(m / 12)} 歲${m % 12 ? ` ${m % 12} 個月` : ""}`;
 function scoreOf(s){ const b = BADGE.filter(x => x[2](s)).length; return Math.min(999, s.age * 10 + b * 20 + Math.round((s.st.j + s.st.i + s.st.l) / 3)); }
 
@@ -267,7 +267,7 @@ function pickEvent(s, rnd){
   let pool = EV.map((e, id) => ({ id, e })).filter(x => (x.e[0] === sg || (x.e[0] === "*" && sg !== "k")) && okCond(x.e[1], s.f));
   const fresh = pool.filter(x => !s.used.includes(x.id)); if(fresh.length) pool = fresh;
   // 有條件的事件（跟這隻貓的故事有關）優先一點
-  const w = pool.map(x => x.e[1] ? 2.2 : 1), tot = w.reduce((a, b) => a + b, 0); let r = rnd() * tot;
+  const w = pool.map(x => /\brare\b/.test(x.e[1]) ? .35 : x.e[1] ? 2.2 : 1), tot = w.reduce((a, b) => a + b, 0); let r = rnd() * tot;
   for(let i = 0; i < pool.length; i++){ r -= w[i]; if(r <= 0) return pool[i]; } return pool[pool.length - 1];
 }
 
@@ -351,6 +351,7 @@ App.registerGame({
     function choose(c, title){
       let eff = c[1], t = c[2], good = true;
       if(typeof c[1] === "number"){ good = Math.random() < c[1]; const r = good ? c[2] : c[3]; eff = r[0]; t = r[1]; }
+      if(Array.isArray(t)) t = t[Math.floor(Math.random() * t.length)];
       const d = apply(run, eff); run.res = { t, d }; run.used.push(run.ev);
       run.mem.push(title + "：" + c[0]); if(run.mem.length > 40) run.mem = run.mem.slice(-40);
       if(good) SFX.select(); else (SFX.wrong || SFX.tap)();
