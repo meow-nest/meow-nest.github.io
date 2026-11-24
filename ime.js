@@ -199,6 +199,7 @@ const IME = (function(){
     const composing = () => st.syl.length>0 || !!curStr();
     root.innerHTML = `<div class="ime"><span class="ear l"></span><span class="ear r"></span>${opt.mascot?`<span class="mascot">${opt.mascot}</span>`:""}<div class="ime-top"><div class="pre" id="imePre"></div><div class="cands" id="imeCands"></div></div><div class="ime-body" id="imeBody"></div></div>`;
     const imeEl = root.querySelector(".ime");
+    if(imeEl && !imeEl._cm){ imeEl._cm = 1; imeEl.addEventListener("contextmenu", e => e.preventDefault()); }   // 長按不要跳出系統選單（會中斷長按刪除）
     const preEl = root.querySelector("#imePre"), candEl = root.querySelector("#imeCands"), body = root.querySelector("#imeBody");
     // 在鍵盤最上面那條往下滑＝收起鍵盤（跟手機鍵盤一樣）
     if(opt.hide && imeEl){ let sy = null, sx = 0;

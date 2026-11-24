@@ -196,6 +196,7 @@ body.kbd .chat{height:calc(calc(100dvh / var(--z,1)) - 150px - env(safe-area-ins
 html,body{touch-action:manipulation;-webkit-text-size-adjust:100%}
 button,.k,.gcard{touch-action:manipulation;-webkit-touch-callout:none}
 .ime,.ime *{-webkit-touch-callout:none;-webkit-user-select:none}
+.ime .k:not([data-a="ins"]){touch-action:none}   /* 按著按鍵時手指稍微動一下，不會被當成捲動而中斷長按刪除（平板常見） */
 
 /* keyboard colour themes */
 body[data-kb="strawberry"]{--kb-bg:#fff0f3;--kb-dot:rgba(240,138,160,.14);--kb-top:#fffafa;--kb-key:#ffffff;--kb-tone:#ffe1e8;--kb-tone-text:#d9607c;--kb-fn:#fff5f7;--kb-line:#7a4a52;--kb-text:#5e3a40;--kb-muted:#c4919b;--kb-accent:#f28ba3;--kb-accent-text:#ffffff;--kb-shadow:#f3cdd5;--kb-inset:rgba(242,139,163,.18);--kb-radius:12px}
