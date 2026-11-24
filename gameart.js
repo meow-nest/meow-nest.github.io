@@ -57,6 +57,7 @@ window.GameArt = {
   escape: () => L(S("calico","surprised"), "left:0;bottom:0;width:50%") + L(P(DOOR, { N:"#c98b4f", Y:"#ffcf4a" }), "right:6%;bottom:4%;width:34%") + L(P(KEY, { Y:"#ffcf4a" }), "left:40%;top:4%;width:24%"),
   coop: () => L(S("orange","happy"), "left:0;bottom:0;width:48%") + L(S("white","happy",1), "right:0;bottom:0;width:48%") + L(P(FLAME, { Y:"#ffcf4a", R:"#ff7a3a", K:"#e5486a" }), "left:16%;top:0;width:16%") + L(P(DROP, { B:"#4a90d6", L:"#7fc4ff" }), "right:16%;top:0;width:14%"),
   runaway: () => L(P(VAC, VPAL), "left:2%;bottom:2%;width:44%") + L(S("orange","surprised",1), "right:2%;top:2%;width:46%") + L(P(SPARK, PAL), "left:44%;top:30%;width:14%"),
+  catlife: () => L(S("calico","happy"), "left:2%;bottom:0;width:26%") + L(S("orange","love"), "left:28%;bottom:0;width:40%") + L(S("gray","curl"), "right:0;bottom:0;width:34%") + L(Pix.icon("heart"), "left:44%;top:2%;width:14%"),
   wheel: () => (window.PickArt ? PickArt() : "") + L(S("orange","happy"), "right:-2%;bottom:0;width:42%"),
   runner: () => L(S("white","wave"), "left:4%;top:-4%;width:50%") + L(P(CACTUS, PAL), "right:10%;bottom:6%;width:22%") + `<span class="gaGround"></span>`,
 };

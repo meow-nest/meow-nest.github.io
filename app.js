@@ -41,7 +41,7 @@ const App = (function(){
   const players = () => { if(isFam()){ const p = partner(); return (p ? [me.uid, p.user_id] : [me.uid]).sort(); } return members.map(m=>m.user_id).sort(); };
   // 家人模式：雙人遊戲的存檔分開存（每一對家人各自一份），才不會兩組人同時玩同一個遊戲互相打架
   // 單人模式：玩完單人遊戲（遊戲存成績的時候）就算玩了一局，可以升等級（伺服器每天最多算 3 次）
-  const SOLO_LV = new Set(["catstack","runaway","runner","blast","fishing","memory","bingo"]);
+  const SOLO_LV = new Set(["catlife","catstack","runaway","runner","blast","fishing","memory","bingo"]);
   let soloLvAt = 0;
   const soloPlayed = g => { if(!isSolo() || !SOLO_LV.has(g) || Date.now() - soloLvAt < 60000) return; soloLvAt = Date.now(); setTimeout(() => ctx.lvPlay(g), 800); };
   const PAIR_GAMES = new Set(["banqi","battleship","bingo","boat","chess","defense","draw","fight","gomoku","guess","kitchen","meld","memoryduo","quickdraw","pool"]);

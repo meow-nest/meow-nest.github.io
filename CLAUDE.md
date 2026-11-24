@@ -61,7 +61,7 @@
 
 ### 加新的 SQL
 
-1. 新檔案 `supabase/update_NN_名稱.sql`，NN 接著目前最大的號碼（目前到 **81**）。開頭用中文註解說這次做什麼。要能重複執行（`if not exists`、`create or replace`）。
+1. 新檔案 `supabase/update_NN_名稱.sql`，NN 接著目前最大的號碼（目前到 **82**）。開頭用中文註解說這次做什麼。要能重複執行（`if not exists`、`create or replace`）。
 2. 加進 all.sql：`printf '\n' >> supabase/all.sql && cat supabase/update_NN_名稱.sql >> supabase/all.sql`
 3. 先在本機 Postgres 測過，再推上去給站長連結。
 
@@ -119,6 +119,7 @@ git push origin main           # GitHub Pages 約 1 分鐘後更新
 - 家人模式觀戰（11/21，沒有 SQL）：首頁 `#famLive`「家人正在玩」（`famLiveLoad` 每 15 秒，`B.liveGames` 直接讀 game_state 最近 20 分鐘有動的 `遊戲:uid前8碼-uid前8碼`），`WATCHABLE` = gomoku、chess、banqi、pool（海戰有藏的資訊不開放）。路由 `#watch` → `viewWatch`：觀戰 ctx 用 A 的角度（`me` 換成 A、`update` 全部回 null、`#gArea.watching` 擋點擊、藏 `.btn`），用 MutationObserver 把「你」換成名字。「加油」用 `B.bcast({t:"famCheer", to:[A,B]})`。家人在玩可觀戰的遊戲時（`ctx.update` 會呼叫 `famAnnounce`），聊天室貼 kind `watch` 的訊息（media 是 JSON `{k,g,a,b}`），沒在玩的人有「去觀戰」按鈕（`famWatchOpen`）；同一組同一個遊戲 30 分鐘一則。站長的「遊戲」頁（route `games`）也會顯示 `#famLive`。對局中所有頁面最上面有浮動通知 `#famBan`（`famLivePoll` 每 15 秒，`B.liveGames` 會一起拿 `win:state->win`；有 win 就算結束、30 分鐘沒動也消失；×收起那一局 `famBanHide`）。可觀戰的遊戲都用 `state.win` 表示分出勝負。
 - 家人「全家一起玩」（11/21，沒有 SQL）：`FAM_ALL` = draw、bingo、fishing，家人 3 人以上時遊戲上方有切換（`famAllOn`，記在 sessionStorage `mw_famAll_遊戲`）。`famAllCtx(遊戲)`：存檔用 `遊戲:fam`（釣魚是 `fishrace:fam`，圖鑑照舊存 `fishing`）、`players()`＝在場的家人（`famHere`，大家每 4 秒 `B.bcast({t:"famHere",to:"__fam"})`，12 秒沒收到就算離開）、`partyHost()`＝在場 uid 最小的、`onMembers`、`broadcast` 加 `famg`。draw 用 `ctx.party` 的多人版；bingo 的 players 可以 3～6 人（`cleanG` 允許最多 6、`winners` 陣列、輪到的人離開會跳過）；fishing 是同時開始 60 秒比賽（`fishrace` 存 round/start/players/scores/done，即時分數用廣播 `{fsr, sc}`）。晚到的人：bingo 可以觀戰（`mode = "watch"`、`watchView`）或中途加入（隨機卡、已喊號碼算數，最多 6 人，非玩家看不到「重新開一局」）；fishing 比賽開始 50 秒內可以中途加入（`#fsLate`），旁觀時大廳顯示即時分數。
 - **股東小故事（11/24）**：故事內容不放倉庫（站長自己保存）。新公司（MAIL 之後 14 家）原本沒有故事 → 「故事書打不開」。補法：站長私下跑 `stock_story_more.sql`（不在倉庫）：原本的函式改名 `stock_story_orig`，新的 `stock_story` 先問原本的、沒有才查表 `stock_story_more(sym,i,txt)`（不開權限）。**以後加新公司要在 stock_story_more 補兩篇**（給站長私下跑，不要 commit 故事）。唯讀檢查 `supabase/check_stock_story.sql`。
+- **貓貓的一生（update_82，11/24）**：`games/catlife.js`（id `catlife`，`solo:true`）。人生模擬：選花色、名字、出身（`ORIGIN` 家貓／流浪／店貓／農場），每歲一個事件（`EV`：階段 k/y/a/s/*、條件旗子、選項效果字串 `h+5 j-3 +旗子`，有機率的選項）＋生日 `MILE`；`ageUp` 老化和死亡機率，最多 30 歲。`window.__catlifeSim(n,"best")` 模擬平均壽命（隨便選約 17 歲、好好選約 20 歲）。玩到一半存在 localStorage `mw_catlife_run`。存檔 `game_state` 遊戲 `catlife`：best（月數）、score、plays、lives（每人最近 5 隻）。排行 `catlife_rank()`、防作弊 trigger `catlife_guard`（≤371 個月、≤999 分、玩一局才能更新）。新增事件直接加進 `EV`。
 - 睡衣小貓：11/30 前看到「站長去充電」通知的人自動領（`gift_got`、`claim_gift`）。
 - 推播診斷（隱藏功能）：sw.js 收到推播時會記下時間（快取 `meow-pub-assets` 的 `__diag/push`），設定頁連點「通知」標題 5 次會顯示「最近一次收到推播」（`mw_diag`），用來查某支手機收不到背景通知（小米／紅米 Redmi Note 14 還在查）。一般使用者看不到，不用發更新通知。
 - 「下載 App」按鈕：Chrome 的安裝視窗沒跳出來（小米常見）時，3.5 秒後改顯示文字說明（`doInstall`）。已裝好的 App（standalone）設定頁不會有這顆按鈕。
