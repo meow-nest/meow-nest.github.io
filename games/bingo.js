@@ -173,19 +173,20 @@ App.registerGame({
     // ---------- 畫面 ----------
     function lobby(){
       const p = pt(), g = s && s.g, wins = (s && s.wins) || {};
+      const solo = !!(ctx.mode && ctx.mode() === "solo");
       const going = g && g.phase !== "end";
       el.innerHTML = `<div class="box bgBox">
         <div class="bgTitle">${LETTERS.split("").map((c, i) => `<span style="--i:${i}">${c}</span>`).join("")}</div>
         <div class="bgSub">喵喵賓果</div>
         <div class="bgKind"><button data-k="call" class="${kindSel === "call" ? "on" : ""}"><b>喊號碼</b><small>自己排 1～25<br>輪流喊號碼</small></button><button data-k="gacha" class="${kindSel === "gacha" ? "on" : ""}"><b>扭蛋</b><small>選一張賓果卡<br>輪流扭出 1～75</small></button></div>
-        <p class="bgHint">${kindSel === "gacha" ? "從幾張賓果卡裡挑一張，正中間是 FREE，<br>輪流轉扭蛋機，扭到的號碼自動蓋章！" : "兩個人各自把 1～25 排進格子裡，<br>輪流喊號碼，先連成指定條數的線就贏！"}</p>
+        <p class="bgHint">${kindSel === "gacha" ? "從幾張賓果卡裡挑一張，正中間是 FREE，<br>輪流轉扭蛋機，扭到的號碼自動蓋章！" : (solo ? "你和喵喵電腦" : "兩個人") + "各自把 1～25 排進格子裡，<br>輪流喊號碼，先連成指定條數的線就贏！"}</p>
         ${going && p && g.players.includes(me()) ? `<button class="btn bgBig" id="bgBack">${I(PAWC)} 回到${FA ? "全家的" : `和 ${esc(p.name)} 的`}這一局</button>` : ""}
         ${FA && going && !g.players.includes(me()) ? `<div class="bgLive"><b>家人正在玩（${g.players.length} 人）</b><small>${g.players.map(u => esc(nm(u))).join("、")}・已經喊了 ${g.calls.length} 個號碼</small>
           <div class="bgRow"><button class="btn sub" id="bgWatch">觀戰</button>${g.players.length < 6 && g.phase !== "end" ? `<button class="btn" id="bgJoin">中途加入</button>` : ""}</div></div>` : ""}
         ${FA ? `<div class="bgFam">${ctx.players().map(u => `<span>${ctx.sprite(ctx.catOf(u), "happy")}<i>${esc(nm(u))}</i></span>`).join("")}</div><div class="bgHint small">${ctx.players().length < 2 ? "等家人也打開「全家一起玩」的賓果…" : `現在有 ${ctx.players().length} 個人在這裡，開一局大家一起玩！`}</div>` : ""}
         <div class="bgPick"><div class="bgPickH">幾條線算贏？</div><div class="bgSeg">${(kindSel === "gacha" ? [1, 2, 3] : [3, 4, 5]).map(n => `<button data-n="${n}" class="${n === (kindSel === "gacha" ? 1 : 5) ? "on" : ""}">${n} 條</button>`).join("")}</div></div>
         <button class="bgMyStamp" id="bgStampBtn">${stampPrev(myStamp, 7)}<span>我的印章：<b>${STAMP[myStamp][1]}</b><small>點這裡換一個</small></span></button>
-        ${p && !(FA && going && !g.players.includes(me())) ? `<button class="btn bgBig" id="bgVs">${going ? "重新開一局" : FA ? `全家一起開一局（${ctx.players().length} 人）` : `和 ${esc(p.name)} 對戰`}</button>` : FA ? "" : `<div class="bgHint small">等 ta 加入小窩，就可以兩個人對戰喔</div>`}
+        ${p && !(FA && going && !g.players.includes(me())) ? `<button class="btn bgBig" id="bgVs">${going ? "重新開一局" : FA ? `全家一起開一局（${ctx.players().length} 人）` : `和 ${esc(p.name)} 對戰`}</button>` : FA || solo ? "" : `<div class="bgHint small">等 ta 加入小窩，就可以兩個人對戰喔</div>`}
         <button class="btn sub bgBig" id="bgCpu">跟喵喵電腦練習</button>
         ${p && !FA ? `<div class="bgScore">${cat(meObj(), "happy")}<b>${wins[me()] || 0}</b><span>勝</span><i>：</i><span>勝</span><b>${wins[p.user_id] || 0}</b>${cat(p, "happy")}</div>` : ""}
       </div>`;
