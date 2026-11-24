@@ -2881,6 +2881,18 @@ const App = (function(){
     return { open, close, composing: () => !!(dock && dock.fld === fld && dock.kb.composing()), flush: () => { if(dock && dock.fld === fld) dock.kb.flush(); }, isOpen: () => !!(dock && dock.fld === fld) };
   }
   ctx.dockKeyboard = dockKeyboard;
+  // 電腦用實體鍵盤打字時，也播喵喵鍵盤的按鍵聲音（跟鍵盤設定裡選的聲音一樣，「關」就不播）
+  { let hwAt = 0; document.addEventListener("keydown", e => {
+      if(!e.isTrusted || e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target; if(!t) return;
+      const typing = t.tagName === "TEXTAREA" || t.isContentEditable || (t.tagName === "INPUT" && !/^(range|checkbox|radio|file|color|button|submit|reset|image|hidden)$/.test(t.type || "text"));
+      if(!typing || t.readOnly || t.disabled) return;
+      const k = e.key; let kind;
+      if(k === "Backspace" || k === "Delete") kind = "del"; else if(k === " " || k === "Spacebar") kind = "space"; else if(k === "Enter") kind = "enter";
+      else if(k === "Process" || e.keyCode === 229 || (k && k.length === 1)) kind = "key"; else return;
+      const now = Date.now(); if(e.repeat && now - hwAt < 45) return; hwAt = now;
+      try{ SFX.kb(kind); }catch(_){}
+    }, true); }
   // 全站所有要打字的框框都自動換成喵喵鍵盤（數字框、檔案、滑桿這些不算；data-nokb 可以排除）
   const KB_SKIP_TYPES = /^(range|file|checkbox|radio|color|number|date|time|datetime-local|month|week|hidden|button|submit|reset|image|password|email|tel)$/;
   function kbEligible(el){
