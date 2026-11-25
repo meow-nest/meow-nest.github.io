@@ -272,6 +272,7 @@ const IME = (function(){
         const gear = opt.settings ? `<button class="sysk setk${LS_.get("mw_kbSetSeen")?"":" new"}" aria-label="鍵盤設定">${art("gear")}<span>設定</span></button>` : "";
         const idle = `${gear}<span class="hint">${dictReady ? (mode==="zh"?"免聲調也能打":mode==="en"?"⇧ 點兩下＝大寫鎖定":"") : "字典載入中…"}</span>${canPaste?`<button class="sysk pastek">📋 貼上</button>`:""}${opt.toSys?`<button class="sysk syskb">📱 手機鍵盤</button>`:""}${opt.hide?`<button class="sysk hidek">收起 ▾</button>`:""}`;
         if(candEl._idle !== idle){ candEl.innerHTML = idle; candEl._idle = idle; } else if(!candEl.querySelector(".hint")) candEl.innerHTML = idle;
+        { const h = candEl.querySelector(".hint"); if(h){ h.style.visibility = ""; requestAnimationFrame(() => { if(h.isConnected && h.scrollWidth > h.clientWidth + 1) h.style.visibility = "hidden"; }); } }   // 位置不夠放整句提示就不顯示（不要只剩「免…」）
         if(moreEl) moreEl.hidden = true;
         return; }
       candEl._idle = null;

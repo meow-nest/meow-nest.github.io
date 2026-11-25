@@ -2802,10 +2802,11 @@ const App = (function(){
       const kbOpen = $("kbd") && !$("kbd").classList.contains("hidden");
       if(!(focused || kbOpen) || a==null || a!==b){ c.style.display = "none"; return; }
       const cs = getComputedStyle(txt); PROPS.forEach(k=>mirror.style[k] = cs[k]);
+      mirror.style.borderStyle = "solid"; mirror.style.borderColor = "transparent";   // 沒有這行時框線寬度不算，鏡像比框框寬 4px，換行位置不一樣 → 游標跑到前一個字
       mirror.style.whiteSpace = "pre-wrap"; mirror.style.overflowWrap = "break-word"; mirror.style.width = txt.clientWidth + parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth) + "px";
       mirror.textContent = txt.value.slice(0, a); const mk = document.createElement("span"); mk.textContent = "​"; mirror.appendChild(mk);
       const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize)*1.3;
-      const x = txt.offsetLeft + mk.offsetLeft - txt.scrollLeft, y = txt.offsetTop + mk.offsetTop - txt.scrollTop;
+      const x = txt.offsetLeft + parseFloat(cs.borderLeftWidth) + mk.offsetLeft - txt.scrollLeft, y = txt.offsetTop + parseFloat(cs.borderTopWidth) + mk.offsetTop - txt.scrollTop;
       if(y < txt.offsetTop - 2 || y > txt.offsetTop + txt.offsetHeight - lh + 2){ c.style.display = "none"; return; }
       c.style.display = "block"; c.style.left = x + "px"; c.style.top = y + "px"; c.style.height = lh + "px";
     };
@@ -2871,9 +2872,15 @@ const App = (function(){
       const watch = setInterval(() => { if(!dock || dock.fld !== fld){ clearInterval(watch); return; } if(!fld.el.isConnected){ clearInterval(watch); close(); } }, 400);
       document.body.classList.add("dockKb");
       requestAnimationFrame(() => { document.body.style.setProperty("--dockH", host.offsetHeight + "px"); fld.focus();
-        const r = fld.el.getBoundingClientRect(), top = window.innerHeight - host.offsetHeight; if(r.bottom > top - 8) window.scrollBy({ top: r.bottom - top + 16, behavior: "smooth" });
+        // 框框下面緊接著的按鈕（例如「送出回覆」）也要露出來：外層小區塊放得下就整塊捲上來
+        const room = window.innerHeight - host.offsetHeight - 16, par = fld.el.parentElement;
+        const tgt = par && par !== document.body && par.querySelector("button") && par.getBoundingClientRect().height <= room ? par : fld.el;
+        const r = tgt.getBoundingClientRect(), top = window.innerHeight - host.offsetHeight; if(r.bottom > top - 8) window.scrollBy({ top: Math.min(r.bottom - top + 16, Math.max(0, r.top - 8)), behavior: "smooth" });
         // 框框在會自己捲的視窗裡（例如記事本、對話框）：等一下再看一次，還被鍵盤蓋住就捲到中間
-        setTimeout(() => { if(!fld.el.isConnected) return; const r2 = fld.el.getBoundingClientRect(); if(r2.bottom > window.innerHeight - host.offsetHeight - 4 || r2.top < 0) try{ fld.el.scrollIntoView({ block: "center", behavior: "smooth" }); }catch(e){} }, 350); });
+        const hid = e => { const q = e.getBoundingClientRect(); return q.bottom > window.innerHeight - host.offsetHeight - 4 || q.top < 0; };
+        setTimeout(() => { if(!fld.el.isConnected || !dock || dock.host !== host) return; if(!hid(tgt)) return;
+          const q = tgt.getBoundingClientRect(), d = q.bottom - (window.innerHeight - host.offsetHeight) + 12; window.scrollBy({ top: q.top < 0 ? q.top - 8 : Math.min(d, Math.max(0, q.top - 8)) });
+          setTimeout(() => { if(fld.el.isConnected && hid(fld.el)) try{ fld.el.scrollIntoView({ block: "center", behavior: "smooth" }); }catch(e){} }, 120); }, 350); });
     }
     applyMode();
     fld.el.addEventListener("click", () => { if(!sysMode()) open(); });
