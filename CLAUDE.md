@@ -61,7 +61,7 @@
 
 ### 加新的 SQL
 
-1. 新檔案 `supabase/update_NN_名稱.sql`，NN 接著目前最大的號碼（目前到 **82**）。開頭用中文註解說這次做什麼。要能重複執行（`if not exists`、`create or replace`）。
+1. 新檔案 `supabase/update_NN_名稱.sql`，NN 接著目前最大的號碼（目前到 **83**）。開頭用中文註解說這次做什麼。要能重複執行（`if not exists`、`create or replace`）。
 2. 加進 all.sql：`printf '\n' >> supabase/all.sql && cat supabase/update_NN_名稱.sql >> supabase/all.sql`
 3. 先在本機 Postgres 測過，再推上去給站長連結。
 
@@ -143,5 +143,6 @@ git push origin main           # GitHub Pages 約 1 分鐘後更新
 - **遊戲卡住修正（11/23，沒有 SQL）**：app.js `update()` 存檔衝突時讀到的新進度現在會 `emitState`（以前只放進快取，晚到的即時通知又被當成舊的丟掉 → 例如你畫我猜時間到兩人同時存，猜的人卡在 ⏱0）。你畫我猜 `upd()`＝`ctx.update` 包一層 `fitDraw`：存檔超過約 17.5KB 時先把點最多的線條簡化、再刪最舊的。harness 的 `cas` 也會跟伺服器一樣拒絕超過 20KB 的存檔。雙人版 `fixStuck()`：畫的人不是目前兩個人（換手機重新加入的舊帳號）或階段不對，就從自己重開一回合。結果畫面有「存下這張圖」（`saveImg`：把 `#drCv` 加上標題、誰畫的、日期存成 png 下載）。查卡住的存檔：`supabase/check_draw.sql`、`check_draw_stuck.sql`（唯讀）。
 - **RWD／大螢幕（11/24，沒有 SQL，沒發更新通知）**：站長選「整個放大」。`zoom.js`（index.html 第一個載入的 script）：寬度 ≥700 時 `html.style.zoom = min(寬/560, 高/600)`，限制 1～1.6（每 0.05 一級），手機（<700）完全不變；`window.__zoom()` 看目前倍數。**zoom 之後瀏覽器量出來的數字是放大後的畫面像素，樣式是放大前的 CSS 像素**，所以 zoom.js 把會量東西的 API 都換算回 CSS 像素：`innerWidth/innerHeight`、`scrollX/Y`、`scrollTo/scrollBy`、`documentElement.clientWidth/Height`、`getBoundingClientRect/getClientRects`（Element 和 Range）、滑鼠／觸控的 `clientX/Y`、`pageX/Y`、`offsetX/Y`、`visualViewport`、`elementFromPoint` 等，`devicePixelRatio` 乘上倍數（畫布才清楚）。遊戲和其他程式都不用改；**新程式照平常寫就好**。style.css 裡所有 `vh/vw/dvh` 都改成 `calc(Xvh / var(--z,1))`（新寫的 CSS 用到 vh/vw 也要這樣寫，不然大螢幕會超出畫面）。手機橫拿且高度 <500：遊戲頁藏 `#top`（`body.ingame`）、`.chat` 最小高度 150px（style.css 最後面）。測試：harness 開 1366x768 等尺寸，五子棋點格子、你畫我猜畫線位置、30 個遊戲開始畫面、跑酷／撞球等實際開始都正常。
 - **喵喵鍵盤小修（11/25，沒有 SQL、沒發通知）**：`dockKeyboard` 打開時，框框的外層小區塊（裡面有按鈕、放得下）整塊捲到鍵盤上面（例如後台回覆框的「送出回覆」）；`setupCaret` 的鏡像 div 補上透明框線（以前少算框線寬度，換行位置不同 → 游標跑到前一個字），x/y 也加上框線寬度；ime.js 候選列的提示（免聲調也能打）放不下整句就藏起來。
+- **股市小窩排名改平均（update_83，11/25）**：`stock_status()` 的小窩合作 `n` 改成「有下過單的成員獲利總和 ÷ 人數」（`nprofit` 是平均、多回傳 `ncnt`、`ntop[].cnt`），多人小窩（情侶／閨蜜／兄弟／家人）一組、單人一組。前端 `games/stock.js` 文字改成「平均每人獲利」「多人小窩組」。harness 的 stock_status 假資料多了 badges／nprofit／ntop（成就和小窩合作頁可以測）。
 - 定時訊息（11/20 上線）：聊天頁左上「定時」（`schedWriter`）。`sched_msgs` 表不開權限，用 `sched_add`／`sched_list`／`sched_cancel`；pg_cron `meow-sched` 每分鐘跑 `fire_sched()`，用寫的人的名字插入 messages（kind `text`、media `{"sch":1}`，前端 `isSched` 顯示「定時訊息」標籤），推播照舊。送出前只有自己看得到；500 字、1 分鐘後～1 年內、每人最多 30 則；單人小窩沒有按鈕。
 - 等級稱號：Lv40 之後有天使／惡魔翅膀（惡魔 6 種顏色），排行榜有本週／總排行，站長小窩可以展示但不參加排行。
