@@ -44,7 +44,7 @@ async function op(page, name, a){
       const m=out.match(/RES:(.*)/s); if(!m){ console.log('SQLERR',a.fn,out.slice(0,300)); throw new Error(out.slice(0,200)); }
       return JSON.parse(m[1].trim()); }
       if(a.fn==='catlife_rank') return page.__clRank || { top: [], mine: null };   // 貓貓的一生排行（測試頁可以設定 page.__clRank）
-      if(a.fn==='poorcat_me') return DB.pc || {col:null, all: !!page.__pcAll};
+      if(a.fn==='poorcat_me') return DB.pc || {col:null, all: !!page.__pcAll, cats: !!page.__pcAll};
       if(a.fn==='poorcat_open'){ if(page.__pcAll) return {ok:true, all:true}; DB.pc = DB.pc || {col: page.__pcCol || 8, all:false}; return {ok:true, col:DB.pc.col, new:true}; }
       if(a.fn && a.fn.startsWith('survey_')){ const fs=require('fs'), cp=require('child_process'); if(!/^survey_[a-z]+$/.test(a.fn)) return null;
       const lit=v=>v===null||v===undefined?'null':typeof v==='boolean'?String(v):typeof v==='number'?String(v):typeof v==='object'?"'"+JSON.stringify(v).replace(/'/g,"''")+"'::jsonb":"'"+String(v).replace(/'/g,"''")+"'";
