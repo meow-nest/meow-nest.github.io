@@ -394,14 +394,17 @@ App.registerGame({
     const cardHtml = (t, o) => `<button class="clCard r${t.r}${o.on ? " on" : ""}${o.lock ? " lock" : ""}${o.deal ? " deal" : ""}" ${o.lock ? "" : `data-t="${t.id}"`} style="--d:${o.i || 0}">
       <span class="clCI">${tIc(t)}</span><small>${TAL_R[t.r]}${o.isNew ? "・新" : ""}</small><b>${o.lock ? "？？？" : esc(t.n)}</b><span>${o.lock ? "還沒用過這個天賦" : esc(t.d)}</span>${t.r === 2 && !o.lock ? `<i class="sp1"></i><i class="sp2"></i>` : ""}${o.on ? `<em class="clOk">${I("check")}</em>` : ""}</button>`;
     const jobName = r => r.job ? jobOf(r.job.id).lv[r.job.lv] + (r.job.ret ? "（退休）" : "") : "";
+    // 貓（有各階段造型＋階級配件），第 1 階以上身邊有小星星、第 4 階有彩虹光
+    const catHtml = (r, fc) => { const A = window.ClArt, t = A && A.tierOf ? A.tierOf(r) : 0;
+      return `<div class="clCat t${t}">${A && A.catSvg ? A.catSvg(r, fc) : Pix.sprite(r.c, fc)}${t ? Array.from({ length: t * 2 }, (_, i) => `<i class="clSp" style="--i:${i};left:${4 + (i * 37) % 84}%;top:${4 + (i * 53) % 66}%"></i>`).join("") : ""}</div>`; };
     const where = r => r.f.includes("stray") ? "stray" : r.o === "shop" ? "shop" : r.o === "farm" ? "farm" : "home";
     const top = r => { const A = window.ClArt, sg = stage(r.age);
       return `<div class="clScene s${sg}">${A ? A.scene(where(r), r.age % 4, A.TOD(r.age)) : ""}
-        <div class="clPlate"><b>${esc(r.n)}</b><small>${ORIGIN[r.o].name}・${STAGE_N[sg]}${r.gen > 1 ? `・第 ${r.gen} 代` : ""}</small></div>
+        <div class="clPlate"><b>${esc(r.n)}</b><small>${ORIGIN[r.o].name}・${STAGE_N[sg]}${r.gen > 1 ? `・第 ${r.gen} 代` : ""}</small>${A && A.tierOf ? `<span class="clTier t${A.tierOf(r)}">${esc(A.TIER[A.tierOf(r)].n)}</span>` : ""}</div>
         <div class="clAgeB"><b>${r.age}</b><small>歲</small></div>
         ${A ? `<span class="clSeason">${A.SEASON[r.age % 4]}</span>` : ""}
         ${r.job ? `<span class="clJobT">${I(jobOf(r.job.id).ic)}${esc(jobName(r))}</span>` : ""}
-        <div class="clCat">${Pix.sprite(r.c, face(r))}</div></div>
+        ${catHtml(r, face(r))}</div>
       ${r.tal.length ? `<div class="clTals">${tals(r).map(talChip).join("")}</div>` : ""}`; };
     // 選項會影響哪些屬性（只顯示哪幾個，不顯示多少）
     const pips = c => { const ef = typeof c[1] === "number" ? c[2][0] : c[1], d = parse(ef).d;
@@ -526,6 +529,9 @@ App.registerGame({
       const bk = el.querySelector("#clSubX"); if(bk) bk.addEventListener("click", () => { sub = null; SFX.tap(); year(); });
       const nx = el.querySelector("#clNext"); if(nx) nx.addEventListener("click", () => { if(run.ap && !nx.dataset.ok){ nx.dataset.ok = 1; nx.textContent = `還可以做 ${run.ap} 件事，確定要長大？`; SFX.tap(); return; } next(); });
       el.querySelector("#clQuit").addEventListener("click", () => { SFX.tap(); save(); lobby(); });
+      const tc = el.querySelector(".clTier"); if(tc) tc.addEventListener("click", () => { SFX.tap(); const t = ClArt.tierOf(run);
+        const NEXT = ["7 歲、開始工作、被收養或當爸媽 → 銅星貓", "13 歲、升職 2 次、變成網紅 → 銀月貓", "18 歲、職業做到最高、成為英雄 → 金冠貓", "24 歲，或是走上喵星的秘密路線 → 彩虹傳說貓"];
+        ctx.toast(t >= 4 ? "已經是最高的階級「彩虹傳說貓」了！" : `下一個階級：${NEXT[t]}`, 4000); });
     }
     function relPanel(){
       const rs = run.rel;
@@ -567,12 +573,14 @@ App.registerGame({
     }
 
     function next(){
-      SFX.tap(); const why = ageUp(run, Math.random);
+      SFX.tap(); const tier0 = window.ClArt && ClArt.tierOf ? ClArt.tierOf(run) : 0; const why = ageUp(run, Math.random);
       if(why && !(run.age < MAX_AGE && revive())){ die(why); return; }   // 30 歲就算有九命也到頂了
-      run.age++; run.ev = null; run.res = null; sub = null; save();
+      run.age++; run.ev = null; run.res = null; sub = null;
+      const tier1 = window.ClArt && ClArt.tierOf ? ClArt.tierOf(run) : 0, up = tier1 > tier0 ? ClArt.TIER[tier1].n : "";
+      if(up) hiAdd(run, `升階成「${up}」`); save();
       if(run.age === 1 || run.age % 5 === 0) (SFX.level || SFX.select)();
       year();
-      const c = el.querySelector(".clScene"); if(c){ c.classList.add("bday"); c.insertAdjacentHTML("beforeend", `<div class="clConf">${Array.from({ length: 14 }, (_, i) => `<i style="--x:${(i * 37) % 100}%;--d:${(i % 5) * 90}ms;--c:${["#ff8fab","#ffd36b","#6fb7e8","#6cc49d","#c38be0"][i % 5]}"></i>`).join("")}</div><div class="clHB">${run.age} 歲生日快樂！</div>`); setTimeout(() => { const x = el.querySelector(".clConf"), y = el.querySelector(".clHB"); if(x) x.remove(); if(y) y.remove(); }, 1900); }
+      const c = el.querySelector(".clScene"); if(c){ c.classList.add("bday"); c.insertAdjacentHTML("beforeend", `<div class="clConf">${Array.from({ length: 14 }, (_, i) => `<i style="--x:${(i * 37) % 100}%;--d:${(i % 5) * 90}ms;--c:${["#ff8fab","#ffd36b","#6fb7e8","#6cc49d","#c38be0"][i % 5]}"></i>`).join("")}</div><div class="clHB${up ? " up" : ""}">${up ? `升階！${up}` : `${run.age} 歲生日快樂！`}</div>`); setTimeout(() => { const x = el.querySelector(".clConf"), y = el.querySelector(".clHB"); if(x) x.remove(); if(y) y.remove(); }, 1900); }
     }
 
     async function die(why){
@@ -589,7 +597,7 @@ App.registerGame({
       const hi = (run.hi || []).slice(0, 8), catFace = E.hid ? "love" : "sleep";
       el.innerHTML = `<div class="box clEnd clAlbum">
         <div class="clAlbH"><span>${I("star")}</span><b>${esc(run.n)} 的喵生相簿</b><span>${I("star")}</span></div>
-        <div class="clPola${E.hid ? " hid" : ""}"><div class="clPolaP">${shotSvg}<div class="clCat">${Pix.sprite(run.c, catFace)}</div>${E.hid ? `<i class="tw t1"></i><i class="tw t2"></i><i class="tw t3"></i>` : ""}</div>
+        <div class="clPola${E.hid ? " hid" : ""}"><div class="clPolaP">${shotSvg}${catHtml(run, catFace)}${E.hid ? `<i class="tw t1"></i><i class="tw t2"></i><i class="tw t3"></i>` : ""}</div>
           <div class="clPolaC"><b>${esc(run.n)}</b><span>0 歲 ～ ${fmtAge(m)}</span></div>
           <div class="clStamp${E.hid ? " hid" : ""}"><small>${E.hid ? "隱藏結局" : "結局"}</small><b>${esc(E.n)}</b></div></div>
         ${C0.e.includes(E.id) ? "" : `<div class="clFirst">第一次看到這個結局！</div>`}
@@ -606,7 +614,7 @@ App.registerGame({
         <button class="btn" id="clAgain">再活一次</button><button class="btn sub" id="clHome">回到大廳</button></div>`;
       el.querySelector("#clAgain").addEventListener("click", () => { SFX.tap(); create(); });
       el.querySelector("#clHome").addEventListener("click", () => { SFX.tap(); lobby(); });
-      const album = { n: run.n, c: run.c, face: catFace, svg: shotSvg, en: E.n, hid: E.hid, age: fmtAge(m), txt: E.t.replace(/\{n\}/g, run.n).replace(/\{job\}/g, run.job ? jobOf(run.job.id).lv[run.job.lv] : "").replace(/\{mate\}/g, mate ? "「" + mate.n + "」" : "伴侶").replace(/\{gen\}/g, run.gen),
+      const album = { n: run.n, c: run.c, face: catFace, catSvg: window.ClArt && ClArt.catSvg ? ClArt.catSvg(run, catFace) : null, tier: window.ClArt && ClArt.tierOf ? ClArt.TIER[ClArt.tierOf(run)].n : "", svg: shotSvg, en: E.n, hid: E.hid, age: fmtAge(m), txt: E.t.replace(/\{n\}/g, run.n).replace(/\{job\}/g, run.job ? jobOf(run.job.id).lv[run.job.lv] : "").replace(/\{mate\}/g, mate ? "「" + mate.n + "」" : "伴侶").replace(/\{gen\}/g, run.gen),
         ep, sc, hi, st: Object.assign({}, run.st), tal: tals(run).map(t => t.n), gen: run.gen };
       el.querySelector("#clSave").addEventListener("click", () => saveAlbum(album));
       const parent = run;
@@ -641,8 +649,8 @@ App.registerGame({
       const px = P + 14, py = 100, pw = Wd - px * 2;
       o.fillStyle = "#ffffff"; o.fillRect(px - 14, py - 14, pw + 28, sh + 100); o.fillStyle = "#e9dccb"; o.fillRect(px - 14, py + sh + 86, pw + 28, 6);
       const sc = await img(a.svg); if(sc) o.drawImage(sc, px, py, pw, sh);
-      const cat = await img(Pix.sprite(a.c, a.face)); if(cat){ const cw = 170; o.drawImage(cat, Wd / 2 - cw / 2, py + sh - cw + 8, cw, cw); }
-      o.fillStyle = O; o.font = F(30); o.fillText(a.n, Wd / 2, py + sh + 34); o.font = F(20); o.fillStyle = "#8a7a9a"; o.fillText(`0 歲 ～ ${a.age}`, Wd / 2, py + sh + 66);
+      const cat = await img(a.catSvg || Pix.sprite(a.c, a.face)); if(cat){ const cw = 170; o.drawImage(cat, Wd / 2 - cw / 2, py + sh - cw + 8, cw, cw); }
+      o.fillStyle = O; o.font = F(30); o.fillText(a.n, Wd / 2, py + sh + 34); o.font = F(20); o.fillStyle = "#8a7a9a"; o.fillText(`0 歲 ～ ${a.age}${a.tier ? `・${a.tier}` : ""}`, Wd / 2, py + sh + 66);
       let y = py + sh + 136;
       o.fillStyle = a.hid ? "#b07a12" : "#e5486a"; o.font = F(26); o.fillText(`${a.hid ? "隱藏結局" : "結局"}・${a.en}`, Wd / 2, y); y += 40;
       o.fillStyle = O; o.font = F(19); const wrap = (t, w) => { const out = []; let line = ""; for(const ch of t){ if(o.measureText(line + ch).width > w){ out.push(line); line = ch; } else line += ch; } if(line) out.push(line); return out; };

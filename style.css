@@ -4270,7 +4270,7 @@ body.compact .famTop .ftC .pcL{width:56px}
 .clScene>svg{position:absolute;inset:0;width:100%;height:100%;display:block}
 .clScene .clCat{position:absolute;left:50%;bottom:6%;transform:translateX(-50%);width:26%;height:auto;animation:clIdle 2.4s steps(2) infinite}
 .clScene .clCat svg{width:100%;height:auto;display:block;filter:drop-shadow(0 3px 0 rgba(74,50,40,.25))}
-.clScene.sk .clCat{width:17%}.clScene.sy .clCat{width:23%}
+.clScene .clCat{width:30%}.clScene.sk .clCat{width:19%}.clScene.sy .clCat{width:26%}
 @keyframes clIdle{50%{transform:translateX(-50%) translateY(-3%)}}
 .clPlate{position:absolute;left:6px;top:6px;z-index:2;background:var(--pp);padding:4px 10px 5px;display:flex;flex-direction:column;line-height:1.25;
   box-shadow:0 -2px 0 0 var(--o),0 2px 0 0 var(--o),-2px 0 0 0 var(--o),2px 0 0 0 var(--o),inset 0 -3px 0 0 var(--sh)}
@@ -4403,3 +4403,20 @@ body.compact .famTop .ftC .pcL{width:56px}
 /* 大廳：新遊戲標籤（registerGame 的 added 在 14 天內） */
 .gcard .gNew{position:absolute;top:-3px;right:-3px;font-size:10px;line-height:1;padding:3px 5px;background:#ffd36b;color:#7a4a00;border:2px solid var(--line);z-index:1;letter-spacing:1px;animation:gNewB 1.6s steps(2) infinite}
 @keyframes gNewB{50%{background:#fff0a8}}
+/* 貓貓的一生：階級 */
+.clTier{align-self:flex-start;margin-top:3px;font-size:10px;line-height:1;padding:3px 6px;color:#fff;box-shadow:0 0 0 2px var(--o);letter-spacing:1px}
+.clTier.t0{background:#b8a894}.clTier.t1{background:#cd7f32}.clTier.t2{background:#8fa2bd}.clTier.t3{background:#e0a020;text-shadow:1px 1px 0 #a06a00}
+.clTier.t4{background:linear-gradient(90deg,#ff8fab,#ffd36b,#6cc49d,#6fb7e8,#c38be0);background-size:200% 100%;animation:clRb 3s linear infinite;text-shadow:1px 1px 0 #7a4a8a}
+@keyframes clRb{to{background-position:200% 0}}
+.clCat{position:relative}
+.clCat .clSp{position:absolute;width:4px;height:4px;background:#fff;z-index:2;pointer-events:none;
+  box-shadow:0 -4px 0 #ffe27a,0 4px 0 #ffe27a,-4px 0 0 #ffe27a,4px 0 0 #ffe27a;transform:scale(.6);animation:clSpk 1.8s calc(var(--i) * 230ms) steps(3) infinite}
+.clCat.t1 .clSp{box-shadow:0 -4px 0 #e09a5a,0 4px 0 #e09a5a,-4px 0 0 #e09a5a,4px 0 0 #e09a5a}
+.clCat.t2 .clSp{box-shadow:0 -4px 0 #dfe8f3,0 4px 0 #dfe8f3,-4px 0 0 #dfe8f3,4px 0 0 #dfe8f3}
+@keyframes clSpk{0%,100%{opacity:0;transform:scale(.3)}40%{opacity:1;transform:scale(.7)}}
+.clCat.t4>svg{animation:clAura 2.4s linear infinite}
+@keyframes clAura{0%{filter:drop-shadow(0 0 3px #ff8fab) drop-shadow(0 3px 0 rgba(74,50,40,.25))}33%{filter:drop-shadow(0 0 4px #ffd36b) drop-shadow(0 3px 0 rgba(74,50,40,.25))}66%{filter:drop-shadow(0 0 4px #6fb7e8) drop-shadow(0 3px 0 rgba(74,50,40,.25))}100%{filter:drop-shadow(0 0 3px #ff8fab) drop-shadow(0 3px 0 rgba(74,50,40,.25))}}
+.clCat.t3>svg{filter:drop-shadow(0 0 2px rgba(255,211,107,.9)) drop-shadow(0 3px 0 rgba(74,50,40,.25))}
+.clHB.up{background:linear-gradient(90deg,#fff3c4,#ffe0ea);box-shadow:0 -3px 0 0 var(--o),0 3px 0 0 var(--o),-3px 0 0 0 var(--o),3px 0 0 0 var(--o),inset 0 -3px 0 0 #f0c84a,0 0 18px 4px rgba(255,211,107,.7);font-size:17px}
+.clPolaP .clCat{position:absolute}
+.clTier{cursor:pointer}

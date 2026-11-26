@@ -99,3 +99,53 @@ const TAL_IC = { strong:"heart", cheer:"sun", clever:"star", sweet:"flower", app
   nine:"paw", magic:"spark", stars:"star", meow:"moon", sage:"crown" };
 window.ClArt = { scene, SEASON, TOD, TAL_IC };
 })();
+// ---------- 貓咪造型：各階段的配件＋階級（越來越華麗） ----------
+// 坐姿貓 sprite 的 viewBox 是 0 -0.5 25 25：耳朵 y1~3、頭 y4~13（眼睛 y7~8，x6~9／x16~19）、脖子 y13、身體 y14~19
+(function(){
+const A = window.ClArt;
+const draw = (rows, x0, y0, pal) => { let o = ""; rows.forEach((r, j) => [...r].forEach((ch, i) => { const c = pal[ch]; if(c) o += `<rect x="${x0 + i}" y="${y0 + j}" width="1.02" height="1.02" fill="${c}"/>`; })); return o; };
+const TIER = [
+  { n:"平民貓",     c:"#b8a894" },
+  { n:"銅星貓",     c:"#cd7f32" },
+  { n:"銀月貓",     c:"#8fa2bd" },
+  { n:"金冠貓",     c:"#e0a020" },
+  { n:"彩虹傳說貓", c:"#c06ad8" },
+];
+// 階級：年紀、職業、成就一起算
+const tierOf = r => {
+  const lv = r.job ? r.job.lv : -1, f = r.f || [], hidden = ["envoy","astro","mage"].some(x => f.includes(x));
+  if(r.age >= 24 || hidden || (r.revived && r.age >= 20)) return 4;
+  if(r.age >= 18 || lv >= 3 || f.includes("hero")) return 3;
+  if(r.age >= 13 || lv >= 2 || f.includes("famous") || f.includes("model")) return 2;
+  if(r.age >= 7 || lv >= 1 || f.includes("adopt") || f.includes("kids")) return 1;
+  return 0;
+};
+const SCARF = { home:["#e5486a","#b8304f"], stray:["#4a90d6","#2f6aa8"], shop:["#3fae7a","#2a8a5c"], farm:["#e0a030","#b57a18"] };
+// 身體後面的披風（第 2 階銀色、第 4 階皇家紅）
+const cape = t => { if(t < 2) return ""; const [m, d, trim] = t >= 4 ? ["#c0304a","#8e1f36","#ffcf4a"] : ["#a9bad0","#7f93ad","#e8eef6"];
+  const rows = ["....mmmmmmmmmmmmmmmm.....", "...mmmmmmmmmmmmmmmmmm....", "..mmmmmmmmmmmmmmmmmmmm...", ".mmmmmmmmmmmmmmmmmmmmmm..", ".mmmmmmmmmmmmmmmmmmmmmmm.", "mmmmmmmmmmmmmmmmmmmmmmmmm", "mmmmmmmmmmmmmmmmmmmmmmmmm", "dmmmmmmmmmmmmmmmmmmmmmmmd", "ttttttttttttttttttttttttt"];
+  return draw(rows, 0, 12, { m, d, t: trim }); };
+function outfit(r, face){
+  const t = tierOf(r), sg = r.age === 0 ? "k" : r.age <= 6 ? "y" : r.age <= 11 ? "a" : "s", o = r.f && r.f.includes("stray") ? "stray" : r.o;
+  let s = "";
+  if(sg === "k") s += draw(["PPDPP", "PWDWP", "PP.PP"], 15, 3, { P:"#ff6f91", D:"#d94a72", W:"#ffd0dc" });
+  if(sg === "y"){ const [b, d] = SCARF[o] || SCARF.home;
+    s += draw(["dbbbbbbbbbbbd", ".dbbwbbbbwbd.", "...dbbwbbd...", "....dbbbd....", ".....dbd.....", "......d......"], 6, 13, { b, d, w:"#ffffff" }); }
+  if(sg === "a" || (sg === "s" && t < 3)){
+    s += draw(["rrrrrrrrrrrrr"], 6, 13, { r: t >= 2 ? "#5b4bb5" : "#b5294a" });
+    s += draw([".oGo.", "oGgGo", "oGkGo", ".ooo."], 10, 13, { o:"#7a4a10", G:"#ffcf4a", g:"#fff3b0", k:"#7a4a10" }); }
+  if(sg === "s"){
+    s += draw(["oooooo....oooooo", "o....oooooo....o", "o....o....o....o", "oooooo....oooooo"], 5, 7, { o: r.c === "black" ? "#e8c46a" : "#3b3b4a" });   // 黑貓用金框眼鏡才看得到
+    if(t < 3) s += draw(["......ww......", ".....wwww.....", "....kkkkkk....", "..kKkKkKkKkK..", ".kKkKkKkKkKkK.", "bbbbbbbbbbbbbb"], 5, -1, { w:"#ffffff", k:"#8fb8e8", K:"#6f9bd0", b:"#4f7fbf" }); }
+  if(t >= 3) s += draw(["G...G...G", "GG.GGG.GG", "GGGGRGGGG", "GBGGGGGBG", "DDDDDDDDD"], 8, -0.5, { G:"#ffcf4a", D:"#d99a1a", R:"#e5486a", B:"#6fb7e8" });
+  if(t === 1 || t === 2) s += draw([".s.", "sSs", ".s."], 15, 15, t === 1 ? { s:"#a8622a", S:"#e09a5a" } : { s:"#8a98aa", S:"#eef3f8" });
+  return { back: cape(t), front: s, t };
+}
+// 合成一張完整的貓（披風＋貓＋配件），給場景、相簿、存圖用
+function catSvg(r, face){
+  const sp = Pix.sprite(r.c, face), vb = (sp.match(/viewBox="([^"]+)"/) || [])[1] || "0 -0.5 25 25", inner = sp.replace(/^<svg[^>]*>/, "").replace(/<\/svg>\s*$/, "");
+  const o = outfit(r, face);
+  return `<svg viewBox="${vb}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">${o.back}${inner}${o.front}</svg>`;
+}
+A.TIER = TIER; A.tierOf = tierOf; A.catSvg = catSvg;
+})();
