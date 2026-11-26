@@ -2329,7 +2329,7 @@ const App = (function(){
   }
   // ---- 乞丐貓（poorcat.js）：每個人開一次禮物盒，顏色由伺服器隨機決定；站長小窩全部顏色都有 ----
   const PC = { col: 0, all: false, ok: false };
-  async function pcLoad(){ try{ const r = await B.rpc("poorcat_me"); PC.col = (r && +r.col) || 0; PC.all = !!(r && r.all); PC.ok = true; }catch(e){ PC.ok = false; } return PC; }
+  async function pcLoad(){ try{ const r = await B.rpc("poorcat_me"); PC.col = (r && +r.col) || 0; PC.all = !!(r && r.all); PC.cats = !!(r && r.cats); PC.ok = true; }catch(e){ PC.ok = false; } return PC; }
   const pcOwned = () => PC.all ? Pix.PC_IDS.slice() : PC.col ? ["pc" + PC.col] : [];
   let pcShown = false;
   // 開過但還沒看到開箱結果（例如開到一半關掉 app）：下次再演一次，顏色還是同一個
@@ -3774,12 +3774,12 @@ const App = (function(){
         <div class="delNest">${isFam() && members.length > 2 ? `<button class="btn sub" id="bDelNest">離開這個家</button><div class="k">只有你會離開，家裡其他人的聊天和紀錄都會留著。家裡人數多的時候，為了安全不能一個人刪掉整個小窩。</div>` : `<button class="btn sub" id="bDelNest">🗑 刪除小窩</button><div class="k">把這個小窩的聊天、遊戲紀錄、記事本全部刪掉，${isFam() ? "家裡的人" : "兩個人"}都會看不到，刪了就救不回來。</div>`}</div>
         </div>`;
     let pick = me.cat||"orange";
-    const drawPk=()=>{ const pk=$("pk"); if(!pk) return; const star = SV.done || me.cat==="star";
+    const drawPk=()=>{ const pk=$("pk"); if(!pk) return; const star = SV.done || me.cat==="star" || PC.cats;
       pk.innerHTML=COLORS.map(c=>`<button class="${c===pick?"on":""}" data-c="${c}">${sprite(c,"normal")}</button>`).join("")
         + (star ? `<button class="${pick==="star"?"on":""} svPk" data-c="star">${sprite("star","normal")}<i>限定</i></button>` : SV.on ? `<button class="svPk lock" data-sv="1">${sprite("star","normal")}<i>填問卷</i></button>` : "")
-        + (GIFT.has.has("pj") || me.cat==="pj" ? `<button class="${pick==="pj"?"on":""} svPk" data-c="pj">${sprite("pj","normal")}<i>限定</i></button>` : "")
-        + [...new Set(BD.cols.map(i=>"bd"+i).concat(Pix.isBd(me.cat) ? [me.cat] : []))].map(c=>`<button class="${pick===c?"on":""} svPk bdPk" data-c="${c}">${sprite(c,"normal")}<i>壽星</i></button>`).join("")
-        + (BD.ok && !BD.cols.length && !Pix.isBd(me.cat) ? `<button class="svPk lock bdPk" data-bdl="1">${sprite("bd1","normal")}<i>生日限定</i></button>` : "")
+        + (GIFT.has.has("pj") || me.cat==="pj" || PC.cats ? `<button class="${pick==="pj"?"on":""} svPk" data-c="pj">${sprite("pj","normal")}<i>限定</i></button>` : "")
+        + [...new Set((PC.cats ? [1,2,3,4,5,6,7,8,9] : BD.cols).map(i=>"bd"+i).concat(Pix.isBd(me.cat) ? [me.cat] : []))].map(c=>`<button class="${pick===c?"on":""} svPk bdPk" data-c="${c}">${sprite(c,"normal")}<i>壽星</i></button>`).join("")
+        + (BD.ok && !PC.cats && !BD.cols.length && !Pix.isBd(me.cat) ? `<button class="svPk lock bdPk" data-bdl="1">${sprite("bd1","normal")}<i>生日限定</i></button>` : "")
         + [...new Set(pcOwned().concat(Pix.isPc(me.cat) ? [me.cat] : []))].map(c=>`<button class="${pick===c?"on":""} svPk" data-c="${c}">${sprite(c,"normal")}<i>${PC.all ? Pix.PC_N[+c.slice(2)-1] : "乞丐貓"}</i></button>`).join("")
         + (PC.ok && !PC.all && !PC.col ? `<button class="svPk lock" data-pcg="1">${sprite("pc1","normal")}<i>禮物盒</i></button>` : "");
       pk.querySelectorAll("[data-c]").forEach(b=>b.addEventListener("click",()=>{pick=b.dataset.c;drawPk();}));

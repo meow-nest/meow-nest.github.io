@@ -61,7 +61,7 @@
 
 ### 加新的 SQL
 
-1. 新檔案 `supabase/update_NN_名稱.sql`，NN 接著目前最大的號碼（目前到 **86**）。開頭用中文註解說這次做什麼。要能重複執行（`if not exists`、`create or replace`）。
+1. 新檔案 `supabase/update_NN_名稱.sql`，NN 接著目前最大的號碼（目前到 **87**）。開頭用中文註解說這次做什麼。要能重複執行（`if not exists`、`create or replace`）。
 2. 加進 all.sql：`printf '\n' >> supabase/all.sql && cat supabase/update_NN_名稱.sql >> supabase/all.sql`
 3. 先在本機 Postgres 測過，再推上去給站長連結。
 
@@ -149,5 +149,6 @@ git push origin main           # GitHub Pages 約 1 分鐘後更新
 - **喵喵鍵盤小修（11/25，沒有 SQL、沒發通知）**：`dockKeyboard` 打開時，框框的外層小區塊（裡面有按鈕、放得下）整塊捲到鍵盤上面（例如後台回覆框的「送出回覆」）；`setupCaret` 的鏡像 div 補上透明框線（以前少算框線寬度，換行位置不同 → 游標跑到前一個字），x/y 也加上框線寬度；ime.js 候選列的提示（免聲調也能打）放不下整句就藏起來。
 - **股市小窩排名改平均（update_83，11/25）**：`stock_status()` 的小窩合作 `n` 改成「有下過單的成員獲利總和 ÷ 人數」（`nprofit` 是平均、多回傳 `ncnt`、`ntop[].cnt`），多人小窩（情侶／閨蜜／兄弟／家人）一組、單人一組。前端 `games/stock.js` 文字改成「平均每人獲利」「多人小窩組」。harness 的 stock_status 假資料多了 badges／nprofit／ntop（成就和小窩合作頁可以測）。
 - **VIP 小窩（update_84，11/25）**：`couples.vip`，`nest_vip(cid)`＝站長小窩或 vip。vip 跟站長小窩一樣乞丐貓 12 色都能選（`poorcat_me`／`poorcat_open`／`member_cat_guard` 改用 `nest_vip`）；沒有後台、排行照常參加。設定方法：站長在 SQL 頁面跑 `update couples set vip = true where code = '邀請碼';`（**邀請碼不寫進倉庫**，用 code block 給），再跑 `supabase/vip_fill.sql`（不在 all.sql，跟 owner_test.sql 一樣：貓幣 999999、小魚乾 99999、全部家具房間、娃娃每種 2 隻、9 隻壽星貓；有新成員加入再跑一次）。11/25 站長設了一個 VIP 小窩。update_85：等級排行 `lv_rank`／`lv_rank_week` 也不列 VIP 小窩（`not nest_vip(c.id)`，回傳 `owner`＝nest_vip、`vip`，前端顯示「VIP 小窩不參加排名」）；vip_fill.sql 第 4 段把 VIP 小窩的默契愛心升到至少站長小窩的、最少 3525（Lv40）。股市、貓貓的一生排行 VIP 照常參加（站長小窩也是）。
+- **全部小貓解鎖（update_87，11/26）**：`couples.allcats`，`nest_allcats(cid)`＝站長小窩或 vip 或 allcats。`member_cat_guard` 對這些小窩放行 star／pj／bd1-9／pc1-12；`poorcat_me` 多回傳 `cats`，前端 `PC.cats` 時「我的貓」顯示全部限定貓。打開方法：站長跑 `update couples set allcats = true where code = '邀請碼';`（邀請碼不寫進倉庫）。不是 VIP，其他東西照舊。11/26 站長開了一個小窩。
 - 定時訊息（11/20 上線）：聊天頁左上「定時」（`schedWriter`）。`sched_msgs` 表不開權限，用 `sched_add`／`sched_list`／`sched_cancel`；pg_cron `meow-sched` 每分鐘跑 `fire_sched()`，用寫的人的名字插入 messages（kind `text`、media `{"sch":1}`，前端 `isSched` 顯示「定時訊息」標籤），推播照舊。送出前只有自己看得到；500 字、1 分鐘後～1 年內、每人最多 30 則；單人小窩沒有按鈕。
 - 等級稱號：Lv40 之後有天使／惡魔翅膀（惡魔 6 種顏色），排行榜有本週／總排行，站長小窩可以展示但不參加排行。
