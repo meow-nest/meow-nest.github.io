@@ -4163,8 +4163,240 @@ body.compact .famTop .ftC .pcL{width:56px}
 .clLife small{display:block;color:#8a7a9a;margin-top:4px}
 .clNew{display:inline-block;background:#ffd36b;color:#7a4a00;border-radius:999px;padding:1px 10px;font-size:13px;margin-bottom:2px;animation:clBob 1s ease-in-out infinite}
 .clBdg{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:6px 0}
-.clBdg span{display:inline-flex;align-items:center;gap:4px;font-size:13px;background:#fff6d6;border:2px solid #e8b93a;border-radius:999px;padding:2px 9px 2px 5px}
+.clBdg>span{display:inline-flex;align-items:center;gap:4px;font-size:13px;background:#fff6d6;border:2px solid #e8b93a;border-radius:999px;padding:2px 9px 2px 5px}
 .clBdg .clI{width:15px;height:15px}
 .clMem{margin:8px 0;border:2px dashed var(--shadow);border-radius:12px;padding:6px 10px}
 .clMem summary{cursor:pointer;color:#8a7a9a}
 .clMem ol{margin:6px 0 2px;padding-left:22px;font-size:13px;line-height:1.7;max-height:200px;overflow:auto}
+/* 貓貓的一生 第二版：天賦、活動、職業、關係、傳承、圖鑑 */
+.clTwo{display:flex;gap:8px}.clTwo .skRkB{flex:1;margin:8px 0 4px}
+.clDexB{background:#eef6ff;border-color:#6fb7e8}.clDexB small{font-size:12px;color:#5a7fa0;margin-left:2px}
+.clPI b i{font-style:normal;font-size:11px;margin-left:5px;padding:0 6px;border-radius:999px;background:#ffe9c7;color:#9a6a1a}
+.clTals{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin:8px 0 2px}
+.clTc{font-size:12px;padding:2px 9px;border-radius:999px;border:2px solid #d9cfe0;background:#fff;color:var(--ink)}
+.clTc.r1{border-color:#6fb7e8;background:#eef6ff;color:#2f6f9e}
+.clTc.r2{border-color:#e8b93a;background:linear-gradient(90deg,#fff6d6,#ffe6f0);color:#9a5a00}
+.clJobT{display:flex;align-items:center;gap:3px;color:#9a6a1a!important}.clJobT .clI{width:13px;height:13px}
+.clStep{margin-left:auto;font-size:11px;color:#8a7a9a;background:#f3eef8;border-radius:999px;padding:1px 8px}
+.clCh button>span:first-child{display:block}
+.clPips{display:flex;gap:4px;margin-top:3px;align-items:center}
+.clPips i{width:9px;height:9px;border-radius:50%;display:block;box-shadow:0 0 0 1.5px rgba(0,0,0,.12) inset}
+.clPips i.neg{opacity:.45}
+.clPips em{font-style:normal;font-size:11px;color:#c08a2a;margin-left:2px}
+.clPipK{font-size:11px;margin-top:6px;color:#8a7a9a;display:flex;flex-wrap:wrap;justify-content:center;gap:2px 8px}.clPipK span{white-space:nowrap}
+.clPipK i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:3px;vertical-align:middle}
+.clEv.done{padding:10px 12px}.clEv.done .clRes{margin:6px 0 0;animation:none}
+.clAct{margin-top:10px;border:3px solid var(--shadow);border-radius:14px;background:#fffaf2;padding:10px}
+.clAH{display:flex;align-items:center;gap:6px;margin-bottom:8px}.clAH b{font-weight:400;font-size:16px}.clAH small{color:#8a7a9a}
+.clLog{display:flex;flex-direction:column;gap:5px;margin-bottom:8px}
+.clLog>div{font-size:13px;line-height:1.6;background:#fff;border-radius:10px;padding:6px 9px;border:2px solid #efe6f4}
+.clLog>div b{font-weight:400;color:#ff6f91;margin-right:6px}.clLog>div.bad b{color:#c0435f}.clLog>div.upj{border-color:#ffd36b;background:#fffbea}
+.clLog .clDl{margin-top:3px}
+.clGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
+.clGrid button{font:inherit;color:var(--ink);padding:8px 4px 6px;border:3px solid var(--shadow);border-radius:12px;background:#fff;display:flex;flex-direction:column;align-items:center;gap:2px}
+.clGrid button .clI{width:24px;height:24px}.clGrid button b{font-weight:400;font-size:14px}.clGrid button small{font-size:10px;color:#8a7a9a}
+.clGrid button:active{transform:translateY(2px);background:#fff0f4}
+.clGrid button:disabled{opacity:.38}
+.clSub{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.clSubH{display:flex;align-items:center}.clSubH b{font-weight:400;font-size:15px}
+.clSubH button{margin-left:auto;font:inherit;font-size:13px;color:#8a7a9a;background:#f3eef8;border:0;border-radius:999px;padding:3px 12px}
+.clRel,.clJob{display:flex;align-items:center;gap:8px;text-align:left;font:inherit;color:var(--ink);padding:7px 9px;border:3px solid var(--shadow);border-radius:12px;background:#fff}
+.clRel.new{border-style:dashed}.clJob.no{opacity:.5}
+.clRC{flex:none;width:34px;height:34px;display:flex;align-items:center;justify-content:center}.clRC svg{width:100%;height:auto;display:block}.clRC .clI{width:24px;height:24px}
+.clRN{flex:1;min-width:0;display:flex;flex-direction:column}.clRN b{font-weight:400}.clRN small{font-size:11px;color:#8a7a9a}
+.clRA{flex:none;width:56px;height:8px;border-radius:5px;background:#f3e6ee;overflow:hidden}.clRA i{display:block;height:100%;background:#ff8fab}
+.clRel em,.clJob em{font-style:normal;font-size:11px;color:#8a7a9a;flex:none;max-width:96px;text-align:right}
+.clJob:not(.no) em{color:#2f8a5b}
+.clDeck,.clDexG{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}
+.clCard{font:inherit;color:var(--ink);text-align:left;padding:8px 9px;border:3px solid #d9cfe0;border-radius:12px;background:#fff;display:flex;flex-direction:column;gap:2px;line-height:1.35}
+.clCard small{font-size:10px;color:#8a7a9a}.clCard b{font-weight:400;font-size:15px}.clCard span{font-size:11px;color:#6a5a7a}
+.clCard.r1{border-color:#9fcdf0;background:#f4faff}.clCard.r1 small{color:#2f6f9e}
+.clCard.r2{border-color:#f0c84a;background:linear-gradient(160deg,#fffbe8,#fff0f6)}.clCard.r2 small{color:#b07a12}
+.clCard.on{box-shadow:0 0 0 3px #ff6f91;transform:translateY(-2px)}
+.clCard.lock{opacity:.55;filter:grayscale(.6)}.clCard.lock b{letter-spacing:2px}
+.clR1{color:#2f6f9e}.clR2{color:#b07a12}
+.clHeirT{text-align:center;margin:4px 0}.clHeirCat{width:84px;margin:0 auto}.clHeirCat svg{width:100%;height:auto;display:block}
+.clMake .btn[disabled]{opacity:.5}
+.clAlloc{display:flex;flex-direction:column;gap:8px;margin:10px 0}
+.clAR{display:flex;align-items:center;gap:6px}.clAR b{font-weight:400;flex:none;white-space:nowrap}
+.clAR button{flex:none;width:36px;height:36px;font:inherit;font-size:20px;line-height:1;color:var(--ink);border:3px solid var(--shadow);border-radius:10px;background:#fff}
+.clAR button:active{background:#fff0f4}
+.clAV{flex:1;position:relative;height:24px;border-radius:8px;background:#eee6f2;overflow:hidden;border:2px solid var(--shadow)}
+.clAV i{position:absolute;left:0;top:0;bottom:0;border-radius:5px;transition:width .2s}
+.clAV em{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:13px;color:var(--ink)}
+.clAV em small{margin-left:4px;color:#2f8a5b;font-size:11px}
+.clEndT{text-align:center;margin-top:8px;font-size:14px;color:#8a7a9a}.clEndT b{font-weight:400;color:var(--ink);font-size:16px}
+.clEndT.hid b{color:#b07a12}.clEndT .clNew{margin-left:6px}
+.clStar.hid{background:linear-gradient(#3b2a6e,#c27bb0 70%,#ffd9a8)}
+.clHeir{margin:10px 0 4px;border-top:2px dashed var(--shadow);padding-top:8px}
+.clHeir button{display:flex;align-items:center;gap:8px;width:100%;font:inherit;color:var(--ink);text-align:left;padding:6px 9px;margin-bottom:6px;border:3px solid #f0c84a;border-radius:12px;background:#fffbea}
+.clHeir button span{width:34px;flex:none}.clHeir button span svg{width:100%;height:auto;display:block}
+.clHeir button b{font-weight:400}.clHeir button small{margin-left:auto;font-size:11px;color:#8a7a9a}
+.clDexTab{display:flex;gap:4px;margin:6px 0 8px}
+.clDexTab button{flex:1;font:inherit;font-size:14px;color:var(--ink);padding:6px 2px;border:3px solid var(--shadow);border-radius:10px;background:#fff;display:flex;flex-direction:column;align-items:center}
+.clDexTab button small{font-size:10px;color:#8a7a9a}.clDexTab button.on{border-color:#ff6f91;background:#fff0f4}
+.clDexL{max-height:calc(52vh / var(--z,1));overflow:auto;display:flex;flex-direction:column;gap:5px}
+.clDexL .clDexG{margin:0}
+.clDexR{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:10px;background:#f8f4fb;border:2px solid #ece3f2}
+.clDexR b{font-weight:400}.clDexR small{margin-left:auto;font-size:11px;color:#8a7a9a}
+.clDexR.lock{opacity:.5}.clDexR.got.hid{background:#fff6d6;border-color:#f0c84a}
+/* ================= 貓貓的一生：精緻像素風（.clRoot 底下全部重新設計） ================= */
+.clRoot{--o:#4a3228;--pp:#fff8ec;--hi:#fffdf6;--sh:#ead2ae;--pink:#ff8fab;--pinkD:#e2668a;--pinkL:#ffc2d1}
+/* 像素外框：四邊各一條線、角落留缺口＝像素圓角 */
+.clRoot .box{border:0;border-radius:0;background:var(--pp);margin:8px 5px 14px;
+  box-shadow:0 -4px 0 0 var(--o),0 4px 0 0 var(--o),-4px 0 0 0 var(--o),4px 0 0 0 var(--o),inset 0 4px 0 0 var(--hi),inset 0 -5px 0 0 var(--sh),0 9px 0 0 rgba(74,50,40,.16)}
+.clRoot .clTitle{display:flex;align-items:center;justify-content:center;gap:10px;font-size:21px;letter-spacing:1px;margin:4px 0 6px}
+.clRoot .clTitle::before,.clRoot .clTitle::after{content:"";width:8px;height:8px;background:var(--pink);box-shadow:0 0 0 2px var(--o);transform:rotate(45deg)}
+.clRoot .clIntro{font-size:14px;color:#6a5446}
+/* 按鈕 */
+.clRoot .btn{border:0;border-radius:0;background:var(--pink);color:#fff;text-shadow:1px 1px 0 #c4506f;margin:12px 3px 6px;width:calc(100% - 6px);padding:12px 8px;font-size:17px;
+  box-shadow:0 -3px 0 0 var(--o),0 3px 0 0 var(--o),-3px 0 0 0 var(--o),3px 0 0 0 var(--o),inset 0 -5px 0 0 var(--pinkD),inset 0 3px 0 0 #ffb8cb;transition:transform .06s}
+.clRoot .btn:active{transform:translateY(3px);box-shadow:0 -3px 0 0 var(--o),0 3px 0 0 var(--o),-3px 0 0 0 var(--o),3px 0 0 0 var(--o),inset 0 -2px 0 0 var(--pinkD),inset 0 3px 0 0 #ffb8cb}
+.clRoot .btn.sub{background:#fffdf6;color:var(--o);text-shadow:none;box-shadow:0 -3px 0 0 var(--o),0 3px 0 0 var(--o),-3px 0 0 0 var(--o),3px 0 0 0 var(--o),inset 0 -5px 0 0 #e7d6bd,inset 0 3px 0 0 #fff}
+.clRoot .btn .clI{width:18px;height:18px;margin-right:6px;vertical-align:-3px}
+.clRoot .btn[disabled]{filter:grayscale(.5);opacity:.6}
+.clRoot .skRkB{border:0;border-radius:0;box-shadow:0 -3px 0 0 var(--o),0 3px 0 0 var(--o),-3px 0 0 0 var(--o),3px 0 0 0 var(--o),inset 0 -4px 0 0 #e8c25a;background:#ffe9a8;margin:10px 3px 4px}
+.clRoot .clDexB{background:#dcefff;box-shadow:0 -3px 0 0 var(--o),0 3px 0 0 var(--o),-3px 0 0 0 var(--o),3px 0 0 0 var(--o),inset 0 -4px 0 0 #9fcdf0}
+/* 大廳 */
+.clRoot .clHero{height:auto;aspect-ratio:2/1;margin:0 0 6px;border-radius:0;background:none;box-shadow:0 0 0 3px var(--o);overflow:hidden}
+.clRoot .clHero>svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.clRoot .clHero i{bottom:4%;z-index:1}
+.clRoot .clHero .k1{left:14%;width:15%}.clRoot .clHero .k2{left:38%;width:24%}.clRoot .clHero .k3{right:16%;width:22%;bottom:3%}
+.clRoot .clMyBest{border:0;border-radius:0;box-shadow:0 -3px 0 0 var(--o),0 3px 0 0 var(--o),-3px 0 0 0 var(--o),3px 0 0 0 var(--o),inset 0 -4px 0 0 #f0d58a;margin:8px 3px}
+.clRoot .clPast{border-top:3px dotted #d9c3a3}
+.clRoot .clPI{border-radius:0;background:#fffdf6;box-shadow:0 0 0 2px #e2cfb3;margin:0 2px 7px}
+/* 每年的場景 */
+.clScene{position:relative;aspect-ratio:2/1;overflow:hidden;box-shadow:0 0 0 3px var(--o),0 6px 0 0 rgba(74,50,40,.15);margin:2px 3px 8px;background:#bfe6ff}
+.clScene>svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.clScene .clCat{position:absolute;left:50%;bottom:6%;transform:translateX(-50%);width:26%;height:auto;animation:clIdle 2.4s steps(2) infinite}
+.clScene .clCat svg{width:100%;height:auto;display:block;filter:drop-shadow(0 3px 0 rgba(74,50,40,.25))}
+.clScene.sk .clCat{width:17%}.clScene.sy .clCat{width:23%}
+@keyframes clIdle{50%{transform:translateX(-50%) translateY(-3%)}}
+.clPlate{position:absolute;left:6px;top:6px;z-index:2;background:var(--pp);padding:4px 10px 5px;display:flex;flex-direction:column;line-height:1.25;
+  box-shadow:0 -2px 0 0 var(--o),0 2px 0 0 var(--o),-2px 0 0 0 var(--o),2px 0 0 0 var(--o),inset 0 -3px 0 0 var(--sh)}
+.clPlate b{font-weight:400;font-size:17px;color:var(--o)}.clPlate small{font-size:11px;color:#8a7a9a}
+.clAgeB{position:absolute;right:6px;top:6px;z-index:2;background:var(--pink);color:#fff;text-shadow:1px 1px 0 #c4506f;padding:2px 10px 4px;display:flex;align-items:baseline;gap:2px;
+  box-shadow:0 -2px 0 0 var(--o),0 2px 0 0 var(--o),-2px 0 0 0 var(--o),2px 0 0 0 var(--o),inset 0 -3px 0 0 var(--pinkD)}
+.clAgeB b{font-weight:400;font-size:26px;line-height:1}.clAgeB small{font-size:12px}
+.clSeason{position:absolute;left:6px;bottom:6px;z-index:2;font-size:11px;background:rgba(255,248,236,.92);color:var(--o);padding:1px 7px;box-shadow:0 0 0 2px var(--o)}
+.clScene .clJobT{position:absolute;right:6px;bottom:6px;z-index:2;font-size:11px;background:#fff6d6;color:#9a6a1a;padding:1px 7px 1px 4px;display:flex;align-items:center;gap:3px;box-shadow:0 0 0 2px var(--o)}
+.clScene .clJobT .clI{width:13px;height:13px}
+.clScene.bday .clCat{animation:clHop .5s ease-out 2}
+@keyframes clHop{40%{transform:translateX(-50%) translateY(-16%)}}
+.clConf{position:absolute;inset:0;z-index:3;pointer-events:none}
+.clConf i{position:absolute;top:-6%;left:var(--x);width:6px;height:6px;background:var(--c);box-shadow:0 0 0 1px rgba(74,50,40,.3);animation:clFall 1.7s var(--d) linear both}
+@keyframes clFall{to{transform:translateY(calc(var(--z,1) * 0 + 280px)) rotate(180deg);opacity:.2}}
+.clHB{position:absolute;left:50%;top:38%;z-index:4;transform:translate(-50%,-50%);background:#fff6d6;color:var(--o);font-size:16px;padding:5px 14px;white-space:nowrap;
+  box-shadow:0 -3px 0 0 var(--o),0 3px 0 0 var(--o),-3px 0 0 0 var(--o),3px 0 0 0 var(--o),inset 0 -3px 0 0 #f0d58a;animation:clPop 1.9s ease-out both}
+@keyframes clPop{0%{transform:translate(-50%,-50%) scale(.3);opacity:0}15%{transform:translate(-50%,-50%) scale(1.12);opacity:1}25%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0}}
+/* 屬性條：一格一格的 */
+.clRoot .clBars{margin:8px 4px 10px;gap:7px 12px}
+.clRoot .clBT{height:12px;border:0;border-radius:0;background:#eadfcc;box-shadow:0 0 0 2px var(--o)}
+.clRoot .clBT i{border-radius:0;background-image:linear-gradient(90deg,transparent calc(100% - 2px),rgba(74,50,40,.22) 0),linear-gradient(rgba(255,255,255,.35) 0 35%,transparent 0)!important;background-size:10% 100%,100% 100%;background-blend-mode:normal}
+.clRoot .clBar em{color:var(--o)}
+/* 天賦小標籤 */
+.clRoot .clTc{border-radius:0;border:0;box-shadow:0 0 0 2px #c9b8a8;margin:2px}
+.clRoot .clTc.r1{box-shadow:0 0 0 2px #5a9fd4}.clRoot .clTc.r2{box-shadow:0 0 0 2px #d9a325}
+/* 事件卡 */
+.clRoot .clEv{border:0;border-radius:0;background:#fffdf6;margin:6px 3px;padding:14px 12px 12px;position:relative;
+  box-shadow:0 -3px 0 0 var(--o),0 3px 0 0 var(--o),-3px 0 0 0 var(--o),3px 0 0 0 var(--o),inset 0 -4px 0 0 var(--sh)}
+.clRoot .clEH{font-size:18px}.clRoot .clEH>.clI{width:20px;height:20px}
+.clRoot .clStep{border-radius:0;background:#f3e6ee;box-shadow:0 0 0 2px #e6cdd9;color:#9a6a82}
+.clRoot .clCh button{border:0;border-radius:0;background:#fff;margin:0 3px;padding:11px 12px;
+  box-shadow:0 -3px 0 0 var(--o),0 3px 0 0 var(--o),-3px 0 0 0 var(--o),3px 0 0 0 var(--o),inset 0 -4px 0 0 #eee0cc}
+.clRoot .clCh button:active{transform:translateY(2px);background:#fff0f4;box-shadow:0 -3px 0 0 var(--o),0 3px 0 0 var(--o),-3px 0 0 0 var(--o),3px 0 0 0 var(--o),inset 0 -1px 0 0 #eee0cc}
+.clRoot .clCh{gap:12px;padding:3px 0}
+.clRoot .clPips i{border-radius:0;width:8px;height:8px;box-shadow:0 0 0 1.5px var(--o)}
+.clRoot .clPipK i{border-radius:0}
+.clRoot .clRes{border-radius:0;background:#eef7ff;box-shadow:0 0 0 2px #bcdcf3}
+.clRoot .clDl span{border-radius:0;box-shadow:0 0 0 1.5px currentColor}
+/* 活動 */
+.clRoot .clAct{border:0;border-radius:0;background:#fff4e2;margin:12px 3px 4px;padding:12px;box-shadow:0 -3px 0 0 var(--o),0 3px 0 0 var(--o),-3px 0 0 0 var(--o),3px 0 0 0 var(--o),inset 0 -4px 0 0 #f0d9b5}
+.clRoot .clAH b::before{content:"";display:inline-block;width:8px;height:8px;background:#6cc49d;box-shadow:0 0 0 2px var(--o);margin-right:8px;vertical-align:2px}
+.clRoot .clGrid{gap:9px;padding:3px}
+.clRoot .clGrid button{border:0;border-radius:0;background:#fffdf6;box-shadow:0 -3px 0 0 var(--o),0 3px 0 0 var(--o),-3px 0 0 0 var(--o),3px 0 0 0 var(--o),inset 0 -4px 0 0 #eee0cc}
+.clRoot .clGrid button:active{transform:translateY(2px)}
+.clRoot .clGrid button:disabled{opacity:.4;filter:grayscale(.7)}
+.clRoot .clLog>div{border:0;border-radius:0;box-shadow:0 0 0 2px #ead9c0}
+.clRoot .clLog>div.upj{box-shadow:0 0 0 2px #e8b93a;background:#fffbea}
+.clRoot .clRel,.clRoot .clJob,.clRoot .clHeir button{border:0;border-radius:0;margin:0 3px;box-shadow:0 -3px 0 0 var(--o),0 3px 0 0 var(--o),-3px 0 0 0 var(--o),3px 0 0 0 var(--o),inset 0 -4px 0 0 #eee0cc}
+.clRoot .clSub{gap:10px;padding:3px 0}
+.clRoot .clRA{border-radius:0;box-shadow:0 0 0 2px var(--o);background:#f6e6ee}
+.clRoot .clSubH button{border-radius:0;box-shadow:0 0 0 2px var(--o)}
+/* 天賦卡片 */
+.clRoot .clDeck{gap:12px;padding:4px}
+.clRoot .clCard{position:relative;border:0;border-radius:0;background:#fffdf6;padding:10px 10px 10px;min-height:96px;overflow:hidden;
+  box-shadow:0 -3px 0 0 var(--o),0 3px 0 0 var(--o),-3px 0 0 0 var(--o),3px 0 0 0 var(--o),inset 0 0 0 3px #e7dccf,inset 0 -6px 0 0 #eee0cc}
+.clRoot .clCard b{font-size:16px;color:var(--o)}
+.clRoot .clCI{position:absolute;right:7px;top:7px;width:26px;height:26px}.clRoot .clCI .clI{width:100%;height:100%}
+.clRoot .clCard.r1{background:#f2f9ff;box-shadow:0 -3px 0 0 var(--o),0 3px 0 0 var(--o),-3px 0 0 0 var(--o),3px 0 0 0 var(--o),inset 0 0 0 3px #9fcdf0,inset 0 -6px 0 0 #cfe6f8}
+.clRoot .clCard.r2{background:linear-gradient(160deg,#fffbe6,#fff0f6 70%,#f3e8ff);box-shadow:0 -3px 0 0 var(--o),0 3px 0 0 var(--o),-3px 0 0 0 var(--o),3px 0 0 0 var(--o),inset 0 0 0 3px #f0c84a,inset 0 -6px 0 0 #f4dc94,0 0 14px 2px rgba(255,211,107,.55);animation:clGlow 2.2s ease-in-out infinite}
+@keyframes clGlow{50%{box-shadow:0 -3px 0 0 var(--o),0 3px 0 0 var(--o),-3px 0 0 0 var(--o),3px 0 0 0 var(--o),inset 0 0 0 3px #f0c84a,inset 0 -6px 0 0 #f4dc94,0 0 22px 5px rgba(255,211,107,.85)}}
+.clRoot .clCard.r1::after,.clRoot .clCard.r2::after{content:"";position:absolute;top:-20%;bottom:-20%;width:26%;left:-40%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent);transform:skewX(-20deg);animation:clShine 3.4s ease-in-out infinite;pointer-events:none}
+.clRoot .clCard.r2::after{animation-duration:2.6s}
+@keyframes clShine{0%,55%{left:-40%}85%,100%{left:120%}}
+.clRoot .clCard i.sp1,.clRoot .clCard i.sp2{position:absolute;width:4px;height:4px;background:#fff;box-shadow:0 -4px 0 #ffe27a,0 4px 0 #ffe27a,-4px 0 0 #ffe27a,4px 0 0 #ffe27a;animation:clTw 1.6s steps(2) infinite}
+.clRoot .clCard i.sp1{left:10px;bottom:12px}.clRoot .clCard i.sp2{right:16px;bottom:30px;animation-delay:.8s}
+.clRoot .clCard.on{transform:translateY(-4px);box-shadow:0 -3px 0 0 var(--o),0 3px 0 0 var(--o),-3px 0 0 0 var(--o),3px 0 0 0 var(--o),inset 0 0 0 4px #ff6f91,inset 0 -6px 0 0 #ffd0dc,0 6px 0 0 rgba(255,111,145,.35)}
+.clRoot .clCard.on .clCI{visibility:hidden}
+.clRoot .clOk{position:absolute;right:7px;top:7px;width:20px;height:20px;background:#ff6f91;box-shadow:0 0 0 2px var(--o);display:flex;align-items:center;justify-content:center}
+.clRoot .clOk .clI{width:14px;height:14px}
+.clRoot .clCard.lock{opacity:1;filter:none;background:repeating-linear-gradient(45deg,#f3ece2 0 6px,#ece2d4 6px 12px)}
+.clRoot .clCard.lock .clCI{filter:grayscale(1) brightness(1.4);opacity:.5}
+.clRoot .clCard.deal{animation:clDeal .55s calc(var(--d) * 70ms) both}
+.clRoot .clCard.deal.r2{animation:clDeal .55s calc(var(--d) * 70ms) both,clGlow 2.2s 1s ease-in-out infinite}
+.clRoot .clCard.deal::before{content:"";position:absolute;inset:0;z-index:2;background:#b98ad6 repeating-linear-gradient(45deg,#c79ae0 0 5px,#b07fd0 5px 10px);box-shadow:inset 0 0 0 4px #fff3fb;animation:clBack .55s calc(var(--d) * 70ms) both}
+@keyframes clDeal{0%{transform:perspective(500px) rotateY(180deg) translateY(16px);opacity:0}20%{opacity:1}100%{transform:perspective(500px) rotateY(0)}}
+@keyframes clBack{0%,49%{opacity:1}50%,100%{opacity:0}}
+/* 分配屬性 */
+.clRoot .clAR button{border:0;border-radius:0;box-shadow:0 -3px 0 0 var(--o),0 3px 0 0 var(--o),-3px 0 0 0 var(--o),3px 0 0 0 var(--o),inset 0 -4px 0 0 #eee0cc;margin:3px}
+.clRoot .clAR button:active{transform:translateY(2px)}
+.clRoot .clAV{border:0;border-radius:0;box-shadow:0 0 0 2px var(--o)}
+.clRoot .clAV i{border-radius:0;background-image:linear-gradient(90deg,transparent calc(100% - 2px),rgba(74,50,40,.18) 0)!important;background-size:10% 100%}
+.clRoot .clAV i{background-color:inherit}
+/* 出生畫面 */
+.clRoot .clPick button,.clRoot .clOrig button{border:0;border-radius:0;box-shadow:0 -3px 0 0 var(--o),0 3px 0 0 var(--o),-3px 0 0 0 var(--o),3px 0 0 0 var(--o),inset 0 -4px 0 0 #eee0cc;margin:3px}
+.clRoot .clPick button.on{background:#fff0f4;box-shadow:0 -3px 0 0 var(--o),0 3px 0 0 var(--o),-3px 0 0 0 var(--o),3px 0 0 0 var(--o),inset 0 0 0 3px #ff6f91}
+.clRoot .clOrig{gap:9px}.clRoot .clOrig button.on{background:#eefaf3;box-shadow:0 -3px 0 0 var(--o),0 3px 0 0 var(--o),-3px 0 0 0 var(--o),3px 0 0 0 var(--o),inset 0 0 0 3px #6cc49d}
+.clRoot .clNm input{border:0;border-radius:0;box-shadow:0 0 0 3px var(--o),inset 0 3px 0 0 #f1e6d6;margin:3px}
+.clRoot .clDice{border:0;border-radius:0;box-shadow:0 0 0 3px var(--o),inset 0 -4px 0 0 #f0d58a;margin:3px}
+/* 結局相簿 */
+.clAlbum{background:var(--pp) repeating-linear-gradient(0deg,transparent 0 23px,rgba(234,210,174,.35) 23px 24px)!important}
+.clAlbH{display:flex;align-items:center;justify-content:center;gap:8px;margin:4px 0 12px}
+.clAlbH b{font-weight:400;font-size:20px;color:var(--o);background:#fffdf6;padding:4px 14px;box-shadow:0 -2px 0 0 var(--o),0 2px 0 0 var(--o),-2px 0 0 0 var(--o),2px 0 0 0 var(--o),inset 0 -3px 0 0 var(--sh)}
+.clAlbH .clI{width:16px;height:16px}
+.clPola{position:relative;background:#fff;margin:24px 14px 18px;padding:10px 10px 4px;box-shadow:0 0 0 3px var(--o),0 7px 0 0 rgba(74,50,40,.18);transform:rotate(-1.3deg)}
+.clPolaP{position:relative;aspect-ratio:2/1;overflow:hidden;box-shadow:0 0 0 2px #e0d2c0}
+.clPolaP>svg{position:absolute;inset:0;width:100%;height:100%}
+.clPolaP .clCat{position:absolute;left:50%;bottom:5%;transform:translateX(-50%);width:26%}.clPolaP .clCat svg{width:100%;height:auto;display:block}
+.clPolaP .tw{position:absolute;width:4px;height:4px;background:#fff;box-shadow:0 -4px 0 #ffe9a8,0 4px 0 #ffe9a8,-4px 0 0 #ffe9a8,4px 0 0 #ffe9a8;animation:clTw 1.4s steps(2) infinite}
+.clPolaP .t1{left:20%;top:20%}.clPolaP .t2{left:74%;top:30%;animation-delay:.5s}.clPolaP .t3{left:44%;top:12%;animation-delay:1s}
+.clPolaC{display:flex;align-items:baseline;justify-content:space-between;padding:8px 4px 6px}
+.clPolaC b{font-weight:400;font-size:19px;color:var(--o)}.clPolaC span{font-size:12px;color:#8a7a9a}
+.clStamp{position:absolute;right:-10px;top:-14px;transform:rotate(7deg);z-index:2;background:#ffe3ea;color:#c0435f;padding:4px 10px 6px;display:flex;flex-direction:column;align-items:center;line-height:1.2;
+  box-shadow:0 -3px 0 0 #c0435f,0 3px 0 0 #c0435f,-3px 0 0 0 #c0435f,3px 0 0 0 #c0435f,inset 0 0 0 2px #fff}
+.clStamp small{font-size:10px}.clStamp b{font-weight:400;font-size:16px}
+.clStamp.hid{background:#fff3c4;color:#9a5a00;box-shadow:0 -3px 0 0 #d9a325,0 3px 0 0 #d9a325,-3px 0 0 0 #d9a325,3px 0 0 0 #d9a325,inset 0 0 0 2px #fff,0 0 16px 3px rgba(255,211,107,.6)}
+.clFirst{text-align:center;font-size:13px;color:#9a5a00;margin:-4px 0 4px}
+.clRoot .clNew{border-radius:0;box-shadow:0 0 0 2px var(--o)}
+.clTL{margin:6px 6px 10px;padding:8px 10px 4px;background:#fffdf6;box-shadow:0 0 0 2px #e2cfb3}
+.clTL>div:not(.clPH){display:flex;gap:10px;align-items:baseline;padding:4px 0 4px 4px;border-left:3px solid #ffc2d1;margin-left:26px;position:relative;font-size:14px}
+.clTL>div:not(.clPH)::before{content:"";position:absolute;left:-6px;top:9px;width:8px;height:8px;background:#ff8fab;box-shadow:0 0 0 2px var(--o)}
+.clTL em{font-style:normal;font-size:12px;color:#ff6f91;flex:none;width:40px;margin-left:10px;margin-right:-2px}
+.clRoot .clBdg>span{border-radius:0;border:0;box-shadow:0 0 0 2px #d9a325;margin:2px}
+.clRoot .clMem{border-radius:0;border:2px dashed #d9c3a3}
+/* 圖鑑 */
+.clDexM .cmBox{border-radius:0!important}
+.clDexM .clDexTab button{border:0;border-radius:0;box-shadow:0 0 0 3px #4a3228,inset 0 -4px 0 0 #eee0cc;margin:3px}
+.clDexM .clDexTab button.on{background:#fff0f4;box-shadow:0 0 0 3px #4a3228,inset 0 0 0 3px #ff6f91}
+.clDexM .clDexR{border:0;border-radius:0;box-shadow:0 0 0 2px #e2cfb3;margin:2px}
+.clDexM .clDexL{padding:4px}
+.clDexM .clCard{position:relative;border:0;border-radius:0;background:#fffdf6;box-shadow:0 0 0 3px #4a3228,inset 0 0 0 3px #e7dccf;margin:3px;min-height:84px}
+.clDexM .clCard.r1{background:#f2f9ff;box-shadow:0 0 0 3px #4a3228,inset 0 0 0 3px #9fcdf0}
+.clDexM .clCard.r2{background:linear-gradient(160deg,#fffbe6,#fff0f6);box-shadow:0 0 0 3px #4a3228,inset 0 0 0 3px #f0c84a}
+.clDexM .clCard.lock{background:repeating-linear-gradient(45deg,#f3ece2 0 6px,#ece2d4 6px 12px)}
+.clDexM .clCI{position:absolute;right:6px;top:6px;width:22px;height:22px}.clDexM .clCI .clI{width:100%;height:100%}
+.clDexM .clCard.lock .clCI{filter:grayscale(1);opacity:.4}
+.clDexM .clCard i.sp1,.clDexM .clCard i.sp2{display:none}
+
+.clRoot .clLobby>.k{margin-top:12px}
