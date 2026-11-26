@@ -792,6 +792,10 @@ App.registerGame({
       const Qn = q(), me = ctx.me.uid, pid = p.user_id;
       const mi = ansOf(me), ti = ansOf(pid), done = mi>=0 && ti>=0, match = done && mi===ti;
       const tName = ctx.nameOf(Qn.target);
+      // 選項裡的「我／你」改成兩個人的名字（兩邊看到的一樣，才比得出有沒有想到一起）
+      const [uA, uB] = [me, pid].sort(), nA = ctx.nameOf(uA) || "我", nB = ctx.nameOf(uB) || "你";
+      const swapWY = o => o.replace(/[我你]/g, c => c === "我" ? "你" : "我");
+      const lab = o => { const t = swapWY(o); return t !== o && Qn.opts.includes(t) ? o.replace(/我/g, "\u0001").replace(/你/g, nB).replace(/\u0001/g, nA) : o; };
       const tag = Qn.type==="t" ? `<span class="tag" style="display:inline-block;font-size:13px;padding:2px 10px;border:2px solid var(--line);background:var(--pinkL)">關於 ${esc(tName)}</span>` : `<span style="display:inline-block;font-size:13px;padding:2px 10px;border:2px solid var(--line);background:var(--mintL)">關於我們</span>`;
       const qtext = Qn.type==="t" ? Qn.text.replace("{T}", tName) : Qn.text;
       const byTag = Qn.by ? `<div class="muted" style="font-size:12px;margin-top:6px">✏️ ${esc(ctx.nameOf(Qn.by))} 出的題</div>` : "";
@@ -801,12 +805,12 @@ App.registerGame({
         Qn.opts.map((o,i)=>{
           const bg = done && i===mi && i===ti ? "var(--mintL)" : i===mi ? "var(--pinkL)" : "var(--card)";
           const badges = done ? (i===mi?`<span style="position:absolute;top:-14px;right:-8px;width:30px;height:30px">${sprite(ctx.me.cat,"happy")}</span>`:"") + (i===ti?`<span style="position:absolute;top:-14px;left:-8px;width:30px;height:30px">${sprite(p.cat,"happy")}</span>`:"") : "";
-          return `<button data-i="${i}" ${done?"disabled":""} style="position:relative;font-size:16px;padding:14px 6px;min-height:62px;background:${bg};border:3px solid var(--line);box-shadow:3px 3px 0 var(--shadow)">${esc(o)}${badges}</button>`;
+          return `<button data-i="${i}" ${done?"disabled":""} style="position:relative;font-size:16px;padding:14px 6px;min-height:62px;background:${bg};border:3px solid var(--line);box-shadow:3px 3px 0 var(--shadow)">${esc(lab(o))}${badges}</button>`;
         }).join("") + `</div>`;
       if(done){
         let tip;
         if(match) tip = "喵！完全一樣～小魚乾 +1";
-        else tip = "這題不一樣！<div class='muted' style='font-size:13px;margin-top:4px'>" + (Qn.type==="t" ? (Qn.target===me ? `跟 ${esc(p.name)} 說說為什麼是「${esc(Qn.opts[mi])}」吧` : `原來是「${esc(Qn.opts[ti])}」！又多認識 ${esc(p.name)} 一點了`) : "不一樣也很可愛喵～聊聊彼此的想法吧") + "</div>";
+        else tip = "這題不一樣！<div class='muted' style='font-size:13px;margin-top:4px'>" + (Qn.type==="t" ? (Qn.target===me ? `跟 ${esc(p.name)} 說說為什麼是「${esc(lab(Qn.opts[mi]))}」吧` : `原來是「${esc(lab(Qn.opts[ti]))}」！又多認識 ${esc(p.name)} 一點了`) : "不一樣也很可愛喵～聊聊彼此的想法吧") + "</div>";
         html += `<div style="display:flex;justify-content:center;gap:4px;margin-top:12px">${sprite(ctx.me.cat, match?"wave":"surprised").replace("<svg ",'<svg width="90" height="90" ')}${sprite(p.cat, match?"love":"surprised").replace("<svg ",'<svg width="90" height="90" ')}</div>
           <div style="font-size:18px;color:${match?"#3f9c76":"#8a72d8"}">${tip}</div><button class="btn" id="mqNext" style="margin-top:14px">下一題 ▶</button>`;
         if(revealed!==s.round){ revealed=s.round; if(match){ SFX.match(); ctx.burst(); } else SFX.miss(); }
