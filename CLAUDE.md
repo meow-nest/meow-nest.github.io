@@ -127,6 +127,7 @@ git push origin main           # GitHub Pages 約 1 分鐘後更新
 - 默契大考驗題庫：擴充題在 `games/moqi_more.js`（G 共用、P 二選一、C/B/M/F 情侶／閨蜜／兄弟／家人專屬），每個模式都超過 5000 題。G 和 P 不能有 `ROMANCE` 裡的字（包含「親」「兩人」）。家人模式改用 `BANK_FAM`（以前會用到情侶題庫）。新增題目時加在 moqi_more.js 就好，出題順序用雜湊排，加題不會讓已出過的題目重複。選項裡成對的「我／你」（例如 我/你、我贏/你贏、我唱你彈/你唱我彈：把我你互換後也在選項裡）畫面上換成兩人名字（`lab()`，uid 排序小的＝我），兩邊看到一樣的順序才比得出想到一起（11/26）。
 - 首頁像翻書（`homePagesHtml`／`homePagesBind`）：第 1 頁是小窩（稱號、簽到、小魚乾、小按鈕、提醒橫幅），內容少時用 `fitFirst()` 撐滿一個畫面；第 2 頁起是遊戲，一頁 6 個（`G_PER`），每頁最上面是「跟其他小窩的朋友一起玩」。左右滑或下方 ◀ ●○○ ▶ 換頁，記在 sessionStorage `mw_hpg`。翻頁動畫 `H_FX = "slide"`（style.css 還留著 fade/book/bounce/pixel/paw 可以換）。
 - 置頂遊戲：每個人存在自己手機 localStorage `mw_pins`，遊戲第 1 頁右上「置頂設定」。
+- **新遊戲排最前面（11/26）**：`App.registerGame({ id, added:"YYYY-MM-DD", ... })`，有 `added` 的照日期新到舊排在遊戲第 1 頁最前面（其他照原本順序，置頂還是最優先），14 天內顯示黃色「NEW」標籤（`.gNew`）。**以後做新遊戲記得加 `added`**。目前有：catlife 11/24、wheel 11/23。
 - 喵喵方塊島（3D 遊戲）：11/24 站長說不做了，`games/cube*.js`、`cube-test.html`、style.css 裡的 `.p3d*`／`.cb*` 都刪掉了（要找回來看 git 歷史，commit「刪掉喵喵方塊島」之前）。
 - **即時訊息用量（11/22）**：Supabase 免費方案每月 220 萬則，11 月超過（寬限到 12/22）。即時遊戲的同步頻率已經調低：一起煮飯位置 150ms 且沒動不送（2.5 秒補一次）、快照 450ms；划船 140ms；守護小窩 220ms；你畫我猜 150ms；全家一起玩 famHere 每 9 秒（26 秒沒收到算離開）。**新做的即時遊戲不要每秒送超過 5～7 次**；家人模式的廣播會送到全家每支手機（couple channel），越多人越貴。
 - **日誌擷取用量（11/22）**：免費方案每月 1GB，11 月超過。update_74 把每分鐘的排程合併成一個 `meow-tick` → `meow_tick()`（依序跑 truce_tick、fire_memos、fire_sched，每 5 分鐘 log_online，每小時清 3 天前的 cron.job_run_details）；**以後要加每分鐘的排程，請加進 `meow_tick()`，不要另外 cron.schedule**。前端家人「誰在玩」首頁列表和浮動通知共用一次查詢（`famLiveRows`，12 秒內不重複查）。

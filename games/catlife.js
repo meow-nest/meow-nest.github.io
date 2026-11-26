@@ -372,6 +372,7 @@ function doAct(s, id, rnd, arg){
 
 App.registerGame({
   id: "catlife",
+  added: "2026-11-24",   // 新遊戲排在大廳最前面
   solo: true,
   name: "貓貓的一生",
   desc: "選擇喵生，看你的貓能活多久",

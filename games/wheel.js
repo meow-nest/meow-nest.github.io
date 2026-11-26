@@ -29,6 +29,7 @@ const MODES = [
 window.PickArt = () => `<span class="gaL" style="left:4%;top:2%;width:58%">${MODES[0].ic.replace("<svg", '<svg width="100%"')}</span><span class="gaL" style="left:50%;top:6%;width:26%;transform:rotate(12deg)">${MODES[1].ic.replace("<svg", '<svg width="100%"')}</span>`;
 App.registerGame({
   id: "wheel",
+  added: "2026-11-23",   // 新遊戲排在大廳最前面
   name: "幫我選",
   desc: "轉盤、抽籤、扭蛋、翻牌，選擇困難救星",
   solo: true,

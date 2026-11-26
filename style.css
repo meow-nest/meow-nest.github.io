@@ -4400,3 +4400,6 @@ body.compact .famTop .ftC .pcL{width:56px}
 .clDexM .clCard i.sp1,.clDexM .clCard i.sp2{display:none}
 
 .clRoot .clLobby>.k{margin-top:12px}
+/* 大廳：新遊戲標籤（registerGame 的 added 在 14 天內） */
+.gcard .gNew{position:absolute;top:-3px;right:-3px;font-size:10px;line-height:1;padding:3px 5px;background:#ffd36b;color:#7a4a00;border:2px solid var(--line);z-index:1;letter-spacing:1px;animation:gNewB 1.6s steps(2) infinite}
+@keyframes gNewB{50%{background:#fff0a8}}
