@@ -4420,3 +4420,68 @@ body.compact .famTop .ftC .pcL{width:56px}
 .clHB.up{background:linear-gradient(90deg,#fff3c4,#ffe0ea);box-shadow:0 -3px 0 0 var(--o),0 3px 0 0 var(--o),-3px 0 0 0 var(--o),3px 0 0 0 var(--o),inset 0 -3px 0 0 #f0c84a,0 0 18px 4px rgba(255,211,107,.7);font-size:17px}
 .clPolaP .clCat{position:absolute}
 .clTier{cursor:pointer}
+/* ===== 貓貓的一生：排行榜（稱號＋框框，看活多久） ===== */
+.clRkM .cmBox{--o:#4a3228;border-radius:0!important;background:#fff8ec!important}
+.clRkHd{display:flex;align-items:center;justify-content:center;gap:8px;margin:2px 0 8px}
+.clRkHd h3{margin:0;font-weight:400;font-size:20px;color:var(--o);padding:3px 14px;background:#fffdf6;box-shadow:0 -2px 0 0 var(--o),0 2px 0 0 var(--o),-2px 0 0 0 var(--o),2px 0 0 0 var(--o),inset 0 -3px 0 0 #ead2ae}
+.clRkHd .clI{width:18px;height:18px}
+.clRkMe{margin:0 0 10px}.clRkMe>small{display:block;font-size:12px;color:#8a7a9a;margin:0 0 4px 4px}
+.clRkL{display:flex;flex-direction:column;gap:12px;padding:9px 9px 8px}
+.clRkRow{position:relative;display:flex;align-items:center;gap:8px;padding:7px 9px;background:#fffdf6;margin:0 2px;
+  box-shadow:0 -3px 0 0 var(--o),0 3px 0 0 var(--o),-3px 0 0 0 var(--o),3px 0 0 0 var(--o),inset 0 -4px 0 0 #eee0cc}
+.clRkRow.me{background:#fff0f4}
+.clRkN{flex:none;width:26px;display:flex;flex-direction:column;align-items:center;font-weight:400;color:#8a7a9a}
+.clRkN i{font-style:normal;font-size:15px}.clRkN .clI{width:16px;height:16px;margin-bottom:-2px}
+.clRkRow.top1 .clRkN i{color:#d99a1a}.clRkRow.top2 .clRkN i{color:#8fa2bd}.clRkRow.top3 .clRkN i{color:#cd7f32}
+.clRkC{flex:none;width:46px;height:46px;display:flex;align-items:flex-end;justify-content:center}.clRkC svg{width:100%;height:auto;display:block}
+.clRkW{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:3px}
+.clRkW>b{font-weight:400;font-size:15px;color:var(--o)}.clRkW small{font-size:11px;color:#8a7a9a}
+.clRkA{flex:none;display:flex;flex-direction:column;align-items:flex-end;line-height:1.1}
+.clRkA b{font-weight:400;font-size:24px;color:#ff6f91}.clRkA small{font-size:10px;color:#8a7a9a}
+.clRkHelp{display:flex;align-items:center;gap:5px;margin:8px auto 0;font:inherit;font-size:12px;color:#8a7a9a;background:none;border:0;text-decoration:underline}
+.clRkHelp .clI{width:14px;height:14px}
+/* 稱號小牌 */
+.clLt{position:relative;display:inline-flex;align-items:center;gap:4px;font-size:11px;line-height:1;padding:3px 7px 3px 5px;color:#fff;box-shadow:0 0 0 2px #4a3228;white-space:nowrap}
+.clLt b{font-weight:400}.clLt .clI{width:12px;height:12px}
+.clLt.l0{background:#b8a894}.clLt.l1{background:#6cc49d}.clLt.l2{background:#cd7f32;text-shadow:1px 1px 0 #8a4a10}
+.clLt.l3{background:linear-gradient(180deg,#e6edf5,#9fb0c8);color:#3b4a5e;overflow:hidden}
+.clLt.l4{background:linear-gradient(180deg,#ffe58a,#e0a020);color:#6a4000;overflow:hidden;box-shadow:0 0 0 2px #4a3228,0 0 8px 1px rgba(255,211,107,.8)}
+.clLt.l5{background:linear-gradient(135deg,#c38be0,#ff9ec4);text-shadow:1px 1px 0 #7a3a8a;box-shadow:0 0 0 2px #4a3228,0 0 10px 2px rgba(195,139,224,.7)}
+.clLt.l6{background:linear-gradient(90deg,#ff8fab,#ffd36b,#6cc49d,#6fb7e8,#c38be0,#ff8fab);background-size:300% 100%;animation:clRb 3s linear infinite;text-shadow:1px 1px 0 #6a3a7a;
+  box-shadow:0 0 0 2px #4a3228,0 0 12px 3px rgba(255,211,107,.8);margin:0 12px}
+.clLt.l3::after,.clLt.l4::after{content:"";position:absolute;top:-30%;bottom:-30%;width:30%;left:-40%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.8),transparent);transform:skewX(-20deg);animation:clShine 3s ease-in-out infinite}
+.clLt.l5::before{content:"";position:absolute;right:-5px;top:-5px;width:3px;height:3px;background:#fff;box-shadow:0 -3px 0 #ffe9a8,0 3px 0 #ffe9a8,-3px 0 0 #ffe9a8,3px 0 0 #ffe9a8;animation:clTw 1.4s steps(2) infinite}
+/* 不老喵神：兩邊小翅膀 */
+.clLt .wg{position:absolute;top:50%;width:12px;height:12px;transform:translateY(-50%);background:
+  linear-gradient(#fff,#fff) 0 3px/3px 3px no-repeat,linear-gradient(#fff,#fff) 3px 0/3px 9px no-repeat,linear-gradient(#fff,#fff) 6px 3px/3px 9px no-repeat,linear-gradient(#ffe9a8,#ffe9a8) 9px 6px/3px 3px no-repeat;
+  filter:drop-shadow(0 0 1px #4a3228) drop-shadow(0 0 1px #4a3228);animation:clFlap 1s steps(2) infinite}
+.clLt .wg.L{left:-14px}.clLt .wg.R{right:-14px;transform:translateY(-50%) scaleX(-1)}
+@keyframes clFlap{50%{margin-top:-2px}}
+/* 每一列的框：活越久越華麗 */
+.clRkRow.l3{box-shadow:0 -3px 0 0 #7f93ad,0 3px 0 0 #7f93ad,-3px 0 0 0 #7f93ad,3px 0 0 0 #7f93ad,inset 0 0 0 2px #e6edf5,inset 0 -4px 0 0 #dfe6ef;background:#f7faff}
+.clRkRow.l4{background:linear-gradient(160deg,#fffbe8,#fff4d6);box-shadow:0 -3px 0 0 #d99a1a,0 3px 0 0 #d99a1a,-3px 0 0 0 #d99a1a,3px 0 0 0 #d99a1a,inset 0 0 0 2px #ffe58a,0 0 12px 2px rgba(255,211,107,.55)}
+.clRkRow.l5{background:linear-gradient(160deg,#fbf3ff,#ffeef6);box-shadow:0 -3px 0 0 #a66ac8,0 3px 0 0 #a66ac8,-3px 0 0 0 #a66ac8,3px 0 0 0 #a66ac8,inset 0 0 0 2px #e8d0ff,0 0 14px 3px rgba(195,139,224,.5)}
+.clRkRow.l6{isolation:isolate;background:none;box-shadow:0 0 18px 6px rgba(255,211,107,.55)}
+.clRkRow.l6::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(160deg,#fffaf0,#fff2f8,#f2f8ff);box-shadow:inset 0 0 0 3px #4a3228}
+.clRkRow.l6::before{content:"";position:absolute;inset:-6px;z-index:-2;background:linear-gradient(90deg,#ff8fab,#ffd36b,#6cc49d,#6fb7e8,#c38be0,#ff8fab);background-size:300% 100%;animation:clRb 3s linear infinite}
+.clRkRow.l5 .clRkA b,.clRkRow.l6 .clRkA b{background:linear-gradient(90deg,#ff6f91,#c38be0);-webkit-background-clip:text;background-clip:text;color:transparent}
+.clRkRow.l4 .clRkA b{color:#d99a1a}
+.clRoot .clMyBest .clLt{margin-left:6px}
+/* 貓貓的一生：同款稱號牌的位置 */
+.clRkW .clLtW{display:block;margin:4px 0 2px}
+.clLtW .ttlW{vertical-align:middle}
+.clRkW .clLtW.l3,.clRkW .clLtW.l4,.clRkW .clLtW.l5{margin-left:14px}
+.clRkW .clLtW.l6{margin:8px 0 6px 26px}
+.clAlbT{display:flex;flex-direction:column;align-items:center;gap:6px;margin:4px 0 12px}
+.clAlbT small{font-size:12px;color:#8a7a9a}
+.clMyT{display:flex;justify-content:center;margin:-2px 0 8px}
+.clRkRow{align-items:center}
+.clRkW{align-items:stretch}
+.clRkTop{display:flex;align-items:baseline;justify-content:space-between;gap:6px}
+.clRkTop>b{font-weight:400;font-size:15px;color:var(--o)}
+.clRkTop .clRkA{flex-direction:row;align-items:baseline;gap:2px}
+.clRkTop .clRkA b{font-size:22px}
+.clRkB{display:flex;justify-content:center;padding:4px 0 2px}
+.clRkB .clLtW{margin:0!important}
+.clRkB .clLtW.l6{margin:10px 0 6px!important}
+.clRkW>small{text-align:center}

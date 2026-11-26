@@ -61,7 +61,7 @@
 
 ### 加新的 SQL
 
-1. 新檔案 `supabase/update_NN_名稱.sql`，NN 接著目前最大的號碼（目前到 **85**）。開頭用中文註解說這次做什麼。要能重複執行（`if not exists`、`create or replace`）。
+1. 新檔案 `supabase/update_NN_名稱.sql`，NN 接著目前最大的號碼（目前到 **86**）。開頭用中文註解說這次做什麼。要能重複執行（`if not exists`、`create or replace`）。
 2. 加進 all.sql：`printf '\n' >> supabase/all.sql && cat supabase/update_NN_名稱.sql >> supabase/all.sql`
 3. 先在本機 Postgres 測過，再推上去給站長連結。
 
@@ -122,6 +122,7 @@ git push origin main           # GitHub Pages 約 1 分鐘後更新
 - **貓貓的一生（update_82，11/24）**：`games/catlife.js`（id `catlife`，`solo:true`）。人生模擬：選花色、名字、出身（`ORIGIN` 家貓／流浪／店貓／農場），每歲一個事件（`EV`：階段 k/y/a/s/*、條件旗子、選項效果字串 `h+5 j-3 +旗子`，有機率的選項）＋生日 `MILE`；`ageUp` 老化和死亡機率，最多 30 歲。`window.__catlifeSim(n,"best")` 模擬平均壽命（隨便選約 17 歲、好好選約 20 歲）。玩到一半存在 localStorage `mw_catlife_run`。存檔 `game_state` 遊戲 `catlife`：best（月數）、score、plays、lives（每人最近 5 隻）。排行 `catlife_rank()`、防作弊 trigger `catlife_guard`（≤371 個月、≤999 分、玩一局才能更新）。更多事件在 `games/catlife_more.js`（`window.CATLIFE_MORE`，要在 catlife.js 前面載入），**新事件加在那個檔案最後面**（存檔記的是事件序號）。條件可以用 `rare`（比較少出現），結果文字可以是陣列（隨機一句）。故事旗子：leg 舊傷、rival 宿敵、famous 網紅、baby 家裡寶寶、granny/gang 流浪線、sheep/hero/model/bird/elder 等。共 172 種（11/24），一生不會重複。
   - **第二版（11/26）**：載入順序 `catlife_more.js` → `catlife_data.js`（`CATLIFE_TAL` 27 種天賦 r0/1/2、`CATLIFE_JOBS` 8 種職業×4 級、`CATLIFE_END` 13 種結局（hid＝隱藏，越前面越優先）、職業事件和隱藏路線事件 push 到 CATLIFE_MORE 後面）→ `catlife_art.js`（`ClArt.scene(地方, 季節, 時間)` 80×40 像素 SVG 場景：home/stray/shop/farm/star；`TAL_IC` 天賦圖示）→ `catlife.js`。出生：基本資料 → 抽 10 選 3 天賦（重抽一次）→ 分配 20 點。每年：事件（選項旁圓點＝影響的屬性）→ 活動 2 點（`ACTS`／`doAct`：玩耍、睡、學、陪伴、運動、看醫生、探險、工作、找工作、退休）。關係 `run.rel`（owner/friend/mate/kid，好感度 a，`syncRel` 從旗子產生、每年 -4）。傳承：結局有孩子可接著玩（`heirTal` 選家傳天賦，`gen`）。`+jp` 效果＝職業表現 +30。九命 `revive`（30 歲不能復活）。`run.hi` 大事記。圖鑑存在 game_state `catlife.col[uid]`（t 天賦、e 結局、b 稱號、j 職業最高級）。結局相簿 `saveAlbum` 用 canvas 存 png。樣式全在 `.clRoot`（mount 時加在 el 上），像素外框用四邊 box-shadow。舊存檔 `norm()` 會補欄位。平衡：`__catlifeSim(n,"best")` 隨便玩約 18 歲、認真約 20 歲。
   - **造型＋階級（11/26）**：`catlife_art.js` 後半段 `ClArt.catSvg(run, 表情)` 把披風＋貓＋配件合成一張 SVG（場景、相簿、存圖都用它）。階段造型：小貓蝴蝶結、年輕領巾（顏色看出身）、成年鈴鐺項圈、老貓眼鏡＋毛線帽（黑貓金框）。`ClArt.tierOf(run)` 0～4：平民／銅星（7 歲、工作、收養、當爸媽）／銀月（13 歲、升職 2 次、網紅）／金冠（18 歲、職業最高、英雄）／彩虹傳說（24 歲或隱藏路線），`TIER` 名字顏色；銅銀胸章、銀/皇家披風、金冠、彩虹光（CSS `.clCat.t4`）。升階那年跳「升階！」、記進大事記；點名牌的階級會說下一階怎麼升。**注意：sprite 的像素座標比看起來低 1 格**（眼睛在 y8~9），配件位置照 `outfit()` 裡的數字調。
+  - **長壽＋排行榜稱號（update_86，11/26）**：`MAX_AGE = 38`（guard 上限 467 個月），新結局 `immortal` 不老喵仙（32 歲）。階級門檻 8/15/21/28 歲。`ClArt.LTITLE`／`ltOf(月數)` 7 級壽命稱號（喵生新手…不老喵神），排行榜和相簿用 app.js 的 `ctx.ttlBadge(t, 名字, 小字, sm)`（跟等級排行榜同一套稱號牌，t 0~11，40＝大翅膀），對應 `LT_T = [1,3,5,7,10,11,40]`。新紀錄時存 `bt[uid] = {c 花色, t 階級, e 結局}`，`catlife_rank` 回傳 bc/bt/be（guard 沒破紀錄時 bt 會還原）。harness 用 `page.__clRank` 假排行。
 - 睡衣小貓：11/30 前看到「站長去充電」通知的人自動領（`gift_got`、`claim_gift`）。
 - 推播診斷（隱藏功能）：sw.js 收到推播時會記下時間（快取 `meow-pub-assets` 的 `__diag/push`），設定頁連點「通知」標題 5 次會顯示「最近一次收到推播」（`mw_diag`），用來查某支手機收不到背景通知（小米／紅米 Redmi Note 14 還在查）。一般使用者看不到，不用發更新通知。
 - 「下載 App」按鈕：Chrome 的安裝視窗沒跳出來（小米常見）時，3.5 秒後改顯示文字說明（`doInstall`）。已裝好的 App（standalone）設定頁不會有這顆按鈕。

@@ -114,10 +114,10 @@ const TIER = [
 // 階級：年紀、職業、成就一起算
 const tierOf = r => {
   const lv = r.job ? r.job.lv : -1, f = r.f || [], hidden = ["envoy","astro","mage"].some(x => f.includes(x));
-  if(r.age >= 24 || hidden || (r.revived && r.age >= 20)) return 4;
-  if(r.age >= 18 || lv >= 3 || f.includes("hero")) return 3;
-  if(r.age >= 13 || lv >= 2 || f.includes("famous") || f.includes("model")) return 2;
-  if(r.age >= 7 || lv >= 1 || f.includes("adopt") || f.includes("kids")) return 1;
+  if(r.age >= 28 || hidden || (r.revived && r.age >= 22)) return 4;
+  if(r.age >= 21 || lv >= 3 || f.includes("hero")) return 3;
+  if(r.age >= 15 || lv >= 2 || f.includes("famous") || f.includes("model")) return 2;
+  if(r.age >= 8 || lv >= 1 || f.includes("adopt") || f.includes("kids")) return 1;
   return 0;
 };
 const SCARF = { home:["#e5486a","#b8304f"], stray:["#4a90d6","#2f6aa8"], shop:["#3fae7a","#2a8a5c"], farm:["#e0a030","#b57a18"] };
@@ -125,8 +125,8 @@ const SCARF = { home:["#e5486a","#b8304f"], stray:["#4a90d6","#2f6aa8"], shop:["
 const cape = t => { if(t < 2) return ""; const [m, d, trim] = t >= 4 ? ["#c0304a","#8e1f36","#ffcf4a"] : ["#a9bad0","#7f93ad","#e8eef6"];
   const rows = ["....mmmmmmmmmmmmmmmm.....", "...mmmmmmmmmmmmmmmmmm....", "..mmmmmmmmmmmmmmmmmmmm...", ".mmmmmmmmmmmmmmmmmmmmmm..", ".mmmmmmmmmmmmmmmmmmmmmmm.", "mmmmmmmmmmmmmmmmmmmmmmmmm", "mmmmmmmmmmmmmmmmmmmmmmmmm", "dmmmmmmmmmmmmmmmmmmmmmmmd", "ttttttttttttttttttttttttt"];
   return draw(rows, 0, 12, { m, d, t: trim }); };
-function outfit(r, face){
-  const t = tierOf(r), sg = r.age === 0 ? "k" : r.age <= 6 ? "y" : r.age <= 11 ? "a" : "s", o = r.f && r.f.includes("stray") ? "stray" : r.o;
+function outfit(r, face, tOver){
+  const t = tOver != null ? tOver : tierOf(r), sg = r.age === 0 ? "k" : r.age <= 6 ? "y" : r.age <= 11 ? "a" : "s", o = r.f && r.f.includes("stray") ? "stray" : r.o;
   let s = "";
   if(sg === "k") s += draw(["PPDPP", "PWDWP", "PP.PP"], 15, 3, { P:"#ff6f91", D:"#d94a72", W:"#ffd0dc" });
   if(sg === "y"){ const [b, d] = SCARF[o] || SCARF.home;
@@ -142,10 +142,13 @@ function outfit(r, face){
   return { back: cape(t), front: s, t };
 }
 // 合成一張完整的貓（披風＋貓＋配件），給場景、相簿、存圖用
-function catSvg(r, face){
+function catSvg(r, face, tOver){
   const sp = Pix.sprite(r.c, face), vb = (sp.match(/viewBox="([^"]+)"/) || [])[1] || "0 -0.5 25 25", inner = sp.replace(/^<svg[^>]*>/, "").replace(/<\/svg>\s*$/, "");
-  const o = outfit(r, face);
+  const o = outfit(r, face, tOver);
   return `<svg viewBox="${vb}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">${o.back}${inner}${o.front}</svg>`;
 }
-A.TIER = TIER; A.tierOf = tierOf; A.catSvg = catSvg;
+// 排行榜稱號：看最長紀錄活了多久（月）
+const LTITLE = [[0,"喵生新手","paw"],[120,"平凡喵生","flower"],[180,"長壽貓","heart"],[240,"喵壽星","star"],[300,"傳說之貓","crown"],[360,"喵仙","moon"],[420,"不老喵神","spark"]];
+const ltOf = m => { let k = 0; LTITLE.forEach((x, i) => { if(m >= x[0]) k = i; }); return k; };
+A.TIER = TIER; A.tierOf = tierOf; A.catSvg = catSvg; A.LTITLE = LTITLE; A.ltOf = ltOf;
 })();

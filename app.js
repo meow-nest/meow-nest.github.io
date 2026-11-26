@@ -394,6 +394,18 @@ const App = (function(){
     return `<span class="ttlW hw ${wing === "devil" ? "dv" : ""} ${t >= 9 ? "fl" : ""}"><span class="twg l">${w}</span><span class="twg r">${w}</span>${badge}${hrn}${fx}</span>`;
   }
   ctx.ttlHtml = (h, sm) => ttlHtml(h, roomWing, sm);
+  // 給遊戲用的同款稱號牌：t 是外觀等級（0~11，40＝最高的大翅膀），name 是稱號、tag 是前面的小字（原本的 Lv 那格）
+  ctx.ttlBadge = (t, name, tag, sm) => {
+    if(t >= 40) return s40Html(0, name, sm, "gold").replace('<span class="tlv">Lv0</span>', `<span class="tlv">${esc(tag || "")}</span>`);
+    t = Math.max(0, Math.min(11, t | 0));
+    const ic = TTL_IC[t] ? `<span class="tic">${TTL_IC[t]()}</span>` : "", cr = t >= 10 ? `<span class="tcr">${icon("crown")}</span>` : "";
+    const badge = `<span class="ttl t${t}${sm ? " sm" : ""}">${t === 11 ? `<span class="tsh"></span>` : ""}${cr}${ic}${tag ? `<span class="tlv">${esc(tag)}</span>` : ""}${esc(name)}</span>`;
+    if(t < 7) return `<span class="ttlW">${badge}</span>`;
+    const w = WING_SVG.angel(WING_EDGE[t]);
+    const fx = t >= 9 ? `<span class="tfx s1">${icon("twk",{O:"#ffd36b"})}</span><span class="tfx s2">${icon("twk",{O:"#ff9ec4"})}</span><span class="tfx s3">${icon("twk",{O:WING_EDGE[t]})}</span>`
+      + (t >= 11 ? `<span class="tfx h1">${icon("heart")}</span><span class="tfx h2">${icon("heart")}</span>` : "") : "";
+    return `<span class="ttlW hw ${t >= 9 ? "fl" : ""}"><span class="twg l">${w}</span><span class="twg r">${w}</span>${badge}${fx}</span>`;
+  };
   // 會動的稱號只在畫面上看得到的時候才動，排行榜、圖鑑一次很多個也不會卡
   (() => {
     if(!("IntersectionObserver" in window) || !("MutationObserver" in window)) return;

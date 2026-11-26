@@ -13,7 +13,7 @@ const ORIGIN = {
   shop:  { name:"店貓",  desc:"住在雜貨店，每天看客人來來去去", st:{h:55,j:55,i:50,l:64}, f:["shop","home"] },
   farm:  { name:"農場貓", desc:"在鄉下的農場，到處都是草地", st:{h:66,j:60,i:48,l:44}, f:["farm","home"] },
 };
-const MAX_AGE = 30;
+const MAX_AGE = 38;   // 11/26 從 30 歲延長到 38 歲（排行榜 update_86 也改成最多 467 個月）
 const SAVE = "mw_catlife_run";
 
 // 事件：[階段, 條件, 標題, 內容, 選項...]
@@ -228,6 +228,10 @@ const MILE = {
     ["把智慧傳給小貓們","i+8 l+10","小貓們都圍在你身邊聽故事。"],["好好睡個午覺","h+8 j+8","夢到了小時候的那顆毛線球。"]],
   25: ["傳說中的貓","{n}二十五歲了，大家都說你是傳說。",
     ["慢慢眨眨眼","l+10 j+8","電視台都來採訪你了。"]],
+  30: ["三十歲的喵仙","{n}三十歲了！鎮上的人說，你已經是一隻喵仙了。",
+    ["在月光下打坐","h+8 i+8","呼吸變得好慢、好長。"],["把好運分給大家","l+12 j+8","每個摸過你的人，那天都好幸運。"]],
+  35: ["不老的傳說","{n}三十五歲了，連醫生都說這是奇蹟。",
+    ["呼嚕呼嚕，謝謝大家","l+12 j+10","全鎮的人都來幫你慶生。"],["繼續曬太陽","h+8 j+8","奇蹟就是每天都好好地曬太陽。"]],
 };
 
 
@@ -249,13 +253,13 @@ const REL_K = { owner:"主人", friend:"好朋友", mate:"伴侶", kid:"孩子" 
 const REL_DO = { owner:["撒嬌","l+3 j+2"], friend:["一起玩","j+4 l+2"], mate:["約會","j+5 l+2"], kid:["陪孩子玩","j+4 i+1"] };
 
 const BADGE = [
-  ["long","長壽貓",s => s.age >= 15],["star","喵壽星",s => s.age >= 20],["legend","傳說之貓",s => s.age >= 25],
+  ["long","長壽貓",s => s.age >= 15],["star","喵壽星",s => s.age >= 20],["legend","傳說之貓",s => s.age >= 25],["sage30","喵仙",s => s.age >= 30],["god35","不老喵神",s => s.age >= 35],
   ["joy","開心果",s => s.pk.j >= 90],["smart","小天才",s => s.pk.i >= 90],["love","萬人迷",s => s.pk.l >= 90],["fit","健康寶寶",s => s.pk.h >= 95],
   ["kids","當爸媽了",s => s.f.includes("kids")],["adopt","找到家了",s => s.f.includes("adopt")],["friend","好朋友",s => s.f.includes("friend") || s.f.includes("dog")],
   ["jobtop","職業巔峰",s => !!(s.job && s.job.lv >= 3)],["gen3","三代同堂",s => (s.gen || 1) >= 3],["bond","社交達人",s => (s.rel || []).filter(r => r.a >= 70).length >= 3],
   ["nine","九命貓",s => !!s.revived],["hidden","喵星的秘密",s => ["envoy","astro","mage"].some(f => s.f.includes(f))],
 ];
-const BICON = { long:"crown", star:"star", legend:"spark", joy:"sun", smart:"star", love:"flower", fit:"heart", kids:"paw", adopt:"home", friend:"bigpaw", jobtop:"crown", gen3:"paw", bond:"flower", nine:"heart", hidden:"spark" };
+const BICON = { sage30:"moon", god35:"spark", long:"crown", star:"star", legend:"spark", joy:"sun", smart:"star", love:"flower", fit:"heart", kids:"paw", adopt:"home", friend:"bigpaw", jobtop:"crown", gen3:"paw", bond:"flower", nine:"heart", hidden:"spark" };
 
 const clamp = v => Math.max(0, Math.min(100, Math.round(v)));
 const stage = a => a === 0 ? "k" : a <= 6 ? "y" : a <= 11 ? "a" : "s";
@@ -286,7 +290,7 @@ function syncRel(s, rnd){
 // 每年長大：自然老化、天賦、職業、家人朋友，還有隨機的意外
 function ageUp(s, rnd){
   const a = s.age, st = s.st; let d = 0;
-  if(a >= 2 && a <= 7) d -= 1.5; else if(a >= 8 && a <= 11) d -= 3.2; else if(a >= 12) d -= 4.5 + (a - 12) * 1.15 + (a >= 20 ? (a - 19) * 1.2 : 0);
+  if(a >= 2 && a <= 7) d -= 1.2; else if(a >= 8 && a <= 13) d -= 2.4; else if(a >= 14) d -= 3.4 + (a - 14) * 0.7 + (a >= 24 ? (a - 23) * 1.0 : 0);
   if(d < 0) d *= agingOf(s);
   if(st.j < 25) d -= 2; if(s.f.includes("fat")) d -= 1.5; if(s.f.includes("fix")) d += 0.6; if(s.f.includes("stray")) d -= 1.2;
   if(st.j >= 70 && st.l >= 60) d += 1;
@@ -298,7 +302,7 @@ function ageUp(s, rnd){
   for(const k in y) st[k] = clamp(st[k] + y[k]);
   const fj = Math.max(0, ...tals(s).map(t => t.floorJ || 0)); if(st.j < fj) st.j = fj;
   if(st.h <= 0) return "weak";
-  let risk = a >= 10 ? (a - 9) * 0.017 : 0.003; if(a >= 20) risk += (a - 19) * 0.025;   // 20 歲以後越來越難
+  let risk = a >= 12 ? (a - 11) * 0.012 : 0.003; if(a >= 24) risk += (a - 23) * 0.024;   // 26 歲以後越來越難
   risk *= st.h < 25 ? 3 : st.h < 50 ? 1.6 : st.h < 75 ? 1 : 0.6;
   risk *= Math.sqrt(agingOf(s));
   if(s.f.includes("stray")) risk += 0.012; if(a >= MAX_AGE) risk = 1;
@@ -417,7 +421,7 @@ App.registerGame({
         <div class="clHero">${window.ClArt ? ClArt.scene("home", 0, "morning") : ""}<i class="k1">${Pix.sprite("calico", "happy")}</i><i class="k2">${Pix.sprite(ctx.me.cat && COLORS.includes(ctx.me.cat) ? ctx.me.cat : "orange", "love")}</i><i class="k3">${Pix.sprite("gray", "curl")}</i></div>
         <h3 class="clTitle">貓貓的一生</h3>
         <p class="clIntro">抽天賦、選出身，陪你的貓<b>一歲一歲</b>長大。<br>每年遇到一件事，還能自己決定要做什麼：<br>交朋友、找工作、去探險……<br>你的選擇會決定牠能<b>活多久</b>、走向哪個<b>結局</b>。</p>
-        <div class="clMyBest">${I("crown")}<span>我的最長紀錄</span><b>${best ? fmtAge(best) : "還沒玩過"}</b></div>
+        <div class="clMyBest">${I("crown")}<span>我的最長紀錄</span><b>${best ? fmtAge(best) : "還沒玩過"}</b></div>${best ? `<div class="clMyT">${ltHtml(best, false)}</div>` : ""}
         ${R ? `<button class="btn" id="clCont">繼續 ${esc(R.n)} 的喵生（${R.age} 歲）</button><button class="btn sub" id="clNew">開始新的喵生</button>` : `<button class="btn" id="clNew">開始新的喵生</button>`}
         <div class="clTwo"><button class="skRkB" id="clRk">${ctx.icon("crown")}全站排行榜</button><button class="skRkB clDexB" id="clDex">${I("note")}圖鑑 <small>${C.t.length + C.e.length + C.b.length}/${TAL.length + ENDS.length + BADGE.length}</small></button></div>
         ${lives.length ? `<div class="clPast"><div class="clPH">喵星紀念冊</div>${lives.map(x => `<div class="clPI"><span>${Pix.sprite(COLORS.includes(x.c) ? x.c : "orange", "sleep")}</span><b>${esc(x.n)}${x.g > 1 ? `<i>第${x.g}代</i>` : ""}</b><small>${fmtAge(x.m)}・${esc(x.en || x.ep || "")}</small></div>`).join("")}</div>` : ""}
@@ -530,7 +534,7 @@ App.registerGame({
       const nx = el.querySelector("#clNext"); if(nx) nx.addEventListener("click", () => { if(run.ap && !nx.dataset.ok){ nx.dataset.ok = 1; nx.textContent = `還可以做 ${run.ap} 件事，確定要長大？`; SFX.tap(); return; } next(); });
       el.querySelector("#clQuit").addEventListener("click", () => { SFX.tap(); save(); lobby(); });
       const tc = el.querySelector(".clTier"); if(tc) tc.addEventListener("click", () => { SFX.tap(); const t = ClArt.tierOf(run);
-        const NEXT = ["7 歲、開始工作、被收養或當爸媽 → 銅星貓", "13 歲、升職 2 次、變成網紅 → 銀月貓", "18 歲、職業做到最高、成為英雄 → 金冠貓", "24 歲，或是走上喵星的秘密路線 → 彩虹傳說貓"];
+        const NEXT = ["8 歲、開始工作、被收養或當爸媽 → 銅星貓", "15 歲、升職 2 次、變成網紅 → 銀月貓", "21 歲、職業做到最高、成為英雄 → 金冠貓", "28 歲，或是走上喵星的秘密路線 → 彩虹傳說貓"];
         ctx.toast(t >= 4 ? "已經是最高的階級「彩虹傳說貓」了！" : `下一個階級：${NEXT[t]}`, 4000); });
     }
     function relPanel(){
@@ -603,6 +607,7 @@ App.registerGame({
         ${C0.e.includes(E.id) ? "" : `<div class="clFirst">第一次看到這個結局！</div>`}
         <p class="clBye">${txt}</p>
         <div class="clLife"><b>${fmtAge(m)}</b>${rec ? `<span class="clNew">新紀錄！</span>` : ""}<small>${esc(ep)}・喵生分數 ${sc}${run.gen > 1 ? `・第 ${run.gen} 代` : ""}</small></div>
+        <div class="clAlbT"><small>這一生的稱號</small>${ltHtml(m, false)}</div>
         ${hi.length ? `<div class="clTL"><div class="clPH">喵生大事記</div>${hi.map(x => `<div><em>${x.a} 歲</em><span>${esc(x.t)}</span></div>`).join("")}</div>` : ""}
         ${bars(run)}
         ${run.tal.length ? `<div class="clTals">${tals(run).map(talChip).join("")}</div>` : ""}
@@ -614,7 +619,7 @@ App.registerGame({
         <button class="btn" id="clAgain">再活一次</button><button class="btn sub" id="clHome">回到大廳</button></div>`;
       el.querySelector("#clAgain").addEventListener("click", () => { SFX.tap(); create(); });
       el.querySelector("#clHome").addEventListener("click", () => { SFX.tap(); lobby(); });
-      const album = { n: run.n, c: run.c, face: catFace, catSvg: window.ClArt && ClArt.catSvg ? ClArt.catSvg(run, catFace) : null, tier: window.ClArt && ClArt.tierOf ? ClArt.TIER[ClArt.tierOf(run)].n : "", svg: shotSvg, en: E.n, hid: E.hid, age: fmtAge(m), txt: E.t.replace(/\{n\}/g, run.n).replace(/\{job\}/g, run.job ? jobOf(run.job.id).lv[run.job.lv] : "").replace(/\{mate\}/g, mate ? "「" + mate.n + "」" : "伴侶").replace(/\{gen\}/g, run.gen),
+      const album = { lt: window.ClArt && ClArt.LTITLE ? ClArt.LTITLE[ClArt.ltOf(m)][1] : "", n: run.n, c: run.c, face: catFace, catSvg: window.ClArt && ClArt.catSvg ? ClArt.catSvg(run, catFace) : null, tier: window.ClArt && ClArt.tierOf ? ClArt.TIER[ClArt.tierOf(run)].n : "", svg: shotSvg, en: E.n, hid: E.hid, age: fmtAge(m), txt: E.t.replace(/\{n\}/g, run.n).replace(/\{job\}/g, run.job ? jobOf(run.job.id).lv[run.job.lv] : "").replace(/\{mate\}/g, mate ? "「" + mate.n + "」" : "伴侶").replace(/\{gen\}/g, run.gen),
         ep, sc, hi, st: Object.assign({}, run.st), tal: tals(run).map(t => t.n), gen: run.gen };
       el.querySelector("#clSave").addEventListener("click", () => saveAlbum(album));
       const parent = run;
@@ -624,7 +629,8 @@ App.registerGame({
       try{
         await ctx.update("catlife", st => { st = st || {}; ["best", "score", "plays", "lives", "col"].forEach(k => { st[k] = st[k] || {}; });
           st.plays[me()] = (st.plays[me()] || 0) + 1;
-          if(m > (st.best[me()] || 0) || (m === st.best[me()] && sc > (st.score[me()] || 0))){ st.best[me()] = m; st.score[me()] = sc; }
+          if(m > (st.best[me()] || 0) || (m === st.best[me()] && sc > (st.score[me()] || 0))){ st.best[me()] = m; st.score[me()] = sc;
+            st.bt = st.bt || {}; st.bt[me()] = { c: run.c, t: window.ClArt && ClArt.tierOf ? ClArt.tierOf(run) : 0, e: E.id }; }
           st.lives[me()] = (st.lives[me()] || []).concat([life]).slice(-5);
           const c = st.col[me()] || {}; const u = (a, xs) => Array.from(new Set((a || []).concat(xs)));
           c.t = u(c.t, run.tal); c.e = u(c.e, [E.id]); c.b = u(c.b, bd.map(x => x[0]));
@@ -652,7 +658,8 @@ App.registerGame({
       const cat = await img(a.catSvg || Pix.sprite(a.c, a.face)); if(cat){ const cw = 170; o.drawImage(cat, Wd / 2 - cw / 2, py + sh - cw + 8, cw, cw); }
       o.fillStyle = O; o.font = F(30); o.fillText(a.n, Wd / 2, py + sh + 34); o.font = F(20); o.fillStyle = "#8a7a9a"; o.fillText(`0 歲 ～ ${a.age}${a.tier ? `・${a.tier}` : ""}`, Wd / 2, py + sh + 66);
       let y = py + sh + 136;
-      o.fillStyle = a.hid ? "#b07a12" : "#e5486a"; o.font = F(26); o.fillText(`${a.hid ? "隱藏結局" : "結局"}・${a.en}`, Wd / 2, y); y += 40;
+      o.fillStyle = a.hid ? "#b07a12" : "#e5486a"; o.font = F(26); o.fillText(`${a.hid ? "隱藏結局" : "結局"}・${a.en}`, Wd / 2, y); y += 36;
+      if(a.lt){ o.fillStyle = "#8a5ac8"; o.font = F(20); o.fillText(`稱號：${a.lt}`, Wd / 2, y); y += 36; }
       o.fillStyle = O; o.font = F(19); const wrap = (t, w) => { const out = []; let line = ""; for(const ch of t){ if(o.measureText(line + ch).width > w){ out.push(line); line = ch; } else line += ch; } if(line) out.push(line); return out; };
       wrap(a.txt, Wd - P * 2 - 20).forEach(l => { o.fillText(l, Wd / 2, y); y += 30; }); y += 10;
       o.fillStyle = "#8a7a9a"; o.font = F(18); o.fillText(`${a.ep}・喵生分數 ${a.sc}${a.gen > 1 ? `・第 ${a.gen} 代` : ""}`, Wd / 2, y); y += 34;
@@ -704,23 +711,38 @@ App.registerGame({
       paint(); document.body.appendChild(o);
     }
 
-    // 全站排行榜（更新 82）：比活最久，一樣久比喵生分數
+    // 全站排行榜（更新 82、86）：比活最久，一樣久比喵生分數；稱號和框框看活了多久，貓穿著最長紀錄那隻的造型
+    // 稱號牌：跟小窩等級排行榜同一套（ctx.ttlBadge），活越久越華麗；舊版沒有 ttlBadge 時用自己的小牌
+    const LT_T = [1, 3, 5, 7, 10, 11, 40];
+    const ltHtml = (m, sm) => { const A = window.ClArt; if(!A || !A.LTITLE) return ""; const k = A.ltOf(m), x = A.LTITLE[k];
+      if(ctx.ttlBadge) return `<span class="clLtW l${k}">${ctx.ttlBadge(LT_T[k], x[1], "", sm !== false)}</span>`;
+      return `<span class="clLt l${k}">${I(x[2])}<b>${x[1]}</b></span>`; };
+    const endName = id => { const e = ENDS.find(x => x.id === id); return e ? e.n : ""; };
+    const rkCat = (c, months, t) => { const A = window.ClArt, r = { c: COLORS.includes(c) ? c : "orange", age: Math.floor(months / 12), f: [], o: "home" };
+      return A && A.catSvg ? A.catSvg(r, "happy", t || 0) : Pix.sprite(r.c, "happy"); };
     async function rank(){
       SFX.tap();
-      const o = document.createElement("div"); o.className = "careModal svModal skRkM";
-      o.innerHTML = `<div class="cmBox"><div class="lrHd">${ctx.icon("crown")}<h3>最長壽的貓</h3></div><div class="lrList" id="clRL"><div class="k" style="text-align:center;padding:20px">讀取中…</div></div>
+      const o = document.createElement("div"); o.className = "careModal svModal skRkM clRkM";
+      o.innerHTML = `<div class="cmBox"><div class="clRkHd"><span>${I("crown")}</span><h3>最長壽的貓</h3><span>${I("crown")}</span></div>
+        <div id="clRMe"></div><div class="lrList clRkL" id="clRL"><div class="k" style="text-align:center;padding:20px">讀取中…</div></div>
+        <button class="clRkHelp" id="clRH">${I("note")}稱號怎麼來的？</button>
         <div class="k lrNote">全站一起比誰的貓活最久，一樣久就比喵生分數。名字只顯示第一個字</div><button class="btn sub" id="clRO" style="width:100%;margin-top:8px">關閉</button></div>`;
       o.addEventListener("click", e => { if(e.target === o) o.remove(); });
       document.body.appendChild(o); o.querySelector("#clRO").addEventListener("click", () => o.remove());
+      o.querySelector("#clRH").addEventListener("click", () => { SFX.tap(); const A = window.ClArt; if(!A || !A.LTITLE) return;
+        ctx.toast(A.LTITLE.map((x, i) => `${x[1]}${i ? `：${x[0] / 12} 歲` : ""}`).join("、"), 6000); });
       let r; try{ r = await ctx.rpc("catlife_rank"); }catch(e){ const L = o.querySelector("#clRL"); if(L) L.innerHTML = `<div class="k" style="text-align:center;padding:20px">${/catlife_rank|function|schema|no_rpc/.test(String(e && e.message || e)) ? "排行榜還沒開放喔（更新 82）" : "網路好像不太穩，等等再試～"}</div>`; return; }
       if(!o.isConnected) return;
-      const row = (x, mine) => `<div class="lrRow ${mine ? "me" : ""} ${x.rk <= 3 ? "top" + x.rk : ""}"><b class="lrRk">${x.rk <= 3 ? ctx.icon("crown") : ""}<i>${x.rk}</i></b><span class="lrCats"><span>${Pix.sprite(mine ? (ctx.me.cat || "orange") : (x.cat || "orange"), x.rk <= 3 ? "happy" : "loaf", { plain:true })}</span></span>
-        <span class="lrWho"><b>${esc(mine ? (ctx.me.name || "我") : x.name)}</b><small>喵生分數 ${x.sc || 0}</small></span><span class="lrH skPt">${fmtAge(x.best)}</span></div>`;
+      const A = window.ClArt, lk = m => A && A.ltOf ? A.ltOf(m) : 0;
+      const row = (x, mine) => `<div class="clRkRow l${lk(x.best)}${mine ? " me" : ""}${x.rk <= 3 ? " top" + x.rk : ""}">
+        <b class="clRkN">${x.rk <= 3 ? I("crown") : ""}<i>${x.rk}</i></b>
+        <span class="clRkC">${rkCat(x.bc || (mine ? ctx.me.cat : x.cat), x.best, x.bt)}</span>
+        <span class="clRkW"><span class="clRkTop"><b>${esc(mine ? (ctx.me.name || "我") : x.name)}</b><span class="clRkA"><b>${Math.floor(x.best / 12)}</b><small>歲${x.best % 12 ? ` ${x.best % 12} 個月` : ""}</small></span></span>
+          <span class="clRkB">${ltHtml(x.best)}</span><small>${x.be ? `${esc(endName(x.be))}・` : ""}${x.sc || 0} 分</small></span></div>`;
       const tp = (r && r.top) || [], me2 = r && r.mine;
+      if(me2){ const e = o.querySelector("#clRMe"); e.innerHTML = `<div class="clRkMe"><small>我的最長紀錄・第 ${me2.rk} 名</small>${row(me2, true)}</div>`; }
       o.querySelector("#clRL").innerHTML = (tp.length ? tp.map(x => row(x, x.me)).join("") : `<div class="k" style="text-align:center;padding:20px">還沒有人上榜，快來當第一名！</div>`)
-        + (me2 && !tp.some(x => x.me) ? `<div class="lrGap">⋯</div>${row(me2, true)}` : "")
         + (!me2 ? `<div class="k" style="text-align:center;margin-top:8px">你還沒上榜，活完一生就會出現囉！</div>` : "");
-      const c = tp.some(x => x.me) && o.querySelector(".lrRow.me"); if(c) setTimeout(() => c.scrollIntoView({ block:"center" }), 60);
     }
 
     this._u = ctx.onState("catlife", st => { s = st; if(el.querySelector(".clLobby")) lobby(); });
