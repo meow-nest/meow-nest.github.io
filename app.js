@@ -3948,6 +3948,7 @@ const App = (function(){
     o.querySelector("#igOk").addEventListener("click", ()=>o.remove());
   }
   async function showPushDiag(el){   // 設定頁：顯示這支手機「最近一次收到推播」的時間（sw.js 收到時記錄）
+    pushEnvDiag(el);
     try{
       if(!("serviceWorker" in navigator) || !("caches" in window)){ el.textContent = ""; return; }
       const reg = await navigator.serviceWorker.ready;
@@ -3958,6 +3959,27 @@ const App = (function(){
       if(!d || !d.recv){ el.innerHTML = "📡 這支手機還沒有收到過推播的紀錄<br><span style='opacity:.7'>（更新後才開始記錄。請 ta 傳一則訊息，把 App 關掉等一下，再回來點這行看看）</span>"; return; }
       el.innerHTML = `📡 最近一次收到推播：<b>${f(d.recv)}</b>（共 ${d.n||1} 則）<br>` + (d.err ? `⚠️ 收到了但顯示失敗：${esc(d.err)}` : d.shown ? `✅ 已顯示 ${f(d.shown)}` : "⚠️ 收到了但還沒顯示成功") + `<br><span style='opacity:.7'>點這行可以重新整理</span>`;
     }catch(e){ el.textContent = ""; }
+  }
+  // 推播診斷第二段：這支手機是哪個瀏覽器在收通知、權限、訂閱送到哪裡；還有「不經過伺服器」直接跳一則通知的測試
+  async function pushEnvDiag(el){
+    try{
+      const ua = navigator.userAgent, br = /MiuiBrowser|XiaoMi/i.test(ua) ? "小米瀏覽器" : /EdgA|Edg\//.test(ua) ? "Edge" : /Firefox|FxiOS/.test(ua) ? "Firefox" : /SamsungBrowser/.test(ua) ? "三星瀏覽器" : /OPR|Opera/.test(ua) ? "Opera" : /HeyTap|Vivo|OppoBrowser|Quark|UCBrowser|baidu/i.test(ua) ? "其他手機瀏覽器" : /Chrome\//.test(ua) ? "Chrome" : /Safari/.test(ua) ? "Safari" : "不知道";
+      const mode = matchMedia("(display-mode: standalone)").matches || navigator.standalone ? "桌面 App" : "瀏覽器分頁";
+      const box = document.createElement("div");
+      box.style.cssText = "margin-top:6px;opacity:.95";
+      box.innerHTML = `🧭 現在用：<b>${br}</b>（${mode}）・通知權限：<b>${Notification.permission === "granted" ? "允許" : Notification.permission === "denied" ? "封鎖" : "還沒問"}</b><br>📮 訂閱送到：<span class="pdgH">查詢中…</span><br><button class="btn sub" style="margin-top:6px;font-size:13px">馬上跳一則本機測試通知</button><span class="pdgR" style="display:block;margin-top:4px"></span>`;
+      const old = el.parentNode && el.parentNode.querySelector(".pdgEnv"); if(old) old.remove();
+      box.className = "pdgEnv"; el.after(box);
+      const btn = box.querySelector("button"), out = box.querySelector(".pdgR");
+      const hs = box.querySelector(".pdgH");
+      (async () => { try{ const reg = await navigator.serviceWorker.ready, sub = await reg.pushManager.getSubscription();
+        hs.textContent = !sub ? "沒有訂閱（這個瀏覽器收不到通知）" : /fcm\.googleapis/.test(sub.endpoint) ? "Google（Chrome 系）" : /push\.apple/.test(sub.endpoint) ? "Apple" : /mozilla/.test(sub.endpoint) ? "Firefox" : new URL(sub.endpoint).host; }catch(e){ hs.textContent = "查不到"; } })();
+      btn.addEventListener("click", async e => { e.stopPropagation();
+        try{ const reg = await Promise.race([navigator.serviceWorker.ready, new Promise((_, no) => setTimeout(() => no(new Error("背景程式（Service Worker）沒有在跑，請重新整理再試")), 4000))]);
+          await reg.showNotification("喵喵小窩 本機測試", { body:"看得到這則，代表手機可以顯示喵喵小窩的通知", tag:"meow-localtest", icon:"icons/n/text.png", badge:"icons/badge-96.png", vibrate:[60,40,60], renotify:true });
+          out.textContent = "已經叫手機顯示了：有跳出來嗎？（沒有的話，是手機或瀏覽器把它藏起來了）";
+        }catch(err){ out.textContent = "顯示失敗：" + (err && err.message || err); } });
+    }catch(e){}
   }
   function pushState(){
     if(!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) return isIOS && !standalone ? "ios-home" : "unsupported";
