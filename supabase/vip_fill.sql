@@ -1,7 +1,7 @@
 -- ======================== vip_fill.sql（不用加進 all.sql）========================
 -- 給站長小窩和 VIP 小窩（couples.vip，update_84）的人：
 -- 貓幣 999999、小魚乾 99999、所有家具/飾品/臥室/院子、兩台夾娃娃機全部娃娃（每種 2 隻）、9 隻壽星貓
--- VIP 小窩的稱號：跟站長小窩一樣高（至少 Lv40，翅膀名牌最華麗的那一級）
+-- 稱號不在這裡了：想要 VIP 小窩的稱號升到 Lv40，另外跑 supabase/vip_title.sql（11/27 起分開）
 -- 先跑 update_84，再把小窩設成 vip，再跑這個。可以重複跑（新加入的成員也會拿到）
 
 -- 1. 我們的貓：貓幣、小魚乾、全部家具飾品和房間
@@ -44,21 +44,6 @@ select m.user_id, 1000 + c.n, c.n
 from public.members m join public.couples k on k.id = m.couple_id and (k.is_owner or k.vip)
 cross join generate_series(1, 9) as c(n)
 on conflict do nothing;
-
--- 4. VIP 小窩的稱號（默契愛心）：至少跟站長小窩一樣，最少 Lv40（3525 顆）；只會往上不會往下
-insert into public.game_state (couple_id, game, state)
-select id, 'moqi', '{"hearts":0,"round":0}'::jsonb from public.couples where vip and not is_owner
-on conflict do nothing;
-
-update public.game_state g
-set state = jsonb_set(g.state, '{hearts}', to_jsonb(greatest(
-      coalesce(case when jsonb_typeof(g.state->'hearts') = 'number' then floor((g.state->>'hearts')::numeric)::int end, 0),
-      3525,
-      coalesce((select max(floor((o.state->>'hearts')::numeric)::int) from public.game_state o join public.couples oc on oc.id = o.couple_id and oc.is_owner
-                where o.game = 'moqi' and jsonb_typeof(o.state->'hearts') = 'number'), 0)))),
-    version = g.version + 1, updated_at = now()
-from public.couples k
-where k.id = g.couple_id and k.vip and not k.is_owner and g.game = 'moqi';
 
 -- 看結果
 select m.name as 暱稱,
