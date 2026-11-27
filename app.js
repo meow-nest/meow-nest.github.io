@@ -2736,7 +2736,7 @@ const App = (function(){
   // ---- 早安 / 晚安 check-in ----
   const dayKeyOf = t => { const d = new Date((t||Date.now()) - 4*3600e3); return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate(); };
   const prevDay = k => { const [y,m,d] = k.split("-").map(Number); const x = new Date(y, m-1, d-1, 12); return x.getFullYear()+"-"+(x.getMonth()+1)+"-"+x.getDate(); };
-  function greetSlot(){ const h = new Date().getHours(); return h>=4 && h<14 ? "m" : (h>=19 || h<4) ? "n" : null; }
+  function greetSlot(){ const h = new Date().getHours(); return h>=4 && h<16 ? "m" : "n"; }   // 早安 4:00～15:59、晚安 16:00～隔天 3:59（11/27 起沒有空檔）
   const SLOT = { m:["☀️","早安"], n:["🌙","晚安"] };
   function dayDone(st, k, slot){ const p = partner(); const x = st && st.days && st.days[k] && st.days[k][slot]; return !!(x && p && x[me.uid] && x[p.user_id]); }
   function streak(st, slot){
