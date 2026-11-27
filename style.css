@@ -4485,3 +4485,23 @@ body.compact .famTop .ftC .pcL{width:56px}
 .clRkB .clLtW{margin:0!important}
 .clRkB .clLtW.l6{margin:10px 0 6px!important}
 .clRkW>small{text-align:center}
+/* ===== 星空夜貓：淺色底的地方字要換深色（11/27）===== */
+/* 貓貓的一生整個是淺色紙張風格：裡面用回奶茶喵的顏色 */
+body[data-theme="night"] :is(.clRoot,.clDexM .cmBox,.clRkM .cmBox){--pinkT:#d35d7b;--mintT:#3f9c76;--card:#fff;--onPink:#fff;--grid:rgba(90,59,46,.045);--bg:#f6eee3;--paper:#fffaf2;--ink:#5a3b2e;--line:#5a3b2e;--shadow:#e3cfba;--muted:#8f7365;--pink:#f08aa0;--pinkL:#ffe1e7;--mint:#7cc7a5;--mintL:#e2f5ec;--sun:#f6c45f;--sky:#eaf4f4;color:var(--ink)}
+/* 淺黃、淺藍底的小按鈕（全站排行榜、稱號、刷新、定時、釣魚排行） */
+body[data-theme="night"] :is(.skRkB,.mqRk,.fishCard .fcR,.skRef,.ctB.sched,.clMyBest){color:#5a3b2e}
+body[data-theme="night"] .clDexB small{color:#5a7fa0}
+/* 選中的翅膀、生日貓：淺粉底改成深紫底 */
+body[data-theme="night"] :is(.wingPick button.on,.bdGrid button.on){background:#4a3c63;border-color:#ff8fb1;box-shadow:0 0 0 2px #ff8fb155}
+/* 一起煮飯：關卡卡片是深色底，咖啡色小字看不到 */
+body[data-theme="night"] :is(.ktLvTop,.ktLvTip,.ktLvRow span,.ktGoalL small){color:var(--muted)}
+body[data-theme="night"] .ktLvCard{color:var(--ink)}
+/* 西洋棋、暗棋的勝場：紅字在深底太暗 */
+body[data-theme="night"] :is(.bqPl em,.chPl em,.tsFoe em){color:#ff8fa5}
+body[data-theme="night"] .ktLvTop b{color:var(--ink)}
+body[data-theme="night"] .ktLvGoal div{color:#5a3b2e}body[data-theme="night"] .ktLvGoal i{color:#8f7365}
+/* 輸入框：夜貓的字是淺色，框框原本是瀏覽器的白底 → 改成深色底 */
+body[data-theme="night"] :is(input:not([type]),input[type=text],input[type=search],input[type=tel],input[type=number],input[type=password],textarea){background-color:var(--card)}
+body[data-theme="night"] :is(input,textarea)::placeholder{color:var(--muted);opacity:1}
+body[data-theme="night"] .lbOpen{color:#5a3b2e}
+body[data-theme="night"] .lrTabs{background:var(--paper)}
