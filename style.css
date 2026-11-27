@@ -4505,3 +4505,19 @@ body[data-theme="night"] :is(input:not([type]),input[type=text],input[type=searc
 body[data-theme="night"] :is(input,textarea)::placeholder{color:var(--muted);opacity:1}
 body[data-theme="night"] .lbOpen{color:#5a3b2e}
 body[data-theme="night"] .lrTabs{background:var(--paper)}
+/* ===== 聊天背景照片：調整位置和大小（11/27）===== */
+body[data-wall="photo"] .chat .list{background:linear-gradient(rgba(255,255,255,var(--wall-fog,.35)),rgba(255,255,255,var(--wall-fog,.35))),var(--wall-img) center/cover no-repeat,#fff8f2;background-attachment:scroll}
+.wpModal .cmBox{max-width:400px}
+.wpH{display:flex;align-items:center;justify-content:center;gap:6px;margin:0 0 10px}.wpH svg{width:22px;height:22px}
+.wpFrame{position:relative;margin:0 auto;overflow:hidden;border:3px solid var(--line);border-radius:12px;background:#fff8f2;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+.wpFrame:active{cursor:grabbing}
+.wpFrame img{position:absolute;max-width:none;pointer-events:none;-webkit-user-drag:none}
+.wpFog{position:absolute;inset:0;pointer-events:none}
+.wpBub{position:absolute;display:flex;align-items:flex-end;gap:4px;pointer-events:none;font-size:13px}
+.wpBub i{font-style:normal;background:#fff;color:#5a3b2e;border:2px solid #5a3b2e;border-radius:12px;padding:4px 9px;box-shadow:2px 2px 0 rgba(90,59,46,.25)}
+.wpBub span{width:28px;height:28px}.wpBub span svg{width:100%;height:100%}
+.wpBub.l{left:8px;top:22%}.wpBub.r{right:8px;top:42%}.wpBub.r i{background:#ffd9e2}
+.wpHint{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);background:rgba(40,30,30,.65);color:#fff;font-size:12px;padding:4px 10px;border-radius:99px;white-space:nowrap;pointer-events:none}
+.wpRow{display:flex;align-items:center;gap:10px;margin:10px 4px 0;font-size:14px}.wpRow span{flex:none;width:34px}.wpRow input{flex:1;accent-color:var(--pink)}
+.wpBtns{display:flex;gap:8px;margin-top:10px}.wpBtns .btn{flex:1}
+.wpAdj{width:100%;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px}.wpAdj svg{width:18px;height:18px}

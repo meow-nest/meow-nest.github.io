@@ -1176,10 +1176,11 @@ const App = (function(){
     const w = store.get("mw_wall") || "paws", img = store.get("mw_wall_img");
     document.body.dataset.wall = (w==="photo" && !img) ? "paws" : w;
     if(img) document.body.style.setProperty("--wall-img", `url("${img}")`);
+    const wp = wallPos(); document.body.style.setProperty("--wall-fog", wp && wp.fog != null ? (Math.max(0, Math.min(70, +wp.fog)) / 100) : .35);
   }
   const WALL_CSS = {};   // 每種聊天背景的預覽只算一次（每次算都要量畫面，很慢）
   function wallCss(id){
-    const wk = id + "|" + (document.body.dataset.theme || "") + "|" + (id === "photo" ? (store.get("mw_wall_img") || "").length : "");
+    const wk = id + "|" + (document.body.dataset.theme || "") + "|" + (id === "photo" ? (store.get("mw_wall_img") || "").length + (store.get("mw_wall_pos") || "") : "");
     if(WALL_CSS[wk]) return WALL_CSS[wk];
     return WALL_CSS[wk] = wallCss0(id);
   }
@@ -1190,18 +1191,78 @@ const App = (function(){
     const cs = getComputedStyle(probe.firstChild); const css = `background:${cs.backgroundImage==="none"?"":cs.backgroundImage} ${cs.backgroundColor};background-size:${cs.backgroundSize};background-position:${cs.backgroundPosition};background-repeat:${cs.backgroundRepeat}`;
     document.body.dataset.wall = prev; probe.remove(); return css;
   }
-  async function pickWallPhoto(){
+  // 聊天背景用自己的照片：選好照片後可以拖曳移動、兩指／滑桿放大縮小、調整白霧，存成剛好聊天畫面大小的圖
+  // mw_wall_src＝原圖（縮到 1400px，給之後重新調整用）、mw_wall_img＝裁好的圖、mw_wall_pos＝{x,y,s,fog}
+  function pickWallPhoto(){
     return new Promise(res=>{
       const inp=document.createElement("input"); inp.type="file"; inp.accept="image/*";
-      inp.onchange = async ()=>{ const f=inp.files&&inp.files[0]; if(!f) return res(false);
+      inp.onchange = ()=>{ const f=inp.files&&inp.files[0]; if(!f) return res(false);
         const url=URL.createObjectURL(f); const im=new Image();
-        im.onload=()=>{ const max=900, sc=Math.min(1,max/Math.max(im.naturalWidth,im.naturalHeight)); const c=document.createElement("canvas"); c.width=Math.round(im.naturalWidth*sc); c.height=Math.round(im.naturalHeight*sc); c.getContext("2d").drawImage(im,0,0,c.width,c.height);
-          let q=.75, data=c.toDataURL("image/jpeg",q); while(data.length>1200000 && q>.3){ q-=.15; data=c.toDataURL("image/jpeg",q); }
-          URL.revokeObjectURL(url); store.set("mw_wall_img", data); store.set("mw_wall","photo"); applyWall(); res(true); };
-        im.onerror=()=>res(false); im.src=url; };
+        im.onload=()=>{ const max=1400, sc=Math.min(1,max/Math.max(im.naturalWidth,im.naturalHeight)); const c=document.createElement("canvas"); c.width=Math.round(im.naturalWidth*sc); c.height=Math.round(im.naturalHeight*sc);
+          c.getContext("2d").drawImage(im,0,0,c.width,c.height); URL.revokeObjectURL(url);
+          let q=.8, data=c.toDataURL("image/jpeg",q); while(data.length>900000 && q>.35){ q-=.12; data=c.toDataURL("image/jpeg",q); }
+          wallEditor(data, null).then(res); };
+        im.onerror=()=>{ URL.revokeObjectURL(url); toast("這張照片讀不出來，換一張試試"); res(false); }; im.src=url; };
       inp.click();
     });
   }
+  function wallPos(){ try{ return JSON.parse(store.get("mw_wall_pos")||"null"); }catch(e){ return null; } }
+  function wallEditor(src, pos){
+    return new Promise(done=>{
+      const p0 = Object.assign({ x:0, y:0, s:1, fog:35 }, pos || {});
+      const ar = Math.max(.45, Math.min(1.2, innerWidth / Math.max(300, innerHeight - 250)));   // 聊天畫面大約的寬高比
+      const o = modal(`<h3 class="wpH">${icon("camera")} 調整聊天背景</h3>
+        <div class="wpFrame" id="wpF"><img id="wpI" alt="" draggable="false"><div class="wpFog" id="wpFog"></div>
+          <div class="wpBub l"><span>${sprite(me.cat||"orange","happy")}</span><i>今天也好想你～</i></div><div class="wpBub r"><i>我也是 ♡</i></div>
+          <div class="wpHint" id="wpHint">拖曳移動・兩指放大縮小</div></div>
+        <label class="wpRow"><span>大小</span><input type="range" id="wpS" min="100" max="400" step="1" value="${Math.round(p0.s*100)}"></label>
+        <label class="wpRow"><span>白霧</span><input type="range" id="wpG" min="0" max="70" step="1" value="${p0.fog}"></label>
+        <div class="wpBtns"><button class="btn sub" id="wpC">置中</button><button class="btn sub" id="wpNew">換一張</button></div>
+        <div class="row" style="gap:8px;margin-top:8px"><button class="btn sub" id="wpX" style="flex:1">取消</button><button class="btn" id="wpOk" style="flex:1">完成</button></div>`, "wpModal");
+      const F = o.querySelector("#wpF"), I = o.querySelector("#wpI"), S = o.querySelector("#wpS"), G = o.querySelector("#wpG"), fogEl = o.querySelector("#wpFog");
+      let st = { x:p0.x, y:p0.y, s:p0.s, fog:p0.fog }, iw = 1, ih = 1, fw = 1, fh = 1, fin = false;
+      { const bw = F.parentElement.clientWidth || 320, h = Math.min(innerHeight * .52, bw / ar); F.style.height = Math.round(h) + "px"; F.style.width = Math.round(h * ar) + "px"; }
+      const finish = v => { if(fin) return; fin = true; o.remove(); done(v); };
+      const dims = () => { const r = F.getBoundingClientRect(); fw = r.width; fh = r.height; const base = Math.max(fw/iw, fh/ih), dw = iw*base*st.s, dh = ih*base*st.s; return { dw, dh }; };
+      const draw = () => { const { dw, dh } = dims();
+        const mx = Math.max(0, (dw - fw) / 2) / fw, my = Math.max(0, (dh - fh) / 2) / fh;   // 圖一定蓋滿框框
+        st.x = Math.max(-mx, Math.min(mx, st.x)); st.y = Math.max(-my, Math.min(my, st.y));
+        I.style.width = dw + "px"; I.style.height = dh + "px"; I.style.left = (fw/2 - dw/2 + st.x*fw) + "px"; I.style.top = (fh/2 - dh/2 + st.y*fh) + "px";
+        fogEl.style.background = `rgba(255,255,255,${st.fog/100})`; };
+      I.onload = () => { iw = I.naturalWidth || 1; ih = I.naturalHeight || 1; draw(); };
+      I.src = src;
+      const pts = new Map(); let g0 = null;
+      const hint = () => { const h = o.querySelector("#wpHint"); if(h) h.remove(); };
+      F.addEventListener("pointerdown", e => { e.preventDefault(); F.setPointerCapture && F.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x:e.clientX, y:e.clientY }); g0 = null; hint(); });
+      F.addEventListener("pointermove", e => { if(!pts.has(e.pointerId)) return; const prev = pts.get(e.pointerId); pts.set(e.pointerId, { x:e.clientX, y:e.clientY });
+        if(pts.size === 1){ st.x += (e.clientX - prev.x) / fw; st.y += (e.clientY - prev.y) / fh; draw(); }
+        else if(pts.size >= 2){ const [a, b] = [...pts.values()], d = Math.hypot(a.x - b.x, a.y - b.y);
+          if(!g0) g0 = { d, s: st.s }; else { st.s = Math.max(1, Math.min(4, g0.s * d / Math.max(10, g0.d))); S.value = Math.round(st.s*100); draw(); } } });
+      const up = e => { pts.delete(e.pointerId); g0 = null; };
+      F.addEventListener("pointerup", up); F.addEventListener("pointercancel", up);
+      F.addEventListener("wheel", e => { e.preventDefault(); st.s = Math.max(1, Math.min(4, st.s * (e.deltaY < 0 ? 1.08 : 1/1.08))); S.value = Math.round(st.s*100); draw(); hint(); }, { passive:false });
+      S.addEventListener("input", () => { st.s = +S.value / 100; draw(); });
+      G.addEventListener("input", () => { st.fog = +G.value; draw(); });
+      o.querySelector("#wpC").addEventListener("click", () => { SFX.tap(); st.x = 0; st.y = 0; draw(); });
+      o.querySelector("#wpNew").addEventListener("click", () => { SFX.tap(); finish(false); pickWallPhoto().then(ok => { if(ok) render(); }); });
+      o.querySelector("#wpX").addEventListener("click", () => { SFX.tap(); finish(false); });
+      o.addEventListener("click", e => { if(e.target === o) finish(false); });
+      o.querySelector("#wpOk").addEventListener("click", () => {
+        const { dw, dh } = dims(), CW = 720, CH = Math.round(CW * fh / fw), k = CW / fw;
+        const c = document.createElement("canvas"); c.width = CW; c.height = CH; const x = c.getContext("2d");
+        x.fillStyle = "#fff8f2"; x.fillRect(0, 0, CW, CH);
+        x.drawImage(I, (fw/2 - dw/2 + st.x*fw) * k, (fh/2 - dh/2 + st.y*fh) * k, dw * k, dh * k);
+        let q = .82, data = c.toDataURL("image/jpeg", q); while(data.length > 700000 && q > .35){ q -= .12; data = c.toDataURL("image/jpeg", q); }
+        try{ localStorage.removeItem("mw_wall_img"); }catch(e){}
+        store.set("mw_wall_img", data);
+        if(store.get("mw_wall_img") !== data){ toast("手機空間不夠，存不下這張照片 🥺"); return; }
+        store.set("mw_wall_src", src); if(store.get("mw_wall_src") !== src){ try{ localStorage.removeItem("mw_wall_src"); }catch(e){} }   // 原圖存不下就算了，只是之後不能重新調整
+        store.set("mw_wall_pos", JSON.stringify(st)); store.set("mw_wall", "photo");
+        applyWall(); finish(true);
+      });
+    });
+  }
+
 
   // ---------- 鍵盤設定（設定頁和鍵盤上的齒輪共用） ----------
   const kbSndHtml = () => { const cur = SFX.kbStyle(), E = Object.entries(SFX.KB_SOUNDS), btn = ([k,n]) => `<button data-snd="${k}" class="${cur===k?"on":""}">${k==="off"?"":`<i class="kbWave"><b></b><b></b><b></b></i>`}${n}</button>`;
@@ -3761,7 +3822,7 @@ const App = (function(){
       <div class="k">${(() => { const hh = stateCache.moqi && stateCache.moqi.state ? stateCache.moqi.state.hearts || 0 : 0; return lvOf(hh) >= 40 ? "你們已經是 Lv40 了！選好的顏色會馬上換上" : `親密等級到 Lv40（${lvNeed(40)} 條小魚乾）會換成會發光的大翅膀，可以先選好顏色`; })()}</div><button class="btn sub" id="wBook" style="margin-top:8px">${icon("star")} 看所有稱號</button></div>
       <div class="box set"><h2>整體風格</h2><div class="sthemes" id="sthm">${SITE_THEMES.map(([id,n,bg,pa,ln,ac,sh])=>`<button data-st="${id}" class="${(store.get("mw_theme")||"cream")===id?"on":""}"><span class="stPrev" style="background-color:${bg};background-image:linear-gradient(${ln}14 1px,transparent 1px),linear-gradient(90deg,${ln}14 1px,transparent 1px)"><b style="background:${pa};border-color:${ln};box-shadow:2px 2px 0 ${sh}"></b><i style="background:${ac};border-color:${ln}"></i><s>${icon("heart",{K:ac,W:pa,O:ln})}</s></span>${n}</button>`).join("")}</div></div>
       <div class="box set"><h2>字體</h2><div class="fontPick" id="fPick"><button data-f="pixel" class="${store.get("mw_font")==="sys"?"":"on"}" style="font-family:Cubic11">像素字 喵喵小窩</button><button data-f="sys" class="${store.get("mw_font")==="sys"?"on":""}" style="font-family:-apple-system,'PingFang TC','Noto Sans TC',sans-serif">一般字 喵喵小窩</button></div></div>
-      <div class="box set"><h2>聊天背景</h2><div class="walls" id="wls">${WALLS.map(([id,n])=>`<button data-w="${id}" class="${(store.get("mw_wall")||"paws")===id?"on":""}"><span class="wv" data-wall="${id}"><span class="chat"><span class="list"></span></span></span>${n}</button>`).join("")}</div>
+      <div class="box set"><h2>聊天背景</h2><div class="walls" id="wls">${WALLS.map(([id,n])=>`<button data-w="${id}" class="${(store.get("mw_wall")||"paws")===id?"on":""}"><span class="wv" data-wall="${id}"><span class="chat"><span class="list"></span></span></span>${n}</button>`).join("")}</div><button class="btn sub wpAdj ${store.get("mw_wall")==="photo" && store.get("mw_wall_src") ? "" : "hidden"}" id="wpAdj">${icon("camera")} 調整照片的位置和大小</button>
         <div class="k">「我的照片」可以選一張你們的合照當背景（只存在這支手機）。</div></div>
       <div class="box set"><h2>通知</h2><div class="k">${ps==="on"?(isSolo()?"✅ 已開啟：記事提醒時間到了手機會跳通知":"✅ 已開啟：ta 傳訊息時你的手機會跳通知"):ps==="denied"?"❌ 通知被封鎖了，請到手機的瀏覽器設定裡允許通知":ps==="ios-home"?"📱 iPhone 要先把這個網頁「加入主畫面」，從主畫面圖示打開後才能開通知":ps==="unsupported"?"這個瀏覽器不支援通知，請用 Chrome（Android）或 Safari 加入主畫面（iPhone）":"還沒開啟"}</div>
         ${ps!=="on"&&ps!=="unsupported"&&ps!=="ios-home"?`<button class="btn mint" id="bPush2">開啟通知</button>`:""}${ps==="on"?`<button class="btn mint" id="bSelfTest" style="margin-bottom:8px">🔔 傳一則測試通知給自己</button>${isSolo()?"":`<button class="btn sub" id="bTest">傳一則測試訊息給 ta</button>`}`:""}${store.get("mw_diag")==="1"?'<div class="k" id="pdg" style="margin:8px 0 0;cursor:pointer"></div>':""}<button class="btn sub" id="bPushHelp" style="margin-top:8px">🤔 收不到通知？看這裡</button></div>
@@ -3807,9 +3868,11 @@ const App = (function(){
     $("bInv2").addEventListener("click", shareInvite); bindLockBox();
     // wallpaper previews reuse the real CSS by scoping data-wall on each swatch
     $("wls").querySelectorAll(".wv").forEach(v=>{ const id=v.dataset.wall; v.querySelector(".list").style.cssText = wallCss(id); });
+    { const adj=$("wpAdj"); if(adj) adj.addEventListener("click", async ()=>{ SFX.tap(); const ok = await wallEditor(store.get("mw_wall_src"), wallPos()); if(ok){ $("wls").querySelectorAll(".wv").forEach(v=>{ v.querySelector(".list").style.cssText = wallCss(v.dataset.wall); }); toast(`${sprite(me.cat||"orange","love")} 聊天背景調整好了！`); } }); }
     $("wls").querySelectorAll("button").forEach(b=>b.addEventListener("click", async ()=>{
       const id=b.dataset.w;
       if(id==="photo"){ const ok = await pickWallPhoto(); if(!ok) return; } else { store.set("mw_wall", id); applyWall(); }
+      const adj=$("wpAdj"); if(adj) adj.classList.toggle("hidden", !(id==="photo" && store.get("mw_wall_src")));
       $("wls").querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b)); SFX.select();
       $("wls").querySelectorAll(".wv").forEach(v=>{ v.querySelector(".list").style.cssText = wallCss(v.dataset.wall); });
       toast(`${sprite(me.cat||"orange","love")} 聊天背景換好了！`);
