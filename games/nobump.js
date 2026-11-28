@@ -511,16 +511,17 @@ App.registerGame({
       s.v = 2; s.lv = Math.max(1, Math.min(NLV, s.lv | 0 || 1)); s.f = s.f || {}; s.c = s.c || {}; s.d = s.d || {}; s.st = s.st || {};
       s.ib = Math.max(0, s.ib | 0, Math.round((+s.inf || 0) * 10)); s.ip = s.ip | 0; s.ic = s.ic | 0; s.inf = s.ib / 10; s.all = !!s.all;
       s.ea = Math.max(0, s.ea | 0); s.own = Array.isArray(s.own) ? s.own.filter(x => typeof x === "string").slice(0, 40) : []; s.eq = s.eq && typeof s.eq === "object" ? s.eq : {};
-      if(!HAT[s.eq.hat] || !s.own.includes("h:" + s.eq.hat)) s.eq.hat = ""; if(!PAWFX[s.eq.paw] || (s.eq.paw !== "none" && !s.own.includes("p:" + s.eq.paw))) s.eq.paw = "none";
+      s.eqT = +s.eqT || 0; if(!HAT[s.eq.hat] || !s.own.includes("h:" + s.eq.hat)) s.eq.hat = ""; if(!PAWFX[s.eq.paw] || (s.eq.paw !== "none" && !s.own.includes("p:" + s.eq.paw))) s.eq.paw = "none";
       s.fc = Math.max(0, s.ea - spent(s));   // 魚幣＝賺到的－買過的東西（兩支手機合併時才不會多出來）
       return s; };
     const spent = s => s.own.reduce((a, id) => a + ((id[0] === "h" ? HAT : PAWFX)[id.slice(2)] || { p:0 }).p, 0);
     S = norm(S);
+    let movedNote = !!S.moved; delete S.moved;
     const merge = r => { if(!r) return; r = norm(JSON.parse(JSON.stringify(r)));   // 雲端和手機上的取大的
       S.lv = Math.max(S.lv, r.lv); if(r.ib > S.ib){ S.ib = r.ib; S.ic = r.ic; } S.ip = Math.max(S.ip, r.ip); S.inf = S.ib / 10; S.all = S.all || r.all;
       for(const k of ["f","d","st"]) for(const x in r[k]) S[k][x] = Math.max(S[k][x] || 0, r[k][x] || 0);
       for(const x in r.c) if(S.c[x] == null || r.c[x] < S.c[x]) S.c[x] = r.c[x];
-      S.ea = Math.max(S.ea, r.ea); r.own.forEach(x => { if(!S.own.includes(x)) S.own.push(x); }); S.fc = Math.max(0, S.ea - spent(S)); if(!S.eq.hat && r.eq.hat) S.eq.hat = r.eq.hat; if(S.eq.paw === "none" && r.eq.paw !== "none") S.eq.paw = r.eq.paw; };
+      S.ea = Math.max(S.ea, r.ea); r.own.forEach(x => { if(!S.own.includes(x)) S.own.push(x); }); S.fc = Math.max(0, S.ea - spent(S)); if((r.eqT || 0) > (S.eqT || 0)){ S.eq = Object.assign({}, r.eq); S.eqT = r.eqT; } };
     const keep = () => { dirty = true; try{ localStorage.setItem(LK, JSON.stringify(S)); }catch(e){} };
     const sync = () => { if(!dirty) return; dirty = false; ctx.update(KEY, st => { merge(st); return JSON.parse(JSON.stringify(S)); }).catch(() => { dirty = true; }); };
     const cat = () => ctx.me.cat || "orange";
@@ -543,7 +544,7 @@ App.registerGame({
       el.innerHTML = `<div class="box nbLob">
         <div class="nbTopBar">${coinTag()}<button class="nbShopB" id="nbShop">商店・換裝</button></div>
         <div class="nbHero"><i class="a">${ART.cuke}</i><i class="b">${ART.yarn}</i><i class="c">${ART.drop}</i><i class="d">${ART.dog}</i><span class="nbHc">${catHtml("angry")}</span></div>
-        ${S.moved ? `<div class="nbHint">遊戲變大了！現在有 5 個世界、50 關。關卡要重新開始，之前拿到的星星換成了 <b>${S.fc}</b> 個魚幣，可以去商店買帽子喔</div>` : ""}
+        ${movedNote ? `<div class="nbHint">遊戲變大了！現在有 5 個世界、50 關。關卡要重新開始，之前拿到的星星換成了 <b>${S.fc}</b> 個魚幣，可以去商店買帽子喔</div>` : ""}
         <div class="nbWTabs">${WORLDS.map((x, i) => { const open = S.lv > i * 10; return `<button class="nbWT bg_${x.bg}${i === wTab ? " on" : ""}${open ? "" : " lock"}" data-w="${i}" ${open ? "" : "disabled"}><b>${open ? esc(x.n) : "？？？"}</b><small>${open ? `${wStars(i)}/30` : `${i * 10} 關後`}</small></button>`; }).join("")}</div>
         <div class="nbLvs">${LV.filter(L => L.w === wTab).map(L => { const n = L.id, open = n <= S.lv, done = S.c[n] != null;
           return `<button class="nbLv${open ? "" : " lock"}${done ? " done" : ""}${L.boss ? " boss" : ""}" data-lv="${n}" ${open ? "" : "disabled"}><b>${open ? (L.boss ? `<i>${ART.crown}</i>` : L.k) : `<i>${ART.lock}</i>`}</b><span>${open ? esc(L.n) : "還沒解鎖"}${open && S.f[n] && !done ? `<small>失敗 ${S.f[n]} 次</small>` : ""}</span>${done ? stars(S.st[n] || 1, "sm") : ""}</button>`; }).join("")}</div>
@@ -552,8 +553,7 @@ App.registerGame({
         <button class="btn sub" id="nbRank">全站排行榜（無盡模式）</button>
         <button class="btn sub" id="nbAlbum">下場圖鑑（${got} / ${FATE_IDS.length}）</button>
         <div class="k" style="text-align:center">東西會從四面八方跑過來，在碰到小貓之前點掉它！粉紅色的蝴蝶不能點。<br>三顆星：過關・沒用道具・連擊達標</div></div>`;
-      if(S.moved){ delete S.moved; keep(); }
-      el.querySelectorAll(".nbLv:not(.lock)").forEach(b => b.addEventListener("click", () => { SFX.tap(); play(+b.dataset.lv); }));
+      el.querySelectorAll(".nbLv:not(.lock)").forEach(b => b.addEventListener("click", () => { SFX.tap(); movedNote = false; play(+b.dataset.lv); }));
       el.querySelectorAll(".nbWT:not(.lock)").forEach(b => b.addEventListener("click", () => { SFX.tap(); wTab = +b.dataset.w; lobby(); }));
       el.querySelector("#nbAlbum").addEventListener("click", () => { SFX.tap(); album(); });
       el.querySelector("#nbRank").addEventListener("click", () => { SFX.tap(); rank(); });
@@ -590,7 +590,7 @@ App.registerGame({
         <button class="btn" id="nbBack">回去</button></div>`;
       el.querySelector("#nbBack").addEventListener("click", () => { SFX.tap(); lobby(); });
       el.querySelectorAll("[data-st]").forEach(b => b.addEventListener("click", () => { SFX.tap(); shopTab = b.dataset.st; shop(); }));
-      const off = el.querySelector("[data-off]"); if(off) off.addEventListener("click", () => { SFX.tap(); S.eq.hat = ""; keep(); shop(); });
+      const off = el.querySelector("[data-off]"); if(off) off.addEventListener("click", () => { SFX.tap(); S.eq.hat = ""; S.eqT = Date.now(); keep(); sync(); shop(); });
       el.querySelectorAll(".nbShI[data-id]").forEach(b => b.addEventListener("click", () => {
         const id = b.dataset.id, k = b.dataset.k, p = +b.dataset.p, own = p === 0 || S.own.includes(id);
         if(!own){ if(S.fc < p){ ctx.toast(`魚幣不夠喔，還差 ${p - S.fc} 個`); SFX.miss && SFX.miss(); return; }
@@ -598,7 +598,7 @@ App.registerGame({
             b.classList.add("arm"); b.querySelector("em").textContent = "再按一下買"; SFX.tap(); return; }
           S.own.push(id); S.fc = Math.max(0, S.ea - spent(S)); SFX.coin && SFX.coin(); }
         else SFX.tap();
-        if(id.startsWith("h:")) S.eq.hat = k; else S.eq.paw = k;
+        if(id.startsWith("h:")) S.eq.hat = k; else S.eq.paw = k; S.eqT = Date.now();
         keep(); sync(); shop(); }));
     }
 
@@ -814,7 +814,7 @@ App.registerGame({
         if(best.D.boss){ hurtBoss(best, 1); addCombo(); tone(300 + Math.random() * 80, .06, { vol:.2, type:"square" }); return; }
         best.hp--; SFX.hit ? SFX.hit() : SFX.tap();
         if(best.hp > 0){ best.el.classList.remove("hurt"); void best.el.offsetWidth; best.el.classList.add("hurt"); shards(best.x, best.y, best.D.col, 4);
-          const dx = best.x - cx, dy = best.y - cy, d = Math.hypot(dx, dy) || 1; best.x += dx / d * 26; best.y += dy / d * 26; if(best.vx){ best.vx = dx / d * Math.hypot(best.vx, best.vy); best.vy = dy / d * Math.hypot(best.vx, best.vy); } place(best); fx(best.x, best.y - best.D.s / 2 - 6, `還有 ${best.hp} 下`, "nbHp", 500); return; }
+          const dx = best.x - cx, dy = best.y - cy, d = Math.hypot(dx, dy) || 1; best.x += dx / d * 26; best.y += dy / d * 26; if(best.vx){ const sp = Math.hypot(best.vx, best.vy); best.vx = dx / d * sp; best.vy = dy / d * sp; } place(best); fx(best.x, best.y - best.D.s / 2 - 6, `還有 ${best.hp} 下`, "nbHp", 500); return; }
         kill(best, true); shards(best.x, best.y, best.D.col, best.D.hp > 1 ? 14 : 9, best.D.hp > 1); if(best.D.hp > 1) shake(false);
         addCombo();
         if(best.D.split) for(let i = 0; i < best.D.split; i++) spawn("mini", 0, best.x + (i - 1) * 14, best.y + (i % 2 ? 10 : -8));
@@ -851,7 +851,7 @@ App.registerGame({
 
     this._stop = () => { alive = false; stopGame(); sync(); };
     lobby();
-    ctx.getState(KEY).then(r => { if(!alive || !r) return; merge(r.state); try{ localStorage.setItem(LK, JSON.stringify(S)); }catch(e){} if(el.querySelector(".nbLob") && el.querySelector(".nbWTabs")) lobby(); }).catch(() => {});
+    ctx.getState(KEY).then(r => { if(!alive || !r) return; const lv0 = S.lv; merge(r.state); if(S.lv > lv0) wTab = -1; try{ localStorage.setItem(LK, JSON.stringify(S)); }catch(e){} if(el.querySelector(".nbLob") && el.querySelector(".nbWTabs")) lobby(); }).catch(() => {});
   },
   unmount(){ if(this._stop) this._stop(); },
 });
