@@ -676,9 +676,11 @@ const App = (function(){
     const waitingTa = !p && !isSolo(), ALONE = ["pool","stars","notes","pet"];
     const canAlone = g => g.solo || ALONE.includes(g.id);
     const gl = games.filter(g=>!g.hidden && (!isSolo() || g.solo) && !famHides(g));
-    // 新遊戲排最前面：registerGame 有寫 added（"YYYY-MM-DD"）的，越新越前面，其他照原本的順序
-    gl.sort((a,b)=>String(b.added||"").localeCompare(String(a.added||"")));
-    const isNewG = g => g.added && Date.now() - new Date(g.added + "T00:00:00+08:00").getTime() < 14*86400e3;
+    // 新遊戲排最前面：registerGame 有寫 added（"YYYY-MM-DD"）的，上線 3 天內排最前面（越新越前面），之後回到原本的位置；NEW 標籤顯示 14 天
+    const gAge = g => g.added ? Date.now() - new Date(g.added + "T00:00:00+08:00").getTime() : 1e15;
+    const frontKey = g => gAge(g) < 3*86400e3 ? String(g.added) : "";
+    gl.sort((a,b)=>frontKey(b).localeCompare(frontKey(a)));
+    const isNewG = g => gAge(g) < 14*86400e3;
     if(waitingTa) gl.sort((a,b)=>(canAlone(b)?1:0)-(canAlone(a)?1:0));
     // 置頂（每個人存在自己的手機）：照置頂的先後排在最前面
     const pins = gPins(); gl.sort((a,b)=>{ const x = pins.indexOf(a.id), y = pins.indexOf(b.id); return (x<0?1e9:x) - (y<0?1e9:y); });
