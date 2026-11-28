@@ -648,11 +648,14 @@ const App = (function(){
       const pv = $("hPrev"), nx = $("hNext");
       if(pv) pv.disabled = k === 0;
       if(nx){ nx.disabled = k === n - 1; nx.textContent = k === 0 ? "遊戲 ▶" : "▶"; nx.classList.toggle("wide", k === 0); }
+      if(k > 0 && !store.get("mw_gSeen")){ store.set("mw_gSeen", "1"); document.querySelectorAll(".hGoG.fresh,#hNext.fresh").forEach(x => x.classList.remove("fresh")); }
+      if(nx) nx.classList.toggle("fresh", k === 0 && !store.get("mw_gSeen"));
       document.body.classList.toggle("hOnGames", k > 0); document.body.classList.toggle("compact", k > 0);
       fitFirst();
       if(k === 0 && pinEdit){ pinEdit = false; }
     };
     $("hPrev").addEventListener("click", () => { SFX.tap(); show(hPage - 1, -1); });
+    const gog = $("hGoG"); if(gog) gog.addEventListener("click", () => { SFX.tap(); show(1, 1); });
     $("hNext").addEventListener("click", () => { SFX.tap(); show(hPage + 1, 1); });
     document.querySelectorAll("#hPgBar .hDots i").forEach(d => d.addEventListener("click", () => { SFX.tap(); const k = +d.dataset.pg; show(k, k > hPage ? 1 : -1); }));
     // 手指左右滑：橫向移動夠多、而且比上下移動多才算翻頁（上下滑還是正常捲動）
@@ -687,6 +690,10 @@ const App = (function(){
     const gCards = gl.map(g=>g.wip && !isAdmin ? `<div class="gcard soon wip" data-wip="1"><span class="gi">${window.GameArt && GameArt[g.id] ? `<span class="ga">${GameArt[g.id]()}</span>` : g.icon()}</span><span class="gn">${esc(g.name)}</span><span class="gd">🚧 待開發中</span></div>` : `<button class="gcard${waitingTa && !canAlone(g) ? " needTa" : ""}${pins.includes(g.id) ? " pinned" : ""}" data-g="${g.id}">${pins.includes(g.id) || pinEdit ? `<span class="gPin">${pins.includes(g.id) ? "置頂" : "＋置頂"}</span>` : ""}<span class="gi">${window.GameArt && GameArt[g.id] ? `<span class="ga">${GameArt[g.id]()}</span>` : g.icon()}</span>${isNewG(g) ? `<span class="gNew">NEW</span>` : ""}<span class="gn">${esc(g.name)}</span><span class="gd">${esc(g.desc)}</span>${waitingTa && !canAlone(g) ? `<span class="gb gWait">等 ta 加入</span>` : g.wip?`<span class="gb">🚧 測試中</span>`:g.badge&&g.badge()?`<span class="gb">${esc(g.badge())}</span>`:""}</button>`).concat(`<div class="gcard soon"><span class="gi">${sprite("gray","sleep",{soft:true})}</span><span class="gn">新遊戲</span><span class="gd">敬請期待…</span></div>`);
     const gNote = `<p class="gNote">本站遊戲純屬娛樂，不是賭博。貓幣、股市資金等都是虛擬的，不能儲值、不能換成現金或獎品。</p>`;
     if(fbUnread > 0) html = html.replace('<div id="truceHome">', `<div class="box banner fbBan" id="fbBan"><span class="bi">📮</span><div style="flex:1">站長回覆你的回報了！</div><button class="btn" id="bFbH">看看</button></div><div id="truceHome">`);
+    // 第 1 頁最下面：大大的「去玩遊戲」卡片（新來的人才找得到遊戲在第 2 頁），3 個遊戲的小圖＋有幾個遊戲；還沒翻過遊戲頁的人箭頭會跳
+    const gArt = g => window.GameArt && GameArt[g.id] ? `<span class="ga">${GameArt[g.id]()}</span>` : g.icon();
+    const gSeen = !!store.get("mw_gSeen"), gNew = gl.find(isNewG);
+    html = html.replace('<div class="hTiles" id="hTiles">', () => `<button class="box hGoG${gSeen ? "" : " fresh"}" id="hGoG"><span class="hGoArt">${gl.slice(0, 3).map((g, i) => `<i style="--r:${[-8, 4, -3][i]}deg">${gArt(g)}</i>`).join("")}</span><span class="hGoT"><b>來玩遊戲！</b><small>共 ${gl.length} 個・往左滑也可以</small>${gNew ? `<em>NEW　${esc(gNew.name)}</em>` : ""}</span><span class="hGoA">▶</span></button><div class="hTiles" id="hTiles">`);
     v.innerHTML = homePagesHtml(html, gCards, gNote);
     renderMeter(); if(p) ckRefresh(); if(isFam()){ famBind(v); famLiveLoad(); }
     const bfh=$("bFbH"); if(bfh) bfh.addEventListener("click", ()=>askFeedback());

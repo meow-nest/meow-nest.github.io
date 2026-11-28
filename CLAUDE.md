@@ -128,6 +128,7 @@ git push origin main           # GitHub Pages 約 1 分鐘後更新
 - 「下載 App」按鈕：Chrome 的安裝視窗沒跳出來（小米常見）時，3.5 秒後改顯示文字說明（`doInstall`）。已裝好的 App（standalone）設定頁不會有這顆按鈕。
 - 默契大考驗題庫：擴充題在 `games/moqi_more.js`（G 共用、P 二選一、C/B/M/F 情侶／閨蜜／兄弟／家人專屬），每個模式都超過 5000 題。G 和 P 不能有 `ROMANCE` 裡的字（包含「親」「兩人」）。家人模式改用 `BANK_FAM`（以前會用到情侶題庫）。新增題目時加在 moqi_more.js 就好，出題順序用雜湊排，加題不會讓已出過的題目重複。選項裡成對的「我／你」（例如 我/你、我贏/你贏、我唱你彈/你唱我彈：把我你互換後也在選項裡）畫面上換成兩人名字（`lab()`，uid 排序小的＝我），兩邊看到一樣的順序才比得出想到一起（11/26）。
 - 首頁像翻書（`homePagesHtml`／`homePagesBind`）：第 1 頁是小窩（稱號、簽到、小魚乾、小按鈕、提醒橫幅），內容少時用 `fitFirst()` 撐滿一個畫面；第 2 頁起是遊戲，一頁 6 個（`G_PER`），每頁最上面是「跟其他小窩的朋友一起玩」。左右滑或下方 ◀ ●○○ ▶ 換頁，記在 sessionStorage `mw_hpg`。翻頁動畫 `H_FX = "slide"`（style.css 還留著 fade/book/bounce/pixel/paw 可以換）。
+- **首頁「來玩遊戲！」卡片（11/28）**：viewHome 把 `#hGoG` 插在 `#hTiles` 前面（3 個遊戲小圖＋遊戲數＋最新的 NEW），點了 `show(1,1)` 翻到遊戲頁；還沒翻過遊戲頁的人（localStorage `mw_gSeen`）卡片和 `#hNext` 會閃／跳（`.fresh`）。
 - 置頂遊戲：每個人存在自己手機 localStorage `mw_pins`，遊戲第 1 頁右上「置頂設定」。
 - **新遊戲排最前面（11/26）**：`App.registerGame({ id, added:"YYYY-MM-DD", ... })`，有 `added` 的在上線 **3 天內**照日期新到舊排在遊戲第 1 頁最前面（`frontKey`，3 天後回原本的位置；11/28 前是永遠排前面），14 天內顯示黃色「NEW」標籤（`.gNew`，`isNewG`）。置頂還是最優先。**以後做新遊戲記得加 `added`**。目前有：nobump 11/28、catlife 11/24、wheel 11/23。
 - 喵喵方塊島（3D 遊戲）：11/24 站長說不做了，`games/cube*.js`、`cube-test.html`、style.css 裡的 `.p3d*`／`.cb*` 都刪掉了（要找回來看 git 歷史，commit「刪掉喵喵方塊島」之前）。
