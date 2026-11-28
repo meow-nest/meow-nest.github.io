@@ -380,6 +380,8 @@ App.registerGame({
     // ---------- views ----------
     function render(){
       const p = ctx.partner();
+      // 大畫布只給「正在畫的人」用：輪到別人畫、換題目、結束時，一定縮回來（以前多人房直接跳到下一回合時會卡在放大）
+      if(box.classList.contains("drFull") && !(s && s.phase === "draw" && isDrawer())){ box.classList.remove("drFull", "rot"); box.style.width = box.style.height = ""; document.body.classList.remove("drFullOn"); box.dataset.mode = ""; }
       if(MP && s && s.phase !== "draw"){ renderMP(); return; }
       if(!p){ box.innerHTML = `<div class="drWait">${sprite("white","sleep",{soft:true})}<p>等${ctx.pw()}加入小窩才能玩喔</p></div>`; return; }
       if(!s){ box.innerHTML = `<div class="drWait">${sprite(ctx.me.cat,"happy")}<p>準備中…</p></div>`; return; }
