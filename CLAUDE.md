@@ -61,7 +61,7 @@
 
 ### 加新的 SQL
 
-1. 新檔案 `supabase/update_NN_名稱.sql`，NN 接著目前最大的號碼（目前到 **88**）。開頭用中文註解說這次做什麼。要能重複執行（`if not exists`、`create or replace`）。
+1. 新檔案 `supabase/update_NN_名稱.sql`，NN 接著目前最大的號碼（目前到 **89**）。開頭用中文註解說這次做什麼。要能重複執行（`if not exists`、`create or replace`）。
 2. 加進 all.sql：`printf '\n' >> supabase/all.sql && cat supabase/update_NN_名稱.sql >> supabase/all.sql`
 3. 先在本機 Postgres 測過，再推上去給站長連結。
 
@@ -129,7 +129,7 @@ git push origin main           # GitHub Pages 約 1 分鐘後更新
 - 默契大考驗題庫：擴充題在 `games/moqi_more.js`（G 共用、P 二選一、C/B/M/F 情侶／閨蜜／兄弟／家人專屬），每個模式都超過 5000 題。G 和 P 不能有 `ROMANCE` 裡的字（包含「親」「兩人」）。家人模式改用 `BANK_FAM`（以前會用到情侶題庫）。新增題目時加在 moqi_more.js 就好，出題順序用雜湊排，加題不會讓已出過的題目重複。選項裡成對的「我／你」（例如 我/你、我贏/你贏、我唱你彈/你唱我彈：把我你互換後也在選項裡）畫面上換成兩人名字（`lab()`，uid 排序小的＝我），兩邊看到一樣的順序才比得出想到一起（11/26）。
 - 首頁像翻書（`homePagesHtml`／`homePagesBind`）：第 1 頁是小窩（稱號、簽到、小魚乾、小按鈕、提醒橫幅），內容少時用 `fitFirst()` 撐滿一個畫面；第 2 頁起是遊戲，一頁 6 個（`G_PER`），每頁最上面是「跟其他小窩的朋友一起玩」。左右滑或下方 ◀ ●○○ ▶ 換頁，記在 sessionStorage `mw_hpg`。翻頁動畫 `H_FX = "slide"`（style.css 還留著 fade/book/bounce/pixel/paw 可以換）。
 - 置頂遊戲：每個人存在自己手機 localStorage `mw_pins`，遊戲第 1 頁右上「置頂設定」。
-- **新遊戲排最前面（11/26）**：`App.registerGame({ id, added:"YYYY-MM-DD", ... })`，有 `added` 的照日期新到舊排在遊戲第 1 頁最前面（其他照原本順序，置頂還是最優先），14 天內顯示黃色「NEW」標籤（`.gNew`）。**以後做新遊戲記得加 `added`**。目前有：catlife 11/24、wheel 11/23。
+- **新遊戲排最前面（11/26）**：`App.registerGame({ id, added:"YYYY-MM-DD", ... })`，有 `added` 的照日期新到舊排在遊戲第 1 頁最前面（其他照原本順序，置頂還是最優先），14 天內顯示黃色「NEW」標籤（`.gNew`）。**以後做新遊戲記得加 `added`**。目前有：nobump 11/28、catlife 11/24、wheel 11/23。
 - 喵喵方塊島（3D 遊戲）：11/24 站長說不做了，`games/cube*.js`、`cube-test.html`、style.css 裡的 `.p3d*`／`.cb*` 都刪掉了（要找回來看 git 歷史，commit「刪掉喵喵方塊島」之前）。
 - **即時訊息用量（11/22）**：Supabase 免費方案每月 220 萬則，11 月超過（寬限到 12/22）。即時遊戲的同步頻率已經調低：一起煮飯位置 150ms 且沒動不送（2.5 秒補一次）、快照 450ms；划船 140ms；守護小窩 220ms；你畫我猜 150ms；全家一起玩 famHere 每 9 秒（26 秒沒收到算離開）。**新做的即時遊戲不要每秒送超過 5～7 次**；家人模式的廣播會送到全家每支手機（couple channel），越多人越貴。
 - **日誌擷取用量（11/22）**：免費方案每月 1GB，11 月超過。update_74 把每分鐘的排程合併成一個 `meow-tick` → `meow_tick()`（依序跑 truce_tick、fire_memos、fire_sched，每 5 分鐘 log_online，每小時清 3 天前的 cron.job_run_details）；**以後要加每分鐘的排程，請加進 `meow_tick()`，不要另外 cron.schedule**。前端家人「誰在玩」首頁列表和浮動通知共用一次查詢（`famLiveRows`，12 秒內不重複查）。
@@ -156,6 +156,6 @@ git push origin main           # GitHub Pages 約 1 分鐘後更新
 - 定時訊息（11/20 上線）：聊天頁左上「定時」（`schedWriter`）。`sched_msgs` 表不開權限，用 `sched_add`／`sched_list`／`sched_cancel`；pg_cron `meow-sched` 每分鐘跑 `fire_sched()`，用寫的人的名字插入 messages（kind `text`、media `{"sch":1}`，前端 `isSched` 顯示「定時訊息」標籤），推播照舊。送出前只有自己看得到；500 字、1 分鐘後～1 年內、每人最多 30 則；單人小窩沒有按鈕。
 - **你畫我猜大畫布卡住（11/28，沒有 SQL）**：`render()` 一開始，只要不是「draw 階段而且自己是畫的人」就拿掉 `drFull`／`rot`／`drFullOn`（以前多人房直接跳下一回合、換別人畫時，畫的人會卡在放大的畫面）。
 - **小窩刪除紀錄（update_88，11/28）**：站長發現「沒有快被刪的小窩」但小窩一直被刪——那行只算 90 天沒人用，真正在刪的是「雙人小窩等人超過 14 天」（cleanup_idle）、最後一個人離開、加入別的小窩。`couples` 的 BEFORE DELETE trigger `couple_dellog_trg` 寫進 `couple_dellog`（原因 wait14/idle90/empty/self/left/join/admin，用 auth.uid() 和成員判斷；沒權限，只能用 `admin_nest_watch()` 看）。`nest_last_at(cid)`＝最後有人用。後台「🗑 小窩刪除」（`admNestWatch`、`DEL_WHY`）：快被刪（5 天內，del_at＝max(開窩, 最後使用)+14 天）＋最近 100 筆＋這 7 天統計；用量那行 `#admIdleN` 也會加上快被刪的數量。
-- **喵喵別亂碰（進行中，還沒發布）**：`games/nobump.js`＋style.css 最後面 `.nb*`，站長說先放著。
+- **喵喵別亂碰（update_89，11/28）**：`games/nobump.js`（id `nobump`，`solo:true`，`added:"2026-11-28"`）＋style.css `.nb*`。小貓在中間，東西從四面八方跑過來，碰到前點掉；被碰到就失敗演「下場小劇場」（`scene(fk)`：`.nbW.zoom` 鏡頭拉近＋`.nbProp p_*` 道具＋`.nbCat.sc_*` 動畫＋`nbSay` 台詞），9 種下場收進圖鑑（`FATE`）。種類表 `T`（mv：line/curl/feint/blink/tele/park/flutter/boss）、`friend`＝蝴蝶不能點、`pow`＝道具（fish 全清、bell 慢 3 秒）。12 關 `LV`（第 5 關 bvac、第 12 關 bcuke 是魔王，打倒才過；出場表用固定種子 `R()`，每次一樣），三顆星＝過關／沒用道具／連擊 ≥ `cb`，全破開無盡模式（`endlessPlan`，最多 600 秒）。特效：`shards` 碎片、`shake`、連擊 `addCombo`（`SFX.tone` 音高越來越高）。進度存 localStorage `mw_nobump`＋game_state「`nobump:uid前8碼`」（lv、f 失敗、c、d 下場、st 星星、ib 無盡最久×10、ip 無盡玩幾次、ic），`merge` 取大的。update_89：`nobump_guard`（ib 只能在 ip+1、≤6000、離上次存檔超過那麼多秒時變好；只能改自己的）、`nobump_rank()` 前 30 名。`play()` 裡的 `gone` 防止離開後舊的結束畫面跳出來。`window.__nbDbg.fail(種類)` 測試用（直接觸發下場）。
 - **翅膀的版權（11/28）**：稱號的 4 種翅膀（小天使 `ANGEL_W1`、小惡魔 `DEVIL_W1`、Lv40 熾天使 `S40`、Lv40 小惡魔 `D40C`）是照站長從 Pinterest 找的圖描成像素的。站長看過重畫的原創版本後不喜歡，決定先維持原樣、有人反應再改；about.html 和 README 的聲明已改成「部分圖案參考網路圖片…如有侵權請來信，會立即修改或移除」。**以後不要再照網路上別人的圖描**，參考圖要用站長自己畫的或標明可以商用、改作的素材。
 - 等級稱號：Lv40 之後有天使／惡魔翅膀（惡魔 6 種顏色），排行榜有本週／總排行，站長小窩可以展示但不參加排行。
