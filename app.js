@@ -1531,7 +1531,7 @@ const App = (function(){
         ${on && on.now != null ? `<div class="auTop" style="margin-top:8px"><span>現在在線 <b>${on.now}</b> 人 / 同時上限 ${on.limit||200}</span><span>${Math.round(on.now/(on.limit||200)*100)}%</span></div>${bar(on.now/(on.limit||200))}
         <div class="k admNote">今天最多同時 <b>${on.peak1}</b> 人・這 7 天最多 <b>${on.peak7}</b> 人${on.peak7 >= (on.limit||200)*.75 ? `<br><span class="waitWarn">快接近同時在線上限了，可以考慮升級 Supabase 方案</span>` : ""}</div>`
         : `<div class="k admNote" style="margin-top:8px">在線人數：資料庫還沒加上這個設定（更新 21）</div>`}
-        <div class="k admNote">${st.idle60 ? `有 ${st.idle60} 個小窩超過 60 天沒人用，滿 90 天會自動刪除` : "沒有快被自動刪除的小窩"}</div></div></div>
+        <div class="k admNote" id="admIdleN">${st.idle60 ? `有 ${st.idle60} 個小窩超過 60 天沒人用，滿 90 天會自動刪除` : "沒有小窩快滿 90 天沒人用"}</div></div></div>
       <div class="box admBox admFold ${admOpen("users", false) ? "open" : ""}" data-fold="users" id="admUsers"><h3 class="admFH">👥 使用者<small>${st.people} 人</small><i class="admArr">▾</i></h3><div class="admFB">
         ${us ? `<input id="admQ" class="admQ" placeholder="搜尋暱稱或邀請碼" value="${esc(admQ)}" autocomplete="off">
         <div class="admTabs admSort"><button data-s="recent" class="${admSort==="recent"?"on":""}">最近上線</button><button data-s="idle" class="${admSort==="idle"?"on":""}">很久沒上線</button><button data-s="new" class="${admSort==="new"?"on":""}">最新加入</button></div>
@@ -1543,11 +1543,12 @@ const App = (function(){
         <button class="btn" id="admBdS" style="width:100%;margin-top:6px">改成這天</button>
         <button class="btn sub" id="admBdR" style="width:100%;margin-top:6px">清掉 ta 的生日（讓 ta 自己重填）</button>
         <div class="bdLH"><b>大家的生日</b><button class="btn sub" id="admBdL">看列表</button></div><div id="admBdList"></div><button class="btn sub" id="admBdP" style="width:100%;margin-top:6px">預覽生日領取畫面</button></div></div>
+      <div class="box admBox admFold ${admOpen("ndel", false) ? "open" : ""}" data-fold="ndel"><h3 class="admFH">🗑 小窩刪除<small id="admDelN"></small><i class="admArr">▾</i></h3><div class="admFB" id="admDel"><div class="k">讀取中…</div></div></div>
       <div class="box admBox admFold ${admOpen("prep", false) ? "open" : ""}" data-fold="prep"><h3 class="admFH">🚩 配對檢舉<small id="admPrN"></small><i class="admArr">▾</i></h3><div class="admFB" id="admPr"><div class="k">讀取中…</div></div></div>
       <div class="box admBox admFold ${admOpen("survey", true) ? "open" : ""}" data-fold="survey"><h3 class="admFH">📋 意見問卷<small id="admSvN"></small><i class="admArr">▾</i></h3><div class="admFB" id="admSv"><div class="k">讀取中…</div></div></div>`;
     body.querySelectorAll(".admFH").forEach(h=>h.addEventListener("click", ()=>{ const box = h.closest(".admFold"), k = box.dataset.fold, open = !box.classList.contains("open");
       box.classList.toggle("open", open); admFoldSet(k, open); SFX.tap(); }));
-    admSurvey(); admReports();
+    admSurvey(); admReports(); admNestWatch();
     { const r = $("admBdR"); if(r) r.addEventListener("click", async ()=>{ const c = $("admBdC").value.trim(), n = $("admBdN").value.trim(); if(!c || !n){ toast("邀請碼和暱稱都要填"); return; }
         if(!confirm(`確定要清掉「${n}」的生日嗎？`)) return; r.disabled = true;
         try{ const x = await B.rpc("admin_bday_reset", { p_code:c, p_name:n }); toast(x && x.ok ? "清掉了，ta 可以重新填生日了" : "找不到這個人，檢查一下邀請碼和暱稱"); }catch(e){ toast("資料庫還沒加上壽星貓的設定（更新 46）"); }
@@ -1750,6 +1751,27 @@ const App = (function(){
       try{ await B.updateMe({ cat:"star" }); }catch(e){} B.track({ name:me.name, cat:"star" }); lastHdr = ""; renderHeader(); o.remove(); toast(`${sprite("star","wave")} 換好了，博士貓來囉！`); if(view==="settings") render(); });
   }
   // 站長：隨機配對被檢舉的人，可以禁止 ta 配對（更新 68）
+  // 站長後台：快被刪掉的等人小窩＋最近被刪的小窩（update_88）
+  const DEL_WHY = { wait14:"等人超過 14 天", idle90:"90 天沒人用", empty:"沒有人的空小窩", self:"自己按刪除", left:"最後一個人離開", join:"加入別的小窩", admin:"站長刪除" };
+  let admDelTab = "soon";
+  async function admNestWatch(){
+    const box = $("admDel"); if(!box) return;
+    let r; try{ r = await B.rpc("admin_nest_watch", {}); }catch(e){ box.innerHTML = `<div class="k">${/admin_nest_watch|function/i.test(String(e.message||e)) ? "資料庫還沒加上這個功能（更新 88）" : "讀不到，等一下再試"}</div>`; return; }
+    if(!r || !$("admDel")) return;
+    const soon = r.soon || [], log = r.log || [], wk = r.week || {}, wkN = Object.values(wk).reduce((a, b) => a + b, 0);
+    const n = $("admDelN"); if(n) n.textContent = soon.length ? `${soon.length} 個快被刪` : "";
+    const idle = $("admIdleN"); if(idle){ if(idle.dataset.base == null) idle.dataset.base = idle.innerHTML; idle.innerHTML = idle.dataset.base + (soon.length ? `<br>有 <b>${soon.length}</b> 個小窩等人快滿 14 天（5 天內會被刪），在「小窩刪除」看` : "<br>5 天內沒有等人的小窩要被刪"); }
+    const md = m => (MODES[m] || MODES.couple).name.replace("模式", "");
+    const d = t => t ? new Date(t).toLocaleString("zh-TW", { month:"numeric", day:"numeric", hour:"2-digit", minute:"2-digit", hour12:false }) : "—";
+    const left = t => { const h = (new Date(t).getTime() - Date.now()) / 36e5; return h <= 0 ? "今天就會被刪" : h < 24 ? `${Math.ceil(h)} 小時後` : `${Math.ceil(h / 24)} 天後`; };
+    box.innerHTML = `<div class="k">雙人小窩開了 14 天還是只有一個人、而且 14 天沒人打開，會自動刪除；最後一個人離開、加入別的小窩，也會刪掉舊的小窩。</div>
+      <div class="admDelWk">這 7 天刪了 <b>${wkN}</b> 個${wkN ? "：" + Object.entries(wk).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${DEL_WHY[k] || k} ${v}`).join("、") : ""}<br><small>（從跑更新 88 開始記錄）</small></div>
+      <div class="admTabs"><button data-dt="soon" class="${admDelTab === "soon" ? "on" : ""}">快被刪 ${soon.length}</button><button data-dt="log" class="${admDelTab === "log" ? "on" : ""}">最近被刪 ${log.length}</button></div>
+      <div class="admDelL">${admDelTab === "soon"
+        ? (soon.length ? soon.map(x => `<div class="admDelI"><b>${esc(x.names || "（沒有暱稱）")}</b><span class="cpy" data-c="${esc(x.code || "")}">${esc(x.code || "")}</span><em>${md(x.mode)}</em><i class="warnT">${left(x.del_at)}</i><small>開了 ${idleDays(x.created_at)} 天・最後有人用：${agoTxt(x.last_at)}</small></div>`).join("") : `<div class="k" style="text-align:center;padding:8px">5 天內沒有要被刪的小窩</div>`)
+        : (log.length ? log.map(x => `<div class="admDelI"><b>${esc(x.names || "（沒有人了）")}</b><span>${esc(x.code || "")}</span><em>${md(x.mode)}</em><i>${esc(DEL_WHY[x.reason] || x.reason || "")}</i><small>${d(x.at)} 刪除・開了 ${Math.max(0, Math.round((new Date(x.at) - new Date(x.created_at)) / 864e5))} 天・${x.n} 人・${x.msgs} 則訊息</small></div>`).join("") : `<div class="k" style="text-align:center;padding:8px">還沒有被刪的紀錄</div>`)}</div>`;
+    box.querySelectorAll("[data-dt]").forEach(b => b.addEventListener("click", () => { SFX.tap(); admDelTab = b.dataset.dt; admNestWatch(); }));
+  }
   async function admReports(){
     const el = $("admPr"), nEl = $("admPrN"); if(!el) return;
     let xs; try{ xs = await B.rpc("admin_party_reports"); }catch(e){ el.innerHTML = `<div class="k">${/admin_party_reports|function|schema cache/i.test(String(e && e.message || e)) ? "資料庫還沒加上配對檢舉（更新 68）" : "讀不到，等一下再看"}</div>`; return; }

@@ -61,7 +61,7 @@
 
 ### 加新的 SQL
 
-1. 新檔案 `supabase/update_NN_名稱.sql`，NN 接著目前最大的號碼（目前到 **87**）。開頭用中文註解說這次做什麼。要能重複執行（`if not exists`、`create or replace`）。
+1. 新檔案 `supabase/update_NN_名稱.sql`，NN 接著目前最大的號碼（目前到 **88**）。開頭用中文註解說這次做什麼。要能重複執行（`if not exists`、`create or replace`）。
 2. 加進 all.sql：`printf '\n' >> supabase/all.sql && cat supabase/update_NN_名稱.sql >> supabase/all.sql`
 3. 先在本機 Postgres 測過，再推上去給站長連結。
 
@@ -155,6 +155,7 @@ git push origin main           # GitHub Pages 約 1 分鐘後更新
 - **聊天背景照片調整（11/27，沒有 SQL）**：`pickWallPhoto` → `wallEditor(src,pos)`：拖曳、兩指／滑桿／滾輪放大（1～4 倍）、白霧 0～70%，框框比例照手機聊天畫面估。存 `mw_wall_img`（裁好的 720 寬 jpg）、`mw_wall_src`（原圖 1400px，給重新調整）、`mw_wall_pos`（{x,y,s,fog}）；`applyWall` 設 `--wall-img`、`--wall-fog`。照片背景改成 `background-attachment:scroll`（以前 local 會跟訊息一起捲、被拉長）。設定「聊天背景」下面有「調整照片的位置和大小」（`#wpAdj`）。只存在手機，不上傳（`NO_MEDIA`）。
 - 定時訊息（11/20 上線）：聊天頁左上「定時」（`schedWriter`）。`sched_msgs` 表不開權限，用 `sched_add`／`sched_list`／`sched_cancel`；pg_cron `meow-sched` 每分鐘跑 `fire_sched()`，用寫的人的名字插入 messages（kind `text`、media `{"sch":1}`，前端 `isSched` 顯示「定時訊息」標籤），推播照舊。送出前只有自己看得到；500 字、1 分鐘後～1 年內、每人最多 30 則；單人小窩沒有按鈕。
 - **你畫我猜大畫布卡住（11/28，沒有 SQL）**：`render()` 一開始，只要不是「draw 階段而且自己是畫的人」就拿掉 `drFull`／`rot`／`drFullOn`（以前多人房直接跳下一回合、換別人畫時，畫的人會卡在放大的畫面）。
+- **小窩刪除紀錄（update_88，11/28）**：站長發現「沒有快被刪的小窩」但小窩一直被刪——那行只算 90 天沒人用，真正在刪的是「雙人小窩等人超過 14 天」（cleanup_idle）、最後一個人離開、加入別的小窩。`couples` 的 BEFORE DELETE trigger `couple_dellog_trg` 寫進 `couple_dellog`（原因 wait14/idle90/empty/self/left/join/admin，用 auth.uid() 和成員判斷；沒權限，只能用 `admin_nest_watch()` 看）。`nest_last_at(cid)`＝最後有人用。後台「🗑 小窩刪除」（`admNestWatch`、`DEL_WHY`）：快被刪（5 天內，del_at＝max(開窩, 最後使用)+14 天）＋最近 100 筆＋這 7 天統計；用量那行 `#admIdleN` 也會加上快被刪的數量。
 - **喵喵別亂碰（進行中，還沒發布）**：`games/nobump.js`＋style.css 最後面 `.nb*`，站長說先放著。
 - **翅膀的版權（11/28）**：稱號的 4 種翅膀（小天使 `ANGEL_W1`、小惡魔 `DEVIL_W1`、Lv40 熾天使 `S40`、Lv40 小惡魔 `D40C`）是照站長從 Pinterest 找的圖描成像素的。站長看過重畫的原創版本後不喜歡，決定先維持原樣、有人反應再改；about.html 和 README 的聲明已改成「部分圖案參考網路圖片…如有侵權請來信，會立即修改或移除」。**以後不要再照網路上別人的圖描**，參考圖要用站長自己畫的或標明可以商用、改作的素材。
 - 等級稱號：Lv40 之後有天使／惡魔翅膀（惡魔 6 種顏色），排行榜有本週／總排行，站長小窩可以展示但不參加排行。

@@ -4521,3 +4521,10 @@ body[data-wall="photo"] .chat .list{background:linear-gradient(rgba(255,255,255,
 .wpRow{display:flex;align-items:center;gap:10px;margin:10px 4px 0;font-size:14px}.wpRow span{flex:none;width:34px}.wpRow input{flex:1;accent-color:var(--pink)}
 .wpBtns{display:flex;gap:8px;margin-top:10px}.wpBtns .btn{flex:1}
 .wpAdj{width:100%;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px}.wpAdj svg{width:18px;height:18px}
+
+/* 站長後台：小窩刪除（update_88） */
+.admDelWk{margin:8px 0;padding:6px 8px;border:2px dashed var(--shadow);font-size:13px;line-height:1.5}.admDelWk b{font-weight:400;color:var(--pinkT)}.admDelWk small{color:var(--muted)}
+.admDelL{display:flex;flex-direction:column;gap:4px;margin-top:6px;max-height:380px;overflow-y:auto;overscroll-behavior:contain}
+.admDelI{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;border:2px solid var(--shadow);background:var(--card);padding:5px 8px;font-size:13px}
+.admDelI b{font-weight:400}.admDelI span{color:var(--muted);letter-spacing:1px}.admDelI em{font-style:normal;font-size:12px;color:var(--muted)}
+.admDelI i{font-style:normal;margin-left:auto;color:var(--pinkT)}.admDelI i.warnT{color:#d2553f}.admDelI small{flex-basis:100%;color:var(--muted);font-size:12px}
