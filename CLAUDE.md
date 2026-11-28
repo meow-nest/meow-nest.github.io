@@ -107,7 +107,7 @@ git push origin main           # GitHub Pages 約 1 分鐘後更新
 - 做完一件事，在 commit 訊息寫清楚（中文），另一個 Claude 才看得懂。
 - 每次發布後，把下面「目前的狀態」更新一下（例如最新的 SQL 號碼、正在進行的事）。
 
-## 目前的狀態（2026/11/25）
+## 目前的狀態（2026/11/28）
 
 - 最新的 SQL 是 update_65（貓貓股市多 8 家公司，共 24 家：`stock_defs`、`stock_meta` 兩個函式要一起加；前端 `games/stock.js` 的 `CO`、`INFO` 也要加）。update_64（定時訊息）站長已經跑過。站長說過 11/22（日）回來繼續更新。
 - 隨機配對（update_66＋67，11/21）：所有小窩（67 拿掉只限單人，不會配到同一個小窩的人）在「跟朋友一起玩」可以隨機配對其他小窩的人（`party_match`，遊戲 `MATCH_GAMES`：gomoku、pool、chess、banqi、battleship；不開放要打字的遊戲）。配對房間 `party_rooms.pub = true`：名字存成 `party_anon()`（喵友＋4 碼），看不到真名、不能用房間碼加入、有人離開整間關掉。只能用固定短句 `QP`（廣播 `{qp: 索引}`，不能自己打字）。檢舉 `party_report` → `party_blocks` 封鎖（使用者在「我檢舉過的喵友」可以解除：`party_my_blocks`／`party_unblock`）＋`party_reports` 紀錄＋寄到回報信箱「【配對檢舉】」。站長後台「配對檢舉」（`admReports`、`admin_party_reports`）看被檢舉次數，可以禁止配對（`party_bans`、`admin_party_ban`，update_68）。大廳最上面「現在在等連線的喵友」（update_69：`party_waiting` 每 5 秒、`party_meet(房間)` 直接一起玩、共用條件 `party_can_meet`；前端 `ptWaitTick`／`ptWaitPaint`／`ptMeet`）。等待中前端每 4 秒 `party_mine`（順便更新 last_at，超過 30 秒沒更新的房間不會被配到；update_70 起還會自動搬進更早在等同一個遊戲的房間，修兩個人同時按各自等的問題），等待畫面下面也列出其他在等的喵友。房間遊戲也多了五子棋、西洋棋、暗棋、海戰（`PARTY_GAMES`、`party_games()`）。
@@ -154,4 +154,5 @@ git push origin main           # GitHub Pages 約 1 分鐘後更新
 - **打卡沒有空檔（11/27）**：`greetSlot()` 早安 4:00～15:59、晚安 16:00～隔天 3:59（以前 14～19 點不能打卡）。
 - **聊天背景照片調整（11/27，沒有 SQL）**：`pickWallPhoto` → `wallEditor(src,pos)`：拖曳、兩指／滑桿／滾輪放大（1～4 倍）、白霧 0～70%，框框比例照手機聊天畫面估。存 `mw_wall_img`（裁好的 720 寬 jpg）、`mw_wall_src`（原圖 1400px，給重新調整）、`mw_wall_pos`（{x,y,s,fog}）；`applyWall` 設 `--wall-img`、`--wall-fog`。照片背景改成 `background-attachment:scroll`（以前 local 會跟訊息一起捲、被拉長）。設定「聊天背景」下面有「調整照片的位置和大小」（`#wpAdj`）。只存在手機，不上傳（`NO_MEDIA`）。
 - 定時訊息（11/20 上線）：聊天頁左上「定時」（`schedWriter`）。`sched_msgs` 表不開權限，用 `sched_add`／`sched_list`／`sched_cancel`；pg_cron `meow-sched` 每分鐘跑 `fire_sched()`，用寫的人的名字插入 messages（kind `text`、media `{"sch":1}`，前端 `isSched` 顯示「定時訊息」標籤），推播照舊。送出前只有自己看得到；500 字、1 分鐘後～1 年內、每人最多 30 則；單人小窩沒有按鈕。
+- **翅膀的版權（11/28）**：稱號的 4 種翅膀（小天使 `ANGEL_W1`、小惡魔 `DEVIL_W1`、Lv40 熾天使 `S40`、Lv40 小惡魔 `D40C`）是照站長從 Pinterest 找的圖描成像素的。站長看過重畫的原創版本後不喜歡，決定先維持原樣、有人反應再改；about.html 和 README 的聲明已改成「部分圖案參考網路圖片…如有侵權請來信，會立即修改或移除」。**以後不要再照網路上別人的圖描**，參考圖要用站長自己畫的或標明可以商用、改作的素材。
 - 等級稱號：Lv40 之後有天使／惡魔翅膀（惡魔 6 種顏色），排行榜有本週／總排行，站長小窩可以展示但不參加排行。
