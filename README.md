@@ -25,6 +25,12 @@
    **絕對不要**把 service_role／secret key 或資料庫密碼放進任何檔案。
 6. **推播通知（選用）**：產生一組 VAPID 金鑰，把公鑰填進 `config.js` 的 `VAPID_PUBLIC_KEY`。再把 `supabase/push/index.ts` 部署成 Edge Function `push`，並在 Edge Function 的 Secrets 設定 `VAPID_PUBLIC_KEY`、`VAPID_PRIVATE_KEY`。最後建立一個 Database Webhook：`messages` 資料表有 INSERT 時呼叫 `push`。
 
+## 作者
+
+喵喵小窩由 [jeanlike-catanddog](https://github.com/jeanlike-catanddog) 企劃、設計和營運，程式是跟 AI（Claude）一起寫的。
+
+2026/11/28 以前的更新紀錄，作者都顯示成「Claude」，因為那時候還不想公開身分。之後的更新會算在作者自己的帳號上。
+
 ## 使用的開放資源
 
 - 注音輸入詞庫：改編自酷音 [libchewing-data](https://github.com/chewing/libchewing-data)，LGPL-2.1-or-later（見 `zhuyin-LICENSE.txt`）

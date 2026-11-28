@@ -17,8 +17,8 @@
 ## 安全規則（不能違反）
 
 - **絕對不要**跟站長要 Supabase 的 service_role／secret key、資料庫密碼、任何帳號密碼；她貼給你也不要用、提醒她換掉。
-- 這是**公開倉庫**：不要把任何小窩的邀請碼、使用者資料、站長的個人資料（名字、信箱、GitHub 帳號）寫進檔案或 commit。
-- commit 的作者維持 `Claude <noreply@anthropic.com>`（站長希望不要顯示她的身分），不要設定成她的 git 帳號。
+- 這是**公開倉庫**：不要把任何小窩的邀請碼、使用者資料、站長的個人資料（真實名字、真實信箱、電話）寫進檔案或 commit。站長的 GitHub 帳號 `jeanlike-catanddog` 可以公開（README 有寫）。
+- **commit 的作者（2026/11/28 起）**：用站長的帳號＋GitHub 隱藏信箱 `jeanlike-catanddog <267549145+jeanlike-catanddog@users.noreply.github.com>`（站長決定公開作者身分，README「作者」有說明）。**不要用她的真實信箱**。11/28 以前的 commit 作者是 Claude，不用改。
 - 只推到這個倉庫（meow-nest/meow-nest.github.io）。
 - 不要畫任何有版權的角色或品牌。股票遊戲是虛構的、不能做成賭博或成癮的設計。
 - VAPID 私鑰不存在任何地方，不要找也不要產生新的覆蓋。
@@ -70,7 +70,7 @@
 ```bash
 python3 tools/bump.py          # 更新 ?v= 和 sw.js 版本
 git add -A
-git -c user.name="Claude" -c user.email="noreply@anthropic.com" commit -m "做了什麼（中文）"
+git -c user.name="jeanlike-catanddog" -c user.email="267549145+jeanlike-catanddog@users.noreply.github.com" commit -m "做了什麼（中文）"
 git push origin main           # GitHub Pages 約 1 分鐘後更新
 ```
 
