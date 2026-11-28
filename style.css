@@ -4554,8 +4554,7 @@ body[data-wall="photo"] .chat .list{background:linear-gradient(rgba(255,255,255,
 .nbBox{position:relative;padding:10px}
 .nbTop{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;font-size:14px}.nbTop em{font-style:normal;font-size:12px;color:var(--muted)}.nbTop b{font-weight:400;color:var(--pinkT)}
 .nbBossBar{position:relative;height:16px}.nbBossBar i{background:#e0574a!important}.nbBossBar span{position:absolute;inset:0;font-size:11px;line-height:12px;text-align:center;color:#fff;text-shadow:0 1px 0 #6a1a14}
-.nbF{position:relative;height:min(118vw,calc(62vh / var(--z,1)));max-height:520px;min-height:300px;border:3px solid var(--line);overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;
-  background:radial-gradient(circle at 50% 50%,#fff8ea 0 22%,transparent 23%),repeating-linear-gradient(0deg,#fbe6cf 0 24px,#f7dcc0 24px 48px)}
+.nbF{position:relative;height:min(118vw,calc(62vh / var(--z,1)));max-height:520px;min-height:300px;border:3px solid var(--line);overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
 .nbF:after{content:"";position:absolute;inset:0;pointer-events:none;background:rgba(120,170,255,.0);transition:background .3s}
 .nbF.slow:after{background:rgba(120,170,255,.18)}
 .nbF.flash:before{content:"";position:absolute;inset:0;background:#fff;z-index:20;pointer-events:none;animation:nbFlash .45s forwards}@keyframes nbFlash{from{opacity:.9}to{opacity:0}}
@@ -4629,6 +4628,88 @@ body[data-wall="photo"] .chat .list{background:linear-gradient(rgba(255,255,255,
 .nbCat.sc_wake{animation:nbWakeC .08s linear infinite}@keyframes nbWakeC{0%{transform:scale(1.25) rotate(-5deg)}50%{transform:scale(1.32) rotate(5deg)}100%{transform:scale(1.25) rotate(-5deg)}}
 .nbCat.sc_trip{animation:nbTripC .7s forwards}@keyframes nbTripC{40%{transform:translate(calc(var(--sd) * 30px),-26px) rotate(calc(var(--sd) * 40deg))}100%{transform:translate(calc(var(--sd) * 34px),8px) rotate(calc(var(--sd) * 100deg))}}
 .p_star{animation:nbOrbit 1s linear infinite}@keyframes nbOrbit{from{transform:translate(-50%,-50%) rotate(0) translateX(26px) rotate(0)}to{transform:translate(-50%,-50%) rotate(360deg) translateX(26px) rotate(-360deg)}}
+
+/* 喵喵別亂碰 第二版：世界、商店、帽子、新的下場 */
+.nbTopBar{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.nbCoin{display:inline-flex;align-items:center;gap:4px;border:3px solid var(--line);background:#fff6d6;color:#5a4a30;padding:2px 8px 2px 4px;font-size:15px;box-shadow:2px 2px 0 var(--shadow)}
+.nbCoin i,.nbGain i,.nbShI em i{display:inline-block;width:16px;line-height:0}.nbCoin svg,.nbGain svg,.nbShI em svg{width:100%;height:auto}
+.nbShopB{font:inherit;font-size:13px;border:3px solid var(--line);background:var(--pink);color:#fff;padding:4px 10px;box-shadow:2px 2px 0 var(--shadow);cursor:pointer}
+.nbShopB:active{transform:translate(2px,2px);box-shadow:none}
+.nbGain{color:#c98a10;font-size:16px;animation:nbBump .5s .4s backwards;display:flex;align-items:center;justify-content:center;gap:4px}
+.nbHat{position:absolute;display:block;line-height:0;pointer-events:none;z-index:3}.nbHat svg{width:100%;height:auto;display:block}
+.nbEndCat,.nbShCat,.nbShBig{position:relative}
+.nbEndCat{display:block;width:70px;margin:0 auto;line-height:0}.nbEndCat svg{width:100%;height:auto}
+/* 世界分頁 */
+.nbWTabs{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.nbWT{font:inherit;border:3px solid var(--line);padding:5px 2px 4px;display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer;color:#3b2a24;box-shadow:2px 2px 0 var(--shadow);min-width:0}
+.nbWT b{font-weight:400;font-size:12px;white-space:nowrap}.nbWT small{font-size:10px;opacity:.75}
+.nbWT.on{outline:3px solid var(--pink);outline-offset:-7px;transform:translateY(-2px)}
+.nbWT.lock{filter:grayscale(1);opacity:.5;cursor:default;box-shadow:none}
+.nbWT.bg_dream{color:#f3eaff}
+/* 場景背景 */
+.bg_home{background:radial-gradient(circle at 50% 50%,#fff8ea 0 22%,transparent 23%),repeating-linear-gradient(0deg,#fbe6cf 0 24px,#f7dcc0 24px 48px)}
+.bg_park{background:radial-gradient(circle at 50% 50%,#e8f7cf 0 22%,transparent 23%),radial-gradient(circle at 20% 30%,#ffe07a 0 2px,transparent 3px) 0 0/60px 60px,radial-gradient(circle at 70% 75%,#ffb3d1 0 2px,transparent 3px) 0 0/70px 70px,repeating-linear-gradient(90deg,#bfe3a0 0 20px,#b3db93 20px 40px)}
+.bg_vet{background:radial-gradient(circle at 50% 50%,#ffffff 0 22%,transparent 23%),linear-gradient(90deg,transparent 0 46px,rgba(120,160,200,.25) 46px 48px) 0 0/48px 48px,linear-gradient(0deg,transparent 0 46px,rgba(120,160,200,.25) 46px 48px) 0 0/48px 48px,#e3f3ff}
+.bg_beach{background:radial-gradient(circle at 50% 50%,#fff6dc 0 22%,transparent 23%),radial-gradient(circle,#e9c98e 0 1.5px,transparent 2px) 0 0/22px 22px,linear-gradient(180deg,#6cc0ff 0 14%,#a8dcff 14% 18%,#f7e2b0 18%)}
+.bg_dream{background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.12) 0 22%,transparent 23%),radial-gradient(circle at 30% 40%,#fff 0 1px,transparent 1.5px) 0 0/46px 46px,radial-gradient(circle at 70% 20%,#ffe07a 0 1.2px,transparent 2px) 0 0/63px 63px,linear-gradient(180deg,#2a2250,#4a3a7a 60%,#6b4f9a)}
+.nbF.bg_dream .nbW:before{border-color:rgba(255,255,255,.25)}.nbF.bg_dream .nbTimer{color:#fff;text-shadow:1px 1px 0 #2a2250}
+.nbF.bg_park .nbW:before{border-color:rgba(80,140,60,.3)}.nbF.bg_vet .nbW:before{border-color:rgba(90,140,190,.3)}
+/* 新東西介紹 */
+.nbIntro{position:absolute;left:50%;top:18%;transform:translateX(-50%);z-index:12;background:#fff;color:#3b2a24;border:3px solid #3b2a24;box-shadow:3px 3px 0 rgba(0,0,0,.18);padding:8px 10px;display:flex;align-items:center;gap:8px;width:min(86%,300px);font-size:13px;line-height:1.4;animation:nbSayA .3s backwards;transition:opacity .3s}
+.nbIntro i{width:40px;flex:none;line-height:0}.nbIntro i svg{width:100%;height:auto}.nbIntro.out{opacity:0}
+/* 新的動法 */
+.nbT.aimS svg{animation:nbAim .12s linear infinite}@keyframes nbAim{50%{filter:brightness(1.6) drop-shadow(0 0 3px #ff4a4a)}}
+.nbT.aimS:after{content:"！";position:absolute;left:50%;top:-18px;transform:translateX(-50%);color:#e0574a;font-size:18px;text-shadow:1px 1px 0 #fff,-1px -1px 0 #fff;line-height:1}
+.nbFx.nbWarn{font-size:24px;color:#e0574a;text-shadow:2px 2px 0 #fff,-2px -2px 0 #fff;animation:nbWarnA .14s steps(2) infinite}@keyframes nbWarnA{50%{opacity:.2}}
+.nbT.nb_bee svg{animation:nbFlap .12s steps(2) infinite}.nbT.nb_bird svg,.nbT.nb_gull svg{animation:nbFlap .3s steps(2) infinite}
+.nbT.nb_ufo svg{filter:drop-shadow(0 6px 0 rgba(255,224,122,.35))}
+.nbInk{position:absolute;z-index:11;pointer-events:none;line-height:0;opacity:.94;animation:nbInkA 3.6s forwards}.nbInk svg{width:100%;height:auto}
+@keyframes nbInkA{0%{transform:scale(.2);opacity:0}8%{transform:scale(1.1);opacity:.95}14%{transform:scale(1)}80%{opacity:.9}100%{opacity:0;transform:translateY(16px)}}
+/* 商店 */
+.nbShPrev{display:flex;justify-content:center;align-items:flex-end;gap:10px;padding:10px 0 4px;background:repeating-linear-gradient(0deg,#fbe6cf 0 16px,#f7dcc0 16px 32px);border:3px solid var(--line)}
+.nbShBig{width:96px;line-height:0;margin-top:30px}.nbShBig>svg{width:100%;height:auto}
+.nbShPw{width:34px;line-height:0;animation:nbHa 1.2s ease-in-out infinite}.nbShPw svg{width:100%;height:auto}
+.nbShTabs{justify-content:center}
+.nbShop{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.nbShI{font:inherit;color:var(--ink);border:3px solid var(--line);background:var(--card);padding:8px 4px 6px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;box-shadow:2px 2px 0 var(--shadow)}
+.nbShI:active{transform:translate(2px,2px);box-shadow:none}
+.nbShI b{font-weight:400;font-size:12px}.nbShI em{font-style:normal;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:2px}
+.nbShI.on{border-color:var(--pink);background:linear-gradient(180deg,rgba(255,158,196,.22),var(--card))}.nbShI.on em{color:var(--pinkT)}
+.nbShI.buy em{color:#c98a10}.nbShI.arm{border-color:#e0a020;animation:nbBump .2s}.nbShI.arm em{color:#e0574a}
+.nbShCat{display:block;width:52px;line-height:0;margin-top:14px}.nbShCat>svg{width:100%;height:auto}
+.nbShPaw{display:flex;flex-direction:column;align-items:center;gap:3px;height:66px;justify-content:center}.nbShPaw>svg{width:34px;height:auto}
+.nbShPaw em{display:flex;gap:2px}.nbShPaw em i{width:7px;height:7px;display:block}
+/* 新的下場小劇場 */
+.p_ballhit{animation:nbDrop .3s cubic-bezier(.5,0,.9,.4) backwards}.p_meteor{animation:nbMeteor .45s cubic-bezier(.5,0,.9,.4) backwards}
+@keyframes nbDrop{from{transform:translate(-50%,-50%) translate(120px,-200px)}}@keyframes nbMeteor{from{transform:translate(-50%,-50%) translate(220px,-320px) scale(1.4)}}
+.p_ballhit svg{animation:nbBounceOff .9s .3s ease-out forwards}@keyframes nbBounceOff{to{transform:translate(160px,-120px) rotate(540deg);opacity:0}}
+.nbCat.sc_dizzy{animation:nbDizzy .5s ease-in-out infinite}@keyframes nbDizzy{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
+.nbCat.sc_flat{transform-origin:50% 100%;animation:nbFlat .3s forwards}@keyframes nbFlat{to{transform:scale(1.6,.3)}}
+.p_beeorb{animation:nbOrbit .5s linear infinite}
+.p_lump{width:22px;height:18px;background:#ffb3a1;border:3px solid #3b2a24;border-radius:50% 50% 40% 40%;z-index:6;animation:nbLump .5s .4s cubic-bezier(.3,1.8,.5,1) backwards}@keyframes nbLump{from{transform:translate(-50%,-50%) scale(0)}}
+.p_grab{z-index:6;animation:nbGrab .5s backwards}@keyframes nbGrab{from{transform:translate(-50%,-50%) translate(-140px,-120px)}}
+.p_grab svg{animation:nbFlap .2s steps(2) infinite}
+.p_grab,.nbCat.sc_carry{animation-fill-mode:both}.nbCat.sc_carry{animation:nbCarry 1.8s .5s ease-in forwards}
+.p_grab{animation:nbGrab .5s backwards,nbCarryP 1.8s .5s ease-in forwards}
+@keyframes nbCarry{0%{transform:none}15%{transform:translateY(-14px) rotate(-6deg)}100%{transform:translate(170px,-300px) rotate(12deg)}}
+@keyframes nbCarryP{0%{translate:0 0}15%{translate:0 -14px}100%{translate:170px -300px}}
+.p_ufo{z-index:6;animation:nbUfo .5s backwards}.p_ufo svg{animation:nbHa .8s ease-in-out infinite}@keyframes nbUfo{from{transform:translate(-50%,-50%) translateY(-120px)}}
+.p_beam{width:70px;height:150px;z-index:1;background:linear-gradient(180deg,rgba(255,240,150,.9),rgba(255,240,150,.15));clip-path:polygon(35% 0,65% 0,100% 100%,0 100%);animation:fadeIn .3s .3s backwards}
+.nbCat.sc_float{animation:nbFloat 1.8s .5s ease-in forwards}@keyframes nbFloat{0%{transform:none}30%{transform:translateY(-10px) rotate(8deg)}100%{transform:translateY(-110px) scale(.2) rotate(-30deg);opacity:0}}
+.p_needle{z-index:6;animation:nbNeedle .35s cubic-bezier(.5,0,.9,.4) backwards}@keyframes nbNeedle{from{transform:translate(-50%,-50%) translateX(90px)}}
+.p_needle.flip{animation-name:nbNeedleL}@keyframes nbNeedleL{from{transform:translate(-50%,-50%) translateX(-90px)}}
+.nbCat.sc_jump{animation:nbJumpC .5s .3s cubic-bezier(.3,1.5,.5,1) forwards}@keyframes nbJumpC{40%{transform:translateY(-50px) scale(.9,1.15)}100%{transform:translateY(0) scale(1.05,.95)}}
+.nbFx.nbTear{width:6px;height:9px;background:#6cc0ff;border:2px solid #3a8fe0;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;animation:nbTearA .9s ease-out forwards}
+.nbFx.nbTear:nth-of-type(odd){--tx:-34px}@keyframes nbTearA{to{transform:translate(calc(-50% + var(--tx,34px)),40px);opacity:0}}
+.p_clipsnap{z-index:6}.p_clipsnap svg{animation:nbSnap .22s steps(2) infinite}@keyframes nbSnap{50%{transform:scaleY(.7)}}
+.p_crab{z-index:6;animation:nbCrabIn .25s backwards}.p_crab svg{animation:nbShiver .1s linear infinite}@keyframes nbCrabIn{from{transform:translate(-50%,-50%) translateX(60px)}}
+.p_wave{z-index:7;animation:nbWaveA 1.6s ease-in forwards}@keyframes nbWaveA{to{transform:translate(-50%,-50%) translateX(calc(var(--sd) * 420px))}}
+.nbCat.sc_wash{animation:nbWash 1.2s ease-in forwards}@keyframes nbWash{0%{transform:none}30%{transform:rotate(-40deg) translateY(-10px)}100%{transform:translate(220px,-30px) rotate(-360deg);opacity:0}}
+.p_clamhead{z-index:6;animation:nbClamH .3s cubic-bezier(.3,1.6,.5,1) backwards}@keyframes nbClamH{from{transform:translate(-50%,-50%) scale(1.8);opacity:0}}
+.p_robot{z-index:1}.p_robot.spin svg{animation:nbSpinR .35s linear infinite}
+.nbCat.sc_ride{animation:nbRide 2s ease-in-out forwards}
+@keyframes nbSpinR{to{transform:rotate(360deg)}}
+@keyframes nbRide{0%{transform:translateY(-14px)}100%{transform:translateY(-14px) rotate(1080deg)}}
 
 .nbRks{display:flex;flex-direction:column;gap:5px}
 .nbRk{display:flex;align-items:center;gap:8px;border:3px solid var(--line);background:var(--card);padding:4px 8px}
